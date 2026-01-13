@@ -72,18 +72,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         private Button rmaButton;
         private Button breakevenButton;
         private Button flattenButton;
-        
-        // v5.12: Target management dropdowns
-        private Button t1DropdownButton;
-        private Border t1DropdownPanel;
-        private bool t1DropdownExpanded;
-        private Button t2DropdownButton;
-        private Border t2DropdownPanel;
-        private bool t2DropdownExpanded;
-        private Button runnerDropdownButton;
-        private Border runnerDropdownPanel;
-        private bool runnerDropdownExpanded;
-        
         private bool uiCreated;
 
         // Colors for UI - MUST be frozen for cross-thread access
@@ -371,7 +359,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State == State.SetDefaults)
             {
-                Description = "Universal Opening Range Strategy v5.12 - Target Management Dropdowns";
+                Description = "Universal Opening Range Strategy v5.11 - Breakeven Toggle";
                 Name = "UniversalORStrategyV5";
                 Calculate = Calculate.OnPriceChange;  // CRITICAL FIX: Updates on every price tick for real-time trailing
                 EntriesPerDirection = 10;
@@ -2014,13 +2002,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 6: Short button
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 7: RMA button
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 8: Breakeven button
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 9: T1 dropdown button
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 10: T1 dropdown panel
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 11: T2 dropdown button
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 12: T2 dropdown panel
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 13: Runner dropdown button
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 14: Runner dropdown panel
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 15: Flatten button
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 9: Flatten button
 
                 Border dragHandle = new Border
                 {
@@ -2036,7 +2018,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 TextBlock dragLabel = new TextBlock
                 {
-                    Text = "═══ OR Strategy v5.12 ═══",
+                    Text = "═══ OR Strategy v5.11 ═══",
                     Foreground = Brushes.White,
                     FontWeight = FontWeights.Bold,
                     HorizontalAlignment = HorizontalAlignment.Center,
@@ -2046,7 +2028,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 statusTextBlock = new TextBlock
                 {
-                    Text = "OR v5.12 | Initializing...",
+                    Text = "OR v5.11 | Initializing...",
                     Foreground = Brushes.White,
                     FontWeight = FontWeights.Bold,
                     FontSize = 13,
@@ -2148,60 +2130,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 breakevenButton.Click += (s, e) => OnBreakevenButtonClick();
                 Grid.SetRow(breakevenButton, 8);
 
-                // v5.12: T1 Dropdown Button
-                t1DropdownButton = new Button
-                {
-                    Content = "T1 ACTIONS ▼ (1)",
-                    Background = new SolidColorBrush(Color.FromRgb(100, 60, 140)),
-                    Foreground = Brushes.White,
-                    FontWeight = FontWeights.Bold,
-                    Margin = new Thickness(0, 8, 0, 2),
-                    Padding = new Thickness(8, 4, 8, 4),
-                    Cursor = Cursors.Hand
-                };
-                t1DropdownButton.Click += (s, e) => ToggleT1Dropdown();
-                Grid.SetRow(t1DropdownButton, 9);
-
-                // T1 Dropdown Panel (collapsed by default)
-                t1DropdownPanel = CreateDropdownPanel("T1");
-                Grid.SetRow(t1DropdownPanel, 10);
-
-                // v5.12: T2 Dropdown Button
-                t2DropdownButton = new Button
-                {
-                    Content = "T2 ACTIONS ▼ (2)",
-                    Background = new SolidColorBrush(Color.FromRgb(100, 60, 140)),
-                    Foreground = Brushes.White,
-                    FontWeight = FontWeights.Bold,
-                    Margin = new Thickness(0, 2, 0, 2),
-                    Padding = new Thickness(8, 4, 8, 4),
-                    Cursor = Cursors.Hand
-                };
-                t2DropdownButton.Click += (s, e) => ToggleT2Dropdown();
-                Grid.SetRow(t2DropdownButton, 11);
-
-                // T2 Dropdown Panel (collapsed by default)
-                t2DropdownPanel = CreateDropdownPanel("T2");
-                Grid.SetRow(t2DropdownPanel, 12);
-
-                // v5.12: Runner Dropdown Button
-                runnerDropdownButton = new Button
-                {
-                    Content = "RUNNER ACTIONS ▼ (3)",
-                    Background = new SolidColorBrush(Color.FromRgb(100, 60, 140)),
-                    Foreground = Brushes.White,
-                    FontWeight = FontWeights.Bold,
-                    Margin = new Thickness(0, 2, 0, 2),
-                    Padding = new Thickness(8, 4, 8, 4),
-                    Cursor = Cursors.Hand
-                };
-                runnerDropdownButton.Click += (s, e) => ToggleRunnerDropdown();
-                Grid.SetRow(runnerDropdownButton, 13);
-
-                // Runner Dropdown Panel (collapsed by default)
-                runnerDropdownPanel = CreateDropdownPanel("Runner");
-                Grid.SetRow(runnerDropdownPanel, 14);
-
                 flattenButton = new Button
                 {
                     Content = "FLATTEN ALL (F)",
@@ -2213,7 +2141,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     Cursor = Cursors.Hand
                 };
                 flattenButton.Click += (s, e) => FlattenAll();
-                Grid.SetRow(flattenButton, 15);
+                Grid.SetRow(flattenButton, 9);
 
                 mainGrid.Children.Add(dragHandle);
                 mainGrid.Children.Add(statusTextBlock);
@@ -2224,12 +2152,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 mainGrid.Children.Add(shortButton);
                 mainGrid.Children.Add(rmaButton);
                 mainGrid.Children.Add(breakevenButton);
-                mainGrid.Children.Add(t1DropdownButton);
-                mainGrid.Children.Add(t1DropdownPanel);
-                mainGrid.Children.Add(t2DropdownButton);
-                mainGrid.Children.Add(t2DropdownPanel);
-                mainGrid.Children.Add(runnerDropdownButton);
-                mainGrid.Children.Add(runnerDropdownPanel);
                 mainGrid.Children.Add(flattenButton);
 
                 mainBorder.Child = mainGrid;
@@ -2238,7 +2160,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 UserControlCollection.Add(mainBorder);
 
                 uiCreated = true;
-                Print("UI created - v5.12 (Target Management Dropdowns)");
+                Print("UI created - v5.11 (Breakeven Toggle)");
             }
             catch (Exception ex)
             {
@@ -2257,340 +2179,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 catch { }
             }
             uiCreated = false;
-        }
-
-        // v5.12: Create dropdown panel with action buttons
-        private Border CreateDropdownPanel(string targetType)
-        {
-            StackPanel menuStack = new StackPanel
-            {
-                Background = new SolidColorBrush(Color.FromArgb(230, 30, 30, 40)),
-                Margin = new Thickness(5, 0, 5, 2)
-            };
-
-            if (targetType == "T1" || targetType == "T2")
-            {
-                // Target actions
-                menuStack.Children.Add(CreateMenuButton("Fill at Market NOW", () => ExecuteTargetAction(targetType, "market")));
-                menuStack.Children.Add(CreateMenuButton("Move to 1 Point", () => ExecuteTargetAction(targetType, "1point")));
-                menuStack.Children.Add(CreateMenuButton("Move to 2 Points", () => ExecuteTargetAction(targetType, "2point")));
-                menuStack.Children.Add(CreateMenuButton("Move to Market Price", () => ExecuteTargetAction(targetType, "marketprice")));
-                menuStack.Children.Add(CreateMenuButton("Move to Breakeven", () => ExecuteTargetAction(targetType, "breakeven")));
-                menuStack.Children.Add(CreateMenuButton("Cancel " + targetType + " Order", () => ExecuteTargetAction(targetType, "cancel")));
-            }
-            else if (targetType == "Runner")
-            {
-                // Runner actions
-                menuStack.Children.Add(CreateMenuButton("Close Runner at Market", () => ExecuteRunnerAction("market")));
-                menuStack.Children.Add(CreateMenuButton("Move Stop to 1 Point", () => ExecuteRunnerAction("stop1pt")));
-                menuStack.Children.Add(CreateMenuButton("Move Stop to 2 Points", () => ExecuteRunnerAction("stop2pt")));
-                menuStack.Children.Add(CreateMenuButton("Move Stop to Breakeven", () => ExecuteRunnerAction("stopbe")));
-                menuStack.Children.Add(CreateMenuButton("Lock 50% of Profit", () => ExecuteRunnerAction("lock50")));
-                menuStack.Children.Add(CreateMenuButton("Disable Trailing Stop", () => ExecuteRunnerAction("disabletrail")));
-            }
-
-            Border panel = new Border
-            {
-                Child = menuStack,
-                Visibility = Visibility.Collapsed
-            };
-
-            return panel;
-        }
-
-        private Button CreateMenuButton(string text, Action onClick)
-        {
-            Button btn = new Button
-            {
-                Content = text,
-                Background = new SolidColorBrush(Color.FromRgb(60, 60, 80)),
-                Foreground = Brushes.White,
-                FontSize = 10,
-                Margin = new Thickness(2),
-                Padding = new Thickness(6, 3, 6, 3),
-                Cursor = Cursors.Hand,
-                HorizontalContentAlignment = HorizontalAlignment.Left
-            };
-            btn.Click += (s, e) => onClick();
-            return btn;
-        }
-
-        private void ToggleT1Dropdown()
-        {
-            t1DropdownExpanded = !t1DropdownExpanded;
-            t1DropdownPanel.Visibility = t1DropdownExpanded ? Visibility.Visible : Visibility.Collapsed;
-            t1DropdownButton.Content = t1DropdownExpanded ? "T1 ACTIONS ▲ (1)" : "T1 ACTIONS ▼ (1)";
-            
-            // Close other dropdowns
-            if (t1DropdownExpanded)
-            {
-                t2DropdownExpanded = false;
-                t2DropdownPanel.Visibility = Visibility.Collapsed;
-                t2DropdownButton.Content = "T2 ACTIONS ▼ (2)";
-                runnerDropdownExpanded = false;
-                runnerDropdownPanel.Visibility = Visibility.Collapsed;
-                runnerDropdownButton.Content = "RUNNER ACTIONS ▼ (3)";
-            }
-        }
-
-        private void ToggleT2Dropdown()
-        {
-            t2DropdownExpanded = !t2DropdownExpanded;
-            t2DropdownPanel.Visibility = t2DropdownExpanded ? Visibility.Visible : Visibility.Collapsed;
-            t2DropdownButton.Content = t2DropdownExpanded ? "T2 ACTIONS ▲ (2)" : "T2 ACTIONS ▼ (2)";
-            
-            // Close other dropdowns
-            if (t2DropdownExpanded)
-            {
-                t1DropdownExpanded = false;
-                t1DropdownPanel.Visibility = Visibility.Collapsed;
-                t1DropdownButton.Content = "T1 ACTIONS ▼ (1)";
-                runnerDropdownExpanded = false;
-                runnerDropdownPanel.Visibility = Visibility.Collapsed;
-                runnerDropdownButton.Content = "RUNNER ACTIONS ▼ (3)";
-            }
-        }
-
-        private void ToggleRunnerDropdown()
-        {
-            runnerDropdownExpanded = !runnerDropdownExpanded;
-            runnerDropdownPanel.Visibility = runnerDropdownExpanded ? Visibility.Visible : Visibility.Collapsed;
-            runnerDropdownButton.Content = runnerDropdownExpanded ? "RUNNER ACTIONS ▲ (3)" : "RUNNER ACTIONS ▼ (3)";
-            
-            // Close other dropdowns
-            if (runnerDropdownExpanded)
-            {
-                t1DropdownExpanded = false;
-                t1DropdownPanel.Visibility = Visibility.Collapsed;
-                t1DropdownButton.Content = "T1 ACTIONS ▼ (1)";
-                t2DropdownExpanded = false;
-                t2DropdownPanel.Visibility = Visibility.Collapsed;
-                t2DropdownButton.Content = "T2 ACTIONS ▼ (2)";
-            }
-        }
-
-        // v5.12: Execute target actions (T1 or T2)
-        private void ExecuteTargetAction(string targetType, string action)
-        {
-            try
-            {
-                if (activePositions.Count == 0)
-                {
-                    Print(FormatString("{0} ACTION: No active positions", targetType));
-                    return;
-                }
-
-                foreach (var kvp in activePositions)
-                {
-                    PositionInfo pos = kvp.Value;
-                    string entryName = kvp.Key;
-
-                    if (!pos.EntryFilled)
-                    {
-                        Print(FormatString("{0} ACTION: Position {1} not filled yet", targetType, entryName));
-                        continue;
-                    }
-
-                    Dictionary<string, Order> targetOrders = (targetType == "T1") ? target1Orders : target2Orders;
-                    int targetContracts = (targetType == "T1") ? pos.T1Contracts : pos.T2Contracts;
-                    bool targetFilled = (targetType == "T1") ? pos.T1Filled : pos.T2Filled;
-
-                    if (targetFilled)
-                    {
-                        Print(FormatString("{0} ACTION: {1} already filled for {2}", targetType, targetType, entryName));
-                        continue;
-                    }
-
-                    double currentPrice = Close[0];
-
-                    switch (action)
-                    {
-                        case "market":
-                            // Fill target at market NOW
-                            if (targetOrders.ContainsKey(entryName))
-                            {
-                                CancelOrder(targetOrders[entryName]);
-                                targetOrders.Remove(entryName);
-                            }
-
-                            Order marketOrder = pos.Direction == MarketPosition.Long
-                                ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Market, targetContracts, 0, 0, "", targetType + "_Market_" + entryName)
-                                : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Market, targetContracts, 0, 0, "", targetType + "_Market_" + entryName);
-
-                            Print(FormatString("★ {0} MARKET FILL: {1} - Closing {2} contracts at market", targetType, entryName, targetContracts));
-                            break;
-
-                        case "1point":
-                            // Move target to 1 point from current price
-                            double newPrice1pt = pos.Direction == MarketPosition.Long
-                                ? currentPrice + (1.0 * tickSize / tickSize)  // 1 point up for long
-                                : currentPrice - (1.0 * tickSize / tickSize); // 1 point down for short
-                            newPrice1pt = Instrument.MasterInstrument.RoundToTickSize(newPrice1pt);
-                            MoveTargetOrder(entryName, targetType, newPrice1pt, targetContracts, pos.Direction);
-                            Print(FormatString("★ {0} → 1 POINT: {1} - New target @ {2:F2}", targetType, entryName, newPrice1pt));
-                            break;
-
-                        case "2point":
-                            // Move target to 2 points from current price
-                            double newPrice2pt = pos.Direction == MarketPosition.Long
-                                ? currentPrice + (2.0 * tickSize / tickSize)
-                                : currentPrice - (2.0 * tickSize / tickSize);
-                            newPrice2pt = Instrument.MasterInstrument.RoundToTickSize(newPrice2pt);
-                            MoveTargetOrder(entryName, targetType, newPrice2pt, targetContracts, pos.Direction);
-                            Print(FormatString("★ {0} → 2 POINTS: {1} - New target @ {2:F2}", targetType, entryName, newPrice2pt));
-                            break;
-
-                        case "marketprice":
-                            // Move target to current market price (instant fill)
-                            double marketPrice = Instrument.MasterInstrument.RoundToTickSize(currentPrice);
-                            MoveTargetOrder(entryName, targetType, marketPrice, targetContracts, pos.Direction);
-                            Print(FormatString("★ {0} → MARKET PRICE: {1} - New target @ {2:F2}", targetType, entryName, marketPrice));
-                            break;
-
-                        case "breakeven":
-                            // Move target to breakeven (entry price)
-                            MoveTargetOrder(entryName, targetType, pos.EntryPrice, targetContracts, pos.Direction);
-                            Print(FormatString("★ {0} → BREAKEVEN: {1} - New target @ {2:F2}", targetType, entryName, pos.EntryPrice));
-                            break;
-
-                        case "cancel":
-                            // Cancel target order - let contracts run
-                            if (targetOrders.ContainsKey(entryName))
-                            {
-                                CancelOrder(targetOrders[entryName]);
-                                targetOrders.Remove(entryName);
-                                Print(FormatString("★ {0} CANCELLED: {1} - {2} contracts will run with stop", targetType, entryName, targetContracts));
-                            }
-                            break;
-                    }
-                }
-
-                UpdateDisplay();
-            }
-            catch (Exception ex)
-            {
-                Print(FormatString("ERROR ExecuteTargetAction ({0}, {1}): {2}", targetType, action, ex.Message));
-            }
-        }
-
-        private void MoveTargetOrder(string entryName, string targetType, double newPrice, int quantity, MarketPosition direction)
-        {
-            Dictionary<string, Order> targetOrders = (targetType == "T1") ? target1Orders : target2Orders;
-
-            // Cancel existing target order
-            if (targetOrders.ContainsKey(entryName))
-            {
-                CancelOrder(targetOrders[entryName]);
-                targetOrders.Remove(entryName);
-            }
-
-            // Submit new target order at new price
-            Order newTargetOrder = direction == MarketPosition.Long
-                ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Limit, quantity, newPrice, 0, "", targetType + "_" + entryName)
-                : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Limit, quantity, newPrice, 0, "", targetType + "_" + entryName);
-
-            if (newTargetOrder != null)
-            {
-                targetOrders[entryName] = newTargetOrder;
-            }
-        }
-
-        // v5.12: Execute runner actions
-        private void ExecuteRunnerAction(string action)
-        {
-            try
-            {
-                if (activePositions.Count == 0)
-                {
-                    Print("RUNNER ACTION: No active positions");
-                    return;
-                }
-
-                foreach (var kvp in activePositions)
-                {
-                    PositionInfo pos = kvp.Value;
-                    string entryName = kvp.Key;
-
-                    if (!pos.EntryFilled)
-                    {
-                        Print(FormatString("RUNNER ACTION: Position {0} not filled yet", entryName));
-                        continue;
-                    }
-
-                    // Calculate runner contracts (remaining after T1 and T2)
-                    int runnerContracts = pos.RemainingContracts;
-                    if (runnerContracts <= 0)
-                    {
-                        Print(FormatString("RUNNER ACTION: No runner contracts for {0}", entryName));
-                        continue;
-                    }
-
-                    double currentPrice = Close[0];
-
-                    switch (action)
-                    {
-                        case "market":
-                            // Close runner at market
-                            Order runnerMarketOrder = pos.Direction == MarketPosition.Long
-                                ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Market, runnerContracts, 0, 0, "", "Runner_Market_" + entryName)
-                                : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Market, runnerContracts, 0, 0, "", "Runner_Market_" + entryName);
-
-                            Print(FormatString("★ RUNNER MARKET CLOSE: {0} - Closing {1} contracts at market", entryName, runnerContracts));
-                            break;
-
-                        case "stop1pt":
-                            // Move stop to 1 point from current price
-                            double newStop1pt = pos.Direction == MarketPosition.Long
-                                ? currentPrice - (1.0 * tickSize / tickSize)
-                                : currentPrice + (1.0 * tickSize / tickSize);
-                            newStop1pt = Instrument.MasterInstrument.RoundToTickSize(newStop1pt);
-                            UpdateStopOrder(entryName, pos, newStop1pt, pos.CurrentTrailLevel);
-                            Print(FormatString("★ RUNNER STOP → 1 POINT: {0} - Stop @ {1:F2}", entryName, newStop1pt));
-                            break;
-
-                        case "stop2pt":
-                            // Move stop to 2 points from current price
-                            double newStop2pt = pos.Direction == MarketPosition.Long
-                                ? currentPrice - (2.0 * tickSize / tickSize)
-                                : currentPrice + (2.0 * tickSize / tickSize);
-                            newStop2pt = Instrument.MasterInstrument.RoundToTickSize(newStop2pt);
-                            UpdateStopOrder(entryName, pos, newStop2pt, pos.CurrentTrailLevel);
-                            Print(FormatString("★ RUNNER STOP → 2 POINTS: {0} - Stop @ {1:F2}", entryName, newStop2pt));
-                            break;
-
-                        case "stopbe":
-                            // Move stop to breakeven
-                            UpdateStopOrder(entryName, pos, pos.EntryPrice, 1);
-                            Print(FormatString("★ RUNNER STOP → BREAKEVEN: {0} - Stop @ {1:F2}", entryName, pos.EntryPrice));
-                            break;
-
-                        case "lock50":
-                            // Lock 50% of current profit
-                            double unrealizedProfit = pos.Direction == MarketPosition.Long
-                                ? currentPrice - pos.EntryPrice
-                                : pos.EntryPrice - currentPrice;
-                            double lock50Stop = pos.Direction == MarketPosition.Long
-                                ? pos.EntryPrice + (unrealizedProfit * 0.5)
-                                : pos.EntryPrice - (unrealizedProfit * 0.5);
-                            lock50Stop = Instrument.MasterInstrument.RoundToTickSize(lock50Stop);
-                            UpdateStopOrder(entryName, pos, lock50Stop, pos.CurrentTrailLevel);
-                            Print(FormatString("★ RUNNER LOCK 50%: {0} - Stop @ {1:F2} (profit: {2:F2})", entryName, lock50Stop, unrealizedProfit));
-                            break;
-
-                        case "disabletrail":
-                            // Disable trailing - keep stop where it is
-                            pos.CurrentTrailLevel = 999; // Set to high number to prevent further trailing
-                            Print(FormatString("★ RUNNER TRAILING DISABLED: {0} - Stop fixed @ {1:F2}", entryName, pos.CurrentStopPrice));
-                            break;
-                    }
-                }
-
-                UpdateDisplay();
-            }
-            catch (Exception ex)
-            {
-                Print(FormatString("ERROR ExecuteRunnerAction ({0}): {1}", action, ex.Message));
-            }
         }
 
         private void OnDragStart(object sender, MouseButtonEventArgs e)
@@ -2637,7 +2225,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 // Status
                 string status = orComplete ? "OR COMPLETE" : (isInORWindow ? "OR BUILDING" : "WAITING");
-                statusTextBlock.Text = FormatString("OR v5.12 | {0}", status);
+                statusTextBlock.Text = FormatString("OR v5.11 | {0}", status);
 
                 // OR Info
                 if (orComplete)
@@ -2767,44 +2355,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private void OnKeyDown(object sender, KeyEventArgs e)
         {
-            // Basic hotkeys
             if (e.Key == Key.L) { ExecuteLong(); e.Handled = true; }
             else if (e.Key == Key.S) { ExecuteShort(); e.Handled = true; }
             else if (e.Key == Key.F) { FlattenAll(); e.Handled = true; }
-            
-            // v5.12: T1 Actions (1 + letter)
-            else if (Keyboard.IsKeyDown(Key.D1) || Keyboard.IsKeyDown(Key.NumPad1))
-            {
-                if (e.Key == Key.M) { ExecuteTargetAction("T1", "market"); e.Handled = true; }
-                else if (e.Key == Key.O) { ExecuteTargetAction("T1", "1point"); e.Handled = true; }
-                else if (e.Key == Key.W) { ExecuteTargetAction("T1", "2point"); e.Handled = true; }
-                else if (e.Key == Key.K) { ExecuteTargetAction("T1", "marketprice"); e.Handled = true; }
-                else if (e.Key == Key.B) { ExecuteTargetAction("T1", "breakeven"); e.Handled = true; }
-                else if (e.Key == Key.C) { ExecuteTargetAction("T1", "cancel"); e.Handled = true; }
-            }
-            
-            // v5.12: T2 Actions (2 + letter)
-            else if (Keyboard.IsKeyDown(Key.D2) || Keyboard.IsKeyDown(Key.NumPad2))
-            {
-                if (e.Key == Key.M) { ExecuteTargetAction("T2", "market"); e.Handled = true; }
-                else if (e.Key == Key.O) { ExecuteTargetAction("T2", "1point"); e.Handled = true; }
-                else if (e.Key == Key.W) { ExecuteTargetAction("T2", "2point"); e.Handled = true; }
-                else if (e.Key == Key.K) { ExecuteTargetAction("T2", "marketprice"); e.Handled = true; }
-                else if (e.Key == Key.B) { ExecuteTargetAction("T2", "breakeven"); e.Handled = true; }
-                else if (e.Key == Key.C) { ExecuteTargetAction("T2", "cancel"); e.Handled = true; }
-            }
-            
-            // v5.12: Runner Actions (3 + letter)
-            else if (Keyboard.IsKeyDown(Key.D3) || Keyboard.IsKeyDown(Key.NumPad3))
-            {
-                if (e.Key == Key.M) { ExecuteRunnerAction("market"); e.Handled = true; }
-                else if (e.Key == Key.O) { ExecuteRunnerAction("stop1pt"); e.Handled = true; }
-                else if (e.Key == Key.W) { ExecuteRunnerAction("stop2pt"); e.Handled = true; }
-                else if (e.Key == Key.B) { ExecuteRunnerAction("stopbe"); e.Handled = true; }
-                else if (e.Key == Key.P) { ExecuteRunnerAction("lock50"); e.Handled = true; }  // P for Profit
-                else if (e.Key == Key.D) { ExecuteRunnerAction("disabletrail"); e.Handled = true; }
-            }
-            
             // RMA uses Shift+Click (R conflicts with NT search, Ctrl conflicts with chart drag)
         }
 

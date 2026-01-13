@@ -1,7 +1,7 @@
 # UniversalORStrategy - Complete Project Package
 
-**Version:** V5.7_FINAL_FIX  
-**Status:** ✅ Production Ready - Entry Cancellation Bug Fixed  
+**Version:** V5.12  
+**Status:** ✅ Production Ready - Target Management Dropdowns  
 **Date:** January 12, 2026
 
 ---
@@ -32,8 +32,8 @@
 
 ```
 universal-or-strategy/
-├── UniversalORStrategyV5.cs ← Current production version (v5.7)
-├── UniversalORStrategyV5_v5_7_FINAL_FIX.cs ← Versioned copy
+├── UniversalORStrategyV5.cs ← Current production version (v5.12)
+├── UniversalORStrategyV5_v5_12.cs ← Versioned copy
 ├── archived-versions/
 │   └── All previous strategy versions (V4, V5.x, etc.)
 ├── Order_Management.xlsx ← SINGLE SOURCE OF TRUTH for parameters
@@ -64,7 +64,12 @@ universal-or-strategy/
 ├── MILESTONE_V4_0_1_SUMMARY.md
 ├── MILESTONE_V5_2_SUMMARY.md
 ├── MILESTONE_V5_4_PERFORMANCE_SUMMARY.md
-├── MILESTONE_V5_7_FINAL_FIX_SUMMARY.md ← Latest milestone
+├── MILESTONE_V5_7_FINAL_FIX_SUMMARY.md
+├── MILESTONE_V5_8_SUMMARY.md
+├── MILESTONE_V5_9_SUMMARY.md
+├── MILESTONE_V5_10_SUMMARY.md
+├── MILESTONE_V5_11_SUMMARY.md
+├── MILESTONE_V5_12_SUMMARY.md ← Latest milestone
 ├── README_MULTI_AI_REVIEW.md
 ├── prompt-templates.md
 ├── synthesis-checklist.md
@@ -76,8 +81,8 @@ universal-or-strategy/
 ## 📚 Key Files Reference
 
 ### Strategy Code
-- **Current:** `UniversalORStrategyV5.cs` (v5.7 FINAL_FIX - Production validated)
-- **Versioned:** `UniversalORStrategyV5_v5_7_FINAL_FIX.cs`
+- **Current:** `UniversalORStrategyV5.cs` (v5.12 - Production validated)
+- **Versioned:** `UniversalORStrategyV5_v5_12.cs`
 - **Archive:** `archived-versions/` (all previous versions for reference)
 
 ### Parameters
@@ -88,7 +93,7 @@ universal-or-strategy/
   - Session-specific configs
 
 ### Documentation
-- **Latest Milestone:** `MILESTONE_V5_7_FINAL_FIX_SUMMARY.md` - v5.7 details
+- **Latest Milestone:** `MILESTONE_V5_12_SUMMARY.md` - v5.12 target management dropdowns
 - **Changelog:** `CHANGELOG.md` - Full version history and what changed
 - **Plan:** `PLAN.md` - Development roadmap
 - **Quick Help:** `QUICK_REFERENCE.md` - Common questions answered
@@ -110,7 +115,7 @@ universal-or-strategy/
 
 ---
 
-## 🎯 Current Status (V5.7_FINAL_FIX)
+## 🎯 Current Status (V5.12)
 
 ### ✅ Completed & Validated
 - Opening Range Breakout (ORB) strategy
@@ -123,6 +128,11 @@ universal-or-strategy/
 - Rate-limited order modifications (Apex compliance)
 - Multi-contract bracket management (2-18 contracts tested)
 - Tighter risk management (MinStop=1pt, Risk=$200)
+- **Manual breakeven button**: Click to arm, auto-triggers at entry + buffer (v5.9)
+- **ATR display**: Real-time volatility shown in UI panel (v5.10)
+- **OR label toggle**: Hide/show chart text for clean visualization (v5.10)
+- **Breakeven toggle**: Arm/disarm before trigger, locked after (v5.11)
+- **Target management dropdowns**: T1, T2, Runner action menus with hotkeys (v5.12)
 
 ### 🟢 Production Status
 - **APPROVED FOR LIVE FUNDED TRADING**
@@ -130,6 +140,11 @@ universal-or-strategy/
 - No system freezes or stranded orders
 - Clean performance across multiple sessions
 - Entry cancellation bug FIXED (v5.7)
+- Stop validation VERIFIED (v5.8)
+- Manual breakeven TESTED (v5.9)
+- ATR display & label toggle WORKING (v5.10)
+- Breakeven toggle TESTED (v5.11)
+- Target management dropdowns TESTED (v5.12)
 
 ### 🔄 In Development
 - Fibonacci retracement confluence levels

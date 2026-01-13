@@ -6,6 +6,174 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [5.12] - 2026-01-12 - MILESTONE "Target Management Dropdowns"
+
+### Added
+- **T1 Target Dropdown Menu**: 6 actions for T1 management
+  - Fill at Market NOW - Close T1 portion immediately
+  - Move to 1 Point - Adjust T1 to 1 point from current price
+  - Move to 2 Points - Adjust T1 to 2 points from current price
+  - Move to Market Price - Move T1 limit to current market (instant fill)
+  - Move to Breakeven - Move T1 to entry price
+  - Cancel T1 Order - Remove T1, let contracts run
+- **T2 Target Dropdown Menu**: Same 6 actions as T1
+- **Runner Management Dropdown**: 6 actions for runner/stop management
+  - Close Runner at Market - Exit runner portion immediately
+  - Move Stop to 1 Point - Tighten stop to 1 point from current
+  - Move Stop to 2 Points - Tighten stop to 2 points from current
+  - Move Stop to Breakeven - Lock in T1+T2 profits
+  - Lock 50% of Profit - Move stop halfway to current price
+  - Disable Trailing Stop - Fix stop at current price
+- **Hotkey System**: Combo keys for all actions
+  - T1: Hold `1` + letter (M/O/W/K/B/C)
+  - T2: Hold `2` + letter (M/O/W/K/B/C)
+  - Runner: Hold `3` + letter (M/O/W/B/P/D)
+- **Multi-Position Support**: All actions affect all active positions simultaneously
+
+### Changed
+- UI grid expanded to include 3 dropdown buttons and 3 dropdown panels
+- `OnKeyDown()` enhanced with hotkey combo detection
+- Added `ExecuteTargetAction()` method for T1/T2 management
+- Added `ExecuteRunnerAction()` method for runner management
+- Added `MoveTargetOrder()` helper for target order modification
+
+### Technical
+- Dropdown panels collapse/expand with auto-close of other dropdowns
+- Menu buttons created dynamically via `CreateDropdownPanel()`
+- Action handlers validate position state before executing
+- UpdateStopOrder calls include proper parameters (pos, newStopPrice, newTrailLevel)
+
+### Test Results
+- Compiled successfully ✅
+- UI created and displayed ✅
+- Dropdown actions tested in live market ✅
+  - T1 → 1 Point: Working (RMAShort test)
+  - T2 → 2 Points: Working (RMAShort test)
+  - T2 → 1 Point: Working (RMAShort test)
+- All v5.11 features intact ✅
+
+### Files
+- See `MILESTONE_V5_12_SUMMARY.md` for detailed implementation and use cases
+
+---
+
+## [5.11] - 2026-01-12 - MILESTONE "Breakeven Toggle"
+
+### Added
+- **Breakeven Toggle Functionality**: Click to arm/disarm breakeven before trigger
+  - Click once → Armed (orange)
+  - Click again → Disarmed (gray)
+  - Toggle unlimited times before trigger
+  - After trigger → Locked (green, cannot toggle)
+- **Protection Lock**: Prevents accidentally disarming active breakeven protection
+  - Message: "BREAKEVEN: Already triggered - cannot toggle"
+  - Lock engages when stop moves to breakeven + buffer
+
+### Changed
+- `OnBreakevenButtonClick()` now toggles armed state instead of just setting it
+- Added state checking logic to determine arm/disarm action
+- Added trigger checking logic to prevent toggle after activation
+
+### Technical
+- Checks `ManualBreakevenTriggered` flag to determine if lock should engage
+- Checks `ManualBreakevenArmed` flag to determine toggle direction
+- Provides clear print messages for each state change
+
+### Test Results
+- Toggle tested 5 times successfully (arm/disarm/arm/disarm/arm) ✅
+- Auto-trigger working (stop moved at threshold) ✅
+- Lock working (cannot toggle after trigger) ✅
+- Trailing after breakeven working (T1 → T2 progression) ✅
+
+### Files
+- See `MILESTONE_V5_11_SUMMARY.md` for detailed implementation
+
+---
+
+
+## [5.10] - 2026-01-12 - MILESTONE "ATR Display & OR Label Toggle"
+
+### Added
+- **ATR Display in UI Panel**: Current ATR value now shows in OR info section
+  - Displays in all states: Waiting, Building, Complete
+  - Format: "H: X | L: Y | R: Z | ATR: A.BC"
+  - Helps assess market volatility for RMA trade sizing
+- **OR Label Toggle**: New `ShowORLabel` property to hide/show chart text
+  - Located in "6. Display" settings group
+  - Default: ON (shows label)
+  - Allows clean chart while maintaining OR box visualization
+
+### Changed
+- `UpdateDisplayInternal()` now includes ATR value in OR info text
+- `DrawORBox()` conditionally draws OR label based on `ShowORLabel` property
+
+### Technical
+- ATR value pulled from existing `currentATR` variable (already calculated for RMA)
+- Conditional text formatting prevents display when ATR not yet calculated
+
+### Test Results
+- v5.10 compiled and loaded successfully ✅
+- ATR displaying correctly in UI panel ✅
+- OR label toggle working (hide/show) ✅
+- All v5.9 features still working (manual breakeven tested) ✅
+
+### Files
+- See `MILESTONE_V5_10_SUMMARY.md` for detailed implementation
+
+---
+
+
+## [5.9] - 2026-01-12 - MILESTONE "Manual Breakeven Button"
+
+### Added
+- **Manual Breakeven Button**: Click to arm breakeven protection that auto-triggers when price reaches threshold
+  - Button shows in UI between RMA and Flatten buttons
+  - Visual states: Gray (inactive) → Orange (armed) → Green (triggered)
+  - "Set and forget" approach - click early, triggers automatically
+- **Configurable Buffer**: New `ManualBreakevenBuffer` property (default: 1 tick, range: 1-10)
+  - Adjustable per instrument (MES vs MGC can use different buffers)
+  - Located in "5. Trailing Stops" property group
+- **State Tracking**: Two new fields in PositionInfo class
+  - `ManualBreakevenArmed` - Button clicked, monitoring price
+  - `ManualBreakevenTriggered` - Stop has been moved to breakeven
+
+### Changed
+- `ManageTrailingStops()` now checks manual breakeven BEFORE automatic trailing logic
+- Button color updates in `UpdateDisplayInternal()` based on position states
+
+### Technical
+- Auto-trigger logic runs on every tick (Calculate.OnPriceChange)
+- Works with both OR and RMA positions simultaneously
+- Won't move stop until price actually reaches entry + buffer (prevents accidental stop-outs)
+
+### Test Results
+- MGC live test: Armed while red, auto-triggered at entry + 1 tick ✅
+- Risk reduced from -11 ticks to -3 ticks (73% reduction) ✅
+- Button state changes working correctly ✅
+
+### Files
+- See `MILESTONE_V5_9_SUMMARY.md` for detailed implementation and usage guide
+
+---
+
+## [5.8] - 2026-01-12 - MILESTONE "Stop Validation & Trailing Stops"
+
+### Added
+- **Stop Order Null Validation**: Checks if stop submission returns null, triggers emergency flatten
+- **Stop Rejection Recovery**: Detects rejected stops and auto-resubmits
+- **Emergency Flatten Function**: `FlattenPositionByName()` closes position at market if stop fails
+- **Enhanced Logging**: Clear ⚠️ warnings for critical issues
+
+### Validated
+- ✅ Trailing stops working correctly (BE → T1 → T2 → T3)
+- ✅ Applies to both OR and RMA trades
+- ✅ Entry isolation from v5.7 still working
+
+### Files
+- See `MILESTONE_V5_8_SUMMARY.md` for test evidence
+
+---
+
 ## [5.7_FINAL_FIX] - 2026-01-12 - MILESTONE "Entry Cancellation Bug Fixed"
 
 ### Fixed
