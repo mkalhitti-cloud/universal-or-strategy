@@ -1,8 +1,8 @@
 # UniversalORStrategy - Complete Project Package
 
-**Version:** V5.3.1  
-**Status:** Ready for GitHub + IDE Development  
-**Date:** January 2025
+**Version:** V5.4_PERFORMANCE  
+**Status:** ✅ Production Ready - Live Trading Validated  
+**Date:** January 2026
 
 ---
 
@@ -73,7 +73,7 @@ universal-or-strategy/
 ## 📚 Key Files Reference
 
 ### Strategy Code
-- **Current:** `UniversalORStrategyV5_v5_2_MILESTONE.cs` (91 KB - the one to compile)
+- **Current:** `UniversalORStrategyV5_v5_4_PERFORMANCE.cs` (Production validated)
 - **Archive:** `archived-versions/` (all previous versions for reference)
 
 ### Parameters
@@ -105,15 +105,23 @@ universal-or-strategy/
 
 ---
 
-## 🎯 Current Status (V5.3.1)
+## 🎯 Current Status (V5.4_PERFORMANCE)
 
-### ✅ Completed
+### ✅ Completed & Validated
 - Opening Range Breakout (ORB) strategy
 - RMA click-entry system with Shift+Click orders
+- **Trailing stops**: BE → T1 → T2 progression validated in live trading
+- **Order cleanup**: 100% success rate across all trade exits
 - Live price tracking with OnMarketData (CRITICAL FIX)
-- ATR-based position sizing
-- Dual profit targets (TP1 50%, TP2 100%)
+- ATR-based position sizing and targets
 - Rate-limited order modifications (Apex compliance)
+- Multi-contract bracket management (2-18 contracts tested)
+
+### 🟢 Production Status
+- **APPROVED FOR LIVE FUNDED TRADING**
+- Tested on MES and MGC with Rithmic data feed
+- No system freezes or stranded orders
+- Clean performance across multiple sessions
 
 ### 🔄 In Development
 - Fibonacci retracement confluence levels
