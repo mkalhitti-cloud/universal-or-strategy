@@ -21,9 +21,8 @@ With the trend trade we will use the 9 EMA and 15 EMA. These are the
 only times that these EMA's will be used.
 
 We will get into trend trades at the 9 EMA and 15 EMA, given that the 9
-EMA and 15 EMA are not too far apart (refer to [Order Management
-Spreadsheet](https://wall-street-global-trading-academy.teachable.com/courses/resource-center/lectures/63257348)
-).
+EMA and 15 EMA are not too far apart refer to Order Management
+Spreadsheet
 
 We will enter into the trend trade with 1/3 of our position at the 9 EMA
 and 2/3 of our position at the 15 EMA.
@@ -36,12 +35,13 @@ or after 3pm.
 **What happens if only 1/3 of our order is filled?**
 
 If we get in with only 1/3 of the position, we will stay in the trade
-all day or until the trend breaks (See Bracket Order Lesson).
+all day or until the trend breaks.
 
 **What do I do when my full order is filled?**
 
-Take first profit according to [Order Management
-Spreadsheet](https://wall-street-global-trading-academy.teachable.com/courses/resource-center/lectures/63257348)
+Take first profit according to Order Management
+Spreadsheet
+
 
 Trail the remaining contracts for the rest of the day or until the trend
 breaks (See Bracket Order Lesson). You may also look to lock in profits
@@ -50,10 +50,8 @@ if you see support or resistance opposing the trend.
 **How do you know when a trend is broken?**
 
 A trend is broken when the price breaks the 15 EMA according to our stop
-order (see [Order Management
-Spreadsheet](https://wall-street-global-trading-academy.teachable.com/courses/resource-center/lectures/63257348)
-).
-
+order see Order Management
+Spreadsheet
 Do not be afraid to lock in profits, especially if there is support or
 resistance that pushes against the trend
 
@@ -70,7 +68,7 @@ VWAP. We are not using the 9 EMA or the 15 EMA.
 See Order Management Spreadsheet for more detailed information on
 entries, exits, and stop orders
 
-**[Notes:]{.underline}**
+
 
 We recommend /ES (or /MES) for beginning traders
 
@@ -78,7 +76,7 @@ Once we have our first profit, always raise your stop to lock in profit
 
 The faster something moves to a level, the better
 
-We will only try our entries on a level [ONE TIME]{.underline} (unless a
+We will only try our entries on a level [ONE TIME] (unless a
 significant amount of time has passed, or there has been a significant
 move to get back there)
 
@@ -115,9 +113,8 @@ soon as the price begins to move back up toward the moving average we
 will place a *[Market Order]{.underline}*.
 
 **Rule #1: **We need the instrument to move significantly away from the
-moving average lines (see the [Order Management
-Spreadsheet](https://wall-street-global-trading-academy.teachable.com/courses/resource-center/lectures/63257348)
- for more details).
+moving average lines see the Order Management
+Spreadsheet
 
 **Rule #2: **We need the RSI (Relative Strength Index) to be above 80
 (overbought), or below 20 (oversold).
@@ -149,9 +146,8 @@ the day, goes down, and then retests the high a second time.
 for the day, goes up, and then retests the low a second time.
 
 **Rule #1: **The instrument must move away from the high or
-low [significantly]{.underline} (see [Order Management
-Spreadsheet](https://wall-street-global-trading-academy.teachable.com/courses/resource-center/lectures/63257348)
-)
+low [significantly]{.underline} see Order Management
+Spreadsheet
 
 **Rule #2: **We need [at least 30 minutes]{.underline} between the first
 high/low and the second high/low
@@ -168,7 +164,5 @@ market will all join in on the direction it breaks into.
 **Rule #1: **On the 5 minute chart, it needs to go sideways for at least
 30 minutes. We always use the 5 minute chart for the momentum trade.
 
-**Rule #2: **We can\'t have the sideways movement be too wide. Refer to
-the [Order Management
-Spreadsheet](https://wall-street-global-trading-academy.teachable.com/courses/resource-center/lectures/63257348)
- for point ranges.
+**Rule #2: **We can't have the sideways movement be too wide. Refer to
+the Order Management Spreadsheet for point ranges.
