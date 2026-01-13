@@ -1,8 +1,8 @@
 # UniversalORStrategy - Complete Project Package
 
-**Version:** V5.4_PERFORMANCE  
-**Status:** ✅ Production Ready - Live Trading Validated  
-**Date:** January 2026
+**Version:** V5.7_FINAL_FIX  
+**Status:** ✅ Production Ready - Entry Cancellation Bug Fixed  
+**Date:** January 12, 2026
 
 ---
 
@@ -32,9 +32,10 @@
 
 ```
 universal-or-strategy/
-├── UniversalORStrategyV5_v5_2_MILESTONE.cs ← Current version to use
+├── UniversalORStrategyV5.cs ← Current production version (v5.7)
+├── UniversalORStrategyV5_v5_7_FINAL_FIX.cs ← Versioned copy
 ├── archived-versions/
-│   └── All previous strategy versions (V4, V5, etc.)
+│   └── All previous strategy versions (V4, V5.x, etc.)
 ├── Order_Management.xlsx ← SINGLE SOURCE OF TRUTH for parameters
 ├── .claude/
 │   ├── skills/
@@ -62,6 +63,8 @@ universal-or-strategy/
 ├── WSGTA_Update_Templates.md
 ├── MILESTONE_V4_0_1_SUMMARY.md
 ├── MILESTONE_V5_2_SUMMARY.md
+├── MILESTONE_V5_4_PERFORMANCE_SUMMARY.md
+├── MILESTONE_V5_7_FINAL_FIX_SUMMARY.md ← Latest milestone
 ├── README_MULTI_AI_REVIEW.md
 ├── prompt-templates.md
 ├── synthesis-checklist.md
@@ -73,7 +76,8 @@ universal-or-strategy/
 ## 📚 Key Files Reference
 
 ### Strategy Code
-- **Current:** `UniversalORStrategyV5_v5_4_PERFORMANCE.cs` (Production validated)
+- **Current:** `UniversalORStrategyV5.cs` (v5.7 FINAL_FIX - Production validated)
+- **Versioned:** `UniversalORStrategyV5_v5_7_FINAL_FIX.cs`
 - **Archive:** `archived-versions/` (all previous versions for reference)
 
 ### Parameters
@@ -84,6 +88,7 @@ universal-or-strategy/
   - Session-specific configs
 
 ### Documentation
+- **Latest Milestone:** `MILESTONE_V5_7_FINAL_FIX_SUMMARY.md` - v5.7 details
 - **Changelog:** `CHANGELOG.md` - Full version history and what changed
 - **Plan:** `PLAN.md` - Development roadmap
 - **Quick Help:** `QUICK_REFERENCE.md` - Common questions answered
@@ -105,23 +110,26 @@ universal-or-strategy/
 
 ---
 
-## 🎯 Current Status (V5.4_PERFORMANCE)
+## 🎯 Current Status (V5.7_FINAL_FIX)
 
 ### ✅ Completed & Validated
 - Opening Range Breakout (ORB) strategy
 - RMA click-entry system with Shift+Click orders
 - **Trailing stops**: BE → T1 → T2 progression validated in live trading
 - **Order cleanup**: 100% success rate across all trade exits
-- Live price tracking with OnMarketData (CRITICAL FIX)
+- **Entry isolation**: Opposite-side OR entries remain active (v5.7 FIX)
+- Live price tracking with OnPriceChange (CRITICAL FIX)
 - ATR-based position sizing and targets
 - Rate-limited order modifications (Apex compliance)
 - Multi-contract bracket management (2-18 contracts tested)
+- Tighter risk management (MinStop=1pt, Risk=$200)
 
 ### 🟢 Production Status
 - **APPROVED FOR LIVE FUNDED TRADING**
 - Tested on MES and MGC with Rithmic data feed
 - No system freezes or stranded orders
 - Clean performance across multiple sessions
+- Entry cancellation bug FIXED (v5.7)
 
 ### 🔄 In Development
 - Fibonacci retracement confluence levels

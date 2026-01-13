@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [5.7_FINAL_FIX] - 2026-01-12 - MILESTONE "Entry Cancellation Bug Fixed"
+
+### Fixed
+- **CRITICAL BUG**: Opposite-side OR entry orders no longer cancelled when position closes
+  - Problem: When ORLong closed, ORShort entry was incorrectly cancelled
+  - Root cause: `OnPositionUpdate` was cancelling ALL pending entries when position went flat
+  - Solution: Removed lines 1283-1296 that cancelled unrelated pending entries
+- **String matching bug**: `CleanupPosition` now uses `.StartsWith()` instead of `.Contains()`
+  - Prevents "ORLong" from matching "ORShort" during cleanup
+
+### Changed
+- **MinimumStop**: 4.0 → 1.0 points (allows tighter stops for small OR ranges)
+- **RiskPerTrade**: $400 → $200 (reduced default risk)
+- **ReducedRiskPerTrade**: $160 → $200 (simplified - now matches normal risk)
+
+### Validated
+- ✅ Opposite-side entries remain active after position closes
+- ✅ Only related orders (stop, T1, T2) are cancelled for closed position
+- ✅ No "Cancelled orphaned entry" messages for unrelated trades
+
+### Test Results
+- MGC test: ORShort filled and stopped out, ORLong entry remained active ✅
+- MES test: Both OR entries active, independent position management ✅
+
+### Files
+- See `MILESTONE_V5_7_FINAL_FIX_SUMMARY.md` for detailed bug analysis and fix
+
+---
+
 ## [5.4_PERFORMANCE] - 2026-01-12 - MILESTONE "Trailing Stops Validated"
 
 ### Validated
