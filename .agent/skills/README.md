@@ -31,6 +31,13 @@ This directory contains skills organized for use across multiple AI agents, with
 - **trading-session-timezones** - MES/MGC session timing and timezone handling
 - **wsgta-trading-system** - Complete WSGTA methodology for all 6 strategies
 
+### Workflow Automation Skills
+- **project-lifecycle** - Version management, branching, and documentation sync
+- **strategy-config-safe** - Safe parameter updates without breaking execution logic
+- **trading-knowledge-vault** - Automated lessons learned system with mandatory checkpoints
+- **antigravity-core** - Multi-perspective AI thinking and collaboration protocols
+- **ai-council** - Multi-AI debate system using shared file editing
+
 ## Context Files
 Additional context and session information is stored in `.agent/context/`
 
