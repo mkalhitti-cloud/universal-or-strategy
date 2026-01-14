@@ -140,6 +140,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             try
             {
+                // V7.1: Filter by instrument - only process signals for our instrument
+                string myInstrument = Instrument.MasterInstrument.Name;
+                if (!string.IsNullOrEmpty(signal.Instrument) && signal.Instrument != myInstrument)
+                {
+                    Print($"SLAVE V7 | {slaveId} | IGNORED signal for {signal.Instrument} (I trade {myInstrument})");
+                    return;
+                }
+
                 Print($"SLAVE V7 | {slaveId} | SIGNAL RECEIVED: {signal.SignalId}");
 
                 // Calculate position size based on risk

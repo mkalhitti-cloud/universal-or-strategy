@@ -1,168 +1,83 @@
-Order Management Spreadsheet - we will refer to this often, can be found
-in project artifacts.
+Order Management Spreadsheet - we will refer to this often, can be found in project artifacts.
 
 Trend Trade
 
-**The Trend Trade: **This is the trade we will make most of our money
-on. With the trend trade we are looking to make multiple points on the
-trade.
-
-A trend trade is when a stock is going in one direction (either up or
-down) for an extended period of time. We are looking to get in on the
-direction of the trend.
-
-When the stock is trending down, we short it when the criteria are met.
-When the stock is trending up, we want to buy it when the criteria are
-met.
-
+The Trend Trade: This is the trade we will make most of our money on. With the trend trade we are looking to make multiple points on the trade.
+A trend trade is when a stock is going in one direction (either up or down) for an extended period of time. We are looking to get in on the direction of the trend.
+When the stock is trending down, we short it when the criteria are met. When the stock is trending up, we want to buy it when the criteria are met.
 The trend trade will commonly look like a ski slope.
+With the trend trade we will use the 9 EMA and 15 EMA. These are the only times that these EMA’s will be used.
+We will get into trend trades at the 9 EMA and 15 EMA, given that the 9 EMA and 15 EMA are not too far apart (refer to Order Management Spreadsheet ).
+We will enter into the trend trade with 1/3 of our position at the 9 EMA and 2/3 of our position at the 15 EMA.
+Rule #1: There is no such thing as a trend trade before 9:45am.
+Rule #2/3: We do not enter trend trades during lunch (around noon) or after 3pm.
 
-With the trend trade we will use the 9 EMA and 15 EMA. These are the
-only times that these EMA's will be used.
+What happens if only 1/3 of our order is filled?
+If we get in with only 1/3 of the position, we will stay in the trade all day or until the trend breaks (See Bracket Order Lesson).
+What do I do when my full order is filled?
+Take first profit according to Order Management Spreadsheet 
+Trail the remaining contracts for the rest of the day or until the trend breaks (See Bracket Order Lesson). You may also look to lock in profits if you see support or resistance opposing the trend.
+How do you know when a trend is broken?
+A trend is broken when the price breaks the 15 EMA according to our stop order (see Order Management Spreadsheet ).
 
-We will get into trend trades at the 9 EMA and 15 EMA, given that the 9
-EMA and 15 EMA are not too far apart refer to Order Management
-Spreadsheet
+Do not be afraid to lock in profits, especially if there is support or resistance that pushes against the trend
+We are able to get into trend trades more than one time if the trend continues through the day
 
-We will enter into the trend trade with 1/3 of our position at the 9 EMA
-and 2/3 of our position at the 15 EMA.
-
-**Rule #1: **There is no such thing as a trend trade before 9:45am.
-
-**Rule #2/3: **We do not enter trend trades during lunch (around noon)
-or after 3pm.
-
-**What happens if only 1/3 of our order is filled?**
-
-If we get in with only 1/3 of the position, we will stay in the trade
-all day or until the trend breaks.
-
-**What do I do when my full order is filled?**
-
-Take first profit according to Order Management
-Spreadsheet
-
-
-Trail the remaining contracts for the rest of the day or until the trend
-breaks (See Bracket Order Lesson). You may also look to lock in profits
-if you see support or resistance opposing the trend.
-
-**How do you know when a trend is broken?**
-
-A trend is broken when the price breaks the 15 EMA according to our stop
-order see Order Management
-Spreadsheet
-Do not be afraid to lock in profits, especially if there is support or
-resistance that pushes against the trend
-
-We are able to get into trend trades more than one time if the trend
-continues through the day
 
 Regular Moving Average Trade
-
-**The Regular Moving Average Trade: **With a regular moving average
-trade we need the price to move significantly to hit one of the
-following indicators: the 30 EMA, 65 EMA, 200 EMA, pivot points and
-VWAP. We are not using the 9 EMA or the 15 EMA.
-
-See Order Management Spreadsheet for more detailed information on
-entries, exits, and stop orders
+The Regular Moving Average Trade: With a regular moving average trade we need the price to move significantly to hit one of the following indicators: the 30 EMA, 65 EMA, 200 EMA, pivot points and VWAP. We are not using the 9 EMA or the 15 EMA.
+See Order Management Spreadsheet for more detailed information on entries, exits, and stop orders
 
 
-
+Notes:
 We recommend /ES (or /MES) for beginning traders
-
-Once we have our first profit, always raise your stop to lock in profit
+Once we have our first profit, always raise your stop to lock in profit 
 
 The faster something moves to a level, the better
+We will only try our entries on a level ONE TIME (unless a significant amount of time has passed, or there has been a significant move to get back there)
+If two levels are close to one another, go with the more conservative level
 
-We will only try our entries on a level [ONE TIME] (unless a
-significant amount of time has passed, or there has been a significant
-move to get back there)
 
-If two levels are close to one another, go with the more conservative
-level
+Follow the Rules
+We only make trades when our levels are hit
+If two levels are close to one another, always use the more conservative level
+Be wary of trading during news events
 
-**[Follow the Rules]{.underline}**
 
-We [only]{.underline} make trades when our levels are hit
-
-If two levels are close to one another, always use the [more
-conservative level]{.underline}
-
-[Be wary]{.underline} of trading during news events
-
-Sometimes we may need to look at a [longer timeframe]{.underline} to
-find support or resistance levels that fit our criteria.
-
-Just because we have a level somewhere [does not]{.underline} mean that
-there is always a trade to be made- [the setup must always fit a certain
-trade]{.underline}.
+Sometimes we may need to look at a longer timeframe to find support or resistance levels that fit our criteria.
+Just because we have a level somewhere does not mean that there is always a trade to be made- the setup must always fit a certain trade.
 
 Far From Moving Average Trades
 
-**Far From Moving Average Trade: **A far from moving average trade is
-when the instrument moves far away from our moving averages and becomes
-overbought or oversold. We are looking to take advantage of the
-pullback.
+Far From Moving Average Trade: A far from moving average trade is when the instrument moves far away from our moving averages and becomes overbought or oversold. We are looking to take advantage of the pullback.
+With a far from moving average trade we always start by looking at the 5 minute chart. Once we find an instrument that fits the criteria we will switch over to the 1 minute chart. As soon as the price begins to move back up toward the moving average we will place a Market Order.
 
-With a far from moving average trade we always start by looking at
-the [5 minute chart]{.underline}. Once we find an instrument that fits
-the criteria we will switch over to the [1 minute chart]{.underline}. As
-soon as the price begins to move back up toward the moving average we
-will place a *[Market Order]{.underline}*.
+Rule #1: We need the instrument to move significantly away from the moving average lines (see the Order Management Spreadsheet  for more details).
+Rule #2: We need the RSI (Relative Strength Index) to be above 80 (overbought), or below 20 (oversold).
 
-**Rule #1: **We need the instrument to move significantly away from the
-moving average lines see the Order Management
-Spreadsheet
+See Order Management Spreadsheet for more detailed information on entries, exits, and stop orders.
 
-**Rule #2: **We need the RSI (Relative Strength Index) to be above 80
-(overbought), or below 20 (oversold).
-
-See Order Management Spreadsheet for more detailed information on
-entries, exits, and stop orders.
-
-**[Notes:]{.underline}**
-
-A FFMA Trade is the [ONLY]{.underline} trade we look to make during news
-
-We may not be able to enter this trade every time it sets up, you must
-be fast and decisive
-
+Notes:
+A FFMA Trade is the ONLY trade we look to make during news
+We may not be able to enter this trade every time it sets up, you must be fast and decisive
 This trade will either work very quickly, or not at all
+If the RSI remains above 80 or below 20 for an extended period of time this may not be as effective
+With this, or any of our trades, it is okay to start with the /MES until you are more comfortable
 
-If the RSI remains above 80 or below 20 for an extended period of time
-this may not be as effective
-
-With this, or any of our trades, it is okay to start with the /MES until
-you are more comfortable
 
 Double Tops and Double Bottoms
 
-**Double Top: **A double top is when the instrument reaches a high for
-the day, goes down, and then retests the high a second time.
+Double Top: A double top is when the instrument reaches a high for the day, goes down, and then retests the high a second time.
+Double Bottom: A double bottom is when the instrument reaches a low for the day, goes up, and then retests the low a second time.
 
-**﻿Double Bottom: **A double bottom is when the instrument reaches a low
-for the day, goes up, and then retests the low a second time.
+Rule #1: The instrument must move away from the high or low significantly (see Order Management Spreadsheet )
+Rule #2: We need at least 30 minutes between the first high/low and the second high/low
+Rule #3: There is NO SUCH THING as a triple top/bottom
 
-**Rule #1: **The instrument must move away from the high or
-low [significantly]{.underline} see Order Management
-Spreadsheet
-
-**Rule #2: **We need [at least 30 minutes]{.underline} between the first
-high/low and the second high/low
-
-**Rule #3: **There is [NO SUCH THING]{.underline} as a triple top/bottom
 
 The Momentum Trade
 
-**The Momentum Trade: **The Momentum Trade is when an instrument has
-gone sideways for a long period of time, hitting one of our levels
-several times, and then breaks out and makes a move. Typically the
-market will all join in on the direction it breaks into.
+The Momentum Trade: The Momentum Trade is when an instrument has gone sideways for a long period of time, hitting one of our levels several times, and then breaks out and makes a move. Typically the market will all join in on the direction it breaks into.
 
-**Rule #1: **On the 5 minute chart, it needs to go sideways for at least
-30 minutes. We always use the 5 minute chart for the momentum trade.
-
-**Rule #2: **We can't have the sideways movement be too wide. Refer to
-the Order Management Spreadsheet for point ranges.
+Rule #1: On the 5 minute chart, it needs to go sideways for at least 30 minutes. We always use the 5 minute chart for the momentum trade.
+Rule #2: We can't have the sideways movement be too wide. Refer to the Order Management Spreadsheet  for point ranges.

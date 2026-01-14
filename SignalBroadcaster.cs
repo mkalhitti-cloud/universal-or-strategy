@@ -17,6 +17,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         public class TradeSignal
         {
             public string SignalId { get; set; }
+            public string Instrument { get; set; }        // V7.1: For instrument filtering
             public MarketPosition Direction { get; set; }
             public double EntryPrice { get; set; }
             public double StopPrice { get; set; }

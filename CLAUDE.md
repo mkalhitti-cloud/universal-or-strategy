@@ -4,7 +4,7 @@ This file provides context for AI assistants (Claude, etc.) working on this code
 
 ## Project Overview
 
-**Universal Opening Range Strategy** - A NinjaTrader 8 trading strategy for opening range breakouts.
+**Universal Opening Range Strategy** - A NinjaTrader 8 trading strategy for opening range and other trade setups.
 
 **Purpose**: Live funded trading on Apex accounts using Rithmic data feed.
 

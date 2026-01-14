@@ -999,6 +999,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var signal = new SignalBroadcaster.TradeSignal
                 {
                     SignalId = signalId,
+                    Instrument = Instrument.MasterInstrument.Name,  // V7.1: For filtering
                     Direction = direction,
                     EntryPrice = entryPrice,
                     StopPrice = stopPrice,
