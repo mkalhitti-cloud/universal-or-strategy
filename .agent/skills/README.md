@@ -23,10 +23,13 @@ This directory contains skills organized for use across multiple AI agents, with
 - **xlsx** - Spreadsheet creation and analysis
 
 ### Project-Specific Skills
-- **core/** - NinjaTrader strategy development fundamentals
-- **project-specific/** - Universal OR Strategy context and implementation details
-- **references/** - Live price tracking and market data references
-- **trading/** - APEX/Rithmic trading system, session timezones, code review guidelines
+- **ninjatrader-strategy-dev** - NinjaTrader 8 strategy development patterns and best practices
+- **universal-or-strategy** - Universal OR Strategy project context and implementation status
+- **live-price-tracking** - Critical Close[0] bug fixes and tick-level price tracking
+- **apex-rithmic-trading** - Apex account compliance and Rithmic data feed optimization
+- **trading-code-review** - Pre-live deployment checklist for trading strategies
+- **trading-session-timezones** - MES/MGC session timing and timezone handling
+- **wsgta-trading-system** - Complete WSGTA methodology for all 6 strategies
 
 ## Context Files
 Additional context and session information is stored in `.agent/context/`

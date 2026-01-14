@@ -1,3 +1,7 @@
+---
+name: live-price-tracking
+description: Critical guide for implementing live price tracking in NinjaTrader strategies. Use when fixing the Close[0] bug, implementing OnMarketData hooks, adding tick-level price tracking, or debugging trailing stops that only update at bar close.
+---
 # CRITICAL: Live Price Tracking vs. Bar Close Data
 
 **Severity:** CRITICAL - Impacts real-time trading performance
@@ -514,3 +518,4 @@ Replace with OnMarketData pattern shown above
 - [apex-rithmic-trading.md](../../../trading/apex-rithmic-trading.md) - Account compliance
 - [trading-code-review.md](../../../trading/trading-code-review.md) - Pre-live checklist
 - [wsgta-trading-system.md](../../../trading/wsgta-trading-system.md) - Trading rules
+

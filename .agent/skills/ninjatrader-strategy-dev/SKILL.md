@@ -1,3 +1,8 @@
+---
+name: ninjatrader-strategy-dev
+description: NinjaTrader 8 strategy development patterns for high-performance trading. Use when developing or debugging NinjaScript strategies, implementing order management, optimizing execution speed, managing memory efficiency, or fixing common bugs like Close[0] usage in real-time decisions.
+---
+
 # NinjaTrader 8 Strategy Development - Code Patterns & Best Practices
 
 **Context:** NinjaScript development patterns for high-performance trading strategies
@@ -582,7 +587,7 @@ Before deploying any strategy:
 ---
 
 ## Related Skills
-- [live-price-tracking.md](../references/live-price-tracking.md) - Critical Close[0] bug details
-- [apex-rithmic-trading.md](../../trading/apex-rithmic-trading.md) - Account compliance
-- [trading-code-review.md](../../trading/trading-code-review.md) - Quality checklist
-- [wsgta-trading-system.md](../../trading/wsgta-trading-system.md) - Trading rules
+- [live-price-tracking](../live-price-tracking/SKILL.md) - Critical Close[0] bug details
+- [apex-rithmic-trading](../apex-rithmic-trading/SKILL.md) - Account compliance
+- [trading-code-review](../trading-code-review/SKILL.md) - Quality checklist
+- [wsgta-trading-system](../wsgta-trading-system/SKILL.md) - Trading rules

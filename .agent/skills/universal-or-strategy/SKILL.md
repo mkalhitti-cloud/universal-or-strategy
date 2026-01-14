@@ -1,3 +1,7 @@
+---
+name: universal-or-strategy
+description: Universal OR Strategy project context for NinjaTrader 8 automated trading system. Use when working on the Universal OR Strategy codebase, understanding project architecture, reviewing implementation status, or making code changes to ORB, RMA, or other WSGTA strategies.
+---
 # Universal OR Strategy - Current Project Context
 
 **Version:** V5.3.1 (Live price tracking with RMA improvements)
@@ -469,3 +473,4 @@ Position size limits respected
 - [apex-rithmic-trading.md](../../trading/apex-rithmic-trading.md) - Account compliance
 - [trading-code-review.md](../../trading/trading-code-review.md) - Pre-live checklist
 - [trading-session-timezones.md](../../trading/trading-session-timezones.md) - Session timing
+
