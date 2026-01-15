@@ -1,0 +1,333 @@
+<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+  <Title>Universal OR Strategy Trading Dashboard</Title>
+  <Author>Antigravity AI</Author>
+  <Created>2026-01-14T16:20:00Z</Created>
+ </DocumentProperties>
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Bottom"/>
+   <Borders/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+  <Style ss:ID="sTitle">
+   <Font ss:FontName="Calibri" ss:Size="18" ss:Color="#1F4E78" ss:Bold="1"/>
+  </Style>
+  <Style ss:ID="sHeader">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+   </Borders>
+   <Font ss:FontName="Calibri" ss:Size="14" ss:Color="#FFFFFF" ss:Bold="1"/>
+   <Interior ss:Color="#1F4E78" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="sSubHeader">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+   </Borders>
+   <Font ss:FontName="Calibri" ss:Size="12" ss:Color="#FFFFFF" ss:Bold="1"/>
+   <Interior ss:Color="#4472C4" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="sInput">
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+   </Borders>
+   <Font ss:FontName="Calibri" ss:Color="#0000FF" ss:Bold="1"/>
+   <Interior ss:Color="#FFF2CC" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="sMetric">
+   <Font ss:FontName="Calibri" ss:Bold="1" ss:Color="#1F4E78"/>
+   <Interior ss:Color="#D9E1F2" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="sCalculation">
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+   </Borders>
+   <Interior ss:Color="#E7E6E6" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="sCurrency">
+   <NumberFormat ss:Format='"$"#,##0'/>
+  </Style>
+  <Style ss:ID="sPercent">
+   <NumberFormat ss:Format="0%"/>
+  </Style>
+  <Style ss:ID="sDecimal">
+   <NumberFormat ss:Format="0.0"/>
+  </Style>
+ </Styles>
+
+ <Worksheet ss:Name="Dashboard">
+  <Table ss:ExpandedColumnCount="5" ss:ExpandedRowCount="30" x:FullColumns="1"
+   x:FullRows="1" ss:DefaultRowHeight="15">
+   <Column ss:AutoFitWidth="0" ss:Width="180"/>
+   <Column ss:AutoFitWidth="0" ss:Width="120"/>
+   <Column ss:AutoFitWidth="0" ss:Width="120"/>
+   <Column ss:AutoFitWidth="0" ss:Width="120"/>
+   <Column ss:AutoFitWidth="0" ss:Width="120"/>
+   <Row ss:AutoFitHeight="0" ss:Height="25">
+    <Cell ss:StyleID="sTitle"><Data ss:Type="String">Universal OR Strategy v5.13 - Trading Dashboard</Data></Cell>
+   </Row>
+   <Row ss:Index="3">
+    <Cell ss:MergeAcross="4" ss:StyleID="sHeader"><Data ss:Type="String">KEY SYSTEM METRICS</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="sMetric"><Data ss:Type="String">Active Parameters</Data></Cell>
+    <Cell><Data ss:Type="Number">47</Data></Cell>
+    <Cell ss:Index="4" ss:StyleID="sMetric"><Data ss:Type="String">Strategy Version</Data></Cell>
+    <Cell><Data ss:Type="String">v5.13</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="sMetric"><Data ss:Type="String">Profit Targets</Data></Cell>
+    <Cell><Data ss:Type="Number">4</Data></Cell>
+    <Cell ss:Index="4" ss:StyleID="sMetric"><Data ss:Type="String">Trailing Levels</Data></Cell>
+    <Cell><Data ss:Type="Number">3</Data></Cell>
+   </Row>
+   <Row ss:Index="7">
+    <Cell ss:MergeAcross="4" ss:StyleID="sHeader"><Data ss:Type="String">RISK MANAGEMENT SUMMARY</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="sSubHeader"><Data ss:Type="String">Parameter</Data></Cell>
+    <Cell ss:StyleID="sSubHeader"><Data ss:Type="String">MES Value</Data></Cell>
+    <Cell ss:StyleID="sSubHeader"><Data ss:Type="String">MGC Value</Data></Cell>
+    <Cell ss:StyleID="sSubHeader"><Data ss:Type="String">Unit</Data></Cell>
+    <Cell ss:StyleID="sSubHeader"><Data ss:Type="String">Status</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">Risk Per Trade</Data></Cell>
+    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number">200</Data></Cell>
+    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number">200</Data></Cell>
+    <Cell><Data ss:Type="String">USD</Data></Cell>
+    <Cell><Data ss:Type="String">Active</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">Minimum Contracts</Data></Cell>
+    <Cell><Data ss:Type="Number">1</Data></Cell>
+    <Cell><Data ss:Type="Number">1</Data></Cell>
+    <Cell><Data ss:Type="String">Contracts</Data></Cell>
+    <Cell><Data ss:Type="String">Active</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">Maximum Contracts</Data></Cell>
+    <Cell><Data ss:Type="Number">30</Data></Cell>
+    <Cell><Data ss:Type="Number">15</Data></Cell>
+    <Cell><Data ss:Type="String">Contracts</Data></Cell>
+    <Cell><Data ss:Type="String">Active</Data></Cell>
+   </Row>
+   <Row ss:Index="13">
+    <Cell ss:MergeAcross="4" ss:StyleID="sHeader"><Data ss:Type="String">TARGET ALLOCATION (4-TARGET SYSTEM)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="sSubHeader"><Data ss:Type="String">Target</Data></Cell>
+    <Cell ss:StyleID="sSubHeader"><Data ss:Type="String">Split %</Data></Cell>
+    <Cell ss:StyleID="sSubHeader"><Data ss:Type="String">Method</Data></Cell>
+    <Cell ss:StyleID="sSubHeader"><Data ss:Type="String">Objective</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">T1 - Quick Scalp</Data></Cell>
+    <Cell ss:StyleID="sPercent"><Data ss:Type="Number">0.2</Data></Cell>
+    <Cell><Data ss:Type="String">Fixed 1.0pt</Data></Cell>
+    <Cell><Data ss:Type="String">Cover Fees/Quick Profit</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">T2 - Medium</Data></Cell>
+    <Cell ss:StyleID="sPercent"><Data ss:Type="Number">0.3</Data></Cell>
+    <Cell><Data ss:Type="String">0.5x ATR/OR</Data></Cell>
+    <Cell><Data ss:Type="String">Standard TP</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">T3 - Extended</Data></Cell>
+    <Cell ss:StyleID="sPercent"><Data ss:Type="Number">0.3</Data></Cell>
+    <Cell><Data ss:Type="String">1.0x ATR/OR</Data></Cell>
+    <Cell><Data ss:Type="String">Primary Profit</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">T4 - Runner</Data></Cell>
+    <Cell ss:StyleID="sPercent"><Data ss:Type="Number">0.2</Data></Cell>
+    <Cell><Data ss:Type="String">Dynamic Trail</Data></Cell>
+    <Cell><Data ss:Type="String">Maximizing Trend</Data></Cell>
+   </Row>
+  </Table>
+ </Worksheet>
+
+ <Worksheet ss:Name="All Parameters">
+  <Table ss:ExpandedColumnCount="3" ss:ExpandedRowCount="60" x:FullColumns="1"
+   x:FullRows="1" ss:DefaultRowHeight="15">
+   <Column ss:AutoFitWidth="0" ss:Width="200"/>
+   <Column ss:AutoFitWidth="0" ss:Width="100"/>
+   <Column ss:AutoFitWidth="0" ss:Width="350"/>
+   <Row ss:AutoFitHeight="0" ss:Height="25">
+    <Cell ss:StyleID="sTitle"><Data ss:Type="String">Strategy Parameters v5.13</Data></Cell>
+   </Row>
+   <Row ss:Index="2">
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Parameter Name</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Value</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Description</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:MergeAcross="2" ss:StyleID="sSubHeader"><Data ss:Type="String">1. SESSION SETTINGS</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">Session Start</Data></Cell>
+    <Cell ss:StyleID="sInput"><Data ss:Type="String">09:30</Data></Cell>
+    <Cell><Data ss:Type="String">Trading session start time (OR begins here)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">Session End</Data></Cell>
+    <Cell ss:StyleID="sInput"><Data ss:Type="String">16:00</Data></Cell>
+    <Cell><Data ss:Type="String">Trading session end time (box ends here)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">OR Timeframe</Data></Cell>
+    <Cell ss:StyleID="sInput"><Data ss:Type="Number">5</Data></Cell>
+    <Cell><Data ss:Type="String">Duration of Opening Range window (minutes)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:MergeAcross="2" ss:StyleID="sSubHeader"><Data ss:Type="String">2. RISK MANAGEMENT</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">Risk Per Trade</Data></Cell>
+    <Cell ss:StyleID="sInput"><Data ss:Type="Number">200</Data></Cell>
+    <Cell><Data ss:Type="String">Maximum dollar risk per trade</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">MES Max Contracts</Data></Cell>
+    <Cell ss:StyleID="sInput"><Data ss:Type="Number">30</Data></Cell>
+    <Cell><Data ss:Type="String">Upper limit for MES position size</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:MergeAcross="2" ss:StyleID="sSubHeader"><Data ss:Type="String">3. STOP LOSS &amp; TARGETS</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">Stop Multiplier</Data></Cell>
+    <Cell ss:StyleID="sInput"><Data ss:Type="Number">0.5</Data></Cell>
+    <Cell><Data ss:Type="String">Multiplier of OR Range for stop (0.5 = half OR)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">T1 Fixed Points</Data></Cell>
+    <Cell ss:StyleID="sInput"><Data ss:Type="Number">1</Data></Cell>
+    <Cell><Data ss:Type="String">Fixed quick scalp target for T1</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">T2 ATR Multiplier</Data></Cell>
+    <Cell ss:StyleID="sInput"><Data ss:Type="Number">0.5</Data></Cell>
+    <Cell><Data ss:Type="String">ATR multiplier for secondary target</Data></Cell>
+   </Row>
+  </Table>
+ </Worksheet>
+
+ <Worksheet ss:Name="Calculator">
+  <Table ss:ExpandedColumnCount="5" ss:ExpandedRowCount="20" x:FullColumns="1"
+   x:FullRows="1" ss:DefaultRowHeight="15">
+   <Column ss:AutoFitWidth="0" ss:Width="180"/>
+   <Column ss:AutoFitWidth="0" ss:Width="120"/>
+   <Column ss:AutoFitWidth="0" ss:Width="120"/>
+   <Row ss:AutoFitHeight="0" ss:Height="25">
+    <Cell ss:StyleID="sTitle"><Data ss:Type="String">Live Position Size Calculator</Data></Cell>
+   </Row>
+   <Row ss:Index="3">
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Parameter</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Value</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Notes</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">Account Risk ($)</Data></Cell>
+    <Cell ss:StyleID="sInput"><Data ss:Type="Number">200</Data></Cell>
+    <Cell><Data ss:Type="String">Max loss per trade</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">Stop Distance (Points)</Data></Cell>
+    <Cell ss:StyleID="sInput"><Data ss:Type="Number">4.5</Data></Cell>
+    <Cell><Data ss:Type="String">Current trade SL distance</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">Point Value ($)</Data></Cell>
+    <Cell ss:StyleID="sInput"><Data ss:Type="Number">5</Data></Cell>
+    <Cell><Data ss:Type="String">MES=5, ES=50, MGC=10</Data></Cell>
+   </Row>
+   <Row ss:Height="20">
+    <Cell ss:StyleID="sMetric"><Data ss:Type="String">Total Contracts to Buy</Data></Cell>
+    <Cell ss:StyleID="sCalculation" ss:Formula="=INT(R[-3]C/(R[-2]C*R[-1]C))"><Data ss:Type="Number">8</Data></Cell>
+    <Cell><Data ss:Type="String">Calculated Automatically</Data></Cell>
+   </Row>
+   <Row ss:Index="9">
+    <Cell ss:StyleID="sSubHeader"><Data ss:Type="String">TARGET BREAKDOWN</Data></Cell>
+    <Cell ss:StyleID="sSubHeader"><Data ss:Type="String">Contracts</Data></Cell>
+    <Cell ss:StyleID="sSubHeader"><Data ss:Type="String">Split %</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">T1 (Quick Scalp)</Data></Cell>
+    <Cell ss:StyleID="sCalculation" ss:Formula="=INT(R7C2*0.2)"><Data ss:Type="Number">1</Data></Cell>
+    <Cell><Data ss:Type="String">20%</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">T2 (Medium)</Data></Cell>
+    <Cell ss:StyleID="sCalculation" ss:Formula="=INT(R7C2*0.3)"><Data ss:Type="Number">2</Data></Cell>
+    <Cell><Data ss:Type="String">30%</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">T3 (Extended)</Data></Cell>
+    <Cell ss:StyleID="sCalculation" ss:Formula="=INT(R7C2*0.3)"><Data ss:Type="Number">2</Data></Cell>
+    <Cell><Data ss:Type="String">30%</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">T4 (Runner)</Data></Cell>
+    <Cell ss:StyleID="sCalculation" ss:Formula="=R7C2-R10C2-R11C2-R12C2"><Data ss:Type="Number">3</Data></Cell>
+    <Cell><Data ss:Type="String">Remainder</Data></Cell>
+   </Row>
+  </Table>
+ </Worksheet>
+
+ <Worksheet ss:Name="Reference">
+  <Table ss:ExpandedColumnCount="2" ss:ExpandedRowCount="15" x:FullColumns="1"
+   x:FullRows="1" ss:DefaultRowHeight="15">
+   <Column ss:AutoFitWidth="0" ss:Width="150"/>
+   <Column ss:AutoFitWidth="0" ss:Width="300"/>
+   <Row ss:AutoFitHeight="0" ss:Height="25">
+    <Cell ss:StyleID="sTitle"><Data ss:Type="String">Quick Hotkey Reference</Data></Cell>
+   </Row>
+   <Row ss:Index="3">
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Key</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Action</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="sMetric"><Data ss:Type="String">L</Data></Cell>
+    <Cell><Data ss:Type="String">Execute Long OR Trade</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="sMetric"><Data ss:Type="String">S</Data></Cell>
+    <Cell><Data ss:Type="String">Execute Short OR Trade</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="sMetric"><Data ss:Type="String">Shift + Click</Data></Cell>
+    <Cell><Data ss:Type="String">RMA Mode - Enter at Price</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="sMetric"><Data ss:Type="String">F</Data></Cell>
+    <Cell><Data ss:Type="String">Flatten All Positions</Data></Cell>
+   </Row>
+  </Table>
+ </Worksheet>
+
+</Workbook>
