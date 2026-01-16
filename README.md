@@ -35,8 +35,9 @@ universal-or-strategy/
 ├── UniversalORStrategyV7.cs ← Current production version (v7.0 - Copy Trading)
 ├── UniversalORSlaveV7.cs ← Ultra-lightweight slave copier
 ├── SignalBroadcaster.cs ← Shared signal broadcaster
-├── UniversalORStrategyV5.cs ← V5.12 (standalone, no copy trading)
-├── UniversalORStrategyV5_v5_12.cs ← Versioned copy
+├── UniversalORStrategyV5.cs ← V5.13 (standalone, no copy trading)
+├── UniversalORStrategyV5_v5_13.cs ← Versioned copy (latest)
+├── UniversalORStrategyV5_v5_12.cs ← Previous version
 ├── archived-versions/
 │   ├── All previous strategy versions (V4, V5.x, etc.)
 │   └── V6 files (FAILED - archived)
@@ -78,7 +79,8 @@ universal-or-strategy/
 ├── MILESTONE_V5_10_SUMMARY.md
 ├── MILESTONE_V5_11_SUMMARY.md
 ├── MILESTONE_V5_12_SUMMARY.md
-├── MILESTONE_V7_0_SUMMARY.md ← Latest milestone (Copy Trading)
+├── MILESTONE_V5_13_SUMMARY.md ← Latest standalone milestone
+├── MILESTONE_V7_0_SUMMARY.md ← Latest copy trading milestone
 ├── README_MULTI_AI_REVIEW.md
 ├── prompt-templates.md
 ├── synthesis-checklist.md
@@ -93,7 +95,7 @@ universal-or-strategy/
 - **Current:** `UniversalORStrategyV7.cs` (v7.0 - Copy Trading Edition)
 - **Slave:** `UniversalORSlaveV7.cs` (Ultra-lightweight copier)
 - **Broadcaster:** `SignalBroadcaster.cs` (Shared signal system)
-- **Standalone:** `UniversalORStrategyV5.cs` (v5.12 - No copy trading)
+- **Standalone:** `UniversalORStrategyV5.cs` (v5.13 - No copy trading)
 - **Archive:** `archived-versions/` (V4, V5.x, **V6 FAILED**)
 
 ### Parameters
@@ -105,6 +107,7 @@ universal-or-strategy/
 
 ### Documentation
 - **Latest Milestone:** `MILESTONE_V7_0_SUMMARY.md` - v7.0 copy trading
+- **Latest Standalone:** `MILESTONE_V5_13_SUMMARY.md` - v5.13 4-target system
 - **Previous Milestone:** `MILESTONE_V5_12_SUMMARY.md` - v5.12 target management
 - **Changelog:** `CHANGELOG.md` - Full version history and what changed
 - **Plan:** `PLAN.md` - Development roadmap
