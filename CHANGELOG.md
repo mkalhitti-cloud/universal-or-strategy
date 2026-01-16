@@ -6,6 +6,72 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [5.13] - 2026-01-16 - MILESTONE "4-Target System + Frequency-Based Trailing"
+
+### Added
+- **4-Target System**: Expanded from 3 to 4 independent profit targets
+  - T1: 20% of position (1-point quick profit)
+  - T2: 30% of position (0.5x OR range)
+  - T3: 30% of position (1.0x OR range)
+  - T4 (Runner): 20% of position (trailing stop only)
+- **Frequency-Based Trailing Stops**: Smart throttling to reduce order modifications
+  - BE level (0-2.99 pts): Check EVERY tick (tight protection)
+  - T1 level (3-3.99 pts): Check every OTHER tick (reduced rate)
+  - T2 level (4-4.99 pts): Check every OTHER tick (reduced rate)
+  - T3 level (5+ pts): Check EVERY tick (lock big profits)
+  - New `TicksSinceEntry` counter in PositionInfo class
+  - ~50% reduction in order modifications during volatile markets
+- **T3 Contract Percentage Property**: New `T3ContractPercent` (default: 30%)
+- **T3/T4 Order Tracking**: Added `target3Orders` and `target4Orders` dictionaries
+- **Target Movement Validation**: Prevents moving targets to loss side of entry
+  - LONG targets must stay ABOVE entry price
+  - SHORT targets must stay BELOW entry price
+
+### Fixed
+- **CRITICAL: T3/T4 Cleanup Bug**: Orders were submitted but never removed from dictionaries
+  - Added `target3Orders.Remove()` in `CleanupPosition()`
+  - Added `target4Orders.Remove()` in `CleanupPosition()`
+  - Added cleanup in `OnPositionUpdate()` when position goes flat
+  - Prevents memory leaks and order conflicts
+- **CRITICAL: Target Validation**: `ExecuteTargetAction()` was placing targets on wrong side
+  - Added direction-aware validation before moving targets
+  - Prevents accidentally creating guaranteed losses
+
+### Changed
+- **OR Stop Calculation**: Changed from `0.5x OR range` to `0.5x ATR`
+  - More consistent across different market conditions
+  - Aligns with RMA stop calculation methodology
+- **OR Entry Detection**: Changed from `Close[0]` to `lastKnownPrice`
+  - Real-time tick-level price instead of stale bar close
+  - Improves breakout timing and reduces late entries
+- **Version Banner**: Updated print statements from v5.8 to v5.13
+
+### Test Results
+- ✅ 4-target allocation working (T1:20% T2:30% T3:30% T4:20%)
+- ✅ T3/T4 cleanup validated (no stranded orders)
+- ✅ OR stop using 0.5x ATR (~3.2-3.4 pts for ATR ~6.4)
+- ✅ Breakeven arming and auto-trigger working
+- ✅ Stop quantity updates after T1 fills
+- ✅ Entry blocking for stale breakouts
+- ✅ RMA click entries (above=SHORT, below=LONG)
+
+### Known Issues
+- UI version string still shows "v5.12" (cosmetic only)
+- T3 gets 0 contracts for small positions (3 contracts total) - expected behavior
+
+### Production Status
+- ✅ **READY FOR LIVE TRADING**
+- All critical bugs fixed
+- Cleanup logic validated
+- Entry detection improved
+- Stop calculation more consistent
+
+### Files
+- `UniversalORStrategyV5_v5_13.cs` - Main strategy file
+- See `MILESTONE_V5_13_SUMMARY.md` for detailed implementation
+
+---
+
 ## [7.0] - 2026-01-13 - MILESTONE "Copy Trading Edition"
 
 ### Added

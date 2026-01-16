@@ -19,7 +19,7 @@ using NinjaTrader.NinjaScript.Strategies;
 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class UniversalORStrategyV5 : Strategy
+    public class UniversalORStrategyV5_13 : Strategy
     {
         #region Variables
 
@@ -82,6 +82,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         private Button t2DropdownButton;
         private Border t2DropdownPanel;
         private bool t2DropdownExpanded;
+        private Button t3DropdownButton;  // v5.13
+        private Border t3DropdownPanel;   // v5.13
+        private bool t3DropdownExpanded;  // v5.13
         private Button runnerDropdownButton;
         private Border runnerDropdownPanel;
         private bool runnerDropdownExpanded;
@@ -95,7 +98,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private static readonly SolidColorBrush RMAModeActiveBackground;
 
         // Static constructor to create and freeze brushes
-        static UniversalORStrategyV5()
+        static UniversalORStrategyV5_13()
         {
             RMAActiveBackground = new SolidColorBrush(Color.FromRgb(180, 100, 20));
             RMAActiveBackground.Freeze();
@@ -148,6 +151,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             public bool IsRMATrade;  // Flag to identify RMA trades
             public bool ManualBreakevenArmed;  // Manual breakeven button clicked
             public bool ManualBreakevenTriggered;  // Manual breakeven has executed
+            public int TicksSinceEntry;  // v5.13: Tick counter for frequency-based trailing
         }
 
         #endregion
@@ -386,7 +390,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (State == State.SetDefaults)
             {
                 Description = "Universal Opening Range Strategy v5.13 - 4-Target System (T1=1pt Quick Scalp)";
-                Name = "UniversalORStrategyV5";
+                Name = "UniversalORStrategyV5_13";
                 Calculate = Calculate.OnPriceChange;  // CRITICAL FIX: Updates on every price tick for real-time trailing
                 EntriesPerDirection = 10;
                 EntryHandling = EntryHandling.UniqueEntries;
@@ -493,13 +497,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 ResetOR();
 
-                Print(FormatString("UniversalORStrategy v5.8 | {0} | Tick: {1} | PV: ${2}", symbol, tickSize, pointValue));
+                Print(FormatString("UniversalORStrategy v5.13 | {0} | Tick: {1} | PV: ${2}", symbol, tickSize, pointValue));
                 Print(FormatString("Session: {0} - {1} {2} | OR: {3} min",
                     SessionStart.ToString("HH:mm"), SessionEnd.ToString("HH:mm"), SelectedTimeZone, (int)ORTimeframe));
-                Print(FormatString("OR Targets: T1={0}xOR T2={1}xOR T3=Trail | Stop={2}xOR", Target1Multiplier, Target2Multiplier, StopMultiplier));
+                Print(FormatString("OR Targets: T1={0}pt T2={1}xOR T3={2}xOR | Stop={3}xOR", Target1FixedPoints, Target2Multiplier, Target3Multiplier, StopMultiplier));
                 Print(FormatString("RMA: Enabled={0} ATR({1}) Stop={2}xATR T1={3}xATR T2={4}xATR",
                     RMAEnabled, RMAATRPeriod, RMAStopATRMultiplier, RMAT1ATRMultiplier, RMAT2ATRMultiplier));
-                Print("v5.8: Stop validation + Trailing stops + Risk=$200, MinStop=1pt");
+                Print("v5.13: 4-Target System + T3 Dropdown + Stop validation + Trailing stops");
             }
             else if (State == State.Historical)
             {
@@ -641,7 +645,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     Print(FormatString("OR COMPLETE at {0}: H={1:F2} L={2:F2} M={3:F2} R={4:F2}",
                         barTimeInZone.ToString("HH:mm:ss"), sessionHigh, sessionLow, sessionMid, sessionRange));
                     Print(FormatString("OR Targets: T1=+{0:F2} T2=+{1:F2} Stop=-{2:F2}",
-                        sessionRange * Target1Multiplier, sessionRange * Target2Multiplier, CalculateORStopDistance()));
+                        Target1FixedPoints, sessionRange * Target2Multiplier, CalculateORStopDistance()));
 
                     DrawORBox();
                 }
@@ -880,6 +884,24 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             try
             {
+                // v5.13 FIX: Validate entry price before submitting StopMarket order
+                // For LONG: entry must be ABOVE current price (breakout up)
+                // For SHORT: entry must be BELOW current price (breakout down)
+                // Use lastKnownPrice for real-time accuracy (Close[0] can be stale)
+                double currentPrice = lastKnownPrice > 0 ? lastKnownPrice : Close[0];
+                if (direction == MarketPosition.Long && entryPrice <= currentPrice)
+                {
+                    Print(FormatString("OR ENTRY BLOCKED: Long entry {0:F2} already below market {1:F2} - too late for breakout",
+                        entryPrice, currentPrice));
+                    return;
+                }
+                if (direction == MarketPosition.Short && entryPrice >= currentPrice)
+                {
+                    Print(FormatString("OR ENTRY BLOCKED: Short entry {0:F2} already above market {1:F2} - too late for breakout",
+                        entryPrice, currentPrice));
+                    return;
+                }
+
                 double stopDistance = CalculateORStopDistance();
                 double riskToUse = (stopDistance > StopThresholdPoints) ? ReducedRiskPerTrade : RiskPerTrade;
                 double stopDistanceInDollars = stopDistance * pointValue;
@@ -1003,9 +1025,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private double CalculateORStopDistance()
         {
-            if (sessionRange == 0) return MinimumStop;
+            // v5.13: Use ATR for OR stop (same as RMA) instead of OR range
+            if (currentATR <= 0) return MinimumStop;
 
-            double calculatedStop = sessionRange * StopMultiplier;
+            double calculatedStop = currentATR * StopMultiplier;  // 0.5x ATR
             return Math.Max(MinimumStop, Math.Min(calculatedStop, MaximumStop));
         }
 
@@ -1214,8 +1237,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                             // For RMA trades, adjust targets based on actual fill price
                             if (pos.IsRMATrade)
                             {
-                                double t1Distance = currentATR * RMAT1ATRMultiplier;
-                                double t2Distance = currentATR * RMAT2ATRMultiplier;
+                                // v5.13 FIX: T1 uses FIXED points, T2/T3 use ATR
+                                double t2Distance = currentATR * RMAT1ATRMultiplier;  // 0.5x ATR
+                                double t3Distance = currentATR * RMAT2ATRMultiplier;  // 1.0x ATR
                                 double stopDistance = currentATR * RMAStopATRMultiplier;
 
                                 pos.InitialStopPrice = pos.Direction == MarketPosition.Long
@@ -1223,17 +1247,23 @@ namespace NinjaTrader.NinjaScript.Strategies
                                     : averageFillPrice + stopDistance;
                                 pos.CurrentStopPrice = pos.InitialStopPrice;
 
+                                // T1 = Fixed 1pt (NOT ATR-based)
                                 pos.Target1Price = pos.Direction == MarketPosition.Long
-                                    ? averageFillPrice + t1Distance
-                                    : averageFillPrice - t1Distance;
+                                    ? averageFillPrice + Target1FixedPoints
+                                    : averageFillPrice - Target1FixedPoints;
+                                // T2 = 0.5x ATR
                                 pos.Target2Price = pos.Direction == MarketPosition.Long
                                     ? averageFillPrice + t2Distance
                                     : averageFillPrice - t2Distance;
+                                // T3 = 1.0x ATR
+                                pos.Target3Price = pos.Direction == MarketPosition.Long
+                                    ? averageFillPrice + t3Distance
+                                    : averageFillPrice - t3Distance;
 
                                 if (Math.Abs(averageFillPrice - intendedEntryPrice) > tickSize)
                                 {
-                                    Print(FormatString("{0} PRICES ADJUSTED for fill slippage: Stop={1:F2} T1={2:F2} T2={3:F2}",
-                                        tradeType, pos.InitialStopPrice, pos.Target1Price, pos.Target2Price));
+                                    Print(FormatString("{0} PRICES ADJUSTED for fill slippage: Stop={1:F2} T1={2:F2} T2={3:F2} T3={4:F2}",
+                                        tradeType, pos.InitialStopPrice, pos.Target1Price, pos.Target2Price, pos.Target3Price));
                                 }
                             }
 
@@ -1401,6 +1431,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 if (t2Order != null && (t2Order.OrderState == OrderState.Working || t2Order.OrderState == OrderState.Accepted))
                                 {
                                     CancelOrder(t2Order);
+                                }
+                            }
+
+                            // v5.13: Cancel T3/T4 orphaned orders
+                            if (target3Orders.ContainsKey(kvp.Key))
+                            {
+                                Order t3Order = target3Orders[kvp.Key];
+                                if (t3Order != null && (t3Order.OrderState == OrderState.Working || t3Order.OrderState == OrderState.Accepted))
+                                {
+                                    CancelOrder(t3Order);
                                 }
                             }
 
@@ -1593,6 +1633,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (!pos.EntryFilled || !pos.BracketSubmitted) continue;
 
+                // Increment tick counter on every call
+                pos.TicksSinceEntry++;
+
                 // Update extreme price
                 if (pos.Direction == MarketPosition.Long)
                     pos.ExtremePriceSinceEntry = Math.Max(pos.ExtremePriceSinceEntry, Close[0]);
@@ -1645,6 +1688,38 @@ namespace NinjaTrader.NinjaScript.Strategies
                         }
                     }
                 }
+
+                // v5.13 FREQUENCY CONTROL: Determine if we should check trailing based on current level
+                // BE (level 0-1) and T3 (level 4) = every tick
+                // T1 (level 2) and T2 (level 3) = every OTHER tick
+                
+                bool shouldCheckTrailing = true; // Default: check every tick
+                
+                // Determine current active level based on profit
+                if (profitPoints >= Trail3TriggerPoints && pos.T1Filled && pos.T2Filled)
+                {
+                    // At T3 level (5+ points) - Check EVERY tick
+                    shouldCheckTrailing = true;
+                }
+                else if (profitPoints >= Trail2TriggerPoints && pos.T1Filled)
+                {
+                    // At T2 level (4-4.99 points) - Check every OTHER tick
+                    shouldCheckTrailing = (pos.TicksSinceEntry % 2 == 0);
+                }
+                else if (profitPoints >= Trail1TriggerPoints)
+                {
+                    // At T1 level (3-3.99 points) - Check every OTHER tick
+                    shouldCheckTrailing = (pos.TicksSinceEntry % 2 == 0);
+                }
+                else
+                {
+                    // At BE level or below (0-2.99 points) - Check EVERY tick
+                    shouldCheckTrailing = true;
+                }
+
+                // Only proceed with trailing logic if frequency check passes
+                if (!shouldCheckTrailing)
+                    continue;
 
                 // Trail 3 (highest priority) - At 5 points, trail by 1 point
                 if (profitPoints >= Trail3TriggerPoints && pos.T1Filled && pos.T2Filled)
@@ -1743,6 +1818,22 @@ namespace NinjaTrader.NinjaScript.Strategies
                     ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.StopMarket, pos.RemainingContracts, 0, validatedStopPrice, "", "Stop_" + entryName + "_" + DateTime.Now.Ticks)
                     : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.StopMarket, pos.RemainingContracts, 0, validatedStopPrice, "", "Stop_" + entryName + "_" + DateTime.Now.Ticks);
 
+                // CRITICAL v5.13 FIX: Validate order was created
+                if (newStop == null)
+                {
+                    Print(FormatString("⚠️ CRITICAL ERROR: Stop order submission returned NULL for {0}!", entryName));
+                    Print(FormatString("⚠️ POSITION UNPROTECTED: {0} {1} contracts @ {2:F2}", 
+                        pos.Direction == MarketPosition.Long ? "LONG" : "SHORT", 
+                        pos.RemainingContracts, 
+                        pos.EntryPrice));
+                    Print(FormatString("⚠️ Attempted stop price: {0:F2} | Current price: {1:F2}", validatedStopPrice, Close[0]));
+                    
+                    // Attempt to flatten position immediately
+                    Print(FormatString("⚠️ Attempting emergency flatten for {0}...", entryName));
+                    FlattenPositionByName(entryName);
+                    return;
+                }
+
                 stopOrders[entryName] = newStop;
                 pos.CurrentStopPrice = validatedStopPrice;
                 pos.CurrentTrailLevel = newTrailLevel;
@@ -1752,7 +1843,19 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("ERROR UpdateStopOrder: " + ex.Message);
+                Print(FormatString("⚠️ ERROR UpdateStopOrder for {0}: {1}", entryName, ex.Message));
+                Print(FormatString("⚠️ POSITION MAY BE UNPROTECTED: {0} contracts", pos.RemainingContracts));
+                
+                // Attempt emergency flatten
+                try
+                {
+                    Print(FormatString("⚠️ Attempting emergency flatten for {0}...", entryName));
+                    FlattenPositionByName(entryName);
+                }
+                catch (Exception flattenEx)
+                {
+                    Print(FormatString("⚠️⚠️ EMERGENCY FLATTEN FAILED: {0}", flattenEx.Message));
+                }
             }
         }
 
@@ -2043,6 +2146,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
 
+            // v5.13: Cancel T3 order if it exists and is working
+            if (target3Orders.ContainsKey(entryName))
+            {
+                Order t3Order = target3Orders[entryName];
+                if (t3Order != null && (t3Order.OrderState == OrderState.Working || t3Order.OrderState == OrderState.Accepted))
+                {
+                    CancelOrder(t3Order);
+                }
+            }
+
             // Cancel entry order if it exists and is still pending
             if (entryOrders.ContainsKey(entryName))
             {
@@ -2060,6 +2173,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             stopOrders.Remove(entryName);
             target1Orders.Remove(entryName);
             target2Orders.Remove(entryName);
+            target3Orders.Remove(entryName);  // v5.13
+            target4Orders.Remove(entryName);  // v5.13
 
             // Log cleanup summary
             if (cancelledStops > 0 || cancelledTargets > 0 || cancelledEntries > 0)
@@ -2108,9 +2223,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 10: T1 dropdown panel
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 11: T2 dropdown button
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 12: T2 dropdown panel
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 13: Runner dropdown button
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 14: Runner dropdown panel
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 15: Flatten button
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 13: T3 dropdown button (v5.13)
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 14: T3 dropdown panel (v5.13)
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 15: Runner dropdown button
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 16: Runner dropdown panel
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 17: Flatten button
 
                 Border dragHandle = new Border
                 {
@@ -2136,7 +2253,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 statusTextBlock = new TextBlock
                 {
-                    Text = "OR v5.12 | Initializing...",
+                    Text = "OR v5.13 | Initializing...",
                     Foreground = Brushes.White,
                     FontWeight = FontWeights.Bold,
                     FontSize = 13,
@@ -2274,10 +2391,28 @@ namespace NinjaTrader.NinjaScript.Strategies
                 t2DropdownPanel = CreateDropdownPanel("T2");
                 Grid.SetRow(t2DropdownPanel, 12);
 
-                // v5.12: Runner Dropdown Button
+                // v5.13: T3 Dropdown Button
+                t3DropdownButton = new Button
+                {
+                    Content = "T3 ACTIONS ▼ (3)",
+                    Background = new SolidColorBrush(Color.FromRgb(100, 60, 140)),
+                    Foreground = Brushes.White,
+                    FontWeight = FontWeights.Bold,
+                    Margin = new Thickness(0, 2, 0, 2),
+                    Padding = new Thickness(8, 4, 8, 4),
+                    Cursor = Cursors.Hand
+                };
+                t3DropdownButton.Click += (s, e) => ToggleT3Dropdown();
+                Grid.SetRow(t3DropdownButton, 13);
+
+                // T3 Dropdown Panel (collapsed by default)
+                t3DropdownPanel = CreateDropdownPanel("T3");
+                Grid.SetRow(t3DropdownPanel, 14);
+
+                // v5.13: Runner Dropdown Button (was T3, now T4)
                 runnerDropdownButton = new Button
                 {
-                    Content = "RUNNER ACTIONS ▼ (3)",
+                    Content = "RUNNER ACTIONS ▼ (4)",
                     Background = new SolidColorBrush(Color.FromRgb(100, 60, 140)),
                     Foreground = Brushes.White,
                     FontWeight = FontWeights.Bold,
@@ -2286,11 +2421,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                     Cursor = Cursors.Hand
                 };
                 runnerDropdownButton.Click += (s, e) => ToggleRunnerDropdown();
-                Grid.SetRow(runnerDropdownButton, 13);
+                Grid.SetRow(runnerDropdownButton, 15);
 
                 // Runner Dropdown Panel (collapsed by default)
                 runnerDropdownPanel = CreateDropdownPanel("Runner");
-                Grid.SetRow(runnerDropdownPanel, 14);
+                Grid.SetRow(runnerDropdownPanel, 16);
 
                 flattenButton = new Button
                 {
@@ -2303,7 +2438,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     Cursor = Cursors.Hand
                 };
                 flattenButton.Click += (s, e) => FlattenAll();
-                Grid.SetRow(flattenButton, 15);
+                Grid.SetRow(flattenButton, 17);
 
                 mainGrid.Children.Add(dragHandle);
                 mainGrid.Children.Add(statusTextBlock);
@@ -2318,6 +2453,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 mainGrid.Children.Add(t1DropdownPanel);
                 mainGrid.Children.Add(t2DropdownButton);
                 mainGrid.Children.Add(t2DropdownPanel);
+                mainGrid.Children.Add(t3DropdownButton);   // v5.13
+                mainGrid.Children.Add(t3DropdownPanel);    // v5.13
                 mainGrid.Children.Add(runnerDropdownButton);
                 mainGrid.Children.Add(runnerDropdownPanel);
                 mainGrid.Children.Add(flattenButton);
@@ -2358,7 +2495,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Margin = new Thickness(5, 0, 5, 2)
             };
 
-            if (targetType == "T1" || targetType == "T2")
+            if (targetType == "T1" || targetType == "T2" || targetType == "T3")  // v5.13: Added T3
             {
                 // Target actions
                 menuStack.Children.Add(CreateMenuButton("Fill at Market NOW", () => ExecuteTargetAction(targetType, "market")));
@@ -2417,9 +2554,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 t2DropdownExpanded = false;
                 t2DropdownPanel.Visibility = Visibility.Collapsed;
                 t2DropdownButton.Content = "T2 ACTIONS ▼ (2)";
+                t3DropdownExpanded = false;  // v5.13
+                t3DropdownPanel.Visibility = Visibility.Collapsed;
+                t3DropdownButton.Content = "T3 ACTIONS ▼ (3)";
                 runnerDropdownExpanded = false;
                 runnerDropdownPanel.Visibility = Visibility.Collapsed;
-                runnerDropdownButton.Content = "RUNNER ACTIONS ▼ (3)";
+                runnerDropdownButton.Content = "RUNNER ACTIONS ▼ (4)";
             }
         }
 
@@ -2435,9 +2575,34 @@ namespace NinjaTrader.NinjaScript.Strategies
                 t1DropdownExpanded = false;
                 t1DropdownPanel.Visibility = Visibility.Collapsed;
                 t1DropdownButton.Content = "T1 ACTIONS ▼ (1)";
+                t3DropdownExpanded = false;  // v5.13
+                t3DropdownPanel.Visibility = Visibility.Collapsed;
+                t3DropdownButton.Content = "T3 ACTIONS ▼ (3)";
                 runnerDropdownExpanded = false;
                 runnerDropdownPanel.Visibility = Visibility.Collapsed;
-                runnerDropdownButton.Content = "RUNNER ACTIONS ▼ (3)";
+                runnerDropdownButton.Content = "RUNNER ACTIONS ▼ (4)";
+            }
+        }
+
+        // v5.13: T3 Dropdown Toggle
+        private void ToggleT3Dropdown()
+        {
+            t3DropdownExpanded = !t3DropdownExpanded;
+            t3DropdownPanel.Visibility = t3DropdownExpanded ? Visibility.Visible : Visibility.Collapsed;
+            t3DropdownButton.Content = t3DropdownExpanded ? "T3 ACTIONS ▲ (3)" : "T3 ACTIONS ▼ (3)";
+            
+            // Close other dropdowns
+            if (t3DropdownExpanded)
+            {
+                t1DropdownExpanded = false;
+                t1DropdownPanel.Visibility = Visibility.Collapsed;
+                t1DropdownButton.Content = "T1 ACTIONS ▼ (1)";
+                t2DropdownExpanded = false;
+                t2DropdownPanel.Visibility = Visibility.Collapsed;
+                t2DropdownButton.Content = "T2 ACTIONS ▼ (2)";
+                runnerDropdownExpanded = false;
+                runnerDropdownPanel.Visibility = Visibility.Collapsed;
+                runnerDropdownButton.Content = "RUNNER ACTIONS ▼ (4)";
             }
         }
 
@@ -2445,7 +2610,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             runnerDropdownExpanded = !runnerDropdownExpanded;
             runnerDropdownPanel.Visibility = runnerDropdownExpanded ? Visibility.Visible : Visibility.Collapsed;
-            runnerDropdownButton.Content = runnerDropdownExpanded ? "RUNNER ACTIONS ▲ (3)" : "RUNNER ACTIONS ▼ (3)";
+            runnerDropdownButton.Content = runnerDropdownExpanded ? "RUNNER ACTIONS ▲ (4)" : "RUNNER ACTIONS ▼ (4)";
             
             // Close other dropdowns
             if (runnerDropdownExpanded)
@@ -2456,6 +2621,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 t2DropdownExpanded = false;
                 t2DropdownPanel.Visibility = Visibility.Collapsed;
                 t2DropdownButton.Content = "T2 ACTIONS ▼ (2)";
+                t3DropdownExpanded = false;  // v5.13
+                t3DropdownPanel.Visibility = Visibility.Collapsed;
+                t3DropdownButton.Content = "T3 ACTIONS ▼ (3)";
             }
         }
 
@@ -2511,23 +2679,57 @@ namespace NinjaTrader.NinjaScript.Strategies
                             break;
 
                         case "1point":
-                            // Move target to 1 point from current price
+                            // Move target to 1 point from current price (toward profit)
+                            // For LONG: target must be ABOVE entry, so currentPrice + 1 point
+                            // For SHORT: target must be BELOW entry, so currentPrice - 1 point
                             double newPrice1pt = pos.Direction == MarketPosition.Long
-                                ? currentPrice + (1.0 * tickSize / tickSize)  // 1 point up for long
-                                : currentPrice - (1.0 * tickSize / tickSize); // 1 point down for short
+                                ? currentPrice + 1.0  // 1 point above market for long target
+                                : currentPrice - 1.0; // 1 point below market for short target
                             newPrice1pt = Instrument.MasterInstrument.RoundToTickSize(newPrice1pt);
+                            
+                            // CRITICAL: Validate target stays on profitable side of entry
+                            if (pos.Direction == MarketPosition.Long && newPrice1pt <= pos.EntryPrice)
+                            {
+                                newPrice1pt = pos.EntryPrice + tickSize; // Minimum 1 tick above entry
+                                Print(FormatString("★ {0} → 1 POINT: {1} - Adjusted to stay above entry @ {2:F2}", targetType, entryName, newPrice1pt));
+                            }
+                            else if (pos.Direction == MarketPosition.Short && newPrice1pt >= pos.EntryPrice)
+                            {
+                                newPrice1pt = pos.EntryPrice - tickSize; // Minimum 1 tick below entry
+                                Print(FormatString("★ {0} → 1 POINT: {1} - Adjusted to stay below entry @ {2:F2}", targetType, entryName, newPrice1pt));
+                            }
+                            else
+                            {
+                                Print(FormatString("★ {0} → 1 POINT: {1} - New target @ {2:F2}", targetType, entryName, newPrice1pt));
+                            }
+                            
                             MoveTargetOrder(entryName, targetType, newPrice1pt, targetContracts, pos.Direction);
-                            Print(FormatString("★ {0} → 1 POINT: {1} - New target @ {2:F2}", targetType, entryName, newPrice1pt));
                             break;
 
                         case "2point":
-                            // Move target to 2 points from current price
+                            // Move target to 2 points from current price (toward profit)
                             double newPrice2pt = pos.Direction == MarketPosition.Long
-                                ? currentPrice + (2.0 * tickSize / tickSize)
-                                : currentPrice - (2.0 * tickSize / tickSize);
+                                ? currentPrice + 2.0  // 2 points above market for long target
+                                : currentPrice - 2.0; // 2 points below market for short target
                             newPrice2pt = Instrument.MasterInstrument.RoundToTickSize(newPrice2pt);
+                            
+                            // CRITICAL: Validate target stays on profitable side of entry
+                            if (pos.Direction == MarketPosition.Long && newPrice2pt <= pos.EntryPrice)
+                            {
+                                newPrice2pt = pos.EntryPrice + tickSize;
+                                Print(FormatString("★ {0} → 2 POINTS: {1} - Adjusted to stay above entry @ {2:F2}", targetType, entryName, newPrice2pt));
+                            }
+                            else if (pos.Direction == MarketPosition.Short && newPrice2pt >= pos.EntryPrice)
+                            {
+                                newPrice2pt = pos.EntryPrice - tickSize;
+                                Print(FormatString("★ {0} → 2 POINTS: {1} - Adjusted to stay below entry @ {2:F2}", targetType, entryName, newPrice2pt));
+                            }
+                            else
+                            {
+                                Print(FormatString("★ {0} → 2 POINTS: {1} - New target @ {2:F2}", targetType, entryName, newPrice2pt));
+                            }
+                            
                             MoveTargetOrder(entryName, targetType, newPrice2pt, targetContracts, pos.Direction);
-                            Print(FormatString("★ {0} → 2 POINTS: {1} - New target @ {2:F2}", targetType, entryName, newPrice2pt));
                             break;
 
                         case "marketprice":
@@ -2727,17 +2929,18 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 // Status
                 string status = orComplete ? "OR COMPLETE" : (isInORWindow ? "OR BUILDING" : "WAITING");
-                statusTextBlock.Text = FormatString("OR v5.12 | {0}", status);
+                statusTextBlock.Text = FormatString("OR v5.13 | {0}", status);
 
                 // OR Info
                 if (orComplete)
                 {
                     double stopDist = CalculateORStopDistance();
-                    double t1Dist = sessionRange * Target1Multiplier;
+                    double t1Dist = Target1FixedPoints;  // v5.13: T1 is fixed points
                     double t2Dist = sessionRange * Target2Multiplier;
+                    double t3Dist = sessionRange * Target3Multiplier;  // v5.13: T3
                     string atrText = currentATR > 0 ? FormatString(" | ATR: {0:F2}", currentATR) : "";
-                    orInfoBlock.Text = FormatString("H: {0:F2} | L: {1:F2} | R: {2:F2}{3}\nT1: +{4:F2} | T2: +{5:F2} | Stop: -{6:F2}",
-                        sessionHigh, sessionLow, sessionRange, atrText, t1Dist, t2Dist, stopDist);
+                    orInfoBlock.Text = FormatString("H: {0:F2} | L: {1:F2} | R: {2:F2}{3}\nT1: +{4:F2} | T2: +{5:F2} | T3: +{6:F2} | Stop: -{7:F2}",
+                        sessionHigh, sessionLow, sessionRange, atrText, t1Dist, t2Dist, t3Dist, stopDist);
                 }
                 else if (isInORWindow)
                 {
