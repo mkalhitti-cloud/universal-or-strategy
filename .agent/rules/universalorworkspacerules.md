@@ -78,3 +78,9 @@ Risk Management:
 Daily loss limits: Built-in to strategy
 
 Maximum drawdown protection
+
+USER WORKFLOW PREFERENCES
+
+Terminal Commands: Always run terminal commands instead of asking user to paste manually. If user requests something that could be done manually, ask if they want terminal execution instead.
+
+File Updates: Copy files to NinjaTrader via PowerShell commands (no manual file copy requests)

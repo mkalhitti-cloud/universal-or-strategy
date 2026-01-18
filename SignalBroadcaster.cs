@@ -23,13 +23,25 @@ namespace NinjaTrader.NinjaScript.Strategies
             public double StopPrice { get; set; }
             public double Target1Price { get; set; }
             public double Target2Price { get; set; }
+            public double Target3Price { get; set; }      // V8: T3 price
             public int T1Contracts { get; set; }
             public int T2Contracts { get; set; }
             public int T3Contracts { get; set; }
+            public int T4Contracts { get; set; }          // V8: Runner contracts
             public bool IsRMA { get; set; }
             public DateTime Timestamp { get; set; }
             public double SessionRange { get; set; }  // For reference
             public double CurrentATR { get; set; }    // For RMA trades
+            
+            // V8: Trail settings so slave can use master's configuration
+            public double BeTrigger { get; set; }
+            public double BeOffset { get; set; }
+            public double Trail1Trigger { get; set; }
+            public double Trail1Distance { get; set; }
+            public double Trail2Trigger { get; set; }
+            public double Trail2Distance { get; set; }
+            public double Trail3Trigger { get; set; }
+            public double Trail3Distance { get; set; }
         }
 
         /// <summary>
@@ -40,6 +52,40 @@ namespace NinjaTrader.NinjaScript.Strategies
             public string SignalId { get; set; }
             public double NewStopPrice { get; set; }
             public int TrailLevel { get; set; }  // 0=BE, 1=Trail1, 2=Trail2, 3=Trail3
+            public DateTime Timestamp { get; set; }
+        }
+
+        /// <summary>
+        /// V8.1: Full stop synchronization signal
+        /// Master broadcasts every stop update, slaves mirror exact price
+        /// </summary>
+        public class StopUpdateSignal
+        {
+            public string TradeId { get; set; }        // Links to original entry
+            public double NewStopPrice { get; set; }   // Master's new stop price
+            public string StopLevel { get; set; }      // "BE", "T1", "T2", "T3" for logging
+            public DateTime Timestamp { get; set; }
+        }
+
+        /// <summary>
+        /// V8.1: Entry order price update signal
+        /// Master broadcasts when pending entry order price changes
+        /// </summary>
+        public class EntryUpdateSignal
+        {
+            public string TradeId { get; set; }        // Links to original entry
+            public double NewEntryPrice { get; set; }  // Master's new entry price
+            public DateTime Timestamp { get; set; }
+        }
+
+        /// <summary>
+        /// V8.1: Order cancellation signal
+        /// Master broadcasts when pending entry order is cancelled
+        /// </summary>
+        public class OrderCancelSignal
+        {
+            public string TradeId { get; set; }        // Links to original entry
+            public string Reason { get; set; }         // Why cancelled
             public DateTime Timestamp { get; set; }
         }
 
@@ -116,6 +162,21 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         public static event EventHandler<BreakevenSignal> OnBreakevenRequest;
 
+        /// <summary>
+        /// V8.1: Fired when Master updates any stop (for full synchronization)
+        /// </summary>
+        public static event EventHandler<StopUpdateSignal> OnStopUpdate;
+
+        /// <summary>
+        /// V8.1: Fired when Master updates pending entry order price
+        /// </summary>
+        public static event EventHandler<EntryUpdateSignal> OnEntryUpdate;
+
+        /// <summary>
+        /// V8.1: Fired when Master cancels a pending entry order
+        /// </summary>
+        public static event EventHandler<OrderCancelSignal> OnOrderCancel;
+
         #endregion
 
         #region Broadcasting Methods
@@ -186,6 +247,52 @@ namespace NinjaTrader.NinjaScript.Strategies
             OnBreakevenRequest?.Invoke(null, signal);
         }
 
+        /// <summary>
+        /// V8.1: Broadcast stop update for full synchronization
+        /// </summary>
+        public static void BroadcastStopUpdate(string tradeId, double newStopPrice, string stopLevel)
+        {
+            var signal = new StopUpdateSignal
+            {
+                TradeId = tradeId,
+                NewStopPrice = newStopPrice,
+                StopLevel = stopLevel,
+                Timestamp = DateTime.Now
+            };
+
+            OnStopUpdate?.Invoke(null, signal);
+        }
+
+        /// <summary>
+        /// V8.1: Broadcast entry price update for full synchronization
+        /// </summary>
+        public static void BroadcastEntryUpdate(string tradeId, double newEntryPrice)
+        {
+            var signal = new EntryUpdateSignal
+            {
+                TradeId = tradeId,
+                NewEntryPrice = newEntryPrice,
+                Timestamp = DateTime.Now
+            };
+
+            OnEntryUpdate?.Invoke(null, signal);
+        }
+
+        /// <summary>
+        /// V8.1: Broadcast order cancellation for full synchronization
+        /// </summary>
+        public static void BroadcastOrderCancel(string tradeId, string reason)
+        {
+            var signal = new OrderCancelSignal
+            {
+                TradeId = tradeId,
+                Reason = reason ?? "Manual cancel",
+                Timestamp = DateTime.Now
+            };
+
+            OnOrderCancel?.Invoke(null, signal);
+        }
+
         #endregion
 
         #region Diagnostics
@@ -200,9 +307,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             int targetActionCount = OnTargetAction?.GetInvocationList().Length ?? 0;
             int flattenCount = OnFlattenAll?.GetInvocationList().Length ?? 0;
             int breakevenCount = OnBreakevenRequest?.GetInvocationList().Length ?? 0;
+            int stopUpdateCount = OnStopUpdate?.GetInvocationList().Length ?? 0;
+            int entryUpdateCount = OnEntryUpdate?.GetInvocationList().Length ?? 0;
+            int orderCancelCount = OnOrderCancel?.GetInvocationList().Length ?? 0;
 
-            return $"Subscribers: Trade={tradeSignalCount}, Trail={trailUpdateCount}, " +
-                   $"Target={targetActionCount}, Flatten={flattenCount}, BE={breakevenCount}";
+            return $"Subscribers: Trade={tradeSignalCount}, Stop={stopUpdateCount}, Entry={entryUpdateCount}, Cancel={orderCancelCount}";
         }
 
         /// <summary>
@@ -215,6 +324,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             OnTargetAction = null;
             OnFlattenAll = null;
             OnBreakevenRequest = null;
+            OnStopUpdate = null;
+            OnEntryUpdate = null;
+            OnOrderCancel = null;
         }
 
         #endregion

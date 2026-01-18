@@ -1,4 +1,4 @@
-# Claude Code Skills - File-by-File Creation Template
+# AI Assistant Skills - File-by-File Creation Template
 
 **Status:** Exact copy-paste guide
 **Purpose:** Show you the exact content for each file
@@ -11,23 +11,22 @@
 Reference this location map as you create files:
 
 ```
-NinjaTrader Strategies Folder
-└── .claude/
+universal-or-strategy/
+└── .agent/
     ├── skills/
-    │   ├── README.md ...................... File #1 (see below)
-    │   ├── CLAUDE.md ....................... File #2 (see below)
-    │   ├── core/
-    │   │   └── ninjatrader-strategy-dev.md  File #3 (see below)
-    │   ├── trading/
-    │   │   └── (empty for now)
-    │   ├── project-specific/
-    │   │   └── universal-strategy-v6-context.md  File #4 (see below)
-    │   ├── references/
-    │   │   └── live-price-tracking.md .... File #5 (see below)
-    │   └── changelog/
-    │       └── (empty for now)
-    └── context/
-        └── current-session.md ........... File #6 (see below)
+    │   ├── version-safety/ (version-safety protocol)
+    │   ├── version-manager/ (Haiku sub-agent)
+    │   ├── file-manager/ (Haiku sub-agent)
+    │   ├── docs-manager/ (Haiku sub-agent)
+    │   ├── context-transfer/ (Haiku sub-agent)
+    │   ├── code-formatter/ (Haiku sub-agent)
+    │   ├── universal-or-strategy/ (project context)
+    │   └── multi-ide-router/ (IDE optimization)
+    ├── context/
+    │   └── current-session.md
+    ├── rules/
+    │   └── universalorworkspacerules.md
+    └── UNANSWERED_QUESTIONS.md
 ```
 
 ---
@@ -79,7 +78,7 @@ When you ask Claude Code a question about your strategy, mention the skill name:
 - "Refer to live-price-tracking before suggesting any price-related changes"
 - "Check trading-code-review skill for code quality"
 
-Claude Code will automatically find and use these files to give better answers.
+AI assistants (Claude, Gemini, Grok, etc.) will automatically find and use these files to give better answers.
 
 ## Last Updated
 January 2025 - V5.3.1 milestone
@@ -89,16 +88,16 @@ January 2025 - V5.3.1 milestone
 
 ---
 
-# FILE #2: `.claude/skills/CLAUDE.md`
+# FILE #2: Root `AGENT.md`
 
-**Location:** `.claude/skills/CLAUDE.md`
-**Size:** ~3 KB
-**Purpose:** Claude Code preferences and guidelines
+**Location:** Root folder `AGENT.md`
+**Size:** ~8 KB
+**Purpose:** Universal AI assistant context (works with all AI models)
 
 **COPY EVERYTHING BELOW AND PASTE INTO THE FILE:**
 
 ```markdown
-# Claude Code Preferences for UniversalORStrategy
+# AGENT.md - AI Assistant Context for UniversalORStrategy
 
 ## Development Principles
 
@@ -1027,9 +1026,9 @@ Your NinjaTrader strategies folder:
 - **Last Tested:** [Your date]
 - **Known Issues:** None currently (V5.3.1 stable)
 
-## For Claude Code
-When asking Claude Code questions, reference this session context and mention which skill file is relevant. Example:
-"I'm implementing Fibonacci confluence. Use the references/fibonacci-guide.md skill and refer to wsgta-trading-system.md for methodology."
+## For AI Assistants
+When asking AI assistants questions, reference this session context and mention which skill file is relevant. Example:
+"I'm implementing Fibonacci confluence. Use the fibonacci-guide skill and refer to wsgta-trading-system for methodology."
 ```
 
 ✅ **DONE!** You've created all 6 files!

@@ -6,6 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [8.1] - 2026-01-16 - MILESTONE "Full Order Synchronization"
+
+### Added
+- **Entry Price Sync**: Drag master's pending entry → slave updates to match
+  - Works for both RMA (Limit) and OR (StopMarket) entries
+  - Tracks order type via new `IsRMA` field in SlavePosition
+- **Cancellation Sync**: Cancel master's pending entry → slave cancels
+  - New `OrderCancelSignal` and `BroadcastOrderCancel()` in SignalBroadcaster
+  - Master detects cancellation in `OnOrderUpdate`
+- **Entry Update Signal**: New `EntryUpdateSignal` class for price sync
+  - `BroadcastEntryUpdate()` method broadcasts price changes
+  - Slave's `OnEntryUpdateHandler` cancels/resubmits at new price
+- **Order Type Tracking**: `IsRMA` field ensures correct order type on sync
+
+### Fixed
+- **Flatten with Pending Orders**: Flatten now cancels pending entries, not just filled positions
+  - Checks multiple order states: Working, Accepted, Submitted
+- **Order Type Mismatch**: OR entries now correctly resubmit as StopMarket (not Limit)
+
+### Changed
+- `GetSubscriberCounts()` now shows Entry and Cancel subscribers
+- `ClearAllSubscribers()` clears all new events
+
+### Test Results
+- ✅ Entry price sync (dragged 4611→4618.70→4624.30)
+- ✅ Entry cancellation sync
+- ✅ Flatten with pending OR entry
+- ✅ Correct order types for RMA (Limit) and OR (StopMarket)
+
+### Files Modified
+- `SignalBroadcaster.cs` - Added EntryUpdateSignal, OrderCancelSignal
+- `UniversalORStrategyV8.cs` - Entry change and cancel detection
+- `UniversalORSlaveV8.cs` - OnEntryUpdateHandler, OnOrderCancelHandler, IsRMA field
+
+---
+
+
 ## [5.13] - 2026-01-16 - MILESTONE "4-Target System + Frequency-Based Trailing"
 
 ### Added

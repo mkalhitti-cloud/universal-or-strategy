@@ -46,27 +46,26 @@ universal-or-strategy/
 │       ├── V6_CHANGELOG_FAILED.md
 │       └── V6_SETUP_GUIDE_FAILED.md
 ├── Order_Management.xlsx ← SINGLE SOURCE OF TRUTH for parameters
-├── .claude/
+├── .agent/
 │   ├── skills/
-│   │   ├── README.md (skills library overview)
-│   │   ├── CLAUDE.md (Claude Code preferences)
-│   │   ├── core/
-│   │   │   └── ninjatrader-strategy-dev.md
-│   │   ├── trading/ (add more as needed)
-│   │   ├── project-specific/
-│   │   │   └── universal-strategy-v6-context.md
-│   │   ├── references/
-│   │   │   └── live-price-tracking.md (CRITICAL)
-│   │   └── changelog/
-│   └── context/
-│       └── current-session.md
+│   │   ├── version-safety/ (version-safety protocol)
+│   │   ├── version-manager/ (Haiku sub-agent)
+│   │   ├── file-manager/ (Haiku sub-agent)
+│   │   ├── docs-manager/ (Haiku sub-agent)
+│   │   ├── context-transfer/ (Haiku sub-agent)
+│   │   ├── code-formatter/ (Haiku sub-agent)
+│   │   ├── universal-or-strategy/ (project context)
+│   │   └── multi-ide-router/ (IDE optimization)
+│   ├── context/
+│   │   └── current-session.md
+│   ├── rules/
+│   │   └── universalorworkspacerules.md
+│   └── UNANSWERED_QUESTIONS.md
 ├── CHANGELOG.md (all version history)
 ├── PLAN.md (development roadmap)
 ├── QUICK_REFERENCE.md (common Q&A)
-├── CLAUDE.md (Claude.ai project context)
+├── AGENT.md (AI assistant context - all models)
 ├── Trade_Rules.docx (Apex rules summary)
-├── CLAUDE_CODE_SKILLS_SETUP.md (complete setup guide)
-├── CLAUDE_CODE_QUICK_REFERENCE.md (how to use skills)
 ├── SETUP_CHECKLIST.md (implementation steps)
 ├── SKILL_FILES_TEMPLATE.md (ready-to-use templates)
 ├── WSGTA_Update_Templates.md
@@ -114,19 +113,19 @@ universal-or-strategy/
 - **Quick Help:** `QUICK_REFERENCE.md` - Common questions answered
 - **Overview:** `README.md` - Project introduction
 
-### Claude Code Skills
-- **Skills Library:** `.claude/skills/` - Auto-referenced by Claude Code
+### AI Assistant Skills
+- **Skills Library:** `.agent/skills/` - Auto-referenced by AI assistants
   - `core/ninjatrader-strategy-dev.md` - Development patterns
   - `references/live-price-tracking.md` - **CRITICAL BUG DOCUMENTATION**
-  - `project-specific/universal-strategy-v6-context.md` - Project status
-  
-- **Session Context:** `.claude/context/current-session.md` - Track progress
+  - `universal-or-strategy/SKILL.md` - Project status
 
-### Setup Guides
-- **Complete Setup:** `CLAUDE_CODE_SKILLS_SETUP.md` - Full instructions
-- **Quick Reference:** `CLAUDE_CODE_QUICK_REFERENCE.md` - How to use skills
-- **Checklist:** `SETUP_CHECKLIST.md` - Implementation steps
-- **Templates:** `SKILL_FILES_TEMPLATE.md` - Ready-to-use file content
+- **Session Context:** `.agent/context/current-session.md` - Track progress
+
+### AI Assistant Configuration
+- **Context File:** `AGENT.md` - Universal AI assistant context
+- **Skills System:** `.agent/skills/` - Specialized knowledge base
+- **Sub-Agents:** Haiku agents for routine tasks (Claude Code CLI only)
+- **Multi-IDE Router:** Optimize between Antigravity and Claude Code CLI
 
 ---
 
@@ -186,14 +185,14 @@ universal-or-strategy/
 
 ### For Development
 1. Clone to your IDE
-2. Open in Windsurf/Cursor
-3. Ask Claude Code about strategy improvements
+2. Open in Windsurf/Cursor/Antigravity
+3. Ask AI assistants about strategy improvements
 4. Make changes to the code
 5. Commit to GitHub
 
 ### For Learning
 - Read `QUICK_REFERENCE.md` for common questions
-- Check `.claude/skills/` for detailed documentation
+- Check `.agent/skills/` for detailed documentation
 - Review `CHANGELOG.md` for what's been fixed
 - Look at `archived-versions/` to see evolution
 
@@ -201,20 +200,20 @@ universal-or-strategy/
 - Parameter changes: Always edit `Order_Management.xlsx` first
 - Price tracking questions: See `live-price-tracking.md` (CRITICAL)
 - Development patterns: See `ninjatrader-strategy-dev.md`
-- Project status: See `universal-strategy-v6-context.md`
+- Project status: See `universal-or-strategy/SKILL.md`
 
 ---
 
-## 💡 Using with Claude Code
+## 💡 Using with AI Assistants
 
-Ask Claude Code questions like:
+Ask AI assistants (Claude, Gemini, Grok, etc.) questions like:
 ```
 "Review my code for the Close[0] bug using the live-price-tracking skill"
 "Use ninjatrader-strategy-dev to suggest improvements"
 "What's the current status of Fibonacci confluence development?"
 ```
 
-Claude Code will automatically reference the relevant skill files.
+AI assistants will automatically reference the relevant skill files from `.agent/skills/`.
 
 ---
 
@@ -258,11 +257,11 @@ Claude Code will automatically reference the relevant skill files.
    - Open folder in IDE
 
 3. **Start Development** (Now!)
-   - Ask Claude Code about your strategy
+   - Ask AI assistants about your strategy
    - Make improvements
    - Commit changes to GitHub
    - Rinse and repeat
 
 ---
 
-**Ready to start?** Upload to GitHub, clone to your IDE, and ask Claude Code your first question! 🚀
+**Ready to start?** Upload to GitHub, clone to your IDE, and ask your AI assistant the first question! 🚀
