@@ -1,0 +1,54 @@
+✓ SUCCESS: /MES:XCME:LAST = 6915.25
+✓ SUCCESS: /MES:XCME:BID = 6915.25
+✓ SUCCESS: /MES:XCME:ASK = 6915.75
+✓ SUCCESS: /MES:XCME:BID = 6915.25
+✓ SUCCESS: /MES:XCME:ASK = 6915.75
+✓ SUCCESS: /MES:XCME:LAST = 6915.25
+
+========== SHOTGUN TEST STARTED: 2026-01-21 14:13:01 ==========
+
+------ Testing: /MGC:XCME ------
+
+------ Testing: /MGC:XNYM ------
+
+------ Testing: /MGC:XCBT ------
+
+------ Testing: /MGCG26:XCME ------
+
+------ Testing: /MGCG26:XNYM ------
+
+------ Testing: /MGCG26:XCBT ------
+
+========== SHOTGUN TEST COMPLETED ==========
+
+========== SHOTGUN TEST STARTED: 2026-01-21 14:15:59 ==========
+
+------ Testing: /MGC:XCME ------
+
+------ Testing: /MGC:XNYM ------
+
+------ Testing: /MGC:XCBT ------
+
+------ Testing: /MGCG26:XCME ------
+
+------ Testing: /MGCG26:XNYM ------
+
+------ Testing: /MGCG26:XCBT ------
+
+========== SHOTGUN TEST COMPLETED ==========
+
+========== SHOTGUN TEST STARTED: 2026-01-21 14:17:13 ==========
+
+------ Testing: /MGC:XCME ------
+
+------ Testing: /MGC:XNYM ------
+
+------ Testing: /MGC:XCBT ------
+
+------ Testing: /MGCG26:XCME ------
+
+------ Testing: /MGCG26:XNYM ------
+
+------ Testing: /MGCG26:XCBT ------
+
+========== SHOTGUN TEST COMPLETED ==========

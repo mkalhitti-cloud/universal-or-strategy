@@ -1,0 +1,11 @@
+nul
+~$*
+.env
+.agent-cli/
+.agent/state/
+.agent/config/
+.agent/mcp-servers/
+.claude/
+dotnet_sdk/
+dotnet-install.ps1
+
