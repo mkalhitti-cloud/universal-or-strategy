@@ -1406,3 +1406,189 @@
 14:59:01.074 | Heartbeat: 1
 14:59:03.074 | Heartbeat: 1
 14:59:05.081 | Heartbeat: 1
+15:54:27.572 | Client initialized (Dynamic + Polling).
+15:54:27.598 | Starting connection...
+15:54:27.861 | Connected to RTD Server.
+15:54:27.870 | Unsubscribing all topics...
+15:54:27.932 | Subscribing ID 1: [LAST, /MES:XCME] -> Key: /MES:XCME:LAST
+15:54:27.944 | Subscribing ID 2: [BID, /MES:XCME] -> Key: /MES:XCME:BID
+15:54:27.945 | Subscribing ID 3: [ASK, /MES:XCME] -> Key: /MES:XCME:ASK
+15:54:27.946 | Subscribing ID 4: [V9_RTD_Link, EMA9, /MES:XCME] -> Key: /MES:XCME:EMA9
+15:54:27.947 | Subscribing ID 5: [V9_RTD_Link, EMA15, /MES:XCME] -> Key: /MES:XCME:EMA15
+15:54:27.947 | Subscribing ID 6: [V9_RTD_Link, ORHIGH, /MES:XCME] -> Key: /MES:XCME:ORHIGH
+15:54:27.948 | Subscribing ID 7: [V9_RTD_Link, ORLOW, /MES:XCME] -> Key: /MES:XCME:ORLOW
+15:54:29.611 | Heartbeat: 1
+15:54:29.908 | Processing 3 updates...
+15:54:29.909 | Update ID 1 = 6924
+15:54:29.912 | Update ID 2 = 6924
+15:54:29.913 | Update ID 3 = 6924.25
+15:54:31.608 | Heartbeat: 1
+15:54:31.860 | Processing 3 updates...
+15:54:31.861 | Update ID 2 = 6924
+15:54:31.863 | Update ID 3 = 6924.25
+15:54:31.864 | Update ID 1 = 6924
+15:54:33.629 | Heartbeat: 1
+15:54:33.865 | Processing 3 updates...
+15:54:33.866 | Update ID 2 = 6924
+15:54:33.867 | Update ID 3 = 6924.25
+15:54:33.868 | Update ID 1 = 6924.25
+15:54:35.661 | Heartbeat: 1
+15:54:35.874 | Processing 3 updates...
+15:54:35.875 | Update ID 2 = 6924
+15:54:35.876 | Update ID 3 = 6924.25
+15:54:35.878 | Update ID 1 = 6924
+15:54:37.669 | Heartbeat: 1
+15:54:37.888 | Processing 3 updates...
+15:54:37.888 | Update ID 2 = 6924
+15:54:37.890 | Update ID 3 = 6924.25
+15:54:37.891 | Update ID 1 = 6924.25
+15:54:39.674 | Heartbeat: 1
+15:54:39.895 | Processing 3 updates...
+15:54:39.896 | Update ID 2 = 6924
+15:54:39.897 | Update ID 3 = 6924.25
+15:54:39.898 | Update ID 1 = 6924.25
+15:54:41.673 | Heartbeat: 1
+15:54:41.897 | Processing 3 updates...
+15:54:41.898 | Update ID 2 = 6924
+15:54:41.899 | Update ID 3 = 6924.25
+15:54:41.900 | Update ID 1 = 6924
+15:54:43.678 | Heartbeat: 1
+15:54:43.904 | Processing 3 updates...
+15:54:43.905 | Update ID 2 = 6924
+15:54:43.906 | Update ID 3 = 6924.25
+15:54:43.907 | Update ID 1 = 6924
+15:54:45.686 | Heartbeat: 1
+15:54:45.918 | Processing 3 updates...
+15:54:45.918 | Update ID 2 = 6924
+15:54:45.920 | Update ID 3 = 6924.25
+15:54:45.921 | Update ID 1 = 6924
+15:54:47.688 | Heartbeat: 1
+15:54:47.910 | Processing 3 updates...
+15:54:47.910 | Update ID 2 = 6924
+15:54:47.912 | Update ID 3 = 6924.25
+15:54:47.913 | Update ID 1 = 6924
+15:54:49.692 | Heartbeat: 1
+15:54:49.905 | Processing 3 updates...
+15:54:49.905 | Update ID 2 = 6923.75
+15:54:49.907 | Update ID 3 = 6924
+15:54:49.908 | Update ID 1 = 6924
+15:54:51.700 | Heartbeat: 1
+15:54:51.907 | Processing 3 updates...
+15:54:51.908 | Update ID 2 = 6923.75
+15:54:51.909 | Update ID 3 = 6924
+15:54:51.910 | Update ID 1 = 6924
+15:54:53.702 | Heartbeat: 1
+15:54:53.904 | Processing 3 updates...
+15:54:53.905 | Update ID 2 = 6924
+15:54:53.906 | Update ID 3 = 6924.25
+15:54:53.907 | Update ID 1 = 6924
+15:54:55.704 | Heartbeat: 1
+15:54:55.955 | Processing 3 updates...
+15:54:55.956 | Update ID 2 = 6924
+15:54:55.957 | Update ID 3 = 6924.25
+15:54:55.959 | Update ID 1 = 6924
+15:54:57.710 | Heartbeat: 1
+15:54:57.952 | Processing 3 updates...
+15:54:57.952 | Update ID 2 = 6924
+15:54:57.954 | Update ID 3 = 6924.25
+15:54:57.955 | Update ID 1 = 6923.75
+15:54:59.702 | Heartbeat: 1
+15:54:59.953 | Processing 3 updates...
+15:54:59.954 | Update ID 2 = 6924
+15:54:59.955 | Update ID 3 = 6924.25
+15:54:59.956 | Update ID 1 = 6924
+15:55:01.714 | Heartbeat: 1
+15:55:01.953 | Processing 3 updates...
+15:55:01.954 | Update ID 2 = 6924
+15:55:01.955 | Update ID 3 = 6924.25
+15:55:01.956 | Update ID 1 = 6924.25
+15:55:03.720 | Heartbeat: 1
+15:55:03.953 | Processing 3 updates...
+15:55:03.954 | Update ID 2 = 6924
+15:55:03.955 | Update ID 3 = 6924.5
+15:55:03.957 | Update ID 1 = 6924.25
+15:55:05.718 | Heartbeat: 1
+15:55:05.957 | Processing 3 updates...
+15:55:05.958 | Update ID 2 = 6924
+15:55:05.959 | Update ID 3 = 6924.5
+15:55:05.960 | Update ID 1 = 6924.5
+15:55:07.722 | Heartbeat: 1
+15:55:07.955 | Processing 3 updates...
+15:55:07.956 | Update ID 2 = 6924
+15:55:07.957 | Update ID 3 = 6924.25
+15:55:07.958 | Update ID 1 = 6924.5
+15:55:09.732 | Heartbeat: 1
+15:55:09.965 | Processing 3 updates...
+15:55:09.966 | Update ID 2 = 6924
+15:55:09.967 | Update ID 3 = 6924.25
+15:55:09.968 | Update ID 1 = 6924.25
+15:55:11.736 | Heartbeat: 1
+15:55:11.973 | Processing 3 updates...
+15:55:11.974 | Update ID 2 = 6923.75
+15:55:11.976 | Update ID 3 = 6924
+15:55:11.976 | Update ID 1 = 6924.25
+15:55:13.736 | Heartbeat: 1
+15:55:13.971 | Processing 3 updates...
+15:55:13.972 | Update ID 2 = 6924
+15:55:13.973 | Update ID 3 = 6924.25
+15:55:13.974 | Update ID 1 = 6924
+15:55:15.743 | Heartbeat: 1
+15:55:15.979 | Processing 3 updates...
+15:55:15.980 | Update ID 2 = 6924
+15:55:15.981 | Update ID 3 = 6924.25
+15:55:15.982 | Update ID 1 = 6924.25
+15:55:17.734 | Heartbeat: 1
+15:55:17.970 | Processing 3 updates...
+15:55:17.970 | Update ID 2 = 6924
+15:55:17.971 | Update ID 3 = 6924.25
+15:55:17.973 | Update ID 1 = 6924.25
+15:55:19.742 | Heartbeat: 1
+15:55:19.977 | Processing 3 updates...
+15:55:19.978 | Update ID 2 = 6924
+15:55:19.979 | Update ID 3 = 6924.25
+15:55:19.980 | Update ID 1 = 6924.25
+15:55:21.733 | Heartbeat: 1
+15:55:21.975 | Processing 3 updates...
+15:55:21.975 | Update ID 2 = 6924
+15:55:21.977 | Update ID 3 = 6924.25
+15:55:21.978 | Update ID 1 = 6924.25
+15:55:23.733 | Heartbeat: 1
+15:55:23.973 | Processing 3 updates...
+15:55:23.974 | Update ID 2 = 6924
+15:55:23.975 | Update ID 3 = 6924.25
+15:55:23.976 | Update ID 1 = 6924.25
+15:55:25.734 | Heartbeat: 1
+15:55:25.969 | Processing 3 updates...
+15:55:25.970 | Update ID 2 = 6924
+15:55:25.971 | Update ID 3 = 6924.25
+15:55:25.972 | Update ID 1 = 6924
+15:55:27.738 | Heartbeat: 1
+15:55:27.976 | Processing 3 updates...
+15:55:27.977 | Update ID 2 = 6924
+15:55:27.978 | Update ID 3 = 6924.25
+15:55:27.979 | Update ID 1 = 6924
+15:55:29.733 | Heartbeat: 1
+15:55:29.969 | Processing 3 updates...
+15:55:29.969 | Update ID 2 = 6924
+15:55:29.971 | Update ID 3 = 6924.25
+15:55:29.972 | Update ID 1 = 6924
+15:55:31.739 | Heartbeat: 1
+15:55:31.970 | Processing 3 updates...
+15:55:31.971 | Update ID 2 = 6924
+15:55:31.972 | Update ID 3 = 6924.25
+15:55:31.973 | Update ID 1 = 6924
+15:55:33.793 | Heartbeat: 1
+15:55:33.982 | Processing 3 updates...
+15:55:33.983 | Update ID 2 = 6924
+15:55:33.984 | Update ID 3 = 6924.25
+15:55:33.985 | Update ID 1 = 6924
+15:55:35.801 | Heartbeat: 1
+15:55:35.986 | Processing 3 updates...
+15:55:35.987 | Update ID 2 = 6924
+15:55:35.988 | Update ID 3 = 6924.25
+15:55:35.989 | Update ID 1 = 6924
+15:55:37.799 | Heartbeat: 1
+15:55:37.987 | Processing 3 updates...
+15:55:37.988 | Update ID 2 = 6924
+15:55:37.989 | Update ID 3 = 6924.25
+15:55:37.991 | Update ID 1 = 6924

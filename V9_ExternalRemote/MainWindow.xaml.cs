@@ -75,15 +75,8 @@ namespace V9_ExternalRemote
                 // Clear the UI to prevent stale data confusion
                 ClearPriceDisplay();
 
-                // SHOTGUN TEST TRIGGER: "MGC_TEST" runs all 3 exchange suffixes
-                if (symbol.ToUpper().Contains("MGC_TEST") || symbol.ToUpper().Contains("MGCTEST"))
-                {
-                    RunMGCShotgunTest();
-                    return;
-                }
-
                 // Build the full TOS symbol with exchange suffix
-                // TOS RTD requires format: /MGC:XCME for futures
+                // TOS RTD requires format: /MGC:XCEC for gold
                 string rawSymbol = symbol.TrimStart('/');
                 
                 // Determine exchange based on symbol root
@@ -105,47 +98,7 @@ namespace V9_ExternalRemote
             catch { }
         }
 
-        /// <summary>
-        /// SHOTGUN TEST: Try MGC with all 3 exchange suffixes
-        /// Tests: /MGC:XCME, /MGC:XNYM, /MGC:XCBT
-        /// </summary>
-        private void RunMGCShotgunTest()
-        {
-            try
-            {
-                System.IO.File.AppendAllText("v9_shotgun_results.txt", 
-                    $"\r\n========== SHOTGUN TEST STARTED: {DateTime.Now:yyyy-MM-dd HH:mm:ss} ==========\r\n");
 
-                string[] exchanges = { "XCME", "XNYM", "XCBT" };
-                string[] symbols = { "/MGC", "/MGCG26" }; // Try both generic and specific contract
-                
-                foreach (string symbol in symbols)
-                {
-                    foreach (string exchange in exchanges)
-                    {
-                        string testSymbol = symbol + ":" + exchange;
-                        System.IO.File.AppendAllText("v9_shotgun_results.txt",
-                            $"\r\n------ Testing: {testSymbol} ------\r\n");
-
-                        // Subscribe to LAST price only (simplify)
-                        _tosRtd.Subscribe(testSymbol + ":LAST", new object[] { "LAST", testSymbol });
-                        
-                        // Give RTD 5 seconds to respond
-                        System.Threading.Thread.Sleep(5000);
-                    }
-                }
-
-                System.IO.File.AppendAllText("v9_shotgun_results.txt",
-                    $"\r\n========== SHOTGUN TEST COMPLETED ==========\r\n");
-
-                MessageBox.Show("MGC Shotgun Test Complete!\r\n\r\nCheck v9_shotgun_results.txt for results.\r\n\r\nAlso review v9_remote_log.txt to see which symbols returned data vs N/A.",
-                    "Shotgun Test Complete", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Shotgun test failed: {ex.Message}");
-            }
-        }
 
         private void ClearPriceDisplay()
         {
@@ -161,19 +114,23 @@ namespace V9_ExternalRemote
 
         private string GetExchange(string symbol)
         {
-            // Map common futures roots to their exchanges
+            // Map common futures roots to their exchanges based on successful Shotgun Test V3 results
             string root = symbol.Length >= 2 ? symbol.Substring(0, 2).ToUpper() : symbol.ToUpper();
             
-            // CME Group futures
-            if (root == "ES" || root == "ME" || root == "NQ" || root == "MN" || root == "YM" || root == "RT") 
+            // CME (Equities like S&P, Nasdaq)
+            if (root == "ES" || root == "ME" || root == "NQ" || root == "MN" || root == "RT") 
                 return "XCME";
             
-            // COMEX (Gold, Silver) - part of CME Group
+            // COMEX (Gold, Silver, Copper)
             if (root == "GC" || root == "MG" || root == "SI" || root == "HG")
-                return "XCME";
+                return "XCEC";
             
-            // CBOT (Treasuries, Grains)
-            if (root == "ZN" || root == "ZB" || root == "ZC" || root == "ZS" || root == "ZW")
+            // NYMEX (Crude Oil)
+            if (root == "CL" || root == "QM")
+                return "XNYM";
+
+            // CBOT (Dow, Treasuries, Grains)
+            if (root == "YM" || root == "ZN" || root == "ZB" || root == "ZC" || root == "ZS" || root == "ZW")
                 return "XCBT";
             
             // Default to CME for unknown
