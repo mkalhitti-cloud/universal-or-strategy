@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -20,7 +19,7 @@ using NinjaTrader.NinjaScript.Strategies;
 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class UniversalORStrategy : Strategy
+    public class UniversalORStrategyV8_19 : Strategy
     {
         #region Variables
 
@@ -144,7 +143,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private static readonly SolidColorBrush RMAModeActiveBackground;
 
         // Static constructor to create and freeze brushes
-        static UniversalORStrategy()
+        static UniversalORStrategyV8_19()
         {
             RMAActiveBackground = new SolidColorBrush(Color.FromRgb(180, 100, 20));
             RMAActiveBackground.Freeze();
@@ -533,8 +532,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State == State.SetDefaults)
             {
-                Description = "Universal OR Strategy - V8.20 (FINAL CLEAN)";
-                Name = "UniversalORStrategy";
+                Description = "Universal OR Strategy - V8.19 (Uniform Profit Targets)";
+                Name = "UniversalORStrategyV8_19";
                 Calculate = Calculate.OnPriceChange;  // CRITICAL FIX: Updates on every price tick for real-time trailing
                 EntriesPerDirection = 10;
                 EntryHandling = EntryHandling.UniqueEntries;
@@ -3801,7 +3800,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 TextBlock dragLabel = new TextBlock
                 {
-                    Text = "★ V8.20 - FINAL CLEAN ★",
+                    Text = "═══ OR Strategy V8.13 ═══",
                     Foreground = Brushes.White,
                     FontWeight = FontWeights.Bold,
                     HorizontalAlignment = HorizontalAlignment.Center,
@@ -3813,7 +3812,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Row 1: Status
                 statusTextBlock = new TextBlock
                 {
-                    Text = "V8.20 | Initializing...",
+                    Text = "OR V8.13 | Initializing...",
                     Foreground = Brushes.White,
                     FontWeight = FontWeights.Bold,
                     Margin = new Thickness(0, 4, 0, 2),
@@ -4150,7 +4149,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 UserControlCollection.Add(mainBorder);
 
                 uiCreated = true;
-                Print("UI created - V8.20 (FINAL CLEAN)");
+                Print("UI created - V8.13 (Price Safety + Slave Fix)");
             }
             catch (Exception ex)
             {
@@ -4634,7 +4633,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 // Status
                 string status = orComplete ? "OR COMPLETE" : (isInORWindow ? "OR BUILDING" : "WAITING");
-                statusTextBlock.Text = FormatString("V8.20 | {0}", status);
+                statusTextBlock.Text = FormatString("OR V8.19 | {0}", status);
 
                 // OR Info
                 if (orComplete)
@@ -4952,4 +4951,3 @@ namespace NinjaTrader.NinjaScript.Strategies
         #endregion
     }
 }
-

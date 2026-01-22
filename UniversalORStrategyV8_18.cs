@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -20,7 +19,7 @@ using NinjaTrader.NinjaScript.Strategies;
 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class UniversalORStrategy : Strategy
+    public class UniversalORStrategyV8_18 : Strategy
     {
         #region Variables
 
@@ -144,7 +143,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private static readonly SolidColorBrush RMAModeActiveBackground;
 
         // Static constructor to create and freeze brushes
-        static UniversalORStrategy()
+        static UniversalORStrategyV8_18()
         {
             RMAActiveBackground = new SolidColorBrush(Color.FromRgb(180, 100, 20));
             RMAActiveBackground.Freeze();
@@ -533,8 +532,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State == State.SetDefaults)
             {
-                Description = "Universal OR Strategy - V8.20 (FINAL CLEAN)";
-                Name = "UniversalORStrategy";
+                Description = "Universal OR Strategy - V8.18 (Target Fix + Cleanup)";
+                Name = "UniversalORStrategyV8_18";
                 Calculate = Calculate.OnPriceChange;  // CRITICAL FIX: Updates on every price tick for real-time trailing
                 EntriesPerDirection = 10;
                 EntryHandling = EntryHandling.UniqueEntries;
@@ -2687,7 +2686,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // V8.18 FIX: Use .ToList() to prevent "Collection was modified" crash
                     foreach (string entryName in pendingStopReplacements.Keys.ToList())
                     {
-                        if (!pendingStopReplacements.ContainsKey(entryName)) continue; // V8.19 safety check
                         PendingStopReplacement pending = pendingStopReplacements[entryName];
 
                         // V8.17 FIX: Only replace if the position is still active!
@@ -3801,7 +3799,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 TextBlock dragLabel = new TextBlock
                 {
-                    Text = "★ V8.20 - FINAL CLEAN ★",
+                    Text = "═══ OR Strategy V8.13 ═══",
                     Foreground = Brushes.White,
                     FontWeight = FontWeights.Bold,
                     HorizontalAlignment = HorizontalAlignment.Center,
@@ -3813,7 +3811,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Row 1: Status
                 statusTextBlock = new TextBlock
                 {
-                    Text = "V8.20 | Initializing...",
+                    Text = "OR V8.13 | Initializing...",
                     Foreground = Brushes.White,
                     FontWeight = FontWeights.Bold,
                     Margin = new Thickness(0, 4, 0, 2),
@@ -4150,7 +4148,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 UserControlCollection.Add(mainBorder);
 
                 uiCreated = true;
-                Print("UI created - V8.20 (FINAL CLEAN)");
+                Print("UI created - V8.13 (Price Safety + Slave Fix)");
             }
             catch (Exception ex)
             {
@@ -4334,9 +4332,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                         continue;
                     }
 
-                    Dictionary<string, Order> targetOrders = (targetType == "T1") ? target1Orders : (targetType == "T2" ? target2Orders : target3Orders);
-                    int targetContracts = (targetType == "T1") ? pos.T1Contracts : (targetType == "T2" ? pos.T2Contracts : pos.T3Contracts);
-                    bool targetFilled = (targetType == "T1") ? pos.T1Filled : (targetType == "T2" ? pos.T2Filled : pos.T3Filled);
+                    Dictionary<string, Order> targetOrders = (targetType == "T1") ? target1Orders : target2Orders;
+                    int targetContracts = (targetType == "T1") ? pos.T1Contracts : pos.T2Contracts;
+                    bool targetFilled = (targetType == "T1") ? pos.T1Filled : pos.T2Filled;
 
                     if (targetFilled)
                     {
@@ -4424,7 +4422,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private void MoveTargetOrder(string entryName, string targetType, double newPrice, int quantity, MarketPosition direction)
         {
-            Dictionary<string, Order> targetOrders = (targetType == "T1") ? target1Orders : (targetType == "T2" ? target2Orders : target3Orders);
+            Dictionary<string, Order> targetOrders = (targetType == "T1") ? target1Orders : target2Orders;
 
             // Cancel existing target order
             if (targetOrders.ContainsKey(entryName))
@@ -4488,26 +4486,23 @@ namespace NinjaTrader.NinjaScript.Strategies
                             break;
 
                         case "stop1pt":
-                            // V8.19: Absolute profit lock (Entry + 1 point)
+                            // Move stop to 1 point from current price
                             double newStop1pt = pos.Direction == MarketPosition.Long
-                                ? pos.EntryPrice + 1.0
-                                : pos.EntryPrice - 1.0;
+                                ? currentPrice - (1.0 * tickSize / tickSize)
+                                : currentPrice + (1.0 * tickSize / tickSize);
                             newStop1pt = Instrument.MasterInstrument.RoundToTickSize(newStop1pt);
-                            
-                            // Safety: Only move if it's better than current stop or entry-relative profit-lock
                             UpdateStopOrder(entryName, pos, newStop1pt, pos.CurrentTrailLevel);
-                            Print(FormatString("★ RUNNER STOP → 1 PT PROFIT LOCK: {0} - Stop @ {1:F2} (Entry was {2:F2})", entryName, newStop1pt, pos.EntryPrice));
+                            Print(FormatString("★ RUNNER STOP → 1 POINT: {0} - Stop @ {1:F2}", entryName, newStop1pt));
                             break;
 
                         case "stop2pt":
-                            // V8.19: Absolute profit lock (Entry + 2 points)
+                            // Move stop to 2 points from current price
                             double newStop2pt = pos.Direction == MarketPosition.Long
-                                ? pos.EntryPrice + 2.0
-                                : pos.EntryPrice - 2.0;
+                                ? currentPrice - (2.0 * tickSize / tickSize)
+                                : currentPrice + (2.0 * tickSize / tickSize);
                             newStop2pt = Instrument.MasterInstrument.RoundToTickSize(newStop2pt);
-                            
                             UpdateStopOrder(entryName, pos, newStop2pt, pos.CurrentTrailLevel);
-                            Print(FormatString("★ RUNNER STOP → 2 PT PROFIT LOCK: {0} - Stop @ {1:F2} (Entry was {2:F2})", entryName, newStop2pt, pos.EntryPrice));
+                            Print(FormatString("★ RUNNER STOP → 2 POINTS: {0} - Stop @ {1:F2}", entryName, newStop2pt));
                             break;
 
                         case "stopbe":
@@ -4634,7 +4629,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 // Status
                 string status = orComplete ? "OR COMPLETE" : (isInORWindow ? "OR BUILDING" : "WAITING");
-                statusTextBlock.Text = FormatString("V8.20 | {0}", status);
+                statusTextBlock.Text = FormatString("OR V8.18 | {0}", status);
 
                 // OR Info
                 if (orComplete)
@@ -4952,4 +4947,3 @@ namespace NinjaTrader.NinjaScript.Strategies
         #endregion
     }
 }
-

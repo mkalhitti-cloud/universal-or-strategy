@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [8.20] - 2026-01-22 - MILESTONE "FINAL CLEAN"
+
+### Added
+- **UI Final Clean Branding**: High-visibility `★ V8.20 - FINAL CLEAN ★` header.
+- **Absolute Profit Targets**: All targets (T1, T2, T3) and runner actions now calculate offsets from **Entry Price** instead of market price.
+- **System.Linq Integration**: Added support for advanced collection handling to prevent crashes.
+
+### Fixed
+- **CRITICAL: Collection Modified Crash**: Fixed using `.ToList()` on dictionary keys during stop updates.
+- **UI Clutter**: Removed "Show OR Label" property and all background price labels on the chart.
+- **Compilation Error**: Fixed static constructor name mismatch and missing Linq import.
+
+### Changed
+- **Default Max Stop**: Enforced 8.0 point cap for safety.
+- **Deployment Path**: Standardized updates to NT8's `bin/Custom/Strategies` directory.
+
+---
+
 ## [Skills-Standardization] - 2026-01-20
 
 ### Added

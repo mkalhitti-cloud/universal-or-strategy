@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -20,7 +19,7 @@ using NinjaTrader.NinjaScript.Strategies;
 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class UniversalORStrategy : Strategy
+    public class UniversalORStrategyV8_17 : Strategy
     {
         #region Variables
 
@@ -144,7 +143,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private static readonly SolidColorBrush RMAModeActiveBackground;
 
         // Static constructor to create and freeze brushes
-        static UniversalORStrategy()
+        static UniversalORStrategyV8_17()
         {
             RMAActiveBackground = new SolidColorBrush(Color.FromRgb(180, 100, 20));
             RMAActiveBackground.Freeze();
@@ -397,6 +396,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Range(0, 100)]
         public int BoxOpacity { get; set; }
 
+        [NinjaScriptProperty]
+        [Display(Name = "Show OR Label", Description = "Show OR high/low/range text on chart", Order = 3, GroupName = "6. Display")]
+        public bool ShowORLabel { get; set; }
+
         #endregion
 
         #region Properties - RMA Settings
@@ -533,8 +536,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State == State.SetDefaults)
             {
-                Description = "Universal OR Strategy - V8.20 (FINAL CLEAN)";
-                Name = "UniversalORStrategy";
+                Description = "Universal OR Strategy - V8.17 EMERGENCY (Freeze Fix)";
+                Name = "UniversalORStrategyV8_17";
                 Calculate = Calculate.OnPriceChange;  // CRITICAL FIX: Updates on every price tick for real-time trailing
                 EntriesPerDirection = 10;
                 EntryHandling = EntryHandling.UniqueEntries;
@@ -590,6 +593,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Display
                 ShowMidLine = true;
                 BoxOpacity = 20;
+                ShowORLabel = true;
 
                 // RMA defaults
                 RMAEnabled = true;
@@ -1169,7 +1173,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 DateTime boxEndTime = TimeZoneInfo.ConvertTime(sessionEndInZone, targetZone, TimeZoneInfo.Local);
 
-                    Draw.Rectangle(this, "ORBox", false,
+                Draw.Rectangle(this, "ORBox", false,
                     orStartDateTime, sessionHigh,
                     boxEndTime, sessionLow,
                     Brushes.DodgerBlue, Brushes.DodgerBlue, areaOpacity);
@@ -1180,6 +1184,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                         orStartDateTime, sessionMid,
                         boxEndTime, sessionMid,
                         Brushes.Yellow, DashStyleHelper.Dash, 1);
+                }
+
+                if (ShowORLabel)
+                {
+                    string labelText = isInORWindow
+                        ? FormatString("OR Building: {0:F2} - {1:F2}", sessionHigh, sessionLow)
+                        : FormatString("OR: {0:F2} - {1:F2} (R:{2:F2})", sessionHigh, sessionLow, sessionRange);
+
+                    Draw.Text(this, "ORLabel", labelText, 0, sessionHigh + (tickSize * 4), Brushes.White);
                 }
             }
             catch (Exception ex)
@@ -1253,6 +1266,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             RemoveDrawObject("ORBox");
             RemoveDrawObject("ORMid");
+            RemoveDrawObject("ORLabel");
         }
 
         #endregion
@@ -2684,11 +2698,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // V8.11: Stop order cancelled - check for pending replacement
                 if (orderName.StartsWith("Stop_") && orderState == OrderState.Cancelled)
                 {
-                    // V8.18 FIX: Use .ToList() to prevent "Collection was modified" crash
-                    foreach (string entryName in pendingStopReplacements.Keys.ToList())
+                    // Find which entry this stop belonged to
+                    foreach (var kvp in pendingStopReplacements)
                     {
-                        if (!pendingStopReplacements.ContainsKey(entryName)) continue; // V8.19 safety check
-                        PendingStopReplacement pending = pendingStopReplacements[entryName];
+                        string entryName = kvp.Key;
+                        PendingStopReplacement pending = kvp.Value;
 
                         // V8.17 FIX: Only replace if the position is still active!
                         if (activePositions.ContainsKey(entryName) && (pending.OldOrder == order || orderName.Contains(entryName)))
@@ -3801,7 +3815,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 TextBlock dragLabel = new TextBlock
                 {
-                    Text = "★ V8.20 - FINAL CLEAN ★",
+                    Text = "═══ OR Strategy V8.13 ═══",
                     Foreground = Brushes.White,
                     FontWeight = FontWeights.Bold,
                     HorizontalAlignment = HorizontalAlignment.Center,
@@ -3813,7 +3827,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Row 1: Status
                 statusTextBlock = new TextBlock
                 {
-                    Text = "V8.20 | Initializing...",
+                    Text = "OR V8.13 | Initializing...",
                     Foreground = Brushes.White,
                     FontWeight = FontWeights.Bold,
                     Margin = new Thickness(0, 4, 0, 2),
@@ -4150,7 +4164,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 UserControlCollection.Add(mainBorder);
 
                 uiCreated = true;
-                Print("UI created - V8.20 (FINAL CLEAN)");
+                Print("UI created - V8.13 (Price Safety + Slave Fix)");
             }
             catch (Exception ex)
             {
@@ -4334,9 +4348,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                         continue;
                     }
 
-                    Dictionary<string, Order> targetOrders = (targetType == "T1") ? target1Orders : (targetType == "T2" ? target2Orders : target3Orders);
-                    int targetContracts = (targetType == "T1") ? pos.T1Contracts : (targetType == "T2" ? pos.T2Contracts : pos.T3Contracts);
-                    bool targetFilled = (targetType == "T1") ? pos.T1Filled : (targetType == "T2" ? pos.T2Filled : pos.T3Filled);
+                    Dictionary<string, Order> targetOrders = (targetType == "T1") ? target1Orders : target2Orders;
+                    int targetContracts = (targetType == "T1") ? pos.T1Contracts : pos.T2Contracts;
+                    bool targetFilled = (targetType == "T1") ? pos.T1Filled : pos.T2Filled;
 
                     if (targetFilled)
                     {
@@ -4364,27 +4378,55 @@ namespace NinjaTrader.NinjaScript.Strategies
                             break;
 
                         case "1point":
-                            // V8.18: Absolute profit target (Entry + 1 point)
+                            // Move target to 1 point from current price (toward profit)
+                            // For LONG: target must be ABOVE entry, so currentPrice + 1 point
+                            // For SHORT: target must be BELOW entry, so currentPrice - 1 point
                             double newPrice1pt = pos.Direction == MarketPosition.Long
-                                ? pos.EntryPrice + 1.0  
-                                : pos.EntryPrice - 1.0; 
+                                ? currentPrice + 1.0  // 1 point above market for long target
+                                : currentPrice - 1.0; // 1 point below market for short target
                             newPrice1pt = Instrument.MasterInstrument.RoundToTickSize(newPrice1pt);
                             
-                            Print(FormatString("★ {0} → 1 POINT PROFIT: {1} - New target @ {2:F2} (Entry was {3:F2})", 
-                                targetType, entryName, newPrice1pt, pos.EntryPrice));
+                            // CRITICAL: Validate target stays on profitable side of entry
+                            if (pos.Direction == MarketPosition.Long && newPrice1pt <= pos.EntryPrice)
+                            {
+                                newPrice1pt = pos.EntryPrice + tickSize; // Minimum 1 tick above entry
+                                Print(FormatString("★ {0} → 1 POINT: {1} - Adjusted to stay above entry @ {2:F2}", targetType, entryName, newPrice1pt));
+                            }
+                            else if (pos.Direction == MarketPosition.Short && newPrice1pt >= pos.EntryPrice)
+                            {
+                                newPrice1pt = pos.EntryPrice - tickSize; // Minimum 1 tick below entry
+                                Print(FormatString("★ {0} → 1 POINT: {1} - Adjusted to stay below entry @ {2:F2}", targetType, entryName, newPrice1pt));
+                            }
+                            else
+                            {
+                                Print(FormatString("★ {0} → 1 POINT: {1} - New target @ {2:F2}", targetType, entryName, newPrice1pt));
+                            }
                             
                             MoveTargetOrder(entryName, targetType, newPrice1pt, targetContracts, pos.Direction);
                             break;
 
                         case "2point":
-                            // V8.18: Absolute profit target (Entry + 2 points)
+                            // Move target to 2 points from current price (toward profit)
                             double newPrice2pt = pos.Direction == MarketPosition.Long
-                                ? pos.EntryPrice + 2.0  
-                                : pos.EntryPrice - 2.0; 
+                                ? currentPrice + 2.0  // 2 points above market for long target
+                                : currentPrice - 2.0; // 2 points below market for short target
                             newPrice2pt = Instrument.MasterInstrument.RoundToTickSize(newPrice2pt);
                             
-                            Print(FormatString("★ {0} → 2 POINTS PROFIT: {1} - New target @ {2:F2} (Entry was {3:F2})", 
-                                targetType, entryName, newPrice2pt, pos.EntryPrice));
+                            // CRITICAL: Validate target stays on profitable side of entry
+                            if (pos.Direction == MarketPosition.Long && newPrice2pt <= pos.EntryPrice)
+                            {
+                                newPrice2pt = pos.EntryPrice + tickSize;
+                                Print(FormatString("★ {0} → 2 POINTS: {1} - Adjusted to stay above entry @ {2:F2}", targetType, entryName, newPrice2pt));
+                            }
+                            else if (pos.Direction == MarketPosition.Short && newPrice2pt >= pos.EntryPrice)
+                            {
+                                newPrice2pt = pos.EntryPrice - tickSize;
+                                Print(FormatString("★ {0} → 2 POINTS: {1} - Adjusted to stay below entry @ {2:F2}", targetType, entryName, newPrice2pt));
+                            }
+                            else
+                            {
+                                Print(FormatString("★ {0} → 2 POINTS: {1} - New target @ {2:F2}", targetType, entryName, newPrice2pt));
+                            }
                             
                             MoveTargetOrder(entryName, targetType, newPrice2pt, targetContracts, pos.Direction);
                             break;
@@ -4424,7 +4466,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private void MoveTargetOrder(string entryName, string targetType, double newPrice, int quantity, MarketPosition direction)
         {
-            Dictionary<string, Order> targetOrders = (targetType == "T1") ? target1Orders : (targetType == "T2" ? target2Orders : target3Orders);
+            Dictionary<string, Order> targetOrders = (targetType == "T1") ? target1Orders : target2Orders;
 
             // Cancel existing target order
             if (targetOrders.ContainsKey(entryName))
@@ -4488,26 +4530,23 @@ namespace NinjaTrader.NinjaScript.Strategies
                             break;
 
                         case "stop1pt":
-                            // V8.19: Absolute profit lock (Entry + 1 point)
+                            // Move stop to 1 point from current price
                             double newStop1pt = pos.Direction == MarketPosition.Long
-                                ? pos.EntryPrice + 1.0
-                                : pos.EntryPrice - 1.0;
+                                ? currentPrice - (1.0 * tickSize / tickSize)
+                                : currentPrice + (1.0 * tickSize / tickSize);
                             newStop1pt = Instrument.MasterInstrument.RoundToTickSize(newStop1pt);
-                            
-                            // Safety: Only move if it's better than current stop or entry-relative profit-lock
                             UpdateStopOrder(entryName, pos, newStop1pt, pos.CurrentTrailLevel);
-                            Print(FormatString("★ RUNNER STOP → 1 PT PROFIT LOCK: {0} - Stop @ {1:F2} (Entry was {2:F2})", entryName, newStop1pt, pos.EntryPrice));
+                            Print(FormatString("★ RUNNER STOP → 1 POINT: {0} - Stop @ {1:F2}", entryName, newStop1pt));
                             break;
 
                         case "stop2pt":
-                            // V8.19: Absolute profit lock (Entry + 2 points)
+                            // Move stop to 2 points from current price
                             double newStop2pt = pos.Direction == MarketPosition.Long
-                                ? pos.EntryPrice + 2.0
-                                : pos.EntryPrice - 2.0;
+                                ? currentPrice - (2.0 * tickSize / tickSize)
+                                : currentPrice + (2.0 * tickSize / tickSize);
                             newStop2pt = Instrument.MasterInstrument.RoundToTickSize(newStop2pt);
-                            
                             UpdateStopOrder(entryName, pos, newStop2pt, pos.CurrentTrailLevel);
-                            Print(FormatString("★ RUNNER STOP → 2 PT PROFIT LOCK: {0} - Stop @ {1:F2} (Entry was {2:F2})", entryName, newStop2pt, pos.EntryPrice));
+                            Print(FormatString("★ RUNNER STOP → 2 POINTS: {0} - Stop @ {1:F2}", entryName, newStop2pt));
                             break;
 
                         case "stopbe":
@@ -4634,7 +4673,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 // Status
                 string status = orComplete ? "OR COMPLETE" : (isInORWindow ? "OR BUILDING" : "WAITING");
-                statusTextBlock.Text = FormatString("V8.20 | {0}", status);
+                statusTextBlock.Text = FormatString("OR V8.11 | {0}", status);
 
                 // OR Info
                 if (orComplete)
@@ -4952,4 +4991,3 @@ namespace NinjaTrader.NinjaScript.Strategies
         #endregion
     }
 }
-

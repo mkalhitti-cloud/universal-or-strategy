@@ -35,6 +35,17 @@ namespace NinjaTrader.NinjaScript.Strategies
         // Multi-Instrument Tracking
         private List<Instrument> trackedInstruments = new List<Instrument>();
         private Dictionary<string, int> instrumentBarsIndex = new Dictionary<string, int>();
+        private Dictionary<string, RemoteIndicatorData> remoteData = new Dictionary<string, RemoteIndicatorData>();
+
+        private class RemoteIndicatorData
+        {
+            public double LastPrice { get; set; }
+            public double Ema9 { get; set; }
+            public double Ema15 { get; set; }
+            public double OrHigh { get; set; }
+            public double OrLow { get; set; }
+            public DateTime LastUpdate { get; set; }
+        }
 
         #endregion
 
@@ -183,14 +194,38 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (command != null)
             {
-                Print("V9 HUB: Received command: " + command);
-                
-                // Format: "ACTION|SYMBOL|QUANTITY" (e.g., "LONG|MES 03-26|1")
+                // Format: "ACTION|SYMBOL|Q1|Q2|Q3|..."
                 string[] parts = command.Split('|');
                 if (parts.Length < 2) return;
 
                 string action = parts[0];
                 string symbol = parts[1];
+
+                if (action == "DATA")
+                {
+                    // Format: DATA|SYMBOL|LAST|EMA9|EMA15|ORH|ORL
+                    if (parts.Length < 7) return;
+                    
+                    if (!remoteData.ContainsKey(symbol)) remoteData[symbol] = new RemoteIndicatorData();
+                    var rd = remoteData[symbol];
+                    
+                    double.TryParse(parts[2], out double last);
+                    double.TryParse(parts[3], out double ema9);
+                    double.TryParse(parts[4], out double ema15);
+                    double.TryParse(parts[5], out double orh);
+                    double.TryParse(parts[6], out double orl);
+                    
+                    rd.LastPrice = last;
+                    rd.Ema9 = ema9;
+                    rd.Ema15 = ema15;
+                    rd.OrHigh = orh;
+                    rd.OrLow = orl;
+                    rd.LastUpdate = DateTime.Now;
+                    
+                    return;
+                }
+
+                Print("V9 HUB: Received command: " + command);
                 
                 if (action == "FLATTEN")
                 {

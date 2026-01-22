@@ -1,0 +1,38 @@
+================================================================================
+TOS RTD BRIDGE - EXCEL SETUP INSTRUCTIONS
+================================================================================
+
+Since TOS RTD only works with Excel, you need to create a simple Excel file
+that pulls the indicator values from TOS. The WPF app will then read from Excel.
+
+STEP 1: Create a new Excel workbook
+------------------------------------
+1. Open Excel
+2. Create a new blank workbook
+3. Save it as: TOS_RTD_Bridge.xlsx
+   Location: C:\Users\Mohammed Khalid\OneDrive\Desktop\WSGTA\Github\universal-or-strategy\V9_ExternalRemote\
+
+STEP 2: Enter the RTD formulas
+------------------------------
+In the workbook, enter these values:
+
+Cell A1: MES
+Cell B1: =RTD("tos.rtd",,"CUSTOM4","/MES:XCME")
+Cell C1: =RTD("tos.rtd",,"CUSTOM6","/MES:XCME")
+
+Cell A2: MGC
+Cell B2: =RTD("tos.rtd",,"CUSTOM4","/MGC:XCEC")
+Cell C2: =RTD("tos.rtd",,"CUSTOM6","/MGC:XCEC")
+
+STEP 3: Verify values appear
+-----------------------------
+- Make sure TOS is running
+- Make sure MarketWatch > Quotes has your symbols with Custom 4 and Custom 6
+- The cells B1, C1, B2, C2 should show the EMA values
+
+STEP 4: Keep Excel open
+-----------------------
+- The WPF app will read from this Excel file
+- Keep Excel open while trading
+
+================================================================================
