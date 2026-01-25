@@ -22,33 +22,31 @@ You are V9_001 Agent - Test TOS RTD Live Numbers
 
 READ FIRST:
 1. .agent/SHARED_CONTEXT/CURRENT_SESSION.md
-2. .agent/V9_STATUS.json
-3. V9_ExternalRemote/MainWindow.xaml.cs
+2. .agent/SHARED_CONTEXT/V9_STATUS.json
+3. .agent/V9_ARCHITECTURE.md
 
-TASK: Test if V9 TOS RTD is working
+TASK: Verify TOS RTD Live Data Flow
+Your goal is to build and run the `V9_ExternalRemote` project and verify that live market data is successfully populating the dashboard.
 
 STEPS:
-1. Build V9_ExternalRemote project: dotnet build V9_ExternalRemote/V9_ExternalRemote.csproj -c Release
-2. Run: V9_ExternalRemote/bin/Release/net6.0-windows/V9_Milestone_FINAL.exe
-3. Check if TOS RTD LED turns green (live data connected)
-4. Check if EMA9/EMA15 show live numbers (not --- or #N/A)
-5. Check if LAST price updates in real-time
-6. Report PASS or FAIL with details
+1. Build the Project:
+   dotnet build V9_ExternalRemote/V9_ExternalRemote.csproj -c Release
+2. Run the Executable:
+   Navigate to V9_ExternalRemote/bin/Release/net6.0-windows/ and run V9_ExternalRemote.exe.
+3. Check Connection Status (LED):
+   - PASS: LED is GREEN.
+   - FAIL: LED is RED.
+4. Verify Indicator Updates:
+   Check EMA9 and EMA15 fields for live numeric values.
+5. Verify Price Updates:
+   Check LAST price field for real-time tick updates.
 
 EXPECTED RESULT if PASS:
-- TOS RTD LED: GREEN
-- EMA9: Shows live number (e.g., 4520.50)
-- EMA15: Shows live number (e.g., 4521.00)
-- LAST: Updates every tick
-- Status: "TOS RTD WORKING"
+- LED is GREEN.
+- EMA9/15 show live numbers (not zero, not #N/A).
+- LAST price updates constantly.
 
-EXPECTED RESULT if FAIL:
-- TOS RTD LED: RED
-- EMA9: Shows --- or #N/A
-- Values not updating
-- Report what's broken
-
-When done, update .agent/SHARED_CONTEXT/CURRENT_SESSION.md with result.
+When done, update .agent/SHARED_CONTEXT/CURRENT_SESSION.md and V9_STATUS.json with results.
 ```
 
 ### 6:05 PM - 6:30 PM EST (V9_001 testing window)
@@ -150,48 +148,30 @@ When done: Create comprehensive UI documentation
 
 Paste this prompt into new Antigravity chat:
 ```
-You are V9_002 Agent - TOS RTD Debugging
+You are V9_002 Agent - Debug TOS RTD Connection
 
 READ FIRST:
-1. .agent/V9_STATUS.json
-2. V9_ExternalRemote/TosRtdClient.cs (RTD connection code)
-3. V9_ExternalRemote/ExcelRtdReader.cs (Excel bridge code)
-4. TOS_RTD_Bridge.xlsx (the Excel file with RTD formulas)
+- V9_STATUS.json (System status)
+- TosRtdClient.cs (C# client for RTD)
+- ExcelRtdReader.cs (Excel bridge reader)
+- TOS_RTD_Bridge.xlsx (Excel bridge containing formulas)
 
-WORKSPACE: DEVELOPMENT/V9_WIP/TOS_RTD_BRIDGE/
-
-TASK: Fix TOS RTD connection
+TASK: Fix the TOS RTD connection if the V9_001 test agent fails.
 
 DEBUG CHECKLIST:
-1. Is ThinkorSwim running and RTD enabled?
-2. Is TOS_RTD_Bridge.xlsx open in Excel?
-3. Are RTD formulas in Excel calculating (not showing #N/A)?
-4. Can V9 app read Excel cells (check ExcelRtdReader)?
-5. Is the RTD server responding (check tos.rtd COM object)?
+1. ThinkorSwim (TOS): Running? RTD enabled?
+2. Excel Bridge: Bridge.xlsx open? RTD formulas calculating (not #N/A)?
+3. Connectivity: Can app read Excel cells? Is COM object tos.rtd responding?
+4. Symbol Validation: Are symbols correctly formatted (e.g., /MES:CME)?
 
-STEPS:
-1. Check Excel: Open TOS_RTD_Bridge.xlsx
-   - Verify RTD formulas in CUSTOM4, CUSTOM6 cells
-   - Check if they show numbers (not #N/A)
-   - If #N/A → TOS RTD not responding → restart TOS
+TROUBLESHOOTING:
+- Path Verification: Ensure Excel file path in C# code is correct.
+- Formula Check: Verify RTD formulas in CUSTOM4/CUSTOM6 if used.
+- Restart Procedure: Restart TOS if COM object is unresponsive.
+- Logging: Add detailed logging to TosRtdClient.cs for COM exceptions.
+- Iterative Testing: Re-run V9_001 after each fix attempt.
 
-2. Check V9 code:
-   - Trace ExcelRtdReader initialization
-   - Add detailed logging
-   - Verify Excel file path is correct
-   - Test cell reads
-
-3. Check TOS:
-   - Restart ThinkorSwim
-   - Verify RTD server is active
-   - Test Excel → TOS connection first
-
-4. Test again:
-   - Run V9 app
-   - Check TOS RTD LED
-   - Check if numbers appear
-
-When you fix it: Create detailed bug report
+When fixed, create a detailed bug report and provide fixed code.
 ```
 
 ### 6:30 PM - Until Fixed
