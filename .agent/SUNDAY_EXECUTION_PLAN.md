@@ -1,6 +1,6 @@
-# MONDAY EXECUTION PLAN - V9 Testing & Development
+# SUNDAY EXECUTION PLAN - V9 Testing & Development
 
-**Date**: Monday, January 27, 2026
+**Date**: Sunday, January 25, 2026 (Reflecting today's date for execution)
 **Market Opens**: 6 PM EST / 3 PM PST
 **Coordinator**: Antigravity (Gemini Flash / Opus)
 
@@ -14,8 +14,9 @@
 - [ ] Have all prompts ready to paste
 
 ### 6:00 PM EST (MARKET OPENS - T+0)
-**SPAWN V9_001 AGENT (TOS RTD Test)**
+**SPAWN V9_001, V9_003, & V9_004 AGENTS SIMULTANEOUSLY**
 
+1. **SPAWN V9_001 AGENT (TOS RTD Test)**
 Paste this prompt into new Antigravity chat:
 ```
 You are V9_001 Agent - Test TOS RTD Live Numbers
@@ -49,27 +50,7 @@ EXPECTED RESULT if PASS:
 When done, update .agent/SHARED_CONTEXT/CURRENT_SESSION.md and V9_STATUS.json with results.
 ```
 
-### 6:05 PM - 6:30 PM EST (V9_001 testing window)
-- V9_001 runs TOS RTD test
-- Coordinator monitors progress
-- If issues appear, note them for V9_002
-
-### 6:30 PM EST (RESULT DECISION POINT)
-
-**If V9_001 PASSES** ✅
-→ Go to "PARALLEL DEVELOPMENT PHASE" (see below)
-
-**If V9_001 FAILS** ❌
-→ Go to "DEBUGGING PHASE" (see below)
-
----
-
-## SCENARIO A: V9_001 PASSES ✅
-
-### 6:30 PM EST - Spawn V9_003 & V9_004 Agents (PARALLEL)
-
-**SPAWN V9_003 AGENT (Copy Trading)**
-
+2. **SPAWN V9_003 AGENT (Copy Trading)**
 Paste this prompt into new Antigravity chat:
 ```
 You are V9_003 Agent - Copy Trading Multi-Account System
@@ -98,8 +79,7 @@ Expected output:
 When done: Create .agent/SHARED_CONTEXT/V9_COPY_TRADING_STATUS.json
 ```
 
-**SPAWN V9_004 AGENT (WPF UI)**
-
+3. **SPAWN V9_004 AGENT (WPF UI)**
 Paste this prompt into new Antigravity chat:
 ```
 You are V9_004 Agent - WPF UI Controls
@@ -127,6 +107,23 @@ Account routing logic is V9_003's job.
 
 When done: Create comprehensive UI documentation
 ```
+
+### 6:05 PM - 6:30 PM EST
+- V9_001 runs TOS RTD test
+- V9_003 & V9_004 work in parallel
+- Coordinator monitors all three agents
+
+### 6:30 PM EST (RESULT DECISION POINT)
+
+**If V9_001 PASSES** ✅
+→ Go to "PARALLEL DEVELOPMENT PHASE" (continue V9_003 & V9_004)
+
+**If V9_001 FAILS** ❌
+→ Go to "DEBUGGING PHASE" (Spawn V9_002)
+
+---
+
+## SCENARIO A: V9_001 PASSES ✅
 
 ### 6:30 PM - 8:30 PM EST (2-3 hours)
 - V9_003 implements copy trading
@@ -176,13 +173,9 @@ When fixed, create a detailed bug report and provide fixed code.
 
 ### 6:30 PM - Until Fixed
 - V9_002 debugs TOS RTD issue
-- Keep trying, document findings
+- V9_003 & V9_004 continue their work (if possible)
 - Once fixed: restart V9_001 test
 - Report success back to coordinator
-
-### Once V9_002 Fixes It
-- Spawn V9_003 and V9_004 (same as Scenario A)
-- Continue with parallel development
 
 ---
 
@@ -190,30 +183,22 @@ When fixed, create a detailed bug report and provide fixed code.
 
 **Throughout the night**:
 
-1. **Monitor V9_001 Test** (6:00-6:30 PM)
-   - Watch for TOS RTD LED status
-   - Check if EMA values appear
-   - Record PASS or FAIL
+1. **Monitor Agents** (6:00 PM onward)
+   - Track V9_001 (LED status, EMA values)
+   - Track V9_003 (TCP server, account routing)
+   - Track V9_004 (UI dashboard progress)
 
-2. **If PASS** (6:30 PM onward)
-   - Spawn V9_003 (Copy Trading)
-   - Spawn V9_004 (UI)
-   - Monitor both in parallel
-   - Update CURRENT_SESSION.md every 30 min
+2. **Decision Making**
+   - If V9_001 fails, immediately spawn V9_002
+   - If V9_003/004 hit a blocker, facilitate communication
 
-3. **If FAIL** (6:30 PM onward)
-   - Spawn V9_002 (Debugging)
-   - Let V9_002 investigate
-   - Once fixed, spawn V9_003 & V9_004
-
-4. **Update Status Files**
+3. **Update Status Files**
    - `.agent/SHARED_CONTEXT/CURRENT_SESSION.md`
    - `.agent/SHARED_CONTEXT/V9_STATUS.json`
-   - `.agent/SHARED_CONTEXT/V9_COPY_TRADING_STATUS.json` (if V9_003 runs)
+   - `.agent/SHARED_CONTEXT/V9_COPY_TRADING_STATUS.json`
 
-5. **Coordinate Communication**
-   - Keep all agents updated on progress
-   - Share blockers immediately
+4. **Coordinate Communication**
+   - Keep all agents updated on each other's progress
    - Escalate issues if needed
 
 ---
@@ -258,39 +243,26 @@ When fixed, create a detailed bug report and provide fixed code.
 
 **If you need to pause and resume later:**
 
-1. Update `.agent/SHARED_CONTEXT/CURRENT_SESSION.md` with:
-   - What agent was working on what
-   - Current status
-   - What comes next
-   - Any blockers
-
+1. Update `.agent/SHARED_CONTEXT/CURRENT_SESSION.md` with current status.
 2. Commit to git: `git commit -m "WIP: V9 development in progress"`
-
-3. When resuming: Read CURRENT_SESSION.md first
-
-**If multiple agents need to work simultaneously:**
-- Each gets their own Antigravity chat
-- All read from shared context files
-- Updates are automatically visible to all
+3. When resuming: Read CURRENT_SESSION.md first.
 
 ---
 
 ## IMPORTANT REMINDERS
 
-1. **V8_22 is protected** - don't modify production
-2. **Test before deploy** - all V9 work is in DEVELOPMENT/
-3. **Monitor TOS RTD** - this is the critical path
-4. **Document everything** - every failure helps V9_002
-5. **Stay coordinated** - update CURRENT_SESSION.md frequently
+1. **V8_22 is protected** - don't modify production.
+2. **Test before deploy** - all V9 work is in DEVELOPMENT/.
+3. **Monitor TOS RTD** - this is the critical path.
+4. **Document everything** - every failure helps V9_002.
+5. **Stay coordinated** - update CURRENT_SESSION.md frequently.
 
 ---
 
 ## GOOD LUCK!
 
-Market opens in approximately **6 PM EST Monday**.
+Market opens in approximately **6 PM EST Sunday**.
 
 The infrastructure is ready. The prompts are prepared. The architecture is documented.
 
-When market opens, trigger V9_001 and we'll know within 30 minutes if V9 is working.
-
-You've got this. 🚀
+Trigger the simultaneous spawn at 6:00 PM and let's go. 🚀
