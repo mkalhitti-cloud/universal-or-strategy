@@ -59,3 +59,42 @@ Your goal is to build and run the `V9_ExternalRemote` project and verify that li
 Upon completion of the test, update the following files with your results:
 1.  **Update [CURRENT_SESSION.md](file:///c:/Users/Mohammed%20Khalid/OneDrive/Desktop/WSGTA/Github/universal-or-strategy/.agent/SHARED_CONTEXT/CURRENT_SESSION.md)**: Record the test outcome in the "Development Status (V9)" section.
 2.  **Update [V9_STATUS.json](file:///c:/Users/Mohammed%20Khalid/OneDrive/Desktop/WSGTA/Github/universal-or-strategy/.agent/SHARED_CONTEXT/V9_STATUS.json)**: Update the `current_state` and `v9_candidates` status based on which version was tested and the result.
+
+---
+
+## WHEN YOU'RE DONE (CRITICAL)
+
+Before closing this conversation, you MUST do these three things:
+
+### 1. Update .agent/SHARED_CONTEXT/CURRENT_SESSION.md
+
+Add a section with your completion report:
+- Task ID and name
+- Status (COMPLETED, BLOCKED, IN_PROGRESS)
+- Results or findings
+- Any blockers or issues
+- What should happen next
+
+### 2. Update Your Task Status File
+
+Create/update the appropriate JSON file:
+- V9_001: .agent/SHARED_CONTEXT/V9_TOS_RTD_STATUS.json
+- V9_002: .agent/SHARED_CONTEXT/V9_TOS_RTD_STATUS.json (same file, update with debug results)
+- V9_003: .agent/SHARED_CONTEXT/V9_COPY_TRADING_STATUS.json
+- V9_004: .agent/SHARED_CONTEXT/V9_WPF_UI_STATUS.json
+
+Include:
+- task_id
+- status (COMPLETED, BLOCKED, IN_PROGRESS)
+- completed_date (ISO8601 timestamp)
+- results (specific outcomes)
+- blockers (any issues)
+- next_steps (what comes next)
+
+### 3. Commit Your Changes
+
+If code was modified:
+```bash
+git add .
+git commit -m "feat: [Task name] - [status]"
+```
