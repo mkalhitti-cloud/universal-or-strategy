@@ -1,15 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Threading.Tasks;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Linq;
 
 namespace V9_ExternalRemote
 {
@@ -19,14 +14,11 @@ namespace V9_ExternalRemote
         private int hubPort = 5000;
         private TcpClient client;
         private TosRtdClient _tosRtd;
-        private ExcelRtdReader? _excelReader;
         private string _activeSymbol = "MES";
-        public ObservableCollection<SymbolData> Symbols { get; set; } = new ObservableCollection<SymbolData>();
 
         public MainWindow()
         {
             InitializeComponent();
-            this.DataContext = this;
             
             // Global Safety: Prevent "disappearing" app on any unhandled error
             AppDomain.CurrentDomain.UnhandledException += (s, e) => {
@@ -34,24 +26,7 @@ namespace V9_ExternalRemote
             };
 
             InitializeTosRtd();
-            InitializeExcelBridge();
             ConnectToHub();
-            StartDataBroadcast();
-        }
-
-        private void StartDataBroadcast()
-        {
-            var timer = new System.Windows.Threading.DispatcherTimer();
-            timer.Interval = TimeSpan.FromSeconds(1);
-            timer.Tick += async (s, e) => {
-                foreach (var symbol in Symbols)
-                {
-                    // Format: DATA|SYMBOL|LAST|EMA9|EMA15|ORH|ORL
-                    string cmd = $"DATA|{symbol.Symbol}|{symbol.LastPrice}|{symbol.Ema9}|{symbol.Ema15}|{symbol.OrHigh}|{symbol.OrLow}";
-                    await SendCommand(cmd);
-                }
-            };
-            timer.Start();
         }
 
         private void SymbolInput_KeyDown(object sender, KeyEventArgs e)
@@ -90,93 +65,51 @@ namespace V9_ExternalRemote
             }
         }
 
-        private void InitializeExcelBridge()
-        {
-            // Path to Excel workbook with TOS RTD formulas
-            string excelPath = System.IO.Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory, 
-                "TOS_RTD_Bridge.xlsx");
-            
-            // Also try the source directory if not found in bin
-            if (!System.IO.File.Exists(excelPath))
-            {
-                excelPath = @"C:\Users\Mohammed Khalid\OneDrive\Desktop\WSGTA\Github\universal-or-strategy\V9_ExternalRemote\TOS_RTD_Bridge.xlsx";
-            }
-
-            _excelReader = new ExcelRtdReader(
-                excelPath,
-                OnExcelDataReceived,
-                msg => { if (_tosRtd != null) _tosRtd.Log(msg); else Console.WriteLine(msg); }
-            );
-
-            // Try to connect (will fail gracefully if Excel/file not ready)
-            _excelReader.Connect();
-        }
-
-        private void OnExcelDataReceived(string symbol, string dataType, double ema9, double ema15)
-        {
-            this.Dispatcher.BeginInvoke(new Action(() => {
-                // Find or create symbol data
-                var data = Symbols.FirstOrDefault(s => s.Symbol == symbol);
-                if (data == null)
-                {
-                    data = new SymbolData { Symbol = symbol };
-                    Symbols.Add(data);
-                }
-
-                // Update EMA values from Excel
-                data.Ema9 = ema9.ToString("F2");
-                data.Ema15 = ema15.ToString("F2");
-            }));
-        }
-
         private void SubscribeToSymbol(string symbol)
         {
             try
             {
-                string rawSymbol = symbol.TrimStart('/').ToUpper();
+                // Safety: Unsubscribe before switching
+                if (_tosRtd != null) _tosRtd.UnsubscribeAll();
                 
-                // Check if already subscribed
-                if (Symbols.Any(s => s.Symbol == rawSymbol)) return;
-
-                // Create new symbol data row
-                var symbolData = new SymbolData { Symbol = rawSymbol };
-                Symbols.Add(symbolData);
+                // Clear the UI to prevent stale data confusion
+                ClearPriceDisplay();
 
                 // Build the full TOS symbol with exchange suffix
+                // TOS RTD requires format: /MGC:XCEC for gold
+                string rawSymbol = symbol.TrimStart('/');
+                
+                // Determine exchange based on symbol root
                 string exchange = GetExchange(rawSymbol);
                 string tosSymbol = "/" + rawSymbol + ":" + exchange;
-                string rawTos = "/" + rawSymbol;
                 
-                // === STANDARD PRICE FIELDS (WORKING) ===
+                // Standard built-in fields (2-parameter: Field, Symbol)
                 _tosRtd.Subscribe(tosSymbol + ":LAST", new object[] { "LAST", tosSymbol });
                 _tosRtd.Subscribe(tosSymbol + ":BID", new object[] { "BID", tosSymbol });
                 _tosRtd.Subscribe(tosSymbol + ":ASK", new object[] { "ASK", tosSymbol });
                 
-                // === CUSTOM COLUMNS FROM TOS WATCHLIST ===
-                // DISCOVERED: TOS internally uses CUSTOM3, CUSTOM4, etc. (not CUSTOM1, CUSTOM2)
-                // From Excel export: =RTD("tos.rtd",,"CUSTOM3","/MGC:XCEC")
-                // Custom 1 (EMA9) = CUSTOM3, Custom 2 (EMA15) = CUSTOM4
-                
-                // Use ONLY the exact format from TOS export: /SYMBOL:EXCHANGE
-                // Try CUSTOM1-CUSTOM10 to cover all possibilities
-                for (int i = 1; i <= 10; i++)
-                {
-                    string customField = $"CUSTOM{i}";
-                    
-                    // Subscribe with exact format from TOS: ["CUSTOMX", "/SYMBOL:EXCHANGE"]
-                    _tosRtd.Subscribe($"{tosSymbol}:{customField}", new object[] { customField, tosSymbol });
-                }
-                
-                _tosRtd.Log($"Subscribed to CUSTOM1-10 for {rawSymbol}");
-
+                // If V9_RTD_Link study is available, add those too
+                string study = "V9_RTD_Link";
+                _tosRtd.Subscribe(tosSymbol + ":EMA9", new object[] { study, "EMA9", tosSymbol });
+                _tosRtd.Subscribe(tosSymbol + ":EMA15", new object[] { study, "EMA15", tosSymbol });
+                _tosRtd.Subscribe(tosSymbol + ":ORHIGH", new object[] { study, "ORHIGH", tosSymbol });
+                _tosRtd.Subscribe(tosSymbol + ":ORLOW", new object[] { study, "ORLOW", tosSymbol });
             }
             catch { }
         }
 
+
+
         private void ClearPriceDisplay()
         {
-            // No longer clearing individual textboxes as we use per-symbol rows
+            this.Dispatcher.Invoke(() =>
+            {
+                LastPriceTxt.Text = "...";
+                Ema9Txt.Text = "---";
+                Ema15Txt.Text = "---";
+                OrHighTxt.Text = "---";
+                OrLowTxt.Text = "---";
+            });
         }
 
         private string GetExchange(string symbol)
@@ -212,60 +145,21 @@ namespace V9_ExternalRemote
                 {
                     if (value == null) return;
                     string valStr = value.ToString();
-                    if (valStr.Contains("N/A") || string.IsNullOrWhiteSpace(valStr)) return;
+                    if (valStr == "#N/A" || string.IsNullOrWhiteSpace(valStr) || valStr == "0.00") return;
 
                     double val = 0;
-                    if (!double.TryParse(valStr, out val)) return;
+                    double.TryParse(valStr, out val);
 
-                    // Find which symbol this update belongs to
-                    // Key format: /SYMBOL:EXCHANGE:FIELD
-                    string[] parts = key.Split(':');
-                    if (parts.Length < 3) return;
-                    
-                    string symbol = parts[0].TrimStart('/');
-                    var data = Symbols.FirstOrDefault(s => s.Symbol == symbol);
-                    if (data == null) return;
-
-                    string field = parts[parts.Length - 1];
-
-                    // Map fields based on shotgun keys and common names
-                    if (field == "LAST") data.LastPrice = val.ToString("F2");
-                    else if (field == "BID") data.BidPrice = val.ToString("F2");
-                    else if (field == "ASK") data.AskPrice = val.ToString("F2");
-
-                    // Indicators: Check for CUSTOM columns or any EMA/OR pattern  
-                    bool isIndicator = field.Contains("CUSTOM") || field.Contains("EMA") || field.Contains("OR");
-                    
-                    if (isIndicator)
-                    {
-                        // Log any valid non-zero hit
-                        if (val != 0)
-                        {
-                            System.IO.File.AppendAllText("v9_shotgun_hits.txt", $"HIT: {key} = {val}\n");
-                        }
-
-                        // User's TOS Configuration: Custom 4 = EMA9, Custom 6 = EMA15
-                        // EMA9 - CUSTOM4
-                        if (key.Contains("CUSTOM4")) 
-                            data.Ema9 = val.ToString("F2");
-                        
-                        // EMA15 - CUSTOM6
-                        else if (key.Contains("CUSTOM6")) 
-                            data.Ema15 = val.ToString("F2");
-                        
-                        // OR HIGH - CUSTOM7 or CUSTOM8 (future)
-                        else if (key.Contains("CUSTOM7")) 
-                            data.OrHigh = val.ToString("F2");
-                        
-                        // OR LOW - CUSTOM8 or CUSTOM9 (future)
-                        else if (key.Contains("CUSTOM8")) 
-                            data.OrLow = val.ToString("F2");
-                    }
+                    if (key.EndsWith(":LAST")) LastPriceTxt.Text = val.ToString("F2");
+                    else if (key.EndsWith(":EMA9")) Ema9Txt.Text = val.ToString("F2");
+                    else if (key.EndsWith(":EMA15")) Ema15Txt.Text = val.ToString("F2");
+                    else if (key.EndsWith(":ORHIGH")) OrHighTxt.Text = val.ToString("F2");
+                    else if (key.EndsWith(":ORLOW")) OrLowTxt.Text = val.ToString("F2");
                     
                     // MTF Flags Logic
-                    else if (field.Contains("EMA9_5M")) data.Flag5m = GetFlagBrush(val, data.LastPrice);
-                    else if (field.Contains("EMA9_15M")) data.Flag15m = GetFlagBrush(val, data.LastPrice);
-                    else if (field.Contains("EMA9_60M")) data.Flag60m = GetFlagBrush(val, data.LastPrice);
+                    else if (key.EndsWith(":EMA9_5M")) UpdateFlag(Flag5m, Flag5mVal, val);
+                    else if (key.EndsWith(":EMA9_15M")) UpdateFlag(Flag15m, Flag15mVal, val);
+                    else if (key.EndsWith(":EMA9_60M")) UpdateFlag(Flag60m, Flag60mVal, val);
                 }
                 catch { }
             });
@@ -274,11 +168,19 @@ namespace V9_ExternalRemote
         private static readonly Brush RedFlag = new SolidColorBrush(Color.FromArgb(60, 255, 0, 0));
         private static readonly Brush GreenFlag = new SolidColorBrush(Color.FromArgb(60, 0, 255, 0));
 
-        private Brush GetFlagBrush(double level, string lastPriceStr)
+        private void UpdateFlag(System.Windows.Controls.Border flagBorder, System.Windows.Controls.TextBlock flagText, double level)
         {
-            double lastPrice = 0;
-            double.TryParse(lastPriceStr, out lastPrice);
-            return (lastPrice > level) ? GreenFlag : RedFlag;
+            try
+            {
+                double lastPrice = 0;
+                double.TryParse(LastPriceTxt.Text, out lastPrice);
+                
+                flagText.Text = level.ToString("F2");
+                
+                // Color logic: Green if price is above, Red if below
+                flagBorder.Background = (lastPrice > level) ? GreenFlag : RedFlag;
+            }
+            catch { }
         }
 
         private void SetSymbol_Click(object sender, RoutedEventArgs e)
@@ -372,38 +274,6 @@ namespace V9_ExternalRemote
             GlowBorder.BorderBrush = color;
             await Task.Delay(500);
             GlowBorder.BorderBrush = Brushes.Transparent;
-        }
-    }
-
-    public class SymbolData : INotifyPropertyChanged
-    {
-        private string _lastPrice = "0.00";
-        private string _bidPrice = "0.00";
-        private string _askPrice = "0.00";
-        private string _ema9 = "0.0";
-        private string _ema15 = "0.0";
-        private string _orHigh = "0.00";
-        private string _orLow = "0.00";
-        private Brush _flag5m = Brushes.Gray;
-        private Brush _flag15m = Brushes.Gray;
-        private Brush _flag60m = Brushes.Gray;
-
-        public string Symbol { get; set; }
-        public string LastPrice { get => _lastPrice; set { _lastPrice = value; OnPropertyChanged(); } }
-        public string BidPrice { get => _bidPrice; set { _bidPrice = value; OnPropertyChanged(); } }
-        public string AskPrice { get => _askPrice; set { _askPrice = value; OnPropertyChanged(); } }
-        public string Ema9 { get => _ema9; set { _ema9 = value; OnPropertyChanged(); } }
-        public string Ema15 { get => _ema15; set { _ema15 = value; OnPropertyChanged(); } }
-        public string OrHigh { get => _orHigh; set { _orHigh = value; OnPropertyChanged(); } }
-        public string OrLow { get => _orLow; set { _orLow = value; OnPropertyChanged(); } }
-        public Brush Flag5m { get => _flag5m; set { _flag5m = value; OnPropertyChanged(); } }
-        public Brush Flag15m { get => _flag15m; set { _flag15m = value; OnPropertyChanged(); } }
-        public Brush Flag60m { get => _flag60m; set { _flag60m = value; OnPropertyChanged(); } }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string name = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
     }
 }

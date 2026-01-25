@@ -166,10 +166,21 @@ namespace V9_ExternalRemote
             {
                 dynamic cell = sheet.Cells[row, col];
                 object? val = cell.Value;
-                if (val != null && double.TryParse(val.ToString(), out double result))
-                    return result;
+                if (val != null)
+                {
+                    string valStr = val.ToString() ?? "";
+                    if (double.TryParse(valStr, out double result))
+                        return result;
+                    
+                    // Log if it's not a number (e.g., "loading", "N/A", "#N/A")
+                    if (!string.IsNullOrEmpty(valStr) && valStr != "0")
+                        _logCallback($"ExcelRtdReader: Cell at [{row},{col}] is '{valStr}' (not a number)");
+                }
             }
-            catch { }
+            catch (Exception ex) 
+            {
+                _logCallback($"ExcelRtdReader: Error reading cell [{row},{col}] - {ex.Message}");
+            }
             return 0;
         }
 
