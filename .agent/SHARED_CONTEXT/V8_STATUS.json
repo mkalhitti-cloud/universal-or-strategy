@@ -1,0 +1,22 @@
+{
+  "last_updated": "2026-01-25T10:59:00-08:00",
+  "updated_by": "Antigravity (Gemini Flash)",
+  "v8_production": {
+    "version": "V8_22",
+    "status": "STABLE",
+    "file": "PRODUCTION/V8_22_STABLE/UniversalORStrategyV8_22.cs",
+    "original_location": "UniversalORStrategyV8_22.cs",
+    "tested_date": "2026-01-23",
+    "tested_by": "Mo (live trading)",
+    "git_commit": "5c7dcdd",
+    "features": [
+      "4-Target System (T1, T2, T3, Runner)",
+      "Frequency-based trailing stops",
+      "RMA + TREND + RETEST + MOMO + FFMA entries",
+      "Enhanced UI with dropdown menus"
+    ],
+    "rollback_command": "cp \"PRODUCTION/V8_22_STABLE/UniversalORStrategyV8_22.cs\" \"C:/Users/Mohammed Khalid/Documents/NinjaTrader 8/bin/Custom/Strategies/\"",
+    "trading_status": "PROTECTED - Live environment",
+    "notes": "Current production version for live trading. DO NOT MODIFY."
+  }
+}

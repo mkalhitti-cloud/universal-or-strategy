@@ -1,0 +1,273 @@
+{
+  "task_list_id": "universal-or-strategy",
+  "version": "1.0",
+  "created": "2026-01-25T09:00:00-08:00",
+  "last_updated": "2026-01-25T09:00:00-08:00",
+  "compatible_with": ["claude", "gemini", "cursor", "antigravity", "windsurf", "any_ai"],
+
+  "model_hierarchy": {
+    "opus_4.5": {
+      "use_for": ["complex_debugging", "architecture_design", "critical_bugs", "deep_reasoning"],
+      "cost": "$$$",
+      "when": "ONLY when Flash/Sonnet cannot handle the complexity"
+    },
+    "sonnet_4.5": {
+      "use_for": ["long_context_needed", "claude_specific_features", "fallback_from_flash"],
+      "cost": "$$",
+      "when": "When Flash struggles or 200k+ context needed"
+    },
+    "gemini_flash": {
+      "use_for": ["file_ops", "deployment", "coordination", "planning", "documentation", "sub_agent_work", "everyday_tasks"],
+      "cost": "¢",
+      "when": "DEFAULT - Start here for everything, escalate if needed"
+    }
+  },
+
+  "ide_config": {
+    "claude_code_cli": {
+      "models": ["opus_4.5", "sonnet_4.5", "haiku_4.5"],
+      "mcp_bridge": "delegation_bridge.py",
+      "can_delegate_to_flash": true
+    },
+    "antigravity": {
+      "models": ["opus_4.5", "sonnet_4.5", "haiku_4.5", "gemini_flash", "gemini_pro"],
+      "mcp_bridge": "needs_setup",
+      "can_delegate_to_flash": true,
+      "native_flash": true
+    },
+    "cursor": {
+      "models": ["opus_4.5", "sonnet_4.5", "gemini_flash", "gpt_5.2"],
+      "mcp_bridge": "needs_setup",
+      "can_delegate_to_flash": "after_mcp_setup",
+      "native_flash": true
+    }
+  },
+
+  "tasks": [
+    {
+      "id": "PROD_001",
+      "title": "Protect V8_22 Production Version",
+      "status": "completed",
+      "priority": "critical",
+      "assigned_model": "gemini_flash",
+      "preferred_ide": "any",
+      "dependencies": [],
+      "blockers": [],
+      "sub_tasks": [
+        {"task": "Create PRODUCTION/V8_22_STABLE directory", "status": "completed"},
+        {"task": "Copy V8_22 files with metadata", "status": "completed"},
+        {"task": "Create TESTED_DATE.txt", "status": "completed"}
+      ],
+      "completed_date": "2026-01-25",
+      "notes": "V8_22 is now protected in PRODUCTION/V8_22_STABLE/"
+    },
+    {
+      "id": "PROD_002",
+      "title": "Protect V9 Versions",
+      "status": "pending",
+      "priority": "critical",
+      "assigned_model": "gemini_flash",
+      "preferred_ide": "cursor",
+      "dependencies": [],
+      "blockers": [],
+      "sub_tasks": [
+        {"task": "Copy UniversalOR_V9_MasterHub.cs to PRODUCTION/V9_STABLE/", "status": "pending"},
+        {"task": "Copy UniversalOR_V9_MasterHub_MILESTONE_LIVE_SUCCESS.cs to PRODUCTION/V9_STABLE/", "status": "pending"},
+        {"task": "Create TEST_WHEN_MARKET_OPENS.txt", "status": "pending"}
+      ],
+      "notes": "Two V9 versions exist - need to test both when market opens"
+    },
+    {
+      "id": "MCP_001",
+      "title": "Configure MCP Bridge in All IDEs",
+      "status": "in_progress",
+      "priority": "high",
+      "assigned_model": "gemini_flash",
+      "preferred_ide": "cursor",
+      "dependencies": [],
+      "blockers": [],
+      "sub_tasks": [
+        {"task": "Update delegation_bridge.py to new google.genai API", "status": "completed"},
+        {"task": "Install google-genai package", "status": "completed"},
+        {"task": "Test MCP bridge in Claude Code CLI", "status": "pending"},
+        {"task": "Configure MCP in Cursor", "status": "pending"},
+        {"task": "Configure MCP in Antigravity", "status": "pending"}
+      ],
+      "notes": "delegation_bridge.py updated, package installed, needs testing"
+    },
+    {
+      "id": "CTX_001",
+      "title": "Create Shared Context System",
+      "status": "pending",
+      "priority": "high",
+      "assigned_model": "gemini_flash",
+      "preferred_ide": "any",
+      "dependencies": [],
+      "blockers": [],
+      "sub_tasks": [
+        {"task": "Create CURRENT_SESSION.md template", "status": "pending"},
+        {"task": "Create AGENT_HANDOFF.md protocol", "status": "pending"},
+        {"task": "Create LAST_KNOWN_GOOD.json", "status": "pending"},
+        {"task": "Create V8_STATUS.json", "status": "pending"},
+        {"task": "Create V9_STATUS.json", "status": "pending"}
+      ],
+      "notes": "Enables 100% context when switching IDEs/agents"
+    },
+    {
+      "id": "V9_001",
+      "title": "Test V9 TOS RTD Live Numbers",
+      "status": "blocked",
+      "priority": "high",
+      "assigned_model": "gemini_flash",
+      "escalate_to": "opus_4.5",
+      "escalate_when": "debugging_needed",
+      "preferred_ide": "any",
+      "dependencies": ["PROD_002"],
+      "blockers": ["market_closed_until_0930_PST"],
+      "sub_tasks": [
+        {"task": "Launch V9_Milestone_FINAL.exe when market opens", "status": "pending"},
+        {"task": "Verify TOS RTD connection (green LED)", "status": "pending"},
+        {"task": "Check if EMA9/EMA15 show live numbers", "status": "pending"},
+        {"task": "If working: mark MILESTONE version as stable", "status": "pending"},
+        {"task": "If broken: escalate to Opus for debugging", "status": "pending"}
+      ],
+      "notes": "Market opens 06:30 PST / 09:30 EST. Test MILESTONE_LIVE_SUCCESS.cs first."
+    },
+    {
+      "id": "V9_002",
+      "title": "V9 TOS RTD Bridge - Fix Connection",
+      "status": "pending",
+      "priority": "high",
+      "assigned_model": "opus_4.5",
+      "sub_agent": "subagent_tos_bridge",
+      "preferred_ide": "antigravity",
+      "workspace": "DEVELOPMENT/V9_WIP/TOS_RTD_BRIDGE/",
+      "dependencies": ["V9_001"],
+      "blockers": [],
+      "sub_tasks": [
+        {"task": "Analyze what broke between working and current version", "status": "pending"},
+        {"task": "Map CUSTOM4/CUSTOM6 fields to EMA9/EMA15", "status": "pending"},
+        {"task": "Implement connection retry logic", "status": "pending"},
+        {"task": "Add heartbeat monitoring", "status": "pending"},
+        {"task": "Create diagnostic logging", "status": "pending"}
+      ],
+      "notes": "Sub-agent 1 responsibility. Use Opus for debugging, Flash for file ops."
+    },
+    {
+      "id": "V9_003",
+      "title": "V9 Copy Trading - External Orchestration",
+      "status": "pending",
+      "priority": "medium",
+      "assigned_model": "opus_4.5",
+      "sub_agent": "subagent_copy_trading",
+      "preferred_ide": "antigravity",
+      "workspace": "DEVELOPMENT/V9_WIP/COPY_TRADING/",
+      "dependencies": ["V9_001"],
+      "blockers": [],
+      "sub_tasks": [
+        {"task": "Design architecture for external copy trading", "status": "pending"},
+        {"task": "Extract copy trading logic from NinjaTrader", "status": "pending"},
+        {"task": "Implement IPC between NT and V9 app", "status": "pending"},
+        {"task": "Multi-account signal broadcasting", "status": "pending"},
+        {"task": "Position sync across accounts", "status": "pending"}
+      ],
+      "notes": "Sub-agent 2 responsibility. Opus for architecture, Flash for implementation."
+    },
+    {
+      "id": "V9_004",
+      "title": "V9 WPF UI - External Controls",
+      "status": "pending",
+      "priority": "medium",
+      "assigned_model": "gemini_flash",
+      "escalate_to": "sonnet_4.5",
+      "sub_agent": "subagent_wpf_ui",
+      "preferred_ide": "cursor",
+      "workspace": "DEVELOPMENT/V9_WIP/WPF_UI/",
+      "dependencies": ["V9_001"],
+      "blockers": [],
+      "sub_tasks": [
+        {"task": "Design UI layout for external controls", "status": "pending"},
+        {"task": "Move trade controls outside NinjaTrader", "status": "pending"},
+        {"task": "Connect UI to V9 backend", "status": "pending"},
+        {"task": "Implement hotkeys in WPF", "status": "pending"},
+        {"task": "Real-time position display", "status": "pending"}
+      ],
+      "notes": "Sub-agent 3 responsibility. Flash for XAML, escalate to Sonnet if complex."
+    },
+    {
+      "id": "CLEANUP_001",
+      "title": "Archive Old Versions",
+      "status": "pending",
+      "priority": "low",
+      "assigned_model": "gemini_flash",
+      "preferred_ide": "cursor",
+      "dependencies": ["PROD_001", "PROD_002", "V9_001"],
+      "blockers": [],
+      "sub_tasks": [
+        {"task": "Move V8_1 through V8_21 to archived-versions/", "status": "pending"},
+        {"task": "Move orphan .cs files to appropriate folders", "status": "pending"},
+        {"task": "Update README.md with new structure", "status": "pending"},
+        {"task": "Update AGENT.md with V9 details", "status": "pending"}
+      ],
+      "notes": "Only after production versions are protected and tested"
+    }
+  ],
+
+  "sub_agents": {
+    "subagent_tos_bridge": {
+      "name": "TOS RTD Bridge Agent",
+      "responsibility": "ThinkorSwim RTD data integration",
+      "assigned_tasks": ["V9_002"],
+      "workspace": "DEVELOPMENT/V9_WIP/TOS_RTD_BRIDGE/",
+      "primary_model": "opus_4.5",
+      "file_ops_model": "gemini_flash",
+      "preferred_ide": "antigravity",
+      "context_file": ".agent/SHARED_CONTEXT/V9_TOS_BRIDGE_STATUS.json"
+    },
+    "subagent_copy_trading": {
+      "name": "Copy Trading Agent",
+      "responsibility": "Multi-account trade replication external to NinjaTrader",
+      "assigned_tasks": ["V9_003"],
+      "workspace": "DEVELOPMENT/V9_WIP/COPY_TRADING/",
+      "primary_model": "opus_4.5",
+      "file_ops_model": "gemini_flash",
+      "preferred_ide": "antigravity",
+      "context_file": ".agent/SHARED_CONTEXT/V9_COPY_TRADING_STATUS.json"
+    },
+    "subagent_wpf_ui": {
+      "name": "WPF UI Agent",
+      "responsibility": "External control interface for V9",
+      "assigned_tasks": ["V9_004"],
+      "workspace": "DEVELOPMENT/V9_WIP/WPF_UI/",
+      "primary_model": "gemini_flash",
+      "escalate_to": "sonnet_4.5",
+      "preferred_ide": "cursor",
+      "context_file": ".agent/SHARED_CONTEXT/V9_WPF_UI_STATUS.json"
+    }
+  },
+
+  "workflow_rules": {
+    "default_model": "gemini_flash",
+    "escalation_chain": ["gemini_flash", "sonnet_4.5", "opus_4.5"],
+    "file_operations": "ALWAYS use gemini_flash via MCP or native",
+    "debugging": "escalate to opus_4.5",
+    "architecture": "escalate to opus_4.5",
+    "long_context": "escalate to sonnet_4.5",
+    "delegation_protocol": "When using Opus/Sonnet, delegate file ops to Flash via MCP"
+  },
+
+  "how_to_use": {
+    "any_agent": [
+      "1. Read this file to understand current project state",
+      "2. Filter tasks by status='pending' or status='in_progress'",
+      "3. Check dependencies before starting a task",
+      "4. Check blockers (e.g., market_closed)",
+      "5. Use assigned_model unless you need to escalate",
+      "6. Update task status when starting/completing",
+      "7. Update .agent/SHARED_CONTEXT/CURRENT_SESSION.md when done"
+    ],
+    "claude_code_cli": "CLAUDE_CODE_TASK_LIST_ID=universal-or-strategy claude",
+    "cursor": "Open .agent/TASKS/MASTER_TASKS.json and follow workflow_rules",
+    "antigravity": "Read MASTER_TASKS.json, use Agent panel for Flash delegation"
+  }
+}

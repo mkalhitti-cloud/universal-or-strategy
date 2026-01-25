@@ -1,0 +1,110 @@
+{
+  "last_updated": "2026-01-25T10:00:00-08:00",
+  "updated_by": "Claude Opus 4.5 (Claude Code CLI)",
+
+  "v8_production": {
+    "version": "V8_22",
+    "status": "STABLE",
+    "file": "PRODUCTION/V8_22_STABLE/UniversalORStrategyV8_22.cs",
+    "original_location": "UniversalORStrategyV8_22.cs",
+    "tested_date": "2026-01-23",
+    "tested_by": "Mo (live trading)",
+    "git_commit": "5c7dcdd",
+    "file_size_bytes": 233915,
+    "features": [
+      "4-Target System (T1, T2, T3, Runner)",
+      "Frequency-based trailing stops",
+      "RMA + TREND + RETEST + MOMO + FFMA entries",
+      "Enhanced UI with dropdown menus"
+    ],
+    "rollback_command": "cp \"PRODUCTION/V8_22_STABLE/UniversalORStrategyV8_22.cs\" \"C:/Users/Mohammed Khalid/Documents/NinjaTrader 8/bin/Custom/Strategies/\"",
+    "notes": "Current production version for live trading. DO NOT MODIFY."
+  },
+
+  "v9_candidates": {
+    "version_1": {
+      "name": "V9_MasterHub_Current",
+      "status": "UNTESTED",
+      "file": "UniversalOR_V9_MasterHub.cs",
+      "created_date": "2026-01-23 12:03",
+      "file_size_bytes": 8863,
+      "git_commit": "unknown",
+      "notes": "Current version - may be broken. Larger file, more features."
+    },
+    "version_2": {
+      "name": "V9_MILESTONE_LIVE_SUCCESS",
+      "status": "NEEDS_TESTING",
+      "file": "UniversalOR_V9_MasterHub_MILESTONE_LIVE_SUCCESS.cs",
+      "protected_copy": "PRODUCTION/V9_STABLE/UniversalOR_V9_MasterHub_MILESTONE_LIVE_SUCCESS.cs",
+      "created_date": "2026-01-23 14:43",
+      "file_size_bytes": 4406,
+      "git_commit": "48bfa7e",
+      "restore_source": "Restored from commit 48bfa7e",
+      "notes": "Allegedly the working version that showed TOS RTD live numbers. Test when market opens."
+    },
+    "test_priority": "Test version_2 (MILESTONE) first - it's the restore attempt",
+    "test_when": "Market opens 09:30 EST / 06:30 PST"
+  },
+
+  "v9_external_remote_app": {
+    "status": "NEEDS_TESTING",
+    "executable": "V9_ExternalRemote/bin/Release/net6.0-windows/V9_Milestone_FINAL.exe",
+    "project_file": "V9_ExternalRemote/V9_ExternalRemote.csproj",
+    "main_files": [
+      "V9_ExternalRemote/MainWindow.xaml.cs",
+      "V9_ExternalRemote/TosRtdClient.cs",
+      "V9_ExternalRemote/ExcelRtdReader.cs"
+    ],
+    "tos_bridge": "V9_ExternalRemote/TOS_RTD_Bridge.xlsx",
+    "notes": "WPF app for external control. TOS RTD connection was working, then broke."
+  },
+
+  "rollback_procedures": {
+    "v8_emergency_rollback": {
+      "description": "Restore V8_22 to NinjaTrader if current version breaks",
+      "steps": [
+        "1. Close NinjaTrader",
+        "2. Run: cp \"PRODUCTION/V8_22_STABLE/UniversalORStrategyV8_22.cs\" \"C:/Users/Mohammed Khalid/Documents/NinjaTrader 8/bin/Custom/Strategies/\"",
+        "3. Restart NinjaTrader",
+        "4. Recompile strategies (F5 in NinjaScript Editor)"
+      ],
+      "time_estimate": "2 minutes"
+    },
+    "v9_try_milestone": {
+      "description": "Try the MILESTONE version if current V9 doesn't work",
+      "steps": [
+        "1. Copy MILESTONE file to V9_ExternalRemote folder",
+        "2. Rebuild: dotnet build V9_ExternalRemote/V9_ExternalRemote.csproj -c Release",
+        "3. Run: V9_ExternalRemote/bin/Release/net6.0-windows/V9_Milestone_FINAL.exe",
+        "4. Check if TOS RTD shows live numbers"
+      ]
+    },
+    "git_rollback": {
+      "description": "Rollback entire project to specific commit",
+      "commands": {
+        "view_history": "git log --oneline -20",
+        "rollback_v9_milestone": "git checkout 48bfa7e -- UniversalOR_V9_MasterHub.cs",
+        "rollback_full": "git reset --hard [commit_hash]"
+      },
+      "warning": "git reset --hard will lose uncommitted changes!"
+    }
+  },
+
+  "important_commits": {
+    "48bfa7e": {
+      "date": "2026-01-21",
+      "message": "NT and TOS External",
+      "significance": "V9 TOS RTD was reportedly working at this commit"
+    },
+    "5c7dcdd": {
+      "date": "2026-01-25",
+      "message": "random small changes",
+      "significance": "Most recent commit, V8_22 confirmed working"
+    },
+    "967f70c": {
+      "date": "2026-01-25",
+      "message": "attempted to bring back live numbers rtd",
+      "significance": "Restore attempt for V9 TOS RTD"
+    }
+  }
+}
