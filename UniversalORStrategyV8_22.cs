@@ -19,7 +19,7 @@ using NinjaTrader.NinjaScript.Strategies;
 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class UniversalORStrategyV8_20 : Strategy
+    public class UniversalORStrategy : Strategy
     {
         #region Variables
 
@@ -143,7 +143,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private static readonly SolidColorBrush RMAModeActiveBackground;
 
         // Static constructor to create and freeze brushes
-        static UniversalORStrategyV8_20()
+        static UniversalORStrategy()
         {
             RMAActiveBackground = new SolidColorBrush(Color.FromRgb(180, 100, 20));
             RMAActiveBackground.Freeze();
@@ -224,6 +224,20 @@ namespace NinjaTrader.NinjaScript.Strategies
             public double StopPrice;
             public MarketPosition Direction;
             public Order OldOrder;  // Track the old order being cancelled
+        }
+
+        // V8.22: Thread-Safe UI Snapshot Struct
+        // Decouples UI thread from Strategy thread to prevent "Collection moved" or race conditions
+        public struct PositionDisplayInfo
+        {
+            public string TradeType;
+            public string Direction;
+            public double EntryPrice;
+            public double StopPrice;
+            public int RemainingContracts;
+            public bool EntryFilled;
+            public bool ManualBreakevenArmed;
+            public bool ManualBreakevenTriggered;
         }
 
         #endregion
@@ -532,8 +546,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State == State.SetDefaults)
             {
-                Description = "Universal OR Strategy - V8.20 (FINAL CLEAN)";
-                Name = "UniversalORStrategyV8_20";
+                Description = "Universal OR Strategy - V8.22 (Thread-Safe UI Fix)";
+                Name = "UniversalORStrategy";
                 Calculate = Calculate.OnPriceChange;  // CRITICAL FIX: Updates on every price tick for real-time trailing
                 EntriesPerDirection = 10;
                 EntryHandling = EntryHandling.UniqueEntries;
@@ -702,7 +716,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         AttachHotkeys();
                         AttachChartClickHandler();
-                        UpdateDisplayInternal();
+                        UpdateDisplay();
                         Print("REALTIME - Hotkeys: L=Long, S=Short, Shift+Click=RMA, F=Flatten");
                     });
                 }
@@ -745,7 +759,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Update last known price for UI events
                 lastKnownPrice = Close[0];
 
-                // V8.20: Reduced log volume - OR buildings and updates are handled via DrawORBox and UpdateDisplay
+                // V8.21: Reduced log volume - OR buildings and updates are handled via DrawORBox and UpdateDisplay
 
                 // V8.2 FIX: Process pending TREND entry (deferred from button click)
                 if (pendingTRENDEntry)
@@ -2685,8 +2699,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // V8.11: Stop order cancelled - check for pending replacement
                 if (orderName.StartsWith("Stop_") && orderState == OrderState.Cancelled)
                 {
-                    // V8.18 FIX: Use .ToList() to prevent "Collection was modified" crash
-                    foreach (string entryName in pendingStopReplacements.Keys.ToList())
+                    // V8.18 FIX: Use explicit List constructor to prevent CS1061 and "Collection was modified" crash
+                    foreach (string entryName in new List<string>(pendingStopReplacements.Keys))
                     {
                         if (!pendingStopReplacements.ContainsKey(entryName)) continue; // V8.19 safety check
                         PendingStopReplacement pending = pendingStopReplacements[entryName];
@@ -3296,7 +3310,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                 }
 
-                // V8.20: Check if stop price actually changed by more than 1 tick before updating
+                // V8.21: Check if stop price actually changed by more than 1 tick before updating
                 // This prevents redundant "micro-updates" that saturate the order system
                 if (Math.Abs(newStopPrice - pos.CurrentStopPrice) < tickSize * 0.9)
                     continue;
@@ -3807,7 +3821,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 TextBlock dragLabel = new TextBlock
                 {
-                    Text = "★ V8.20 - FINAL CLEAN ★",
+                    Text = "★ V8.21 - FINAL CLEAN ★",
                     Foreground = Brushes.White,
                     FontWeight = FontWeights.Bold,
                     HorizontalAlignment = HorizontalAlignment.Center,
@@ -3819,7 +3833,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Row 1: Status
                 statusTextBlock = new TextBlock
                 {
-                    Text = "V8.20 | Initializing...",
+                    Text = "V8.21 | Initializing...",
                     Foreground = Brushes.White,
                     FontWeight = FontWeights.Bold,
                     Margin = new Thickness(0, 4, 0, 2),
@@ -4156,7 +4170,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 UserControlCollection.Add(mainBorder);
 
                 uiCreated = true;
-                Print("UI created - V8.20 (FINAL CLEAN)");
+                Print("UI created - V8.21 (FINAL CLEAN)");
             }
             catch (Exception ex)
             {
@@ -4622,16 +4636,49 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (!uiCreated) return;
 
-            // V8.20: Throttle UI updates to 500ms (2x per second) to prevent UI thread saturation
+            // V8.21: Throttle UI updates to 1000ms (1x per second) to prevent UI thread saturation
             DateTime now = DateTime.Now;
-            if ((now - lastUIUpdate).TotalMilliseconds < 500)
+            if ((now - lastUIUpdate).TotalMilliseconds < 1000)
                 return;
             lastUIUpdate = now;
 
-            ChartControl.Dispatcher.InvokeAsync(UpdateDisplayInternal);
+            // V8.22 FIX: Create thread-safe snapshot ON STRATEGY THREAD
+            // We must NOT access activePositions from the UI thread (UpdateDisplayInternal)
+            // doing so causes race conditions, freezes, and "Collection modified" errors.
+            List<PositionDisplayInfo> snapshot = new List<PositionDisplayInfo>();
+            
+            try 
+            {
+                if (activePositions.Count > 0)
+                {
+                    foreach (var kvp in activePositions)
+                    {
+                        PositionInfo pos = kvp.Value;
+                        snapshot.Add(new PositionDisplayInfo 
+                        {
+                            TradeType = pos.IsRMATrade ? "RMA" : "OR",
+                            Direction = pos.Direction == MarketPosition.Long ? "L" : "S",
+                            EntryPrice = pos.EntryPrice,
+                            StopPrice = pos.CurrentStopPrice,
+                            RemainingContracts = pos.RemainingContracts,
+                            EntryFilled = pos.EntryFilled,
+                            ManualBreakevenArmed = pos.ManualBreakevenArmed,
+                            ManualBreakevenTriggered = pos.ManualBreakevenTriggered
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Print("V8.22 Error creating UI snapshot: " + ex.Message);
+                return; 
+            }
+
+            // Pass the SNAPSHOT to the UI thread
+            ChartControl.Dispatcher.InvokeAsync(() => UpdateDisplayInternal(snapshot));
         }
 
-        private void UpdateDisplayInternal()
+        private void UpdateDisplayInternal(List<PositionDisplayInfo> positions)
         {
             if (!uiCreated) return;
 
@@ -4639,7 +4686,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 // Status
                 string status = orComplete ? "OR COMPLETE" : (isInORWindow ? "OR BUILDING" : "WAITING");
-                statusTextBlock.Text = FormatString("V8.20 | {0}", status);
+                statusTextBlock.Text = FormatString("V8.22 | {0}", status);
 
                 // OR Info
                 if (orComplete)
@@ -4663,23 +4710,20 @@ namespace NinjaTrader.NinjaScript.Strategies
                     orInfoBlock.Text = FormatString("Waiting for OR window...{0}", atrText);
                 }
 
-                // Position summary
-                if (activePositions.Count > 0)
+                // Position summary - USE SNAPSHOT
+                if (positions != null && positions.Count > 0)
                 {
                     StringBuilder sb = new StringBuilder();
-                    foreach (var kvp in activePositions)
+                    foreach (var pos in positions)
                     {
-                        PositionInfo pos = kvp.Value;
-                        string dir = pos.Direction == MarketPosition.Long ? "L" : "S";
-                        string tradeType = pos.IsRMATrade ? "RMA" : "OR";
                         if (pos.EntryFilled)
                         {
                             sb.AppendFormat("{0}[{1}] @ {2:F2} | Stop: {3:F2} | Rem: {4}\n",
-                                tradeType, dir, pos.EntryPrice, pos.CurrentStopPrice, pos.RemainingContracts);
+                                pos.TradeType, pos.Direction, pos.EntryPrice, pos.StopPrice, pos.RemainingContracts);
                         }
                         else
                         {
-                            sb.AppendFormat("{0}[{1}] PENDING @ {2:F2}\n", tradeType, dir, pos.EntryPrice);
+                            sb.AppendFormat("{0}[{1}] PENDING @ {2:F2}\n", pos.TradeType, pos.Direction, pos.EntryPrice);
                         }
                     }
                     positionSummaryBlock.Text = sb.ToString().TrimEnd();
@@ -4691,13 +4735,17 @@ namespace NinjaTrader.NinjaScript.Strategies
                     positionSummaryBlock.Foreground = Brushes.Cyan;
                 }
 
-                // Update breakeven button state
+                // Update breakeven button state - USE SNAPSHOT
                 bool anyArmed = false;
                 bool anyTriggered = false;
-                foreach (var kvp in activePositions)
+                
+                if (positions != null)
                 {
-                    if (kvp.Value.ManualBreakevenArmed) anyArmed = true;
-                    if (kvp.Value.ManualBreakevenTriggered) anyTriggered = true;
+                    foreach (var pos in positions)
+                    {
+                        if (pos.ManualBreakevenArmed) anyArmed = true;
+                        if (pos.ManualBreakevenTriggered) anyTriggered = true;
+                    }
                 }
 
                 if (anyTriggered)

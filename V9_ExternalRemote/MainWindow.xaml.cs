@@ -13,7 +13,7 @@ namespace V9_ExternalRemote
         private string hubIp = "127.0.0.1";
         private int hubPort = 5000;
         private TcpClient client;
-        private TosRtdClient _tosRtd;
+        private ExcelRtdReader _excelReader;
         private string _activeSymbol = "MES";
 
         public MainWindow()
@@ -25,7 +25,7 @@ namespace V9_ExternalRemote
                 MessageBox.Show("V9 Remote Error: " + e.ExceptionObject.ToString());
             };
 
-            InitializeTosRtd();
+            InitializeExcelBridge();
             ConnectToHub();
         }
 
@@ -37,65 +37,38 @@ namespace V9_ExternalRemote
             }
         }
 
-        private void InitializeTosRtd()
+        private void InitializeExcelBridge()
         {
-            _tosRtd = new TosRtdClient(this.Dispatcher);
-            // Force heartbeat logic
-            var timer = new System.Windows.Threading.DispatcherTimer();
-            timer.Interval = TimeSpan.FromSeconds(2);
-            timer.Tick += (s, e) => {
-                if (_tosRtd.IsConnected) _tosRtd.Heartbeat();
-            };
-            timer.Start();
-
-            _tosRtd.OnConnectionStatusChanged += (connected) => {
-                this.Dispatcher.BeginInvoke(new Action(() => {
-                    TosStatusLed.Background = connected ? Brushes.Lime : Brushes.Yellow;
-                }));
-            };
-            _tosRtd.OnDataUpdate += (key, value) => {
-                UpdatePriceDisplay(key, value);
-            };
+            string workbookPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TOS_RTD_Bridge.xlsx");
             
-            _tosRtd.Start();
-            
-            if (_tosRtd.IsConnected)
+            // Fallback for dev environment
+            if (!System.IO.File.Exists(workbookPath))
             {
-                SubscribeToSymbol(_activeSymbol);
+                workbookPath = @"c:\Users\Mohammed Khalid\OneDrive\Desktop\WSGTA\Github\universal-or-strategy\V9_ExternalRemote\TOS_RTD_Bridge.xlsx";
             }
+
+            _excelReader = new ExcelRtdReader(workbookPath, 
+                (symbol, type, val1, val2) => {
+                    if (symbol == _activeSymbol)
+                    {
+                        UpdatePriceDisplay(symbol + ":EMA9", val1);
+                        UpdatePriceDisplay(symbol + ":EMA15", val2);
+                    }
+                },
+                (msg) => {
+                    // Log to console/debug
+                    System.Diagnostics.Debug.WriteLine(msg);
+                });
+
+            bool connected = _excelReader.Connect();
+            TosStatusLed.Background = connected ? Brushes.Lime : Brushes.Red;
         }
 
         private void SubscribeToSymbol(string symbol)
         {
-            try
-            {
-                // Safety: Unsubscribe before switching
-                if (_tosRtd != null) _tosRtd.UnsubscribeAll();
-                
-                // Clear the UI to prevent stale data confusion
-                ClearPriceDisplay();
-
-                // Build the full TOS symbol with exchange suffix
-                // TOS RTD requires format: /MGC:XCEC for gold
-                string rawSymbol = symbol.TrimStart('/');
-                
-                // Determine exchange based on symbol root
-                string exchange = GetExchange(rawSymbol);
-                string tosSymbol = "/" + rawSymbol + ":" + exchange;
-                
-                // Standard built-in fields (2-parameter: Field, Symbol)
-                _tosRtd.Subscribe(tosSymbol + ":LAST", new object[] { "LAST", tosSymbol });
-                _tosRtd.Subscribe(tosSymbol + ":BID", new object[] { "BID", tosSymbol });
-                _tosRtd.Subscribe(tosSymbol + ":ASK", new object[] { "ASK", tosSymbol });
-                
-                // If V9_RTD_Link study is available, add those too
-                string study = "V9_RTD_Link";
-                _tosRtd.Subscribe(tosSymbol + ":EMA9", new object[] { study, "EMA9", tosSymbol });
-                _tosRtd.Subscribe(tosSymbol + ":EMA15", new object[] { study, "EMA15", tosSymbol });
-                _tosRtd.Subscribe(tosSymbol + ":ORHIGH", new object[] { study, "ORHIGH", tosSymbol });
-                _tosRtd.Subscribe(tosSymbol + ":ORLOW", new object[] { study, "ORLOW", tosSymbol });
-            }
-            catch { }
+            // With Excel Bridge, we just change the filter in the callback or update UI
+            ClearPriceDisplay();
+            _activeSymbol = symbol;
         }
 
 

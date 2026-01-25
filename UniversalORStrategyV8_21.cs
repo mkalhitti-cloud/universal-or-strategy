@@ -19,7 +19,7 @@ using NinjaTrader.NinjaScript.Strategies;
 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class UniversalORStrategyV8_20 : Strategy
+    public class UniversalORStrategyV8_21 : Strategy
     {
         #region Variables
 
@@ -143,7 +143,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private static readonly SolidColorBrush RMAModeActiveBackground;
 
         // Static constructor to create and freeze brushes
-        static UniversalORStrategyV8_20()
+        static UniversalORStrategyV8_21()
         {
             RMAActiveBackground = new SolidColorBrush(Color.FromRgb(180, 100, 20));
             RMAActiveBackground.Freeze();
@@ -532,8 +532,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State == State.SetDefaults)
             {
-                Description = "Universal OR Strategy - V8.20 (FINAL CLEAN)";
-                Name = "UniversalORStrategyV8_20";
+                Description = "Universal OR Strategy - V8.21 (FINAL CLEAN)";
+                Name = "UniversalORStrategyV8_21";
                 Calculate = Calculate.OnPriceChange;  // CRITICAL FIX: Updates on every price tick for real-time trailing
                 EntriesPerDirection = 10;
                 EntryHandling = EntryHandling.UniqueEntries;
@@ -745,7 +745,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Update last known price for UI events
                 lastKnownPrice = Close[0];
 
-                // V8.20: Reduced log volume - OR buildings and updates are handled via DrawORBox and UpdateDisplay
+                // V8.21: Reduced log volume - OR buildings and updates are handled via DrawORBox and UpdateDisplay
 
                 // V8.2 FIX: Process pending TREND entry (deferred from button click)
                 if (pendingTRENDEntry)
@@ -2685,8 +2685,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // V8.11: Stop order cancelled - check for pending replacement
                 if (orderName.StartsWith("Stop_") && orderState == OrderState.Cancelled)
                 {
-                    // V8.18 FIX: Use .ToList() to prevent "Collection was modified" crash
-                    foreach (string entryName in pendingStopReplacements.Keys.ToList())
+                    // V8.18 FIX: Use .ToArray() to prevent "Collection was modified" crash
+                    foreach (string entryName in pendingStopReplacements.Keys.ToArray())
                     {
                         if (!pendingStopReplacements.ContainsKey(entryName)) continue; // V8.19 safety check
                         PendingStopReplacement pending = pendingStopReplacements[entryName];
@@ -3296,7 +3296,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                 }
 
-                // V8.20: Check if stop price actually changed by more than 1 tick before updating
+                // V8.21: Check if stop price actually changed by more than 1 tick before updating
                 // This prevents redundant "micro-updates" that saturate the order system
                 if (Math.Abs(newStopPrice - pos.CurrentStopPrice) < tickSize * 0.9)
                     continue;
@@ -3807,7 +3807,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 TextBlock dragLabel = new TextBlock
                 {
-                    Text = "★ V8.20 - FINAL CLEAN ★",
+                    Text = "★ V8.21 - FINAL CLEAN ★",
                     Foreground = Brushes.White,
                     FontWeight = FontWeights.Bold,
                     HorizontalAlignment = HorizontalAlignment.Center,
@@ -3819,7 +3819,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Row 1: Status
                 statusTextBlock = new TextBlock
                 {
-                    Text = "V8.20 | Initializing...",
+                    Text = "V8.21 | Initializing...",
                     Foreground = Brushes.White,
                     FontWeight = FontWeights.Bold,
                     Margin = new Thickness(0, 4, 0, 2),
@@ -4156,7 +4156,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 UserControlCollection.Add(mainBorder);
 
                 uiCreated = true;
-                Print("UI created - V8.20 (FINAL CLEAN)");
+                Print("UI created - V8.21 (FINAL CLEAN)");
             }
             catch (Exception ex)
             {
@@ -4622,9 +4622,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (!uiCreated) return;
 
-            // V8.20: Throttle UI updates to 500ms (2x per second) to prevent UI thread saturation
+            // V8.21: Throttle UI updates to 1000ms (1x per second) to prevent UI thread saturation
             DateTime now = DateTime.Now;
-            if ((now - lastUIUpdate).TotalMilliseconds < 500)
+            if ((now - lastUIUpdate).TotalMilliseconds < 1000)
                 return;
             lastUIUpdate = now;
 
@@ -4639,7 +4639,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 // Status
                 string status = orComplete ? "OR COMPLETE" : (isInORWindow ? "OR BUILDING" : "WAITING");
-                statusTextBlock.Text = FormatString("V8.20 | {0}", status);
+                statusTextBlock.Text = FormatString("V8.21 | {0}", status);
 
                 // OR Info
                 if (orComplete)
