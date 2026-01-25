@@ -25,6 +25,7 @@
 3. `.agent/TASKS/MASTER_TASKS.json` - Full task hierarchy
 4. `V9_ExternalRemote/MainWindow.xaml.cs` - Current WPF app structure
 5. `.agent/SHARED_CONTEXT/V9_STATUS.json` - V9 status
+6. `.agent/MCP_DELEGATION_GUIDE.md` - Cost-efficient file operation delegation (if in Opus)
 
 ---
 

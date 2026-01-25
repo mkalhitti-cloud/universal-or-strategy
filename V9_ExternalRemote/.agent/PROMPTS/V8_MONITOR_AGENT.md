@@ -24,6 +24,7 @@
 2. `PRODUCTION/V8_22_STABLE/TESTED_DATE.txt` - Last test date
 3. `.agent/SHARED_CONTEXT/V8_STATUS.json` - V8 current status
 4. NinjaTrader Output window - Live trading logs
+5. `.agent/MCP_DELEGATION_GUIDE.md` - Optional: Cost-efficient file operations
 
 ---
 

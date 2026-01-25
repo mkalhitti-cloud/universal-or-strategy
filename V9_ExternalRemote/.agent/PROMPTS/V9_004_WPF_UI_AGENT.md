@@ -25,6 +25,7 @@
 3. `V9_ExternalRemote/MainWindow.xaml` - Current UI layout
 4. `V9_ExternalRemote/MainWindow.xaml.cs` - Current code-behind
 5. `.agent/TASKS/MASTER_TASKS.json` - Task hierarchy
+6. `.agent/MCP_DELEGATION_GUIDE.md` - File operation delegation (you probably don't need this as Flash)
 
 ---
 

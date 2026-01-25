@@ -24,6 +24,7 @@
 2. `.agent/V9_ARCHITECTURE.md` - System architecture overview
 3. `MainWindow.xaml.cs` - V9 app structure
 4. `.agent/SHARED_CONTEXT/V9_STATUS.json` - V9 current status
+5. `.agent/MCP_DELEGATION_GUIDE.md` - How to use cost-efficient file operations (if applicable)
 
 ---
 
