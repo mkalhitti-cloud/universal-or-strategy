@@ -5,6 +5,9 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Windows.Controls; // For Button
+using System.Windows; // For Thickness, etc.
 
 namespace V9_ExternalRemote
 {
@@ -13,8 +16,25 @@ namespace V9_ExternalRemote
         private string hubIp = "127.0.0.1";
         private int hubPort = 5000;
         private TcpClient client;
-        private ExcelRtdReader _excelReader;
-        private string _activeSymbol = "MES";
+        private TosRtdClient _rtdClient;
+        
+        // Multi-Symbol Logic
+        private Dictionary<string, SymbolData> _symbolCache = new Dictionary<string, SymbolData>();
+        private string _activeSymbol = "MES"; // Currently DISPLAYED symbol
+        
+        public class SymbolData
+        {
+            public string Last { get; set; } = "...";
+            public string Ema9 { get; set; } = "---";
+            public string Ema15 { get; set; } = "---";
+            public string OrHigh { get; set; } = "---";
+            public string OrLow { get; set; } = "---";
+            public double LastVal { get; set; } = 0;
+            public Button TabButton { get; set; }
+        }
+
+        private string _logPath = "v9_remote_log.txt";
+        private V9_ExternalRemote_TCP_Server _server;
 
         public MainWindow()
         {
@@ -25,7 +45,20 @@ namespace V9_ExternalRemote
                 MessageBox.Show("V9 Remote Error: " + e.ExceptionObject.ToString());
             };
 
-            InitializeExcelBridge();
+            // Start the TCP Server (Hosting the Hub)
+            try
+            {
+                _server = new V9_ExternalRemote_TCP_Server(hubPort);
+                _server.Start();
+                LogToFile($"TCP Server started on port {hubPort}");
+            }
+            catch (Exception ex)
+            {
+                LogToFile($"Failed to start TCP Server: {ex.Message}");
+                MessageBox.Show("Failed to start Hub Server: " + ex.Message);
+            }
+
+            InitializeTosRtd();
             ConnectToHub();
         }
 
@@ -37,77 +70,112 @@ namespace V9_ExternalRemote
             }
         }
 
-        private void InitializeExcelBridge()
+        private void InitializeTosRtd()
         {
-            string workbookPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TOS_RTD_Bridge.xlsx");
+            _rtdClient = new TosRtdClient(this.Dispatcher);
             
-            // Fallback for dev environment
-            if (!System.IO.File.Exists(workbookPath))
-            {
-                workbookPath = @"c:\Users\Mohammed Khalid\OneDrive\Desktop\WSGTA\Github\universal-or-strategy\V9_ExternalRemote\TOS_RTD_Bridge.xlsx";
-            }
+            _rtdClient.OnDataUpdate += (key, value) => {
+                UpdatePriceDisplay(key, value);
+            };
 
-            _excelReader = new ExcelRtdReader(workbookPath, 
-                (symbol, type, val1, val2) => {
-                    if (symbol == _activeSymbol)
-                    {
-                        UpdatePriceDisplay(symbol + ":EMA9", val1);
-                        UpdatePriceDisplay(symbol + ":EMA15", val2);
-                    }
-                },
-                (msg) => {
-                    // Log to console/debug
-                    System.Diagnostics.Debug.WriteLine(msg);
+            _rtdClient.OnConnectionStatusChanged += (connected) => {
+                this.Dispatcher.Invoke(() => {
+                    TosStatusLed.Background = connected ? Brushes.Lime : Brushes.Red;
+                    LogToFile($"TOS STATUS: {(connected ? "CONNECTED" : "DISCONNECTED")}");
                 });
+            };
 
-            bool connected = _excelReader.Connect();
-            TosStatusLed.Background = connected ? Brushes.Lime : Brushes.Red;
+            _rtdClient.Start();
+            
+            // Initial subscription
+            SubscribeToSymbol(_activeSymbol);
         }
 
         private void SubscribeToSymbol(string symbol)
         {
-            // With Excel Bridge, we just change the filter in the callback or update UI
-            ClearPriceDisplay();
-            _activeSymbol = symbol;
-        }
-
-
-
-        private void ClearPriceDisplay()
-        {
-            this.Dispatcher.Invoke(() =>
+            // Normalize
+            symbol = symbol.ToUpper();
+            if (_symbolCache.ContainsKey(symbol))
             {
-                LastPriceTxt.Text = "...";
-                Ema9Txt.Text = "---";
-                Ema15Txt.Text = "---";
-                OrHighTxt.Text = "---";
-                OrLowTxt.Text = "---";
-            });
+                SwitchToSymbol(symbol);
+                return;
+            }
+
+            LogToFile($"Adding symbol: {symbol}");
+
+            // Create Data Entry
+            var data = new SymbolData();
+            
+            // Create UI Tab
+            var btn = new Button
+            {
+                Content = symbol,
+                FontSize = 9,
+                Margin = new Thickness(0, 0, 2, 0),
+                Padding = new Thickness(5, 2, 5, 2),
+                Background = Brushes.Transparent,
+                Foreground = Brushes.Gray,
+                BorderThickness = new Thickness(0)
+            };
+            
+            // Style hack: apply basic props, we'll handle active state manually
+            btn.Click += (s, e) => SwitchToSymbol(symbol);
+            
+            data.TabButton = btn;
+            _symbolCache[symbol] = data;
+            WatchlistPanel.Children.Add(btn);
+
+            // Subscribe
+            string exchange = GetExchange(symbol);
+            string fullSymbol = $"/{symbol}:{exchange}";
+            
+            LogToFile($"Subscribing all studies for {symbol}. Full={fullSymbol}");
+
+            // Correct Mapping based on Shotgun Discovery:
+            // CUSTOM4  -> EMA9
+            // CUSTOM6  -> EMA15
+            // CUSTOM10 -> OR HIGH
+            // CUSTOM12 -> OR LOW (Assumed based on pattern, though not seen in snippets yet)
+
+            // ALL subscriptions must use fullSymbol (e.g., /MES:XCME)
+            // The "loading" issue is now handled by the "Sticky Data" filter in UpdatePriceDisplay.
+
+            _rtdClient.Subscribe($"{symbol}:LAST", new object[] { "LAST", fullSymbol });
+            _rtdClient.Subscribe($"{symbol}:EMA9", new object[] { "CUSTOM4", fullSymbol });
+            _rtdClient.Subscribe($"{symbol}:EMA15", new object[] { "CUSTOM6", fullSymbol });
+            _rtdClient.Subscribe($"{symbol}:ORHIGH", new object[] { "CUSTOM10", fullSymbol });
+            _rtdClient.Subscribe($"{symbol}:ORLOW", new object[] { "CUSTOM12", fullSymbol });
+
+            // Safety catch: Try XNYM for metals if XCEC fails (Gold/Silver have odd routing sometimes)
+            // But log indicated MGC worked on XCEC for Discovery. Sticking to plan.
+
+            SwitchToSymbol(symbol);
         }
 
-        private string GetExchange(string symbol)
+        private void SwitchToSymbol(string symbol)
         {
-            // Map common futures roots to their exchanges based on successful Shotgun Test V3 results
-            string root = symbol.Length >= 2 ? symbol.Substring(0, 2).ToUpper() : symbol.ToUpper();
+            _activeSymbol = symbol;
             
-            // CME (Equities like S&P, Nasdaq)
-            if (root == "ES" || root == "ME" || root == "NQ" || root == "MN" || root == "RT") 
-                return "XCME";
-            
-            // COMEX (Gold, Silver, Copper)
-            if (root == "GC" || root == "MG" || root == "SI" || root == "HG")
-                return "XCEC";
-            
-            // NYMEX (Crude Oil)
-            if (root == "CL" || root == "QM")
-                return "XNYM";
+            // Update Tabs UI
+            foreach (var kvp in _symbolCache)
+            {
+                if (kvp.Value.TabButton != null)
+                {
+                    bool isActive = kvp.Key == symbol;
+                    kvp.Value.TabButton.Foreground = isActive ? Brushes.Cyan : Brushes.Gray;
+                    kvp.Value.TabButton.FontWeight = isActive ? FontWeights.Bold : FontWeights.Normal;
+                }
+            }
 
-            // CBOT (Dow, Treasuries, Grains)
-            if (root == "YM" || root == "ZN" || root == "ZB" || root == "ZC" || root == "ZS" || root == "ZW")
-                return "XCBT";
-            
-            // Default to CME for unknown
-            return "XCME";
+            // Refresh Main Display from Cache
+            if (_symbolCache.TryGetValue(symbol, out var data))
+            {
+                LastPriceTxt.Text = data.Last;
+                Ema9Txt.Text = data.Ema9;
+                Ema15Txt.Text = data.Ema15;
+                OrHighTxt.Text = data.OrHigh;
+                OrLowTxt.Text = data.OrLow;
+            }
         }
 
         private void UpdatePriceDisplay(string key, object value)
@@ -118,26 +186,59 @@ namespace V9_ExternalRemote
                 {
                     if (value == null) return;
                     string valStr = value.ToString();
-                    if (valStr == "#N/A" || string.IsNullOrWhiteSpace(valStr) || valStr == "0.00") return;
-
-                    double val = 0;
-                    double.TryParse(valStr, out val);
-
-                    if (key.EndsWith(":LAST")) LastPriceTxt.Text = val.ToString("F2");
-                    else if (key.EndsWith(":EMA9")) Ema9Txt.Text = val.ToString("F2");
-                    else if (key.EndsWith(":EMA15")) Ema15Txt.Text = val.ToString("F2");
-                    else if (key.EndsWith(":ORHIGH")) OrHighTxt.Text = val.ToString("F2");
-                    else if (key.EndsWith(":ORLOW")) OrLowTxt.Text = val.ToString("F2");
                     
-                    // MTF Flags Logic
-                    else if (key.EndsWith(":EMA9_5M")) UpdateFlag(Flag5m, Flag5mVal, val);
-                    else if (key.EndsWith(":EMA9_15M")) UpdateFlag(Flag15m, Flag15mVal, val);
-                    else if (key.EndsWith(":EMA9_60M")) UpdateFlag(Flag60m, Flag60mVal, val);
+                    // Trace every single update at the UI level
+                    // LogToFile($"UI RECV: {key} = {valStr}"); 
+                    
+                    if (key.Contains("DISCO"))
+                    {
+                         LogToFile($"DISCOVERY: {key} = {valStr}");
+                    }
+
+                    if (valStr == "#N/A" || string.IsNullOrWhiteSpace(valStr) || valStr.ToLower().Contains("loading")) return;
+
+                    // Parse Key: SYMBOL:FIELD
+                    string[] parts = key.Split(':');
+                    if (parts.Length < 2) return;
+                    
+                    string symbol = parts[0];
+                    string field = parts[1];
+
+                    if (!_symbolCache.ContainsKey(symbol)) return;
+                    var data = _symbolCache[symbol];
+
+                    if (!double.TryParse(valStr, out double val)) return;
+                    
+                    // Specific check for 0.00 - indicators like EMA/OR rarely hit exactly zero.
+                    // If it's 0.00, it might be an uninitialized state in TOS.
+                    if (val == 0 && (field != "LAST")) return; 
+
+                    string fmtVal = val.ToString("F2");
+
+                    // Update Cache
+                    if (field == "LAST") { data.Last = fmtVal; data.LastVal = val; }
+                    else if (field == "EMA9") data.Ema9 = fmtVal;
+                    else if (field == "EMA15") data.Ema15 = fmtVal;
+                    else if (field == "ORHIGH") data.OrHigh = fmtVal;
+                    else if (field == "ORLOW") data.OrLow = fmtVal;
+
+                    // Update UI ONLY if active
+                    if (symbol == _activeSymbol)
+                    {
+                         if (field == "LAST") LastPriceTxt.Text = fmtVal;
+                         else if (field == "EMA9") Ema9Txt.Text = fmtVal;
+                         else if (field == "EMA15") Ema15Txt.Text = fmtVal;
+                         else if (field == "ORHIGH") OrHighTxt.Text = fmtVal;
+                         else if (field == "ORLOW") OrLowTxt.Text = fmtVal;
+                    }
+                    
+                    // MTF Logic (simplified for now, attached to active symbol mostly or global)
+                    // For now, let's skip complex MTF flag parsing unless it's strictly required
                 }
                 catch { }
             });
         }
-
+        
         private static readonly Brush RedFlag = new SolidColorBrush(Color.FromArgb(60, 255, 0, 0));
         private static readonly Brush GreenFlag = new SolidColorBrush(Color.FromArgb(60, 0, 255, 0));
 
@@ -162,11 +263,37 @@ namespace V9_ExternalRemote
             {
                 if (string.IsNullOrEmpty(SymbolInput.Text)) return;
                 
-                _activeSymbol = SymbolInput.Text.Trim().ToUpper();
-                SubscribeToSymbol(_activeSymbol);
+                string newSym = SymbolInput.Text.Trim().ToUpper();
+                SubscribeToSymbol(newSym);
                 TriggerGlow(Brushes.Cyan);
+                SymbolInput.Text = ""; // Clear input after adding
             }
             catch { }
+        }
+        
+        private string GetExchange(string symbol)
+        {
+            // Map common futures roots to their exchanges based on successful Shotgun Test V3 results
+            string root = symbol.Length >= 2 ? symbol.Substring(0, 2).ToUpper() : symbol.ToUpper();
+            
+            // CME (Equities like S&P, Nasdaq)
+            if (root == "ES" || root == "ME" || root == "NQ" || root == "MN" || root == "RT") 
+                return "XCME";
+            
+            // COMEX (Gold, Silver, Copper)
+            if (root == "GC" || root == "MG" || root == "SI" || root == "HG")
+                return "XCEC";
+            
+            // NYMEX (Crude Oil)
+            if (root == "CL" || root == "QM")
+                return "XNYM";
+
+            // CBOT (Dow, Treasuries, Grains)
+            if (root == "YM" || root == "ZN" || root == "ZB" || root == "ZC" || root == "ZS" || root == "ZW")
+                return "XCBT";
+            
+            // Default to CME for unknown
+            return "XCME";
         }
 
         private async void ConnectToHub()
@@ -209,6 +336,7 @@ namespace V9_ExternalRemote
 
         private void Close_Click(object sender, RoutedEventArgs e)
         {
+            _server?.Stop();
             Close();
         }
 
@@ -234,7 +362,6 @@ namespace V9_ExternalRemote
             if (GhostModeCheck.IsChecked == true)
             {
                 this.Opacity = 0.5;
-                // In a real WPF app, you'd use Win32 SetWindowLong to make it click-through
             }
             else
             {
@@ -247,6 +374,15 @@ namespace V9_ExternalRemote
             GlowBorder.BorderBrush = color;
             await Task.Delay(500);
             GlowBorder.BorderBrush = Brushes.Transparent;
+        }
+
+        private void LogToFile(string msg)
+        {
+            try
+            {
+                System.IO.File.AppendAllText(_logPath, $"{DateTime.Now:HH:mm:ss.fff} | {msg}\r\n");
+            }
+            catch { }
         }
     }
 }

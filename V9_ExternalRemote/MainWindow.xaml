@@ -55,10 +55,23 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="V9 MASTER" Foreground="Cyan" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
                 
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <TextBox x:Name="SymbolInput" Text="MES" Width="40" Background="#11FFFFFF" Foreground="White" BorderThickness="0" TextAlignment="Center" FontSize="10" VerticalAlignment="Center" KeyDown="SymbolInput_KeyDown"/>
-                    <Button Content="SYNC" Click="SetSymbol_Click" FontSize="8" Margin="5,0" Padding="5,1" Style="{StaticResource GlassButton}"/>
-                </StackPanel>
+                <Grid Grid.Column="1" Margin="10,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- Input & Add -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,5,0">
+                        <TextBox x:Name="SymbolInput" Text="MES" Width="35" Background="#11FFFFFF" Foreground="White" BorderThickness="0" TextAlignment="Center" FontSize="10" VerticalAlignment="Center" KeyDown="SymbolInput_KeyDown"/>
+                        <Button Content="+" Click="SetSymbol_Click" FontSize="10" Margin="2,0" Padding="4,0" Style="{StaticResource GlassButton}" ToolTip="Add Symbol"/>
+                    </StackPanel>
+
+                    <!-- Watchlist Tabs -->
+                    <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" PanningMode="HorizontalOnly">
+                        <StackPanel x:Name="WatchlistPanel" Orientation="Horizontal"/>
+                    </ScrollViewer>
+                </Grid>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <Button Content="" FontFamily="Segoe MDL2 Assets" Background="Transparent" Foreground="#66FFFFFF" BorderThickness="0" Click="Close_Click" Margin="5,0"/>
@@ -147,7 +160,7 @@
             <!-- Footer / Mode Toggle -->
             <Grid Grid.Row="3" Margin="0,10,0,0">
                 <CheckBox x:Name="GhostModeCheck" Content="GHOST OVERLAY" Foreground="#66FFFFFF" FontSize="10" Checked="GhostMode_Changed" Unchecked="GhostMode_Changed"/>
-                <TextBlock Text="v9.0.1" Foreground="#44FFFFFF" FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+                <TextBlock Text="v9.1.0" Foreground="#44FFFFFF" FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
             </Grid>
         </Grid>
     </Border>

@@ -82,7 +82,9 @@ namespace V9_ExternalRemote
                 string flatTopics = string.Join(", ", topics);
                 Log($"Subscribing ID {topicId}: [{flatTopics}] -> Key: {key}");
                 
-                _rtdServer.ConnectData(topicId, topics, true);
+                bool getNewValues = true;
+                // MUST pass by ref for COM interop to work correctly with dynamic/IDispatch
+                _rtdServer.ConnectData(topicId, ref topics, ref getNewValues);
                 
                 _topicMap[topicId] = key;
                 return topicId;
@@ -173,8 +175,8 @@ namespace V9_ExternalRemote
                                 if (valueStr != "N/A" && valueStr != "null" && valueStr != "#N/A" && _topicMap.ContainsKey(topicId))
                                 {
                                     string key = _topicMap[topicId];
-                                    System.IO.File.AppendAllText("v9_shotgun_results.txt",
-                                        $"✓ SUCCESS: {key} = {valueStr}\r\n");
+                                    // Log every successful value for debugging
+                                    Log($"RECV: {key} = {valueStr}");
                                 }
 
                                 if (_topicMap.ContainsKey(topicId))

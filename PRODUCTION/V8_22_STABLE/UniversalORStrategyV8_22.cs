@@ -2474,6 +2474,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                             double intendedEntryPrice = pos.EntryPrice;
 
                             string tradeType = pos.IsRMATrade ? "RMA" : "OR";
+                            if (pos.IsMOMOTrade) tradeType = "MOMO"; // V8.22: Logging
+                            if (pos.IsFFMATrade) tradeType = "FFMA";
+                            if (pos.IsTRENDTrade) tradeType = "TREND";
+                            if (pos.IsRetestTrade) tradeType = "RETEST";
+
                             Print(FormatString("{0} ENTRY FILLED: {1} {2} @ {3:F2} (intended: {4:F2})",
                                 tradeType,
                                 pos.Direction == MarketPosition.Long ? "LONG" : "SHORT",
@@ -2481,18 +2486,19 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 averageFillPrice,
                                 intendedEntryPrice));
 
-                            // For RMA trades, adjust targets based on actual fill price
+                            // V8.22: UNIVERSAL STOP CAP FIX
+                            // Determine the intended stop distance
+                            double stopDistance = 0;
+
                             if (pos.IsRMATrade)
                             {
+                                // For RMA, use current ATR to be precise
+                                stopDistance = currentATR * RMAStopATRMultiplier;
+                                
+                                // Recalculate RMA targets based on fill
                                 // v5.13 FIX: T1 uses FIXED points, T2/T3 use ATR
                                 double t2Distance = currentATR * RMAT1ATRMultiplier;  // 0.5x ATR
                                 double t3Distance = currentATR * RMAT2ATRMultiplier;  // 1.0x ATR
-                                double stopDistance = currentATR * RMAStopATRMultiplier;
-
-                                pos.InitialStopPrice = pos.Direction == MarketPosition.Long
-                                    ? averageFillPrice - stopDistance
-                                    : averageFillPrice + stopDistance;
-                                pos.CurrentStopPrice = pos.InitialStopPrice;
 
                                 // T1 = Fixed 1pt (NOT ATR-based)
                                 pos.Target1Price = pos.Direction == MarketPosition.Long
@@ -2506,12 +2512,33 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 pos.Target3Price = pos.Direction == MarketPosition.Long
                                     ? averageFillPrice + t3Distance
                                     : averageFillPrice - t3Distance;
+                            }
+                            else
+                            {
+                                // For other trades, use the distance from the intended setup
+                                stopDistance = Math.Abs(pos.InitialStopPrice - intendedEntryPrice);
+                            }
 
-                                if (Math.Abs(averageFillPrice - intendedEntryPrice) > tickSize)
-                                {
-                                    Print(FormatString("{0} PRICES ADJUSTED for fill slippage: Stop={1:F2} T1={2:F2} T2={3:F2} T3={4:F2}",
-                                        tradeType, pos.InitialStopPrice, pos.Target1Price, pos.Target2Price, pos.Target3Price));
-                                }
+                            // GLOBAL SAFETY CAP: Absolutely NO stop > 8.0 points
+                            double originalDist = stopDistance;
+                            stopDistance = Math.Min(stopDistance, 8.0);
+                            
+                            if (stopDistance < originalDist)
+                            {
+                                Print(FormatString("CRITICAL: {0} Stop capped at 8.0 pts (Calculated: {1:F2} pts)", 
+                                    tradeType, originalDist));
+                            }
+
+                            // Re-anchor stop to ACTUAL fill price
+                            pos.InitialStopPrice = pos.Direction == MarketPosition.Long
+                                ? averageFillPrice - stopDistance
+                                : averageFillPrice + stopDistance;
+                            pos.CurrentStopPrice = pos.InitialStopPrice;
+
+                            if (Math.Abs(averageFillPrice - intendedEntryPrice) > tickSize)
+                            {
+                                Print(FormatString("{0} PRICES ADJUSTED for fill slippage: Stop={1:F2} (Dist={2:F2})",
+                                    tradeType, pos.InitialStopPrice, stopDistance));
                             }
 
                             // Update to actual fill price
@@ -2763,8 +2790,16 @@ namespace NinjaTrader.NinjaScript.Strategies
             try
             {
                 // Check for EXTERNAL close (position went flat from outside strategy)
-                if (marketPosition == MarketPosition.Flat && activePositions.Count > 0)
+                if (marketPosition == MarketPosition.Flat)
                 {
+                    // V8.22: Even if activePositions is empty (strategy restart), we should scan for orphans
+                    if (activePositions.Count == 0)
+                    {
+                        Print("EXTERNAL CLOSE/RESTART DETECTED - Scanning for orphaned bracket orders...");
+                        ReconcileOrphanedOrders("Position went flat");
+                        return;
+                    }
+
                     // Check if we still have any positions that think they're filled
                     List<string> positionsToCleanup = new List<string>();
 
@@ -3235,9 +3270,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     continue;
 
                 // Trail 3 (highest priority) - At 5 points, trail by 1 point
-                // V8.15: Bypass target-filled checks for 1-contract trades
-                bool trail3Eligible = (pos.TotalContracts == 1) || (pos.T1Filled && pos.T2Filled);
-                if (profitPoints >= Trail3TriggerPoints && trail3Eligible)
+                // V8.22: Strictly profit based (no target dependencies)
+                if (profitPoints >= Trail3TriggerPoints)
                 {
                     double trail3Stop = pos.Direction == MarketPosition.Long
                         ? pos.ExtremePriceSinceEntry - Trail3DistancePoints
@@ -3246,7 +3280,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (pos.Direction == MarketPosition.Long && trail3Stop > pos.CurrentStopPrice)
                     {
                         newStopPrice = trail3Stop;
-                        newTrailLevel = 4;
+                        newTrailLevel = 4; // Level 4 = Trail 3
                     }
                     else if (pos.Direction == MarketPosition.Short && trail3Stop < pos.CurrentStopPrice)
                     {
@@ -3255,8 +3289,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                 }
                 // Trail 2 - At 4 points, trail by 1.5 points
-                // V8.15: Bypass target-filled checks for 1-contract trades
-                else if (profitPoints >= Trail2TriggerPoints && (pos.TotalContracts == 1 || pos.T1Filled) && pos.CurrentTrailLevel < 3)
+                else if (profitPoints >= Trail2TriggerPoints && pos.CurrentTrailLevel < 3)
                 {
                     double trail2Stop = pos.Direction == MarketPosition.Long
                         ? pos.ExtremePriceSinceEntry - Trail2DistancePoints
@@ -3265,7 +3298,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (pos.Direction == MarketPosition.Long && trail2Stop > pos.CurrentStopPrice)
                     {
                         newStopPrice = trail2Stop;
-                        newTrailLevel = 3;
+                        newTrailLevel = 3; // Level 3 = Trail 2
                     }
                     else if (pos.Direction == MarketPosition.Short && trail2Stop < pos.CurrentStopPrice)
                     {
@@ -3283,7 +3316,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (pos.Direction == MarketPosition.Long && trail1Stop > pos.CurrentStopPrice)
                     {
                         newStopPrice = trail1Stop;
-                        newTrailLevel = 2;
+                        newTrailLevel = 2; // Level 2 = Trail 1
                     }
                     else if (pos.Direction == MarketPosition.Short && trail1Stop < pos.CurrentStopPrice)
                     {
@@ -3752,6 +3785,56 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             UpdateDisplay();
+        }
+
+        private void ReconcileOrphanedOrders(string reason)
+        {
+            try
+            {
+                if (Account == null) return;
+
+                bool foundOrphans = false;
+                foreach (Order order in Account.Orders)
+                {
+                    if (order == null) continue;
+                    
+                    // Only look at working orders
+                    if (order.OrderState != OrderState.Working && order.OrderState != OrderState.Accepted)
+                        continue;
+
+                    // Check if this order has one of our prefix signatures
+                    string name = order.Name;
+                    if (name.StartsWith("Stop_") || name.StartsWith("T1_") || name.StartsWith("T2_") || 
+                        name.StartsWith("T3_") || name.StartsWith("T4_") || name.StartsWith("Flatten_"))
+                    {
+                        // Check if we actually have an active position for this
+                        string entryName = "";
+                        if (name.Contains("_"))
+                        {
+                            int firstUnderscore = name.IndexOf('_');
+                            entryName = name.Substring(firstUnderscore + 1);
+                            // Strip timestamp if present
+                            int lastUnderscore = entryName.LastIndexOf('_');
+                            if (lastUnderscore > 0 && entryName.Length - lastUnderscore > 10)
+                                entryName = entryName.Substring(0, lastUnderscore);
+                        }
+
+                        if (string.IsNullOrEmpty(entryName) || !activePositions.ContainsKey(entryName))
+                        {
+                            Print(FormatString("ORPHANED ORDER DETECTED ({0}): {1} | Cancelling...", reason, name));
+                            CancelOrder(order);
+                            foundOrphans = true;
+                        }
+                    }
+                }
+
+                if (foundOrphans)
+                    Print("Orphaned order reconciliation complete.");
+            }
+            catch (Exception ex)
+            {
+                Print("ERROR ReconcileOrphanedOrders: " + ex.Message);
+            }
         }
 
         #endregion

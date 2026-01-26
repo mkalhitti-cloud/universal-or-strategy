@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [8.28] - 2026-01-26 - "Flatten Race Condition & Cross-Instrument Fix"
+
+### Fixed
+- **V8.27 Fix**: Cross-Instrument Cancellation Bug. Added a filter in `ReconcileOrphanedOrders` to ensure strategy instances on one instrument (e.g., MGC) don't cancel orders on another instrument (e.g., MES).
+- **V8.28 Fix**: Flatten Race Condition. Updated `FlattenAll` to use NinjaTrader's live `Position.Quantity` instead of a stale cached value. This prevents overselling when a target fills exactly as the flatten command is sent.
+
+### Production Status
+- ✅ **APPROVED FOR LIVE TRADING**
+
+---
+
+## [8.27] - 2026-01-26 - CRITICAL "Cross-Instrument Cancel Fix"
+
+### Fixed
+- **CRITICAL: Cross-Instrument Order Cancellation**: `ReconcileOrphanedOrders` was cancelling orders from OTHER instruments when running multiple strategy instances
+  - Root cause: When MGC position closed, the function scanned ALL `Account.Orders` and cancelled MES orders because they weren't in MGC's `activePositions` dictionary
+  - Solution: Added instrument filter at line 3807: `if (order.Instrument.FullName != Instrument.FullName) continue;`
+  - This now only processes orphaned orders for the CURRENT instrument, preventing cross-contamination
+
+### Test Results
+- ✅ MES and MGC trades running concurrently with full brackets (Stop + T1 + T2 + T3)
+- ✅ MGC position closed without affecting MES orders
+- ✅ Trailing stops working correctly on both instruments
+- ✅ No cross-instrument cancellation detected
+
+### Production Status
+- ✅ **APPROVED FOR LIVE TRADING**
+- Critical bug fixed that was causing random order cancellations
+
+---
+
 ## [8.20] - 2026-01-22 - MILESTONE "FINAL CLEAN"
 
 ### Added

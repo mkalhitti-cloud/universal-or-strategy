@@ -224,6 +224,10 @@ AI assistants will automatically reference the relevant skill files from `.agent
 **Solution:** See `live-price-tracking.md` for complete fix with code examples
 **Status:** FIXED in V5.3.1 using OnMarketData
 
+### TOS RTD Connectivity (V9.0.1+)
+- **Standard:** Direct Connection via `TosRtdClient.cs`.
+- **Rule:** **NO EXCEL BRIDGES**. All future development must use direct connection to `tos.rtd` to ensure maximum reliability and speed.
+
 ### Parameters Are Sacred
 - **Do NOT edit** `Order_Management.xlsx` manually
 - **Always ask Claude Code** before changing parameters
