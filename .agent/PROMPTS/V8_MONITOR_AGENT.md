@@ -12,6 +12,16 @@ You are the V8 Monitor Agent. Your job is to check NinjaTrader for errors, crash
 - User wants a quick health check
 - Strategy seems unresponsive
 
+## 💰 Cost Optimization (Mandatory Delegation)
+> [!IMPORTANT]
+> If you are NOT running on Gemini Flash, you MUST offload all file I/O, deployments, and documentation updates to Gemini Flash using the `delegation-bridge` skill.
+> 
+> **Tool**: `mcp_delegation_bridge_call_gemini_flash`
+> **Usage**: 
+> - Use this for ANY `write_to_file`, `replace_file_content`, or `multi_replace_file_content` action.
+> - Required for both Antigravity IDE and Claude Code CLI.
+> - This saves 65-99% on credits while allowing you to focus on logic reasoning.
+
 ## Context Files (Read First)
 - [.agent/SHARED_CONTEXT/CURRENT_SESSION.md](file:///c:/Users/Mohammed%20Khalid/OneDrive/Desktop/WSGTA/Github/universal-or-strategy/.agent/SHARED_CONTEXT/CURRENT_SESSION.md)
 - [.agent/SHARED_CONTEXT/V8_STATUS.json](file:///c:/Users/Mohammed%20Khalid/OneDrive/Desktop/WSGTA/Github/universal-or-strategy/.agent/SHARED_CONTEXT/V8_STATUS.json)

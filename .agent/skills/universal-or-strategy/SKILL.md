@@ -106,6 +106,14 @@ NOT a strategy - alerting tool only
 
 ## Architecture
 
+### Data Connectivity (V9 External Remote)
+```csharp
+// Direct TOS RTD Integration (Standard since V9.0.1)
+- Connectivity via TosRtdClient (Dynamic COM Binding)
+- ZERO EXCEL DEPENDENCY: No Excel bridge allowed
+- Direct field mapping: LAST, CUSTOM4, CUSTOM6, etc.
+```
+
 ### Order Management
 ```csharp
 IsUnmanaged = true  // Full manual control
@@ -402,7 +410,8 @@ protected override void OnPositionUpdate(...)
 ```
 1. Use Close[0] for real-time decisions
 2. Modify orders more than 1/second
-3. Skip stop loss on any entry
+3. Build or use Excel-based RTD bridges (STRICTLY PROHIBITED)
+4. Skip stop loss on any entry
 4. Create unbounded collections
 5. Call indicators in OnMarketData
 6. Ignore order rejection errors

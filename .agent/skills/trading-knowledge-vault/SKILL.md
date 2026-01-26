@@ -103,6 +103,21 @@ BEFORE modifying ANY order:
 - [ ] Test: Verify no more than 1 mod/second
 ```
 
+#### 4. Excel RTD Bridge Failure (The Reliability Lesson)
+**What Happened:**
+- Attempted to use Excel as a bridge between TOS and the App to receive live price data.
+- Resulted in persistent "0.00" price displays, "loading" stalls, and excessive complexity handling COM/Excel states.
+- Fixed in V9.0.1 by migrating to a direct `TosRtdClient` (COM discovery).
+
+**Prevention Protocol:**
+```markdown
+BEFORE implementing ANY data integration:
+- [ ] Check: Am I using an intermediary (like Excel)?
+- [ ] Rule: Direct connection ONLY (App <-> Data Source).
+- [ ] Check: Is the connection event-driven (not polling)?
+- [ ] Test: Kill intermediary apps, verify data still flows if direct.
+```
+
 ---
 
 ### Trading Setups (Proven Patterns)
@@ -229,6 +244,10 @@ BEFORE going live:
 4. Check Memory Management vault entry
    - [ ] Are my collections bounded?
    - [ ] Do I use StringBuilder for logging?
+
+6. Check Connectivity Architecture
+   - [ ] Is this a direct connection (App <-> Data Source)?
+   - [ ] Are there ZERO Excel dependencies?
 
 5. Check Apex Compliance vault entry
    - [ ] Do I track daily loss in real-time?

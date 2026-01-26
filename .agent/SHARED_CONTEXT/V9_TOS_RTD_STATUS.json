@@ -1,0 +1,27 @@
+{
+    "Version": "9.1.0",
+    "Status": "STABLE",
+    "Connectivity": {
+        "TosRtdLed": "GREEN",
+        "DataFlow": "ACTIVE",
+        "EMA9": "CONFIRMED_LIVE",
+        "EMA15": "CONFIRMED_LIVE",
+        "LastPrice": "CONFIRMED_LIVE"
+    },
+    "Mapping": {
+        "SymbolFormat": "FULL (/MES:XCME)",
+        "LastPrice": "LAST",
+        "Ema9": "CUSTOM4",
+        "Ema15": "CUSTOM6",
+        "OrHigh": "CUSTOM10",
+        "OrLow": "CUSTOM12"
+    },
+    "FixesApplied": [
+        "COM Interop 'ref' parameters",
+        "Sticky Data Filter (ignore 'loading')",
+        "Full Symbol Subscription for Indicators"
+    ],
+    "TestResults": "All indicators live. flickering resolved.",
+    "DeploymentStatus": "READY_FOR_PRODUCTION",
+    "LastUpdated": "2026-01-25T18:48:00Z"
+}

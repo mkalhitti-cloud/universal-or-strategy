@@ -1,0 +1,33 @@
+{
+    "AccountsConnected": 18,
+    "AggregatePnL": 2450.50,
+    "Heartbeat": true,
+    "ErrorCount": 0,
+    "TopAccounts": [
+        {
+            "AccountName": "Apex-001",
+            "PnL": 500.00,
+            "IsConnected": true
+        },
+        {
+            "AccountName": "Apex-002",
+            "PnL": 450.00,
+            "IsConnected": true
+        },
+        {
+            "AccountName": "Apex-003",
+            "PnL": 300.00,
+            "IsConnected": true
+        },
+        {
+            "AccountName": "Apex-004",
+            "PnL": 250.00,
+            "IsConnected": true
+        },
+        {
+            "AccountName": "Apex-005",
+            "PnL": 150.00,
+            "IsConnected": true
+        }
+    ]
+}

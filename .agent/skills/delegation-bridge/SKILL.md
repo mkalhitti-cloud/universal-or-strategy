@@ -1,12 +1,12 @@
 ---
 name: delegation-bridge
-description: Universal MCP-based delegation to Gemini Flash 2.0 for cost optimization. Works with ANY AI model (Claude, Gemini, Grok) via MCP server to route file I/O and routine tasks to the most cost-effective execution layer.
+description: Universal MCP-based delegation to Gemini Flash 3.0 for cost optimization. Works with ANY AI model (Claude, Gemini, Grok) via MCP server to route file I/O and routine tasks to the most cost-effective execution layer.
 ---
 
 # Delegation Bridge Skill
 
 ## Purpose
-Route file I/O and routine tasks to Gemini Flash 2.0 (200x cheaper than Opus, 40x cheaper than Haiku) via MCP server, while preserving AI-agnostic compatibility across all development environments.
+Route file I/O and routine tasks to Gemini Flash 3.0 (200x cheaper than Opus, 40x cheaper than Haiku) via MCP server, while preserving AI-agnostic compatibility across all development environments.
 
 ## Core Principle: Universal Cost Optimization
 
@@ -101,7 +101,7 @@ Route file I/O and routine tasks to Gemini Flash 2.0 (200x cheaper than Opus, 40
 **Configured in**: `.agent/config/ai_capabilities.json`
 
 ```
-Priority 1: Gemini Flash 2.0 (via MCP)
+Priority 1: Gemini Flash 3.0 (via MCP)
 ├─ Cost: $0.075/M input, $0.30/M output
 ├─ Speed: Fastest
 └─ Best for: All file I/O, deployment, docs

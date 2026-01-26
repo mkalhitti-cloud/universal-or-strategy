@@ -9,6 +9,16 @@ Before starting, read these files to understand the current project state:
 2. [.agent/SHARED_CONTEXT/V9_STATUS.json](file:///c:/Users/Mohammed%20Khalid/OneDrive/Desktop/WSGTA/Github/universal-or-strategy/.agent/SHARED_CONTEXT/V9_STATUS.json)
 3. [.agent/V9_ARCHITECTURE.md](file:///c:/Users/Mohammed%20Khalid/OneDrive/Desktop/WSGTA/Github/universal-or-strategy/.agent/V9_ARCHITECTURE.md)
 
+## 💰 Cost Optimization (Mandatory Delegation)
+> [!IMPORTANT]
+> If you are NOT running on Gemini Flash, you MUST offload all file I/O, deployments, and documentation updates to Gemini Flash using the `delegation-bridge` skill.
+> 
+> **Tool**: `mcp_delegation_bridge_call_gemini_flash`
+> **Usage**: 
+> - Use this for ANY `write_to_file`, `replace_file_content`, or `multi_replace_file_content` action.
+> - Required for both Antigravity IDE and Claude Code CLI.
+> - This saves 65-99% on credits while allowing you to focus on logic reasoning.
+
 ## Timing
 > [!IMPORTANT]
 > This agent should be executed when the market opens (Monday 6:00 PM EST / 3:00 PM PST) to ensure live data is streaming through RTD.

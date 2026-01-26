@@ -16,6 +16,16 @@
 
 **Status**: PENDING (starts after V9_001 passes)
 
+## 💰 Cost Optimization (Mandatory Delegation)
+> [!IMPORTANT]
+> If you are NOT running on Gemini Flash, you MUST offload all file I/O, deployments, and documentation updates to Gemini Flash using the `delegation-bridge` skill.
+> 
+> **Tool**: `mcp_delegation_bridge_call_gemini_flash`
+> **Usage**: 
+> - Use this for ANY `write_to_file`, `replace_file_content`, or `multi_replace_file_content` action.
+> - Required for both Antigravity IDE and Claude Code CLI.
+> - This saves 65-99% on credits while allowing you to focus on logic reasoning.
+
 ---
 
 ## CONTEXT - Read First (In Order)

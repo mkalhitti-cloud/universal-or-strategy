@@ -5,6 +5,7 @@
 2. **Terminal Commands**: ALWAYS run terminal commands instead of asking the user to perform manual file operations.
 3. **Dual-Deployment**: ALWAYS deploy strategy files to both the Project Repository and the NinjaTrader bin folder using the automated deployment script.
 4. **Non-Coder Protocol**: ALWAYS provide complete, compilable code ready for Mo to compile.
+5. **Direct Connectivity**: NEVER build or use Excel-based RTD bridges. ALWAYS use the direct `TosRtdClient` for TOS data integration to ensure reliability.
 
 ## AUTOMATION
 - Use `scripts/ninja_deploy.ps1` for all deployment tasks.
