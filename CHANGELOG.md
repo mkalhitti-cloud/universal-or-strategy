@@ -6,6 +6,57 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [8.30] - 2026-01-27 - "Thread-Safe Hardened"
+
+### Fixed
+- **CRITICAL: Execution Freeze Fix** - Resolved NinjaTrader freezing during high-volatility tick storms
+  - Root cause: Race condition between OnBarUpdate (strategy thread) and OnOrderUpdate (callback thread)
+  - Both threads were iterating/modifying `activePositions` Dictionary without synchronization
+
+### Changed
+- **Thread-Safe Collections**: Replaced all `Dictionary<K,V>` with `ConcurrentDictionary<K,V>`:
+  - `activePositions`, `entryOrders`, `stopOrders`
+  - `target1Orders`, `target2Orders`, `target3Orders`, `target4Orders`
+  - `pendingStopReplacements`, `linkedTRENDEntries`
+- **Safe Iteration**: All `foreach` loops over shared collections now use `.ToArray()` snapshots
+- **Atomic Operations**: Replaced `ContainsKey` + indexer with `TryGetValue`/`TryRemove` to eliminate TOCTOU races
+
+### Added
+- **Circuit Breaker Pattern**: Pauses trailing stop updates when 5+ pending replacements queue up
+  - Prevents cascade failure during extreme tick storms
+  - Auto-resets after 2 seconds of calm
+- **Pending Replacement Timeout**: 5-second timeout for stale `pendingStopReplacements` entries
+  - Creates emergency stop if position still needs protection
+  - Prevents memory leak from orphaned entries
+- **Adaptive Throttling**: `ManageTrailingStops` throttle adjusts based on tick frequency
+  - Base: 100ms, increases to 500ms under heavy load
+- **DrawORBox Throttling**: 200ms minimum between chart updates to prevent UI saturation
+
+### Technical Details
+- Added `System.Collections.Concurrent` and `System.Threading` namespaces
+- Added `Interlocked.Increment/Decrement` for atomic counter operations
+- New method: `CleanupStalePendingReplacements()` for timeout cleanup
+- `PendingStopReplacement` class now includes `CreatedTime` field
+
+### Production Status
+- ✅ **APPROVED FOR TESTING** - Requires backtesting with high-tick-frequency data
+
+---
+
+## [V9.10] - 2026-01-26
+### Added
+- **Gold Standard Integration**: Consolidated features from V9_005 through V9_008.
+- **Fuzzy Symbol Matching**: Resolves short symbol names (e.g. "MGC") to full charter names (e.g. "MGC FEB26").
+- **Manual Execution Upgrade**: Support for TRIM_25, TRIM_50, and BE_PLUS_1 via TCP/IPC.
+- **Diagnostic Logging**: Verbose logging in NinjaScript Output for account and symbol troubleshooting.
+
+### Fixed
+- **Thread Safety**: Fixed "Collection modified" errors during order/position iterations by using `.ToArray()`.
+- **Command Latency**: Improved command queue processing to handle all pending signals in a single bar update.
+- **Port Conflict**: Resolved WPF Hub Server conflict by converting WPF app to Client-only mode.
+
+---
+
 ## [8.28] - 2026-01-26 - "Flatten Race Condition & Cross-Instrument Fix"
 
 ### Fixed
