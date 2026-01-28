@@ -10,9 +10,10 @@ try {
     $writer.Write($message)
     $writer.Flush()
     
-    Write-Host "Sent: $message to $server:$port"
+    Write-Host "Sent: $message to ${server}:${port}"
     
     $client.Close()
-} catch {
-    Write-Error "Failed to connect to V9 Hub at $server:$port. Is the strategy running?"
+}
+catch {
+    Write-Error "Failed to connect to V9 Hub at ${server}:${port}. Is the strategy running?"
 }

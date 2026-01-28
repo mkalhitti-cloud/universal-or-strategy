@@ -3634,9 +3634,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                         int livePositionQty = 0;
                         try
                         {
-                            var livePosition = Positions.Get(Instrument);
-                            if (livePosition != null && livePosition.MarketPosition != MarketPosition.Flat)
-                                livePositionQty = livePosition.Quantity;
+                            // Use the Position property (NinjaTrader's built-in position tracker)
+                            if (Position != null && Position.MarketPosition != MarketPosition.Flat)
+                                livePositionQty = Position.Quantity;
                         }
                         catch { }
                         

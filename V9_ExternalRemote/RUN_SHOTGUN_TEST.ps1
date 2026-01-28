@@ -55,7 +55,7 @@ catch {
 
 # Display instructions
 Add-Type -AssemblyName PresentationFramework
-$message = "V9.0.12 MGC Shotgun Test Launched!" + [Environment]::NewLine + [Environment]::NewLine +
+$message = "V9.1.6 MGC EMA Alignment Ready!" + [Environment]::NewLine + [Environment]::NewLine +
 "Next Steps:" + [Environment]::NewLine +
 "1. Type 'MGC_TEST' in the symbol input box" + [Environment]::NewLine +
 "2. Press Enter or click 'Set Symbol'" + [Environment]::NewLine +

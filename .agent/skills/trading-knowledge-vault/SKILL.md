@@ -118,6 +118,32 @@ BEFORE implementing ANY data integration:
 - [ ] Test: Kill intermediary apps, verify data still flows if direct.
 ```
 
+#### 5. IPC Loop Trap (The Multi-Symbol Lesson)
+**What Happened:**
+- `ProcessIpcCommands` used `return` instead of `continue` when filtering symbols.
+- If a command for a different instrument (e.g., MGC) arrived, it broke the loop for ALL subsequent commands for other instruments (e.g., MES).
+
+**Prevention Protocol:**
+- [ ] Use `continue` instead of `return/break` when filtering items in an IPC queue.
+
+#### 6. The Off-Hour Lag (The OnBarUpdate Trap)
+**What Happened:**
+- IPC commands were only processed inside `OnBarUpdate`.
+- Outside session hours, buttons appeared "broken" because bars weren't updating.
+
+**Prevention Protocol:**
+- [ ] Call command processors in `OnMarketData` for real-time responsiveness.
+
+#### 7. The Tick-Wait Lag (The External Control Lesson)
+**What Happened:**
+- External commands via TCP were queued but only processed when the strategy thread fired (`OnMarketData` or `OnBarUpdate`).
+- In quiet markets, this created 500ms-2000ms perceived lag on buttons.
+- Fixed in V10.2 using `TriggerCustomEvent`.
+
+**Prevention Protocol:**
+- [ ] Rule: Always use `TriggerCustomEvent` to process external signal queues.
+- [ ] Benefit: Decouples command processing from market data frequency.
+
 ---
 
 ### Trading Setups (Proven Patterns)

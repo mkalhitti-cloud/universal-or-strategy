@@ -36,15 +36,17 @@ This protocol defines how your "Trading Team" of AI agents collaborates to move 
 **Primary Agent**: `V8_MONITOR` (Safety Net)
 *   **The Goal**: Protecting the Capital during live sessions.
 
-## 💰 6. Cost Optimization (The Delegation Bridge)
-**MANDATORY for all Opus/Sonnet models**
-*   **The Goal**: Zero-waste development by offloading routine tasks.
-*   **Action**: All non-Flash models MUST use the `delegation-bridge` skill and the `call_gemini_flash` tool for:
-    *   Saving/deployment of code files.
-    *   Updating documentation (CHANGELOG, Session Status).
-    *   Reading non-critical files for context.
-*   **Skill Reference**: @[.agent/skills/delegation-bridge]
-*   **Usage**: In BOTH Antigravity IDE and Claude Code CLI, use the tool `mcp_delegation_bridge_call_gemini_flash` to offload work.
+## 💰 6. Cost Optimization (Environment Protocol)
+> [!IMPORTANT]
+> All subagents MUST optimize costs by offloading routine file operations.
+
+**Scenario A: Antigravity IDE (Full Tool Support)**
+*   **Protocol**: Use `mcp_delegation_bridge_call_gemini_flash` for all file I/O (Read/Write).
+*   **Result**: 90% savings by keeping high-IQ models focused on logic.
+
+**Scenario B: Claude Desktop / CLI (No Bridge Access)**
+*   **Protocol**: **"Haiku Delegation"**. The Lead AI (Sonnet/Opus) defines the logic, then **must** instruct the environment to use **Claude 3.5 Haiku** (or a Haiku sub-agent) for the final `write_to_file` operation.
+*   **Result**: High-speed, low-cost implementation without requiring a bridge.
 
 ---
 

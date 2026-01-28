@@ -1,4 +1,4 @@
-# AGENT.md - AI Assistant Context File
+# AGENT.md - AI Assistant Context File (V10.0 Production)
 
 This file provides context for ALL AI assistants (Claude, Gemini, Grok, DeepSeek, etc.) working on this codebase.
 
@@ -29,14 +29,16 @@ This file provides context for ALL AI assistants (Claude, Gemini, Grok, DeepSeek
 
 ---
 
-## Current Version: V8.2+
+## Current Version: V10.0 (Global Integration Edition)
+- **Status**: Stable / Production
+- **Feature Set**: TCP Command Server, V9 Remote Hub Compatibility, Hardened Entry Logic.
+- **Fallback**: V8.31 (Pure Hardened, No TCP).
 
 ### Latest Versions
-- **V8.2**: 4-target system with frequency-based trailing stops (Current Production)
-- **V8_2_UI_HORIZONTAL** (Planned): Horizontal button layout redesign. [Plan Reference](file:///c:/Users/Mohammed%20Khalid/OneDrive/Desktop/WSGTA/Github/universal-or-strategy/.agent-cli/plans/expressive-zooming-bengio.md)
-- **V7.0**: Copy trading edition (Master + Slave architecture)
-- **V5.13**: Standalone 4-target system (no copy trading)
-- **V9 External Remote**: C# WPF application for external trade orchestration and TOS RTD integration.
+- **V9 External Remote**: C# WPF application (v9.1.8) for global trade orchestration.
+  - Features: 5-EMA Cluster, Dual OR rows (5m/15m), Dynamic Global Session tracking.
+- **V10.0**: Integrated Series (TCP Server + V9 Remote Compatibility).
+- **V8.31**: Legacy/Stable Series (Pure Hardened Strategy, No TCP).
 
 ### Key V8 Features
 1. **4-Target System** - T1, T2, T3, Runner with individual management
