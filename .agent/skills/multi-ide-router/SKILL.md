@@ -42,16 +42,19 @@ Intelligently route tasks between Claude Code CLI and Antigravity IDE to optimiz
 ### SECONDARY: Claude Code CLI
 **Role:** Context gathering, planning, instruction creation, routine tasks
 
+⭐ **NEW**: MCP Delegation to Gemini Flash! File operations now automatically delegate to Gemini Flash 3.0 (99% cheaper than Haiku).
+
 **Models:**
 - **Sonnet (me)**: Coordinator, context gathering, prompt generation
-- **Haiku**: Routine file/doc operations (auto-spawned 4.5)
+- **Gemini Flash 3.0** (via MCP): Routine file/doc operations (auto-delegated, 200x cheaper than Opus)
+- **Haiku 4.5**: Fallback if MCP unavailable for file operations
 - **Opus**: Fallback when Antigravity credits depleted (auto-spawned)
 
 **When to use:**
 - ✅ Talking to me to plan work
 - ✅ Generating prompts for Antigravity
-- ✅ File operations (Haiku automatic)
-- ✅ Changelog updates (Haiku automatic)
+- ✅ File operations (Gemini Flash via MCP - automatic, 99% savings!)
+- ✅ Changelog updates (Gemini Flash via MCP - automatic)
 - ✅ **FALLBACK**: When Antigravity credits exhausted
 
 **Workflow:**
@@ -101,8 +104,8 @@ Task Request
 | **Live emergencies** | **Antigravity** | **Opus 4.5 Thinking** | ✅ Yes | Deep analysis |
 | **Complex debugging** | **Antigravity** | **Opus 4.5 Thinking** | ✅ Yes | Reasoning trace |
 | ─── | ─── | ─── | ─── | ─── |
-| **File operations** | Claude Code | Haiku 4.5 | No | Routine, automatic |
-| **Changelog updates** | Claude Code | Haiku 4.5 | No | Simple, automatic |
+| **File operations** | Claude Code | Gemini Flash 3.0 (MCP) | No | 99% cheaper via delegation |
+| **Changelog updates** | Claude Code | Gemini Flash 3.0 (MCP) | No | 99% cheaper via delegation |
 | **Context gathering** | Claude Code | Sonnet | No | Planning/instructions |
 | **Fallback (no credits)** | Claude Code | Opus sub-agent | No | When AG depleted |
 

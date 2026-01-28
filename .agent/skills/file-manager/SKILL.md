@@ -4,10 +4,12 @@ description: Standardized protocol for file operations, version control, and dua
 # File Manager Sub-Agent
 
 ## Purpose
-Fast, cost-effective file creation and deployment using Haiku model for routine save operations.
+Fast, cost-effective file creation and deployment using **Gemini Flash 3.0 via MCP delegation bridge** for routine save operations. Falls back to Haiku if MCP unavailable.
+
+⭐ **NEW**: Claude Code CLI now supports MCP delegation! File operations in Claude Code CLI automatically delegate to Gemini Flash (99% cheaper than Haiku).
 
 ## When to Auto-Trigger
-Automatically spawn a Haiku sub-agent when user requests:
+Automatically spawn a Gemini Flash sub-agent (via MCP) when user requests:
 - "Save this as V8_2_BUGFIX"
 - "Create new version with UI changes"
 - "Deploy to both locations"

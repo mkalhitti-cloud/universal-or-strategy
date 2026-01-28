@@ -8,10 +8,13 @@ description: Universal MCP-based delegation to Gemini Flash 3.0 for cost optimiz
 ## Purpose
 Route file I/O and routine tasks to Gemini Flash 3.0 (200x cheaper than Opus, 40x cheaper than Haiku) via MCP server, while preserving AI-agnostic compatibility across all development environments.
 
+⭐ **NEW in Claude Code CLI**: The MCP delegation bridge is now automatically available! File operations in Claude Code CLI automatically delegate to Gemini Flash 3.0, achieving 99% cost savings on routine tasks.
+
 ## Core Principle: Universal Cost Optimization
 
 **Every AI benefits from delegation:**
-- Claude Opus/Sonnet/Haiku → Delegate I/O to Gemini Flash
+- Claude Opus/Sonnet/Haiku → Delegate I/O to Gemini Flash (via MCP)
+- Claude Code CLI → Automatic MCP delegation to Gemini Flash 3.0
 - Gemini Pro → Delegate I/O to Gemini Flash
 - Any other AI → Delegate I/O to cheapest available option
 
