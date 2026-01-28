@@ -1,0 +1,1 @@
+MCP Bridge Test - If you see this, delegation is working!
