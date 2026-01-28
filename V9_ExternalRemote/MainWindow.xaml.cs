@@ -142,18 +142,18 @@ namespace V9_ExternalRemote
             
             LogToFile($"Subscribing all studies for {symbol}. Full={fullSymbol}");
 
-            // Correct Mapping based on Shotgun Discovery:
-            // CUSTOM4  -> EMA9
-            // CUSTOM6  -> EMA15
-            // CUSTOM10 -> OR HIGH
-            // CUSTOM12 -> OR LOW (Assumed based on pattern, though not seen in snippets yet)
+            // ===== RTD CUSTOM FIELD MAPPING (V10 Verified) =====
+            // EMA9  -> CUSTOM4   (confirmed via RECV log: CUSTOM4 returns live data; CUSTOM1 returns "loading")
+            // EMA15 -> CUSTOM6   (confirmed via RECV log: CUSTOM6 returns live data; CUSTOM2 returns "loading")
+            // ORHIGH -> CUSTOM9  (confirmed working in 12:22 session log)
+            // ORLOW  -> CUSTOM11 (confirmed working in 12:22 session log)
 
             // ALL subscriptions must use fullSymbol (e.g., /MES:XCME)
             // The "loading" issue is now handled by the "Sticky Data" filter in UpdatePriceDisplay.
 
             _rtdClient.Subscribe($"{symbol}:LAST", new object[] { "LAST", fullSymbol });
-            _rtdClient.Subscribe($"{symbol}:EMA9", new object[] { "CUSTOM1", fullSymbol });
-            _rtdClient.Subscribe($"{symbol}:EMA15", new object[] { "CUSTOM2", fullSymbol });
+            _rtdClient.Subscribe($"{symbol}:EMA9", new object[] { "CUSTOM4", fullSymbol });
+            _rtdClient.Subscribe($"{symbol}:EMA15", new object[] { "CUSTOM6", fullSymbol });
             _rtdClient.Subscribe($"{symbol}:EMA30", new object[] { "CUSTOM8", fullSymbol });
             _rtdClient.Subscribe($"{symbol}:EMA65", new object[] { "CUSTOM19", fullSymbol });
             _rtdClient.Subscribe($"{symbol}:EMA200", new object[] { "CUSTOM18", fullSymbol });
