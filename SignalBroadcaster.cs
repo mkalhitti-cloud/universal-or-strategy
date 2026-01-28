@@ -133,6 +133,17 @@ namespace NinjaTrader.NinjaScript.Strategies
             public DateTime Timestamp { get; set; }
         }
 
+        /// <summary>
+        /// V10.2: External command signal (from TCP Remote)
+        /// Allows the TCP owner to broadcast commands to all other strategy instances
+        /// </summary>
+        public class ExternalCommandSignal
+        {
+            public string Command { get; set; }
+            public string TargetSymbol { get; set; }
+            public DateTime Timestamp { get; set; }
+        }
+
         #endregion
 
         #region Events
@@ -176,6 +187,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// V8.1: Fired when Master cancels a pending entry order
         /// </summary>
         public static event EventHandler<OrderCancelSignal> OnOrderCancel;
+
+        /// <summary>
+        /// V10.2: Fired when an external TCP command is received
+        /// </summary>
+        public static event EventHandler<ExternalCommandSignal> OnExternalCommand;
 
         #endregion
 
@@ -293,6 +309,21 @@ namespace NinjaTrader.NinjaScript.Strategies
             OnOrderCancel?.Invoke(null, signal);
         }
 
+        /// <summary>
+        /// V10.2: Broadcast an external command received via TCP
+        /// </summary>
+        public static void BroadcastExternalCommand(string command, string targetSymbol)
+        {
+            var signal = new ExternalCommandSignal
+            {
+                Command = command,
+                TargetSymbol = targetSymbol,
+                Timestamp = DateTime.Now
+            };
+
+            OnExternalCommand?.Invoke(null, signal);
+        }
+
         #endregion
 
         #region Diagnostics
@@ -327,6 +358,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             OnStopUpdate = null;
             OnEntryUpdate = null;
             OnOrderCancel = null;
+            OnExternalCommand = null;
         }
 
         #endregion

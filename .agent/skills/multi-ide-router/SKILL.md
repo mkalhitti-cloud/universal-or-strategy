@@ -44,7 +44,7 @@ Intelligently route tasks between Claude Code CLI and Antigravity IDE to optimiz
 
 **Models:**
 - **Sonnet (me)**: Coordinator, context gathering, prompt generation
-- **Haiku**: Routine file/doc operations (auto-spawned)
+- **Haiku**: Routine file/doc operations (auto-spawned 4.5)
 - **Opus**: Fallback when Antigravity credits depleted (auto-spawned)
 
 **When to use:**
@@ -101,8 +101,8 @@ Task Request
 | **Live emergencies** | **Antigravity** | **Opus 4.5 Thinking** | ✅ Yes | Deep analysis |
 | **Complex debugging** | **Antigravity** | **Opus 4.5 Thinking** | ✅ Yes | Reasoning trace |
 | ─── | ─── | ─── | ─── | ─── |
-| **File operations** | Claude Code | Haiku | No | Routine, automatic |
-| **Changelog updates** | Claude Code | Haiku | No | Simple, automatic |
+| **File operations** | Claude Code | Haiku 4.5 | No | Routine, automatic |
+| **Changelog updates** | Claude Code | Haiku 4.5 | No | Simple, automatic |
 | **Context gathering** | Claude Code | Sonnet | No | Planning/instructions |
 | **Fallback (no credits)** | Claude Code | Opus sub-agent | No | When AG depleted |
 

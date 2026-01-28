@@ -82,21 +82,22 @@ Add new section at the top:
 
 #### Step 3: Create New Version File
 ```powershell
-# Copy current version to new version
-Copy-Item "Strategies\UniversalORStrategyV7.cs" "Strategies\UniversalORStrategyV7_1.cs"
+# Copy current version to new version filename
+Copy-Item "Strategies\UniversalORStrategyV10.cs" "Strategies\UniversalORStrategyV10_1.cs"
 
-# Update class name in new file
-# Change: public class UniversalORStrategyV7
-# To:     public class UniversalORStrategyV7_1
+# V10+ PROTOCOL: DO NOT update class name.
+# Keep: public class UniversalORStrategyV10
+# This ensures the strategy stays on existing charts without re-adding.
 ```
 
 #### Step 4: Update Strategy Metadata
-In the new file, update `OnStateChange()`:
+In the new file, update version info in `OnStateChange()`:
 ```csharp
 if (State == State.SetDefaults)
 {
-    Name = "UniversalORStrategyV7.1";
-    Description = @"[Brief description of new feature]";
+    // Update Name/Description to reflect the sub-version
+    Name = "UniversalORStrategyV10"; // KEEP STABLE FOR NT8 UI
+    Description = "Universal OR Strategy - V10.1 (New Feature Edition)";
     // ... rest of defaults
 }
 ```

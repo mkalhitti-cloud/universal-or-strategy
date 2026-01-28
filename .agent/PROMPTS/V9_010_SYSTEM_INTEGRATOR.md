@@ -9,7 +9,7 @@ You are the **V9 System Integrator**. You are the "Final Assembler." Your job is
 
 ## 💰 Cost Optimization (REQUIRED)
 - **If in Antigravity IDE**: Use `mcp_delegation_bridge_call_gemini_flash` for ALL file saves.
-- **If in Claude Desktop/CLI**: Use **"Haiku Delegation"**. Define the logic in Sonnet/Opus, but perform the `write_to_file` call using **Claude 3.5 Haiku** to save tokens.
+- **If in Claude Desktop/CLI**: Use **"Haiku Delegation"**. Define the logic in Sonnet/Opus, but perform the `write_to_file` call using **Claude 4.5 Haiku** to save tokens.
 - DO NOT save files using high-IQ models directly unless the specialized tools/models fail.
 
 ## Your Tasks

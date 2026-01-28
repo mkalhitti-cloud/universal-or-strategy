@@ -13,7 +13,9 @@ description: Enforces safe file versioning practices for NinjaTrader strategy de
 1. **NEVER overwrite existing files** - Always create a new file with a descriptive suffix
 2. **NEVER auto-commit to GitHub** - Only commit when user explicitly requests
 3. **ALWAYS deploy to both locations** - Project repo AND NinjaTrader strategies folder
-4. **ALWAYS confirm filename** - Ask user before saving if suffix is unclear
+4. **ALWAYS use Stable Class Names for Major Series** - In V10+, keep the class name (e.g., `UniversalORStrategyV10`) stable even if the filename changes.
+5. **ALWAYS archive older versions in NinjaTrader** - Rename old `.cs` files in the NT folder to `.cs.bak` before deploying the latest version.
+6. **ALWAYS confirm filename** - Ask user before saving if suffix is unclear.
 
 ## File Naming Convention
 
@@ -48,9 +50,10 @@ For this project, always deploy to:
 ### After Making Changes
 
 1. Create the new file in the **project repo**
-2. Update the class name inside the file to match the new filename
-3. Copy the file to **NinjaTrader strategies folder**
-4. Inform user: "Saved to both locations. Compile in NinjaTrader to test."
+2. **KEEP the stable class name** (e.g., `UniversalORStrategyV10`) inside the file, regardless of the filename.
+3. **RENAMING OLD FILES**: Before copying to NinjaTrader, rename any existing `.cs` file with the same class name in the NT folder to `.bak`.
+4. Copy the new file to **NinjaTrader strategies folder**.
+5. Inform user: "Saved to both locations. Previous version archived as `.bak` in NT folder. Compile in NinjaTrader to test."
 
 ### What NOT To Do
 

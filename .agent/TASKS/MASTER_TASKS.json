@@ -525,6 +525,48 @@
       "notes": "The 'Final Assembly' stage where everything is put together."
     },
     {
+      "id": "V10_001",
+      "title": "V10 Live Health Monitor",
+      "status": "pending",
+      "priority": "high",
+      "assigned_model": "gemini_flash",
+      "sub_agent": "subagent_v10_monitor",
+      "dependencies": [],
+      "sub_tasks": [
+        {
+          "task": "Check TCP Server Status",
+          "status": "pending"
+        },
+        {
+          "task": "Monitor for Orphan Orders",
+          "status": "pending"
+        }
+      ],
+      "notes": "On-demand health check for V10 production line."
+    },
+    {
+      "id": "V10_002",
+      "title": "V10 Execution Hardening",
+      "status": "pending",
+      "priority": "critical",
+      "assigned_model": "opus_4.5",
+      "sub_agent": "subagent_v10_fixer",
+      "dependencies": [
+        "V10_001"
+      ],
+      "sub_tasks": [
+        {
+          "task": "Review TCP Thread Safety",
+          "status": "pending"
+        },
+        {
+          "task": "Stress test Hybrid Dispatcher",
+          "status": "pending"
+        }
+      ],
+      "notes": "Senior-level intervention for V10 stability."
+    },
+    {
       "id": "CLEANUP_001",
       "title": "Archive Old Versions",
       "status": "pending",
@@ -648,6 +690,26 @@
       ],
       "primary_model": "opus_4.5",
       "preferred_ide": "antigravity"
+    },
+    "subagent_v10_monitor": {
+      "name": "V10 Performance Monitor",
+      "responsibility": "Watching V10 logs and TCP server for errors/rejections during live trading",
+      "assigned_tasks": [
+        "V10_001"
+      ],
+      "primary_model": "gemini_flash",
+      "preferred_ide": "any",
+      "context_file": ".agent/SHARED_CONTEXT/V10_STATUS.json"
+    },
+    "subagent_v10_fixer": {
+      "name": "V10 Execution Fixer",
+      "responsibility": "Rapid response and hardening for V10 execution/IPC bugs",
+      "assigned_tasks": [
+        "V10_002"
+      ],
+      "primary_model": "opus_4.5",
+      "preferred_ide": "antigravity",
+      "context_file": ".agent/SHARED_CONTEXT/V10_STATUS.json"
     }
   },
   "workflow_rules": {

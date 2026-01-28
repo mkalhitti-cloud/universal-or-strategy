@@ -186,13 +186,65 @@
 
                     <Button Style="{StaticResource GlassButton}" Content="FLATTEN" Background="#22FFFFFF" Height="28" Click="Flatten_Click" Margin="0,0,0,5"/>
 
-                    <!-- V10.3: Target Management Buttons -->
+                    <!-- V10.5: Target Management Buttons with Menus -->
                     <UniformGrid Columns="5" Margin="0,0,0,5">
-                        <Button Style="{StaticResource GlassButton}" Content="T1" Background="#2200FF00" FontSize="9" Height="22" Click="CloseT1_Click" Margin="1" ToolTip="Close T1 at market"/>
-                        <Button Style="{StaticResource GlassButton}" Content="T2" Background="#22FFFF00" FontSize="9" Height="22" Click="CloseT2_Click" Margin="1" ToolTip="Close T2 at market"/>
-                        <Button Style="{StaticResource GlassButton}" Content="T3" Background="#22FF6600" FontSize="9" Height="22" Click="CloseT3_Click" Margin="1" ToolTip="Close T3 at market"/>
-                        <Button Style="{StaticResource GlassButton}" Content="T4" Background="#22FF0000" FontSize="9" Height="22" Click="CloseT4_Click" Margin="1" ToolTip="Close T4 at market"/>
-                        <Button Style="{StaticResource GlassButton}" Content="RUN" Background="#22FFFFFF" FontSize="9" Height="22" Click="CloseT4_Click" Margin="1" ToolTip="Close Runner (T4)"/>
+                        <!-- T1 Button with Menu -->
+                        <Button x:Name="BtnT1" Style="{StaticResource GlassButton}" Content="T1" Background="#2200FF00" FontSize="9" Height="22" Click="T1_Click" Margin="1" ToolTip="T1 Actions">
+                            <Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Fill at Market" Click="T1_Market_Click"/>
+                                    <MenuItem Header="Move to 1pt" Click="T1_1pt_Click"/>
+                                    <MenuItem Header="Move to 2pt" Click="T1_2pt_Click"/>
+                                    <MenuItem Header="Move to Now" Click="T1_Now_Click"/>
+                                    <MenuItem Header="Move to BE" Click="T1_BE_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="Cancel Order" Click="T1_Cancel_Click"/>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                        <!-- T2 Button with Menu -->
+                        <Button x:Name="BtnT2" Style="{StaticResource GlassButton}" Content="T2" Background="#22FFFF00" FontSize="9" Height="22" Click="T2_Click" Margin="1" ToolTip="T2 Actions">
+                            <Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Fill at Market" Click="T2_Market_Click"/>
+                                    <MenuItem Header="Move to 1pt" Click="T2_1pt_Click"/>
+                                    <MenuItem Header="Move to 2pt" Click="T2_2pt_Click"/>
+                                    <MenuItem Header="Move to Now" Click="T2_Now_Click"/>
+                                    <MenuItem Header="Move to BE" Click="T2_BE_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="Cancel Order" Click="T2_Cancel_Click"/>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                        <!-- T3 Button with Menu -->
+                        <Button x:Name="BtnT3" Style="{StaticResource GlassButton}" Content="T3" Background="#22FF6600" FontSize="9" Height="22" Click="T3_Click" Margin="1" ToolTip="T3 Actions">
+                            <Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Fill at Market" Click="T3_Market_Click"/>
+                                    <MenuItem Header="Move to 1pt" Click="T3_1pt_Click"/>
+                                    <MenuItem Header="Move to 2pt" Click="T3_2pt_Click"/>
+                                    <MenuItem Header="Move to Now" Click="T3_Now_Click"/>
+                                    <MenuItem Header="Move to BE" Click="T3_BE_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="Cancel Order" Click="T3_Cancel_Click"/>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                        <!-- T4 Button (simple close) -->
+                        <Button Style="{StaticResource GlassButton}" Content="T4" Background="#22FF0000" FontSize="9" Height="22" Click="CloseT4_Click" Margin="1" ToolTip="Close T4"/>
+                        <!-- RUN Button with Menu -->
+                        <Button x:Name="BtnRun" Style="{StaticResource GlassButton}" Content="RUN" Background="#22FFFFFF" FontSize="9" Height="22" Click="Run_Click" Margin="1" ToolTip="Runner Actions">
+                            <Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Close at Market" Click="Run_Close_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="Stop to BE" Click="RunBE_Click"/>
+                                    <MenuItem Header="Stop to 1pt" Click="Run1pt_Click"/>
+                                    <MenuItem Header="Stop to 2pt" Click="Run2pt_Click"/>
+                                    <MenuItem Header="Lock 50%" Click="Run50_Click"/>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
                     </UniformGrid>
 
                     <!-- V10.4: Advanced Runner Controls -->
@@ -247,7 +299,7 @@
                     <CheckBox x:Name="GhostModeCheck" VerticalAlignment="Center" Checked="GhostMode_Changed" Unchecked="GhostMode_Changed"/>
                     <TextBlock Text="GHOST OVERLAY" Foreground="#66FFFFFF" FontSize="10" VerticalAlignment="Center" Margin="5,0,0,0"/>
                 </StackPanel>
-                <TextBlock Text="v10.4" x:Name="VersionText" Foreground="#44FFFFFF" FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+                <TextBlock Text="v10.5" x:Name="VersionText" Foreground="#44FFFFFF" FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
             </Grid>
         </Grid>
     </Border>

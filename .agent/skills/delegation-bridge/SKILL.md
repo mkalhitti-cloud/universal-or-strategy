@@ -106,7 +106,7 @@ Priority 1: Gemini Flash 3.0 (via MCP)
 ├─ Speed: Fastest
 └─ Best for: All file I/O, deployment, docs
 
-Priority 2: Claude Haiku 3.5 (if MCP unavailable)
+Priority 2: Claude Haiku 4.5 (if MCP unavailable)
 ├─ Cost: $0.25/M input, $1.25/M output
 ├─ Speed: Fast
 └─ Best for: Fallback file operations

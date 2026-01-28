@@ -83,6 +83,8 @@ namespace V9_ExternalRemote
 
         private void InitializeTosRtd()
         {
+            LogToFile($"--- REMOTE APP START ({DateTime.Now}) ---");
+            LogToFile($"APP DIRECTORY: {AppDomain.CurrentDomain.BaseDirectory}");
             _rtdClient = new TosRtdClient(this.Dispatcher);
             
             _rtdClient.OnDataUpdate += (key, value) => {
@@ -152,8 +154,8 @@ namespace V9_ExternalRemote
             // The "loading" issue is now handled by the "Sticky Data" filter in UpdatePriceDisplay.
 
             _rtdClient.Subscribe($"{symbol}:LAST", new object[] { "LAST", fullSymbol });
-            _rtdClient.Subscribe($"{symbol}:EMA9", new object[] { "CUSTOM1", fullSymbol });
-            _rtdClient.Subscribe($"{symbol}:EMA15", new object[] { "CUSTOM2", fullSymbol });
+            _rtdClient.Subscribe($"{symbol}:EMA9", new object[] { "Custom1", fullSymbol });
+            _rtdClient.Subscribe($"{symbol}:EMA15", new object[] { "Custom2", fullSymbol });
             _rtdClient.Subscribe($"{symbol}:EMA30", new object[] { "CUSTOM8", fullSymbol });
             _rtdClient.Subscribe($"{symbol}:EMA65", new object[] { "CUSTOM19", fullSymbol });
             _rtdClient.Subscribe($"{symbol}:EMA200", new object[] { "CUSTOM18", fullSymbol });
@@ -213,7 +215,7 @@ namespace V9_ExternalRemote
                     string valStr = value.ToString();
                     
                     // Trace every single update at the UI level
-                    // LogToFile($"UI RECV: {key} = {valStr}"); 
+                    LogToFile($"UI RECV: {key} = {valStr}"); 
                     
                     if (key.Contains("DISCO"))
                     {
@@ -471,26 +473,162 @@ namespace V9_ExternalRemote
             TriggerGlow(Brushes.Magenta);
         }
 
-        // V10.3: Target-Specific Close Handlers
-        private async void CloseT1_Click(object sender, RoutedEventArgs e)
+        // V10.5: Button clicks open context menu
+        private void T1_Click(object sender, RoutedEventArgs e)
         {
-            await SendCommand($"CLOSE_T1|{_activeSymbol}");
+            if (sender is Button btn && btn.ContextMenu != null)
+            {
+                btn.ContextMenu.PlacementTarget = btn;
+                btn.ContextMenu.IsOpen = true;
+            }
+        }
+
+        private void T2_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.ContextMenu != null)
+            {
+                btn.ContextMenu.PlacementTarget = btn;
+                btn.ContextMenu.IsOpen = true;
+            }
+        }
+
+        private void T3_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.ContextMenu != null)
+            {
+                btn.ContextMenu.PlacementTarget = btn;
+                btn.ContextMenu.IsOpen = true;
+            }
+        }
+
+        private void Run_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.ContextMenu != null)
+            {
+                btn.ContextMenu.PlacementTarget = btn;
+                btn.ContextMenu.IsOpen = true;
+            }
+        }
+
+        // V10.5: T1 Target Actions
+        private async void T1_Market_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T1_MARKET|{_activeSymbol}");
             TriggerGlow(Brushes.LimeGreen);
         }
 
-        private async void CloseT2_Click(object sender, RoutedEventArgs e)
+        private async void T1_1pt_Click(object sender, RoutedEventArgs e)
         {
-            await SendCommand($"CLOSE_T2|{_activeSymbol}");
+            await SendCommand($"T1_1PT|{_activeSymbol}");
+            TriggerGlow(Brushes.LimeGreen);
+        }
+
+        private async void T1_2pt_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T1_2PT|{_activeSymbol}");
+            TriggerGlow(Brushes.LimeGreen);
+        }
+
+        private async void T1_Now_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T1_NOW|{_activeSymbol}");
+            TriggerGlow(Brushes.LimeGreen);
+        }
+
+        private async void T1_BE_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T1_BE|{_activeSymbol}");
+            TriggerGlow(Brushes.LimeGreen);
+        }
+
+        private async void T1_Cancel_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T1_CANCEL|{_activeSymbol}");
+            TriggerGlow(Brushes.Gray);
+        }
+
+        // V10.5: T2 Target Actions
+        private async void T2_Market_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T2_MARKET|{_activeSymbol}");
             TriggerGlow(Brushes.Yellow);
         }
 
-        private async void CloseT3_Click(object sender, RoutedEventArgs e)
+        private async void T2_1pt_Click(object sender, RoutedEventArgs e)
         {
-            await SendCommand($"CLOSE_T3|{_activeSymbol}");
+            await SendCommand($"T2_1PT|{_activeSymbol}");
+            TriggerGlow(Brushes.Yellow);
+        }
+
+        private async void T2_2pt_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T2_2PT|{_activeSymbol}");
+            TriggerGlow(Brushes.Yellow);
+        }
+
+        private async void T2_Now_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T2_NOW|{_activeSymbol}");
+            TriggerGlow(Brushes.Yellow);
+        }
+
+        private async void T2_BE_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T2_BE|{_activeSymbol}");
+            TriggerGlow(Brushes.Yellow);
+        }
+
+        private async void T2_Cancel_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T2_CANCEL|{_activeSymbol}");
+            TriggerGlow(Brushes.Gray);
+        }
+
+        // V10.5: T3 Target Actions
+        private async void T3_Market_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T3_MARKET|{_activeSymbol}");
             TriggerGlow(Brushes.Orange);
         }
 
+        private async void T3_1pt_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T3_1PT|{_activeSymbol}");
+            TriggerGlow(Brushes.Orange);
+        }
+
+        private async void T3_2pt_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T3_2PT|{_activeSymbol}");
+            TriggerGlow(Brushes.Orange);
+        }
+
+        private async void T3_Now_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T3_NOW|{_activeSymbol}");
+            TriggerGlow(Brushes.Orange);
+        }
+
+        private async void T3_BE_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T3_BE|{_activeSymbol}");
+            TriggerGlow(Brushes.Orange);
+        }
+
+        private async void T3_Cancel_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"T3_CANCEL|{_activeSymbol}");
+            TriggerGlow(Brushes.Gray);
+        }
+
+        // V10.5: T4/RUN Handlers
         private async void CloseT4_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCommand($"CLOSE_T4|{_activeSymbol}");
+            TriggerGlow(Brushes.OrangeRed);
+        }
+
+        private async void Run_Close_Click(object sender, RoutedEventArgs e)
         {
             await SendCommand($"CLOSE_T4|{_activeSymbol}");
             TriggerGlow(Brushes.OrangeRed);

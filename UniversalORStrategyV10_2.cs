@@ -764,6 +764,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                         
                         // Start IPC Server
                         StartIpcServer();
+
+                        // V10.2: Subscribe to internal command broadcast
+                        SignalBroadcaster.OnExternalCommand += OnExternalCommand;
                     });
                 }
             }
@@ -781,6 +784,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // Stop IPC Server
                 StopIpcServer();
+
+                // V10.2: Cleanup internal broadcast subscription
+                SignalBroadcaster.OnExternalCommand -= OnExternalCommand;
 
                 // Clear references
                 activePositions?.Clear();
@@ -5583,6 +5589,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 
                 Print(string.Format("IPC SERVER START: Port {0}", IpcPort));
             }
+            catch (SocketException sex)
+            {
+                // V10.2: Port already in use - this is expected in multi-instrument setups
+                isIpcRunning = true; // Still allow internal broadcast listening
+                Print(string.Format("IPC PORT CONFLICT ({0}): Port {1} already in use. Running as Listener Only.", sex.Message, IpcPort));
+            }
             catch (Exception ex)
             {
                 Print("ERROR StartIpcServer: " + ex.Message);
@@ -5670,9 +5682,17 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             // FILTER: Verify command is for THIS instrument
             // Handle specific cases (e.g. "MES" matching "MES 03-26")
-            bool isForMe = targetSymbol == "Global" || 
-                           Instrument.MasterInstrument.Name.StartsWith(targetSymbol) ||
-                           targetSymbol == Instrument.FullName;
+            bool isForMe = targetSymbol.Equals("Global", StringComparison.OrdinalIgnoreCase) || 
+                           Instrument.MasterInstrument.Name.StartsWith(targetSymbol, StringComparison.OrdinalIgnoreCase) ||
+                           targetSymbol.Equals(Instrument.FullName, StringComparison.OrdinalIgnoreCase);
+
+            // V10.2 HYBRID DISPATCHER: Broadcast received command to all other instances
+            // Only if we are the port owner (otherwise we'd create a loop)
+            if (ipcListener != null)
+            {
+                Print(string.Format("IPC DISPATCHER: Broadcasting '{0}' for '{1}'", action, targetSymbol));
+                SignalBroadcaster.BroadcastExternalCommand(action, targetSymbol);
+            }
 
             if (!isForMe)
             {
@@ -5735,6 +5755,27 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     Print("Error ProcessIpcCommands: " + ex.Message);
                 }
+            }
+        }
+
+        private void OnExternalCommand(object sender, SignalBroadcaster.ExternalCommandSignal signal)
+        {
+            // V10.2: Ignore if we were the owner who sent it (prevent loops)
+            // Port owner processes commands directly from TCP stream
+            if (ipcListener != null) return;
+
+            // Enqueue for processing via identical logic path
+            if (ipcCommandQueue != null)
+            {
+                string command = string.Format("{0}|{1}", signal.Command, signal.TargetSymbol);
+                
+                // V10.2: Don't log full command here to avoid log clutter in every instance
+                // ProcessIpcCommands will log it once it starts work
+                ipcCommandQueue.Enqueue(command);
+                
+                // Process immediately on strategy thread
+                try { TriggerCustomEvent(o => ProcessIpcCommands(), null); }
+                catch { }
             }
         }
 

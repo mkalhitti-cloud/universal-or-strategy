@@ -14,14 +14,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Removed unused `AUTO` button.
 - **Low-Latency Integration**: All new commands leverage the V10.2 Hybrid Dispatcher for near-instant execution.
 
-## [V10.2] - 2026-01-27 - MILESTONE "Ultra-Low Latency Bridge"
+## [V10.2] - 2026-01-28 - MILESTONE "Hybrid Dispatcher & Multi-Instrument Fix"
 ### Added
-- **Hybrid Dispatcher**: Implemented `TriggerCustomEvent` pattern in the TCP listener. 
-- **Instant Execution**: Commands now process in 10-30ms by bypassing the price-tick wait.
-- **V10.2 Versioning**: Updated to Build 1627 for formal release.
+- **Hybrid IPC Dispatcher**: Implemented internal signal broadcasting via `SignalBroadcaster`. 
+- **MES Command Gap Fix**: The instance that owns the TCP port now dispatches commands to other instances (e.g., MGC → MES).
+- **Case-Insensitive Matching**: Hardened symbol recognition for micro-futures labels.
+- **V10 Stable Class Protocol**: New development workflow where filenames increment (V10_2, V10_3) but the internal class remains `UniversalORStrategyV10`.
 
 ### Changed
-- **Async Strategy Threading**: Shifted command processing from poll-based to event-driven for maximum responsiveness.
+- **Deployment Workflow**: Older `.cs` files in NinjaTrader are now automatically renamed to `.bak` during deployment to prevent class naming conflicts while preserving history.
+- **UI Refresh**: Unified version labels to "V10.2 - HYBRID" on charts and logout windows.
 
 ---
 

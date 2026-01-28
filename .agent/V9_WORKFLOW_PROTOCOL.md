@@ -45,7 +45,7 @@ This protocol defines how your "Trading Team" of AI agents collaborates to move 
 *   **Result**: 90% savings by keeping high-IQ models focused on logic.
 
 **Scenario B: Claude Desktop / CLI (No Bridge Access)**
-*   **Protocol**: **"Haiku Delegation"**. The Lead AI (Sonnet/Opus) defines the logic, then **must** instruct the environment to use **Claude 3.5 Haiku** (or a Haiku sub-agent) for the final `write_to_file` operation.
+*   **Protocol**: **"Haiku Delegation"**. The Lead AI (Sonnet/Opus) defines the logic, then **must** instruct the environment to use **Claude 4.5 Haiku** (or a Haiku sub-agent) for the final `write_to_file` operation.
 *   **Result**: High-speed, low-cost implementation without requiring a bridge.
 
 ---
