@@ -1,0 +1,49 @@
+{
+  "version": "1.0",
+  "description": "Claude Code CLI configuration for Universal OR Strategy project with Gemini Flash MCP delegation",
+  "mcp_servers": {
+    "delegation_bridge": {
+      "command": "python",
+      "args": [".agent/mcp-servers/delegation_bridge.py"],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+        "PROJECT_ROOT": "${PROJECT_ROOT}",
+        "PYTHONUNBUFFERED": "1"
+      },
+      "timeout_seconds": 30,
+      "retry_on_failure": true,
+      "enable": true,
+      "description": "Gemini Flash 3.0 MCP Bridge for cost-optimized file operations and delegation"
+    }
+  },
+  "auto_delegation": {
+    "enabled": true,
+    "description": "Automatically delegate routine file operations to Gemini Flash",
+    "rules": [
+      {
+        "task_type": "file_save",
+        "delegate": true,
+        "cost_saving": "99%"
+      },
+      {
+        "task_type": "file_deploy",
+        "delegate": true,
+        "cost_saving": "99%"
+      },
+      {
+        "task_type": "documentation_update",
+        "delegate": true,
+        "cost_saving": "99%"
+      },
+      {
+        "task_type": "state_update",
+        "delegate": true,
+        "cost_saving": "99%"
+      }
+    ]
+  },
+  "system_prompt_additions": {
+    "enabled": true,
+    "auto_delegation_hint": "Use call_gemini_flash for all file I/O operations to save costs. Model cost comparison: Haiku $0.25/M input vs Gemini Flash $0.075/M input (70% savings). Always delegate file operations unless you need bidirectional reasoning with the model."
+  }
+}
