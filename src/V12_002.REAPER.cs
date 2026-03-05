@@ -324,6 +324,41 @@ namespace NinjaTrader.NinjaScript.Strategies
                     Print($"[REAPER] Minor Desync on {acct.Name}: Expected={expectedQty}, Actual={actualQty}");
             }
 
+            // Build 951: Suppress naked-position check while a bracket replace FSM is in-flight
+            // for this account. All legs are intentionally cancelled during the atomic swap window.
+            bool moveFsmInFlight = false;
+            foreach (var kvp in _bracketReplaceSpecs)
+            {
+                if (kvp.Value.ExecutingAccount != null
+                    && string.Equals(kvp.Value.ExecutingAccount.Name, acct.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    moveFsmInFlight = true;
+                    break;
+                }
+            }
+            // Also guard the legacy per-stop path (master/local accounts using PendingStopReplacement).
+            if (!moveFsmInFlight)
+            {
+                foreach (var kvp in pendingStopReplacements)
+                {
+                    PositionInfo fsmPos;
+                    if (activePositions.TryGetValue(kvp.Key, out fsmPos)
+                        && fsmPos != null && fsmPos.ExecutingAccount != null
+                        && string.Equals(fsmPos.ExecutingAccount.Name, acct.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        moveFsmInFlight = true;
+                        break;
+                    }
+                }
+            }
+            if (moveFsmInFlight)
+            {
+                if (shouldLog)
+                    Print(string.Format("[REAPER] FSM in-flight for {0} -- suppressing naked check.", acct.Name));
+                _nakedPositionFirstSeen.TryRemove(acct.Name, out _);
+                return hasState;
+            }
+
             // ?? NAKED POSITION AUDIT (Build 1102R) ??????????????????????????????????
             if (actualQty != 0)
             {

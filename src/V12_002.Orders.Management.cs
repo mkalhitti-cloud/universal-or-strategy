@@ -519,9 +519,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // V12.3: Route to correct account (fleet follower vs local)
                 if (activePositions.TryGetValue(entryName, out var pos) && pos.IsFollower && pos.ExecutingAccount != null)
                 {
-                    // Build 950: Re-link replacement stop to broker OCO bracket.
-                    string _b950OcoId;
-                    lock (stateLock) { _b950OcoId = pos.OcoGroupId ?? string.Empty; }
+                    // Build 951: Fresh OCO per replacement -- broker rejects reuse of cancelled OCO group.
+                    string freshStopOco = "S_" + Guid.NewGuid().ToString("N").Substring(0, 8);
+                    lock (stateLock) { pos.OcoGroupId = freshStopOco; }
+                    string _b950OcoId = freshStopOco;
+                    Print(string.Format("[RESCUE] Resubmitted with Fresh OCO: {0}", freshStopOco));
                     // Fleet follower: use Account API
                     string sigName = "S_" + entryName;
                     if (sigName.Length > 50) sigName = sigName.Substring(0, 50);
@@ -531,9 +533,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else
                 {
-                    // Build 950: Re-link replacement stop to broker OCO bracket.
-                    string _b950OcoId;
-                    lock (stateLock) { _b950OcoId = pos != null ? (pos.OcoGroupId ?? string.Empty) : string.Empty; }
+                    // Build 951: Fresh OCO per replacement -- broker rejects reuse of cancelled OCO group.
+                    string freshStopOco = "S_" + Guid.NewGuid().ToString("N").Substring(0, 8);
+                    if (pos != null) { lock (stateLock) { pos.OcoGroupId = freshStopOco; } }
+                    string _b950OcoId = freshStopOco;
+                    Print(string.Format("[RESCUE] Resubmitted with Fresh OCO: {0}", freshStopOco));
                     // Local: use SubmitOrderUnmanaged with truncated signal name
                     string suffix = (DateTime.Now.Ticks % 100000000).ToString();
                     string sigName = "S_" + entryName + "_" + suffix;
@@ -666,10 +670,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             double currentPrice = lastKnownPrice > 0 ? lastKnownPrice : Close[0];
             double tickSize = Instrument.MasterInstrument.TickSize;
             
-            // [V12.1102E] RELAXED SAFETY: For Manual BE (Level 1), allow zero-tick distance from market.
-            // This prevents the safety guard from pulling back a BE stop that price has just reached.
-            // Standard trailing (Level > 1) still enforces a 2-tick buffer.
-            double minDistance = (level == 1) ? 0 : (2 * tickSize);
+            // Build 951: 2-tick buffer for all levels including BE -- prevents immediate-fill on BE stops.
+            // Replaces the prior Level 1 zero-tick exception (V12.1102E).
+            double minDistance = 2 * tickSize;
 
             double resultStop = desiredStopPrice;
 

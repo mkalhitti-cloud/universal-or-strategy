@@ -41,7 +41,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "950";  // V12.950: OCO Cascade Fix (bracket restore on V8.30 timeout path)
+        public const string BUILD_TAG = "951";  // V12.951: Unified Transactional FSM & OCO Lifecycle (bracket-wide atomic swap)
 
         #region Variables
 
@@ -573,6 +573,29 @@ namespace NinjaTrader.NinjaScript.Strategies
             public TargetSnapshot[] CapturedTargets;      // null if no Working targets at cancel time
             public bool             BracketRestorationNeeded; // true when CapturedTargets is non-null
         }
+
+        // Build 951: Bracket-wide atomic replace spec for SIMA follower price moves.
+        // All legs (Stop + Targets) share one freshOcoId. Resubmit fires only after ALL
+        // pending cancels confirm (atomic bracket swap prevents "OCO ID reuse" rejection).
+        private class BracketReplaceSpec
+        {
+            public string         EntryName;
+            public string         FreshOcoId;           // V12_SYNC_ + 8-char GUID -- shared by ALL legs
+            public MarketPosition Direction;
+            public Account        ExecutingAccount;
+            public DateTime       CreatedTime;
+            // Cancel tracking: OrderId set (removed as confirms arrive); count guards resubmit gate.
+            public readonly HashSet<string> PendingOrderIds = new HashSet<string>();
+            public int            RemainingCancels;     // Interlocked.Decrement; fires resubmit at <= 0
+            // Replacement prices (updated in-place if a new move arrives while in-flight)
+            public double         StopPrice;            // 0 = no active stop
+            public int            StopQty;
+            public readonly double[] TargetPrices = new double[5]; // [0]=T1..[4]=T5, 0 = leg absent
+            public readonly int[]    TargetQtys   = new int[5];
+        }
+
+        private readonly ConcurrentDictionary<string, BracketReplaceSpec>
+            _bracketReplaceSpecs = new ConcurrentDictionary<string, BracketReplaceSpec>();
 
         // V8.22: Thread-Safe UI Snapshot Struct
         // Decouples UI thread from Strategy thread to prevent "Collection moved" or race conditions

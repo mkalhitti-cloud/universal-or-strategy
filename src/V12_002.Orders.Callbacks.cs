@@ -362,6 +362,31 @@ namespace NinjaTrader.NinjaScript.Strategies
             string orderName = order.Name;
             bool handled = false;
 
+            // Build 951: Bracket replace FSM -- each cancel confirm decrements the gate counter.
+            // Resubmit fires only when ALL legs confirm (RemainingCancels == 0).
+            foreach (var kvp in _bracketReplaceSpecs.ToArray())
+            {
+                BracketReplaceSpec spec = kvp.Value;
+                bool matched;
+                lock (spec)
+                {
+                    matched = spec.PendingOrderIds.Remove(order.OrderId);
+                }
+                if (matched)
+                {
+                    int remaining = Interlocked.Decrement(ref spec.RemainingCancels);
+                    Print(string.Format("[MOVE-SYNC] FSM: Cancel confirmed Bracket_{0} -- {1} legs remaining",
+                        kvp.Key, remaining));
+                    if (remaining <= 0)
+                    {
+                        _bracketReplaceSpecs.TryRemove(kvp.Key, out _);
+                        BracketReplaceSpec capturedSpec = spec;
+                        TriggerCustomEvent(o => SubmitBracketReplacement(capturedSpec), null);
+                    }
+                    return true;
+                }
+            }
+
             // Stop replacement check
             if (orderName.StartsWith("Stop_") || orderName.StartsWith("S_"))
             {
@@ -1291,17 +1316,23 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (newStop <= 0) return;
             // [FIX-PM-03]: Skip stop propagation for followers whose entry hasn't filled yet.
-            // When the master bracket stop first becomes Working (after master fill), this fires for
-            // all dispatched followers. Unfilled followers have no live stop order to move, and the
-            // log noise ("Stop move: A -> B" at dispatch time) was incorrectly suggesting a problem.
             if (!pos.EntryFilled) return;
             double roundedStop = Instrument.MasterInstrument.RoundToTickSize(newStop);
             if (Math.Abs(pos.CurrentStopPrice - roundedStop) <= tickSize / 2) return;
 
             Print(string.Format("[MOVE-SYNC] Stop move: {0} on {1}: {2:F2} -> {3:F2}",
-                fleetEntryName, pos.ExecutingAccount.Name, pos.CurrentStopPrice, roundedStop));
+                fleetEntryName,
+                pos.ExecutingAccount != null ? pos.ExecutingAccount.Name : "local",
+                pos.CurrentStopPrice, roundedStop));
 
-            UpdateStopOrder(fleetEntryName, pos, roundedStop, pos.CurrentTrailLevel);
+            pos.CurrentStopPrice = roundedStop;
+
+            // Build 951: SIMA followers use unified bracket replace (shared OCO ID across all legs).
+            // Local/master path continues via UpdateStopOrder (unmanaged orders, different OCO rules).
+            if (pos.IsFollower && pos.ExecutingAccount != null)
+                InitiateBracketReplace(fleetEntryName, pos, roundedStop, 0, 0);
+            else
+                UpdateStopOrder(fleetEntryName, pos, roundedStop, pos.CurrentTrailLevel);
         }
 
         /// <summary>
@@ -1322,6 +1353,14 @@ namespace NinjaTrader.NinjaScript.Strategies
             Print(string.Format("[MOVE-SYNC] T{0} move: {1} on {2}: {3:F2} -> {4:F2}",
                 targetNum, fleetEntryName, pos.ExecutingAccount.Name, tOrder.LimitPrice, roundedLimit));
 
+            // Build 951: SIMA followers use unified bracket replace -- maintains shared OCO ID.
+            if (pos.IsFollower && pos.ExecutingAccount != null)
+            {
+                InitiateBracketReplace(fleetEntryName, pos, 0, targetNum, roundedLimit);
+                return;
+            }
+
+            // Non-follower (local) path: original direct cancel+submit (unmanaged, no shared OCO group).
             try
             {
                 pos.ExecutingAccount.Cancel(new[] { tOrder });
@@ -1334,14 +1373,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Order replacement = pos.ExecutingAccount.CreateOrder(
                     Instrument, exitAction, OrderType.Limit, TimeInForce.Gtc,
                     qty, roundedLimit, 0,
-                    // [923A-P1b-GUID]: 8-char GUID fragment replaces Ticks -- eliminates collision risk at high resubmit frequency
                     "MGT_" + Guid.NewGuid().ToString("N").Substring(0, 8),
                     signalName, null);
 
                 pos.ExecutingAccount.Submit(new[] { replacement });
                 targetDict[fleetEntryName] = replacement;
 
-                Print(string.Format("[MOVE-SYNC] T{0} resubmitted: {1} @ {2:F2}",
+                Print(string.Format("[MOVE-SYNC] T{0} resubmitted (local): {1} @ {2:F2}",
                     targetNum, fleetEntryName, roundedLimit));
             }
             catch (Exception ex)
@@ -1532,6 +1570,157 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             Print("[FSM] Replacement submitted: " + fleetSignalName
                 + " @ " + price + " x" + qty);
+        }
+
+        // Build 951: Unified bracket replace FSM entry point.
+        // Called by PropagateMasterStopMove and PropagateMasterTargetMove for SIMA followers.
+        // newStopPrice > 0 = stop is the moved leg; movedTargetNum > 0 = a target is the moved leg.
+        private void InitiateBracketReplace(string fleetEntryName, PositionInfo pos,
+            double newStopPrice, int movedTargetNum, double newTargetPrice)
+        {
+            // ATR tick absorption: if already in-flight, update the affected leg price only.
+            BracketReplaceSpec existing;
+            if (_bracketReplaceSpecs.TryGetValue(fleetEntryName, out existing))
+            {
+                lock (existing)
+                {
+                    if (newStopPrice > 0)
+                        existing.StopPrice = Instrument.MasterInstrument.RoundToTickSize(newStopPrice);
+                    if (movedTargetNum > 0)
+                        existing.TargetPrices[movedTargetNum - 1] =
+                            Instrument.MasterInstrument.RoundToTickSize(newTargetPrice);
+                }
+                Print(string.Format("[MOVE-SYNC] FSM: Bracket spec updated in-flight for {0}", fleetEntryName));
+                return;
+            }
+
+            // Generate ONE shared OCO ID for the entire bracket.
+            string freshOcoId = "V12_SYNC_" + Guid.NewGuid().ToString("N").Substring(0, 8);
+            lock (stateLock) { pos.OcoGroupId = freshOcoId; }
+
+            var spec = new BracketReplaceSpec
+            {
+                EntryName        = fleetEntryName,
+                FreshOcoId       = freshOcoId,
+                Direction        = pos.Direction,
+                ExecutingAccount = pos.ExecutingAccount,
+                CreatedTime      = DateTime.Now
+            };
+
+            var toCancel = new List<Order>();
+
+            // Collect current stop
+            Order curStop;
+            if (stopOrders.TryGetValue(fleetEntryName, out curStop) && curStop != null
+                && (curStop.OrderState == OrderState.Working || curStop.OrderState == OrderState.Accepted))
+            {
+                spec.StopPrice = (newStopPrice > 0)
+                    ? Instrument.MasterInstrument.RoundToTickSize(newStopPrice)
+                    : curStop.StopPrice;
+                spec.StopQty = curStop.Quantity;
+                spec.PendingOrderIds.Add(curStop.OrderId);
+                spec.RemainingCancels++;
+                toCancel.Add(curStop);
+            }
+
+            // Collect current targets
+            for (int t = 1; t <= 5; t++)
+            {
+                var tDict = GetTargetOrdersDictionary(t);
+                Order tOrder;
+                if (tDict != null && tDict.TryGetValue(fleetEntryName, out tOrder) && tOrder != null
+                    && (tOrder.OrderState == OrderState.Working || tOrder.OrderState == OrderState.Accepted))
+                {
+                    spec.TargetPrices[t - 1] = (movedTargetNum == t && newTargetPrice > 0)
+                        ? Instrument.MasterInstrument.RoundToTickSize(newTargetPrice)
+                        : tOrder.LimitPrice;
+                    spec.TargetQtys[t - 1] = tOrder.Quantity;
+                    spec.PendingOrderIds.Add(tOrder.OrderId);
+                    spec.RemainingCancels++;
+                    toCancel.Add(tOrder);
+                }
+            }
+
+            if (spec.RemainingCancels == 0)
+            {
+                Print(string.Format("[MOVE-SYNC] FSM: No working legs for {0} -- bracket replace skipped", fleetEntryName));
+                return;
+            }
+
+            _bracketReplaceSpecs[fleetEntryName] = spec;
+            Print(string.Format("[MOVE-SYNC] FSM: PendingCancel -> Bracket_{0} ({1} legs, OCO={2})",
+                fleetEntryName, spec.RemainingCancels, freshOcoId));
+
+            try
+            {
+                pos.ExecutingAccount.Cancel(toCancel.ToArray());
+            }
+            catch (Exception ex)
+            {
+                _bracketReplaceSpecs.TryRemove(fleetEntryName, out _);
+                Print(string.Format("[MOVE-SYNC] ERROR InitiateBracketReplace {0}: {1}", fleetEntryName, ex.Message));
+            }
+        }
+
+        // Build 951: Phase 2 of bracket replace FSM.
+        // Runs on strategy thread via TriggerCustomEvent after ALL legs confirm cancellation.
+        // All resubmissions share spec.FreshOcoId -- broker sees a coherent OCO group.
+        private void SubmitBracketReplacement(BracketReplaceSpec spec)
+        {
+            if (spec.ExecutingAccount == null) return;
+
+            Print(string.Format("[MOVE-SYNC] FSM: Submitting Replacement -> Bracket_{0} @ OCO={1}",
+                spec.EntryName, spec.FreshOcoId));
+            Print(string.Format("[RESCUE] Resubmitted with Fresh OCO: {0}", spec.FreshOcoId));
+
+            OrderAction exitAction = spec.Direction == MarketPosition.Long
+                ? OrderAction.Sell : OrderAction.BuyToCover;
+            var toSubmit = new List<Order>();
+
+            // Resubmit stop
+            if (spec.StopPrice > 0 && spec.StopQty > 0)
+            {
+                string stopSig = SymmetryTrim("S_" + spec.EntryName, 50);
+                Order newStop = spec.ExecutingAccount.CreateOrder(
+                    Instrument, exitAction, OrderType.StopMarket, TimeInForce.Gtc,
+                    spec.StopQty, 0, spec.StopPrice, spec.FreshOcoId, stopSig, null);
+                toSubmit.Add(newStop);
+                stopOrders[spec.EntryName] = newStop;
+            }
+
+            // Resubmit all active targets
+            for (int t = 0; t < 5; t++)
+            {
+                if (spec.TargetPrices[t] > 0 && spec.TargetQtys[t] > 0)
+                {
+                    string tSig = SymmetryTrim("T" + (t + 1) + "_" + spec.EntryName, 40);
+                    Order newTarget = spec.ExecutingAccount.CreateOrder(
+                        Instrument, exitAction, OrderType.Limit, TimeInForce.Gtc,
+                        spec.TargetQtys[t], spec.TargetPrices[t], 0,
+                        spec.FreshOcoId, tSig, null);
+                    toSubmit.Add(newTarget);
+                    var tDict = GetTargetOrdersDictionary(t + 1);
+                    if (tDict != null) tDict[spec.EntryName] = newTarget;
+                }
+            }
+
+            if (toSubmit.Count == 0)
+            {
+                Print(string.Format("[MOVE-SYNC] FSM: No legs to resubmit for Bracket_{0} -- skip", spec.EntryName));
+                return;
+            }
+
+            try
+            {
+                spec.ExecutingAccount.Submit(toSubmit.ToArray());
+                Print(string.Format("[MOVE-SYNC] FSM: Bracket_{0} resubmitted: {1} legs",
+                    spec.EntryName, toSubmit.Count));
+            }
+            catch (Exception ex)
+            {
+                Print(string.Format("[MOVE-SYNC] ERROR SubmitBracketReplacement {0}: {1}",
+                    spec.EntryName, ex.Message));
+            }
         }
 
         #endregion
