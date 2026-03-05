@@ -1,16 +1,8 @@
 {
   "mcpServers": {
-    "TestSprite": {
+    "context7": {
       "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@testsprite/testsprite-mcp@latest"
-      ],
-      "env": {
-        "API_KEY": "sk-user-ksFpQFI2boli7msEyOQkCi2rho1PAzCu8VamRNBGSZ0yo063nZIbcVDel9WFk_gxbbkuGqUa7kKmYw-DW7yLZlCEetkgLho5dCB-mi55Z9MBYs5ajn1gbPB_wRAHGrsK_co"
-      }
+      "args": ["/c", "npx", "-y", "@upstash/context7-mcp@latest"]
     },
     "mcp-supermemory-ai": {
       "command": "cmd",
@@ -20,6 +12,15 @@
         "-y",
         "mcp-remote@latest",
         "https://mcp.supermemory.ai/mcp"
+      ]
+    },
+    "playwright": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@playwright/mcp@latest"
       ]
     }
   }

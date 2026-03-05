@@ -41,7 +41,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "951.1";  // V12.951.1: Hardened -- REAPER suppression gap, follower cancel path, stop-price guard, lock anti-pattern, null guards
+        public const string BUILD_TAG = "951.2";  // V12.951.2: Strategic hardening -- terminal FSM gap, timeout bailout, rescue race, exception safety, BE clamp, position guard
 
         #region Variables
 

@@ -24,5 +24,10 @@ testsprite_tests/
 
 # Sensitive Info / Env
 .env
+.env.*
 auth.json
 *.key
+
+# Agent settings with secrets (use *.template.json as the safe-to-commit version)
+.gemini/settings.json
+*.local.json

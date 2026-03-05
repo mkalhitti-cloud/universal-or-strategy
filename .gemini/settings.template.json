@@ -1,0 +1,9 @@
+{
+  "_README": "Copy this file to settings.json (gitignored). Replace ${VAR} with real values or set env vars.",
+  "mcpServers": {
+    "mcp-supermemory-ai": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "mcp-remote@latest", "https://mcp.supermemory.ai/mcp"]
+    }
+  }
+}

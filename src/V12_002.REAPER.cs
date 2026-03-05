@@ -173,6 +173,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         private void AuditApexPositions()
         {
+            // Build 951.2: Sweep stale bracket replace specs before audit.
+            SweepStaleBracketReplaceSpecs();
+
             bool shouldLog = (DateTime.UtcNow - lastReaperLog).TotalSeconds >= 30;
             int auditedCount = 0;
             int activeCount = 0;
@@ -800,6 +803,28 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // BUG-M2: Clear in-flight guard on failure so next cycle can retry
                     lock (stateLock) { _reaperNakedStopInFlight.Remove(item.AccountName); }
                     Print(string.Format("[REAPER][EMERGENCY_STOP_FAIL] {0}: {1}", item.AccountName, ex.Message));
+                }
+            }
+        }
+
+        // Build 951.2: Bailout for orphaned _bracketReplaceSpecs entries.
+        // If a broker never confirms a cancellation (dropped ACK, reconnect), the spec stays
+        // indefinitely, keeping REAPER suppression active. 15s is generous enough to survive
+        // normal broker latency but short enough to unblock REAPER before a naked-position
+        // alert fires (REAPER uses a 30s grace period via _nakedPositionFirstSeen).
+        private void SweepStaleBracketReplaceSpecs()
+        {
+            DateTime now = DateTime.Now;
+            foreach (var kvp in _bracketReplaceSpecs.ToArray())
+            {
+                if ((now - kvp.Value.CreatedTime).TotalSeconds > 15)
+                {
+                    if (_bracketReplaceSpecs.TryRemove(kvp.Key, out _))
+                    {
+                        Print(string.Format(
+                            "[MOVE-SYNC] WARN: Bracket_{0} spec TIMEOUT (>15s) -- clearing stale FSM entry. REAPER suppression lifted.",
+                            kvp.Key));
+                    }
                 }
             }
         }

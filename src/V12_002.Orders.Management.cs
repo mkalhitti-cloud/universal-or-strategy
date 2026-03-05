@@ -632,8 +632,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                         snap.Qty, restoredPrice, 0, bracketOcoId, tSig, null);
                     if (tOrd != null)
                     {
-                        executingAccount.Submit(new[] { tOrd });
-                        newTarget = tOrd;
+                        // Build 951.2: Guard follower submit -- broker exceptions must not crash the strategy loop.
+                        try
+                        {
+                            executingAccount.Submit(new[] { tOrd });
+                            newTarget = tOrd;
+                        }
+                        catch (Exception submitEx)
+                        {
+                            Print(string.Format(
+                                "[B950] ERROR: RestoreCascadedTargets Submit threw for {0} T{1}: {2}",
+                                entryName, snap.TargetNum, submitEx.Message));
+                        }
                     }
                 }
                 else
@@ -694,7 +704,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     else
                     {
-                        resultStop = currentPrice - (level == 1 ? 0 : minDistance);
+                        // Build 951.2: Apply minDistance for all levels including BE when no entryPrice floor is available.
+                        resultStop = currentPrice - minDistance;
                         Print(string.Format("STOP VALIDATION: Adjusted LONG stop from {0:F2} to {1:F2} (Level {2} {3} market)",
                             desiredStopPrice, resultStop, level, (level == 1 ? "above" : "at/above")));
                     }
@@ -716,7 +727,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     else
                     {
-                        resultStop = currentPrice + (level == 1 ? 0 : minDistance);
+                        // Build 951.2: Apply minDistance for all levels including BE when no entryPrice floor is available.
+                        resultStop = currentPrice + minDistance;
                         Print(string.Format("STOP VALIDATION: Adjusted SHORT stop from {0:F2} to {1:F2} (Level {2} {3} market)",
                             desiredStopPrice, resultStop, level, (level == 1 ? "below" : "at/below")));
                     }

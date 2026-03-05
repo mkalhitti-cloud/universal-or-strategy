@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "mcp-supermemory-ai": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "mcp-remote@latest", "https://mcp.supermemory.ai/mcp"]
+    },
+    "playwright": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@playwright/mcp@latest"]
+    },
+    "greptile": {
+      "type": "http",
+      "url": "https://api.greptile.com/mcp",
+      "headers": {
+        "Authorization": "Bearer VzbjXX3F2zeyPChWnSB0oUQT2lfYC8A/gr4ZZLNfc2vtFVmh"
+      }
+    }
+  }
+}

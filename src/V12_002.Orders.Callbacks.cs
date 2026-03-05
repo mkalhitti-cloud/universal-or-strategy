@@ -617,7 +617,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Follower orders arrive via OnAccountOrderUpdate -> this method, NOT HandleOrderCancelled.
                 // Without this block RemainingCancels never reaches zero and SubmitBracketReplacement never fires.
                 // Note: TryRemove responsibility belongs exclusively to SubmitBracketReplacement.
-                if (reason == "CANCELLED")
+                // Build 951.2: REJECTED is also terminal -- the leg is gone regardless of why.
+                // Treating it like CANCELLED allows the FSM to advance rather than stalling forever.
+                if (reason == "CANCELLED" || reason == "REJECTED")
                 {
                     foreach (var kvp in _bracketReplaceSpecs.ToArray())
                     {
@@ -646,12 +648,24 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Follower stop cancels arrive via OnAccountOrderUpdate (not OnOrderUpdate), so
                 // HandleOrderCancelled never fires for them. Match pendingStopReplacements here.
                 // This block is in the else branch because stop orders are not in entryOrders.
-                if (order.Name.StartsWith("Stop_") || order.Name.StartsWith("S_"))
+                // Build 951.2: Restrict legacy stop rescue to CANCELLED only.
+                // REJECTED stops may indicate a broker-side condition -- do not double-submit.
+                // Also skip if a bracket FSM spec is in-flight for this entry (it owns the resubmit).
+                if (reason == "CANCELLED"
+                    && (order.Name.StartsWith("Stop_") || order.Name.StartsWith("S_")))
                 {
                     foreach (var _psr in pendingStopReplacements.ToArray())
                     {
                         if (_psr.Value.OldOrder == order)
                         {
+                            // Build 951.2: Skip if bracket FSM already handling this entry.
+                            if (_bracketReplaceSpecs.ContainsKey(_psr.Key))
+                            {
+                                Print(string.Format("[MOVE-SYNC] Skipping legacy rescue for {0} -- bracket FSM in-flight.", _psr.Key));
+                                if (pendingStopReplacements.TryRemove(_psr.Key, out _))
+                                    Interlocked.Decrement(ref pendingReplacementCount);
+                                return;
+                            }
                             PositionInfo _rPos;
                             if (activePositions.TryGetValue(_psr.Key, out _rPos) && _rPos.RemainingContracts > 0)
                             {
@@ -1772,6 +1786,23 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             try
             {
+                // Build 951.2: Position guard -- verify the position is still open before resubmitting.
+                // The cancel-gap window allows fills, flattens, or REAPER to close the position.
+                // Resubmitting bracket legs for a dead position creates ghost orders.
+                PositionInfo posGuard;
+                bool posStillOpen = activePositions.TryGetValue(spec.EntryName, out posGuard)
+                    && posGuard != null
+                    && posGuard.EntryFilled
+                    && posGuard.RemainingContracts > 0;
+                if (!posStillOpen)
+                {
+                    Print(string.Format(
+                        "[MOVE-SYNC] FSM: Position {0} closed during cancel-gap -- aborting bracket replacement.",
+                        spec.EntryName));
+                    _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
+                    return;
+                }
+
                 spec.ExecutingAccount.Submit(toSubmit.ToArray());
 
                 // Build 951.1 Bug-D: Update tracking dicts only after successful submit.

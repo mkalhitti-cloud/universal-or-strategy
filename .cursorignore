@@ -1,7 +1,21 @@
 # Cursor Indexing Shield
-.agent/
+# PARITY FIX: Allow Cursor to read its own home folder and the project law.
+# Only block internal agent plumbing that Cursor does not need.
+
+# Block internal agent state/config (not Cursor-relevant)
+.agent/brain/
+.agent/config/
+.agent/context/
+.agent/state/
+.agent/mcp-servers/
+.agent/rules/
+.agent/protocols/
+
+# .agents/ is a legacy/empty folder — block it
 .agents/
 .mcp/
+
+# Build artifacts
 node_modules/
 bin/
 obj/
@@ -9,3 +23,6 @@ obj/
 *.tmp
 *.log
 .git/
+
+# NOTE: .agent/agents/, .agent/workflows/, .agent/skills/, .agent/standards_manifesto.md
+# are now READABLE by Cursor so it can follow the project law and access its home folder.
