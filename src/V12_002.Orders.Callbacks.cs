@@ -368,7 +368,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 BracketReplaceSpec spec = kvp.Value;
                 bool matched;
-                lock (spec)
+                lock (spec.SyncRoot)  // Build 951.1: lock on SyncRoot, not the spec instance (DeepSource CA2002)
                 {
                     matched = spec.PendingOrderIds.Remove(order.OrderId);
                 }
@@ -379,7 +379,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                         kvp.Key, remaining));
                     if (remaining <= 0)
                     {
-                        _bracketReplaceSpecs.TryRemove(kvp.Key, out _);
+                        // Build 951.1 Bug-A: TryRemove deferred to SubmitBracketReplacement after Account.Submit() succeeds.
+                        // Keeping spec in dict ensures REAPER suppression covers the entire cancel-to-resubmit window.
                         BracketReplaceSpec capturedSpec = spec;
                         TriggerCustomEvent(o => SubmitBracketReplacement(capturedSpec), null);
                     }
@@ -612,6 +613,35 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else
             {
+                // Build 951.1 Bug-B: Bracket replace FSM gate for follower bracket-leg cancel confirms.
+                // Follower orders arrive via OnAccountOrderUpdate -> this method, NOT HandleOrderCancelled.
+                // Without this block RemainingCancels never reaches zero and SubmitBracketReplacement never fires.
+                // Note: TryRemove responsibility belongs exclusively to SubmitBracketReplacement.
+                if (reason == "CANCELLED")
+                {
+                    foreach (var kvp in _bracketReplaceSpecs.ToArray())
+                    {
+                        BracketReplaceSpec bSpec = kvp.Value;
+                        bool bMatched;
+                        lock (bSpec.SyncRoot)
+                        {
+                            bMatched = bSpec.PendingOrderIds.Remove(order.OrderId);
+                        }
+                        if (bMatched)
+                        {
+                            int bRemaining = Interlocked.Decrement(ref bSpec.RemainingCancels);
+                            Print(string.Format("[MOVE-SYNC] FSM: Follower cancel confirmed Bracket_{0} -- {1} legs remaining",
+                                kvp.Key, bRemaining));
+                            if (bRemaining <= 0)
+                            {
+                                BracketReplaceSpec capturedBSpec = bSpec;
+                                TriggerCustomEvent(o => SubmitBracketReplacement(capturedBSpec), null);
+                            }
+                            return; // FSM-controlled cancel -- not a desync event
+                        }
+                    }
+                }
+
                 // Build 950: Follower stop replacement -- mirrors HandleOrderCancelled master path.
                 // Follower stop cancels arrive via OnAccountOrderUpdate (not OnOrderUpdate), so
                 // HandleOrderCancelled never fires for them. Match pendingStopReplacements here.
@@ -1325,14 +1355,22 @@ namespace NinjaTrader.NinjaScript.Strategies
                 pos.ExecutingAccount != null ? pos.ExecutingAccount.Name : "local",
                 pos.CurrentStopPrice, roundedStop));
 
-            pos.CurrentStopPrice = roundedStop;
-
             // Build 951: SIMA followers use unified bracket replace (shared OCO ID across all legs).
             // Local/master path continues via UpdateStopOrder (unmanaged orders, different OCO rules).
             if (pos.IsFollower && pos.ExecutingAccount != null)
+            {
+                // Build 951.1 Bug-C1: Do NOT update pos.CurrentStopPrice here for followers.
+                // If the FSM cancel or submit fails, CurrentStopPrice would be stuck at the new
+                // price, causing the duplicate-move guard to silently drop all future stop moves.
+                // pos.CurrentStopPrice is committed in SubmitBracketReplacement after Submit() succeeds.
                 InitiateBracketReplace(fleetEntryName, pos, roundedStop, 0, 0);
+            }
             else
+            {
+                // Non-follower (master/local): update immediately -- UpdateStopOrder is synchronous.
+                pos.CurrentStopPrice = roundedStop;
                 UpdateStopOrder(fleetEntryName, pos, roundedStop, pos.CurrentTrailLevel);
+            }
         }
 
         /// <summary>
@@ -1582,7 +1620,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             BracketReplaceSpec existing;
             if (_bracketReplaceSpecs.TryGetValue(fleetEntryName, out existing))
             {
-                lock (existing)
+                lock (existing.SyncRoot)  // Build 951.1: lock on SyncRoot, not the spec instance (DeepSource CA2002)
                 {
                     if (newStopPrice > 0)
                         existing.StopPrice = Instrument.MasterInstrument.RoundToTickSize(newStopPrice);
@@ -1604,7 +1642,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 FreshOcoId       = freshOcoId,
                 Direction        = pos.Direction,
                 ExecutingAccount = pos.ExecutingAccount,
-                CreatedTime      = DateTime.Now
+                CreatedTime      = DateTime.Now,
+                // Build 951.1 Bug-C1: Store back-reference so SubmitBracketReplacement can commit
+                // pos.CurrentStopPrice atomically with the successful broker submit.
+                PosRef           = pos
             };
 
             var toCancel = new List<Order>();
@@ -1677,6 +1718,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ? OrderAction.Sell : OrderAction.BuyToCover;
             var toSubmit = new List<Order>();
 
+            // Build 951.1 Bug-D: Hold created orders in locals; write to dicts ONLY after Submit() succeeds.
+            Order pendingStop = null;
+            var pendingTargets = new Order[5];
+
             // Resubmit stop
             if (spec.StopPrice > 0 && spec.StopQty > 0)
             {
@@ -1684,8 +1729,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Order newStop = spec.ExecutingAccount.CreateOrder(
                     Instrument, exitAction, OrderType.StopMarket, TimeInForce.Gtc,
                     spec.StopQty, 0, spec.StopPrice, spec.FreshOcoId, stopSig, null);
+                // Build 951.1 Bug-D: null guard -- CreateOrder returns null on broker rejection
+                if (newStop == null)
+                {
+                    Print(string.Format("[MOVE-SYNC] ERROR SubmitBracketReplacement {0}: CreateOrder null (stop)", spec.EntryName));
+                    _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
+                    return;
+                }
+                pendingStop = newStop;
                 toSubmit.Add(newStop);
-                stopOrders[spec.EntryName] = newStop;
             }
 
             // Resubmit all active targets
@@ -1698,26 +1750,56 @@ namespace NinjaTrader.NinjaScript.Strategies
                         Instrument, exitAction, OrderType.Limit, TimeInForce.Gtc,
                         spec.TargetQtys[t], spec.TargetPrices[t], 0,
                         spec.FreshOcoId, tSig, null);
+                    // Build 951.1 Bug-D: null guard -- CreateOrder returns null on broker rejection
+                    if (newTarget == null)
+                    {
+                        Print(string.Format("[MOVE-SYNC] ERROR SubmitBracketReplacement {0}: CreateOrder null (T{1})", spec.EntryName, t + 1));
+                        _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
+                        return;
+                    }
+                    pendingTargets[t] = newTarget;
                     toSubmit.Add(newTarget);
-                    var tDict = GetTargetOrdersDictionary(t + 1);
-                    if (tDict != null) tDict[spec.EntryName] = newTarget;
                 }
             }
 
             if (toSubmit.Count == 0)
             {
                 Print(string.Format("[MOVE-SYNC] FSM: No legs to resubmit for Bracket_{0} -- skip", spec.EntryName));
+                // Build 951.1 Bug-A: Remove FSM entry so REAPER suppression does not linger.
+                _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
                 return;
             }
 
             try
             {
                 spec.ExecutingAccount.Submit(toSubmit.ToArray());
+
+                // Build 951.1 Bug-D: Update tracking dicts only after successful submit.
+                if (pendingStop != null)
+                    stopOrders[spec.EntryName] = pendingStop;
+                for (int t = 0; t < 5; t++)
+                {
+                    if (pendingTargets[t] != null)
+                    {
+                        var tDict = GetTargetOrdersDictionary(t + 1);
+                        if (tDict != null) tDict[spec.EntryName] = pendingTargets[t];
+                    }
+                }
+
+                // Build 951.1 Bug-C1: Commit stop price only after broker confirms orders are live.
+                if (spec.PosRef != null && spec.StopPrice > 0)
+                    spec.PosRef.CurrentStopPrice = spec.StopPrice;
+
+                // Build 951.1 Bug-A: TryRemove HERE -- REAPER suppression window ends after successful submit.
+                _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
+
                 Print(string.Format("[MOVE-SYNC] FSM: Bracket_{0} resubmitted: {1} legs",
                     spec.EntryName, toSubmit.Count));
             }
             catch (Exception ex)
             {
+                // Build 951.1: TryRemove on exception to prevent orphaned REAPER suppression.
+                _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
                 Print(string.Format("[MOVE-SYNC] ERROR SubmitBracketReplacement {0}: {1}",
                     spec.EntryName, ex.Message));
             }

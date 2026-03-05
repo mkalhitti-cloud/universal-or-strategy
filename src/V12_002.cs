@@ -41,7 +41,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "951";  // V12.951: Unified Transactional FSM & OCO Lifecycle (bracket-wide atomic swap)
+        public const string BUILD_TAG = "951.1";  // V12.951.1: Hardened -- REAPER suppression gap, follower cancel path, stop-price guard, lock anti-pattern, null guards
 
         #region Variables
 
@@ -584,6 +584,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             public MarketPosition Direction;
             public Account        ExecutingAccount;
             public DateTime       CreatedTime;
+            // Build 951.1: Private sync root -- avoids lock(instance) anti-pattern (DeepSource CA2002).
+            public readonly object SyncRoot = new object();
+            // Build 951.1: Back-reference to PositionInfo -- updated to new stop price AFTER successful submit.
+            public PositionInfo   PosRef;
             // Cancel tracking: OrderId set (removed as confirms arrive); count guards resubmit gate.
             public readonly HashSet<string> PendingOrderIds = new HashSet<string>();
             public int            RemainingCancels;     // Interlocked.Decrement; fires resubmit at <= 0
