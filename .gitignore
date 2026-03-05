@@ -30,4 +30,5 @@ auth.json
 
 # Agent settings with secrets (use *.template.json as the safe-to-commit version)
 .gemini/settings.json
+.testsprite/config.json
 *.local.json

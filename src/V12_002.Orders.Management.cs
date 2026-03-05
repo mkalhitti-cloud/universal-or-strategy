@@ -529,7 +529,22 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (sigName.Length > 50) sigName = sigName.Substring(0, 50);
                     newStop = pos.ExecutingAccount.CreateOrder(Instrument, exitAction,
                         OrderType.StopMarket, TimeInForce.Gtc, quantity, 0, stopPrice, _b950OcoId, sigName, null);
-                    pos.ExecutingAccount.Submit(new[] { newStop });
+                    if (newStop == null)
+                    {
+                        Print(string.Format("[BRACKET_FATAL] Follower stop CreateOrder returned null for {0}. Flattening.", entryName));
+                        FlattenPositionByName(entryName);
+                        return;
+                    }
+                    try
+                    {
+                        pos.ExecutingAccount.Submit(new[] { newStop });
+                    }
+                    catch (Exception submitEx)
+                    {
+                        Print(string.Format("[BRACKET_FATAL] Follower stop Submit THREW for {0}: {1}. Emergency flattening.", entryName, submitEx.Message));
+                        EmergencyFlattenSingleFleetAccount(pos.ExecutingAccount);
+                        return;
+                    }
                 }
                 else
                 {

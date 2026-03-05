@@ -477,7 +477,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (order.Instrument != null && order.Instrument.FullName != Instrument.FullName) return;
 
             if (order.OrderState != OrderState.Cancelled && order.OrderState != OrderState.Rejected &&
-                order.OrderState != OrderState.Unknown)
+                order.OrderState != OrderState.Unknown && order.OrderState != OrderState.Filled)
             {
                 return;
             }
@@ -545,7 +545,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         // Entry-not-filled -> rollback + desync label. Entry-filled or stop/target -> ghost log + cleanup.
         private void HandleMatchedFollowerOrder(string matchedEntry, PositionInfo matchedPos, Order order, string acctName, string reason)
         {
-            if (entryOrders.TryGetValue(matchedEntry, out var entryOrder) &&
+            bool isCancelLike = reason == "CANCELLED" || reason == "REJECTED";
+            bool isEntryCancelLike = isCancelLike || reason == "UNKNOWN";
+            bool isFilled = reason == "FILLED";
+
+            if (isEntryCancelLike &&
+                entryOrders.TryGetValue(matchedEntry, out var entryOrder) &&
                 (entryOrder == order || (entryOrder != null && entryOrder.OrderId == order.OrderId)) &&
                 !matchedPos.EntryFilled)
             {
@@ -618,22 +623,71 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Without this block RemainingCancels never reaches zero and SubmitBracketReplacement never fires.
                 // Note: TryRemove responsibility belongs exclusively to SubmitBracketReplacement.
                 // Build 951.2: REJECTED is also terminal -- the leg is gone regardless of why.
-                // Treating it like CANCELLED allows the FSM to advance rather than stalling forever.
-                if (reason == "CANCELLED" || reason == "REJECTED")
+                // Build 951.3: FILLED is also terminal -- cancel-gap fill must advance the FSM.
+                if (isCancelLike || isFilled)
                 {
                     foreach (var kvp in _bracketReplaceSpecs.ToArray())
                     {
                         BracketReplaceSpec bSpec = kvp.Value;
                         bool bMatched;
+                        bool bStopFilled = false;
+                        int bTargetFilledNum = 0;
+                        int bFilledQty = 0;
                         lock (bSpec.SyncRoot)
                         {
                             bMatched = bSpec.PendingOrderIds.Remove(order.OrderId);
+                            if (bMatched && isFilled)
+                            {
+                                bSpec.GapFillDetected = true;
+                                bFilledQty = Math.Max(0, order.Filled > 0 ? order.Filled : order.Quantity);
+                                if ((order.Name.StartsWith("Stop_") || order.Name.StartsWith("S_")))
+                                {
+                                    bSpec.StopPrice = 0;
+                                    bSpec.StopQty = 0;
+                                    bStopFilled = true;
+                                }
+                                else if (order.Name.StartsWith("T1_") || order.Name.StartsWith("T2_") || order.Name.StartsWith("T3_") ||
+                                         order.Name.StartsWith("T4_") || order.Name.StartsWith("T5_"))
+                                {
+                                    bTargetFilledNum = order.Name[1] - '0';
+                                    if (bTargetFilledNum >= 1 && bTargetFilledNum <= 5)
+                                    {
+                                        bSpec.TargetPrices[bTargetFilledNum - 1] = 0;
+                                        bSpec.TargetQtys[bTargetFilledNum - 1] = 0;
+                                    }
+                                }
+                            }
                         }
                         if (bMatched)
                         {
+                            if (isFilled && bTargetFilledNum >= 1 && bTargetFilledNum <= 5)
+                            {
+                                PositionInfo bPos;
+                                if (activePositions.TryGetValue(kvp.Key, out bPos) && bPos != null)
+                                {
+                                    bool alreadyProcessed;
+                                    int appliedQty;
+                                    int remainingAfter;
+                                    ApplyTargetFill(bPos, bTargetFilledNum, bFilledQty, true,
+                                        out alreadyProcessed, out appliedQty, out remainingAfter);
+                                    if (!alreadyProcessed)
+                                    {
+                                        Print(string.Format(
+                                            "[MOVE-SYNC] FSM: Gap fill accounted Bracket_{0} T{1} ({2} contracts). Remaining={3}",
+                                            kvp.Key, bTargetFilledNum, appliedQty, remainingAfter));
+                                    }
+                                }
+                                RemoveTargetReferenceOnTerminalFill(order);
+                            }
+                            else if (isFilled && bStopFilled)
+                            {
+                                stopOrders.TryRemove(kvp.Key, out _);
+                                Print(string.Format("[MOVE-SYNC] FSM: Gap fill accounted Bracket_{0} stop leg.", kvp.Key));
+                            }
+
                             int bRemaining = Interlocked.Decrement(ref bSpec.RemainingCancels);
-                            Print(string.Format("[MOVE-SYNC] FSM: Follower cancel confirmed Bracket_{0} -- {1} legs remaining",
-                                kvp.Key, bRemaining));
+                            Print(string.Format("[MOVE-SYNC] FSM: Follower terminal confirmed Bracket_{0} ({1}) -- {2} legs remaining",
+                                kvp.Key, reason, bRemaining));
                             if (bRemaining <= 0)
                             {
                                 BracketReplaceSpec capturedBSpec = bSpec;
@@ -1648,7 +1702,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             // Generate ONE shared OCO ID for the entire bracket.
             string freshOcoId = "V12_SYNC_" + Guid.NewGuid().ToString("N").Substring(0, 8);
-            lock (stateLock) { pos.OcoGroupId = freshOcoId; }
 
             var spec = new BracketReplaceSpec
             {
@@ -1709,6 +1762,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             try
             {
                 pos.ExecutingAccount.Cancel(toCancel.ToArray());
+                lock (stateLock) { pos.OcoGroupId = freshOcoId; }
             }
             catch (Exception ex)
             {
@@ -1732,17 +1786,91 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ? OrderAction.Sell : OrderAction.BuyToCover;
             var toSubmit = new List<Order>();
 
+            double stopPriceSnap;
+            int stopQtySnap;
+            bool gapFillDetected;
+            var targetPricesSnap = new double[5];
+            var targetQtysSnap = new int[5];
+            lock (spec.SyncRoot)
+            {
+                stopPriceSnap = spec.StopPrice;
+                stopQtySnap = spec.StopQty;
+                gapFillDetected = spec.GapFillDetected;
+                Array.Copy(spec.TargetPrices, targetPricesSnap, 5);
+                Array.Copy(spec.TargetQtys, targetQtysSnap, 5);
+            }
+
+            PositionInfo livePos;
+            int liveRemaining = 0;
+            lock (stateLock)
+            {
+                if (activePositions.TryGetValue(spec.EntryName, out livePos)
+                    && livePos != null
+                    && livePos.EntryFilled
+                    && livePos.RemainingContracts > 0)
+                {
+                    liveRemaining = livePos.RemainingContracts;
+                }
+            }
+
+            if (liveRemaining <= 0)
+            {
+                Print(string.Format(
+                    "[MOVE-SYNC] FSM: Position {0} closed during cancel-gap -- aborting bracket replacement.",
+                    spec.EntryName));
+                _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
+                return;
+            }
+
+            int reconciledStopQty = stopPriceSnap > 0 ? liveRemaining : 0;
+            var reconciledTargetQtys = new int[5];
+            int targetBudget = liveRemaining;
+            int targetSnapshotTotal = 0;
+            int targetReconciledTotal = 0;
+            for (int t = 0; t < 5; t++)
+            {
+                int snapQty = Math.Max(0, targetQtysSnap[t]);
+                targetSnapshotTotal += snapQty;
+                if (targetPricesSnap[t] <= 0 || snapQty <= 0 || targetBudget <= 0)
+                    continue;
+
+                int useQty = Math.Min(snapQty, targetBudget);
+                reconciledTargetQtys[t] = useQty;
+                targetBudget -= useQty;
+                targetReconciledTotal += useQty;
+            }
+
+            bool qtyAdjusted = Math.Max(0, stopQtySnap) != reconciledStopQty;
+            if (!qtyAdjusted)
+            {
+                for (int t = 0; t < 5; t++)
+                {
+                    if (Math.Max(0, targetQtysSnap[t]) != reconciledTargetQtys[t])
+                    {
+                        qtyAdjusted = true;
+                        break;
+                    }
+                }
+            }
+            if (qtyAdjusted || gapFillDetected)
+            {
+                Print(string.Format(
+                    "[MOVE-SYNC] FSM: Qty reconcile Bracket_{0} stop {1}->{2} targets {3}->{4} live={5} gapFill={6}",
+                    spec.EntryName, Math.Max(0, stopQtySnap), reconciledStopQty,
+                    targetSnapshotTotal, targetReconciledTotal, liveRemaining, gapFillDetected));
+            }
+
             // Build 951.1 Bug-D: Hold created orders in locals; write to dicts ONLY after Submit() succeeds.
             Order pendingStop = null;
             var pendingTargets = new Order[5];
 
             // Resubmit stop
-            if (spec.StopPrice > 0 && spec.StopQty > 0)
+            if (stopPriceSnap > 0 && reconciledStopQty > 0)
             {
                 string stopSig = SymmetryTrim("S_" + spec.EntryName, 50);
                 Order newStop = spec.ExecutingAccount.CreateOrder(
                     Instrument, exitAction, OrderType.StopMarket, TimeInForce.Gtc,
-                    spec.StopQty, 0, spec.StopPrice, spec.FreshOcoId, stopSig, null);
+                    reconciledStopQty, 0, stopPriceSnap, spec.FreshOcoId, stopSig, null);
                 // Build 951.1 Bug-D: null guard -- CreateOrder returns null on broker rejection
                 if (newStop == null)
                 {
@@ -1757,12 +1885,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Resubmit all active targets
             for (int t = 0; t < 5; t++)
             {
-                if (spec.TargetPrices[t] > 0 && spec.TargetQtys[t] > 0)
+                if (targetPricesSnap[t] > 0 && reconciledTargetQtys[t] > 0)
                 {
                     string tSig = SymmetryTrim("T" + (t + 1) + "_" + spec.EntryName, 40);
                     Order newTarget = spec.ExecutingAccount.CreateOrder(
                         Instrument, exitAction, OrderType.Limit, TimeInForce.Gtc,
-                        spec.TargetQtys[t], spec.TargetPrices[t], 0,
+                        reconciledTargetQtys[t], targetPricesSnap[t], 0,
                         spec.FreshOcoId, tSig, null);
                     // Build 951.1 Bug-D: null guard -- CreateOrder returns null on broker rejection
                     if (newTarget == null)
@@ -1786,23 +1914,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             try
             {
-                // Build 951.2: Position guard -- verify the position is still open before resubmitting.
-                // The cancel-gap window allows fills, flattens, or REAPER to close the position.
-                // Resubmitting bracket legs for a dead position creates ghost orders.
-                PositionInfo posGuard;
-                bool posStillOpen = activePositions.TryGetValue(spec.EntryName, out posGuard)
-                    && posGuard != null
-                    && posGuard.EntryFilled
-                    && posGuard.RemainingContracts > 0;
-                if (!posStillOpen)
-                {
-                    Print(string.Format(
-                        "[MOVE-SYNC] FSM: Position {0} closed during cancel-gap -- aborting bracket replacement.",
-                        spec.EntryName));
-                    _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
-                    return;
-                }
-
                 spec.ExecutingAccount.Submit(toSubmit.ToArray());
 
                 // Build 951.1 Bug-D: Update tracking dicts only after successful submit.
@@ -1818,8 +1929,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
 
                 // Build 951.1 Bug-C1: Commit stop price only after broker confirms orders are live.
-                if (spec.PosRef != null && spec.StopPrice > 0)
-                    spec.PosRef.CurrentStopPrice = spec.StopPrice;
+                if (spec.PosRef != null && stopPriceSnap > 0 && reconciledStopQty > 0)
+                    spec.PosRef.CurrentStopPrice = stopPriceSnap;
 
                 // Build 951.1 Bug-A: TryRemove HERE -- REAPER suppression window ends after successful submit.
                 _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);

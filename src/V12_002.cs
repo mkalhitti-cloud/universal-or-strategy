@@ -41,7 +41,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "951.2";  // V12.951.2: Strategic hardening -- terminal FSM gap, timeout bailout, rescue race, exception safety, BE clamp, position guard
+        public const string BUILD_TAG = "951.3";  // V12.951.3: Forensic remediation -- fill-stall gate, qty reconciliation, OCO ordering, safety null-guards, hygiene cleanup
 
         #region Variables
 
@@ -591,6 +591,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Cancel tracking: OrderId set (removed as confirms arrive); count guards resubmit gate.
             public readonly HashSet<string> PendingOrderIds = new HashSet<string>();
             public int            RemainingCancels;     // Interlocked.Decrement; fires resubmit at <= 0
+            public bool           GapFillDetected;      // Build 951.3: true when any leg FILLED during cancel-gap
             // Replacement prices (updated in-place if a new move arrives while in-flight)
             public double         StopPrice;            // 0 = no active stop
             public int            StopQty;

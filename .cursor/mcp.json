@@ -12,7 +12,7 @@
       "type": "http",
       "url": "https://api.greptile.com/mcp",
       "headers": {
-        "Authorization": "Bearer VzbjXX3F2zeyPChWnSB0oUQT2lfYC8A/gr4ZZLNfc2vtFVmh"
+        "Authorization": "Bearer ${GREPTILE_API_TOKEN}"
       }
     }
   }
