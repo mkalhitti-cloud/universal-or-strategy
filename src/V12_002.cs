@@ -41,7 +41,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "951.3";  // V12.951.3: Forensic remediation -- fill-stall gate, qty reconciliation, OCO ordering, safety null-guards, hygiene cleanup
+        public const string BUILD_TAG = "951.4";  // V12.951.4: OCO cascade fix + P1 follower cancel routing in UpdateStopQuantity
 
         #region Variables
 

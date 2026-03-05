@@ -88,3 +88,65 @@ targets also use OcoGroupId -- full bracket linkage is restored.
 4. REAPER must NOT fire emergency stop (no naked position)
 5. Let T1 fill -- confirm stop reduces to 3 contracts, T2/T3 still Working
 6. Let stop fill -- confirm remaining targets cancelled by existing manual OCO loop
+
+## Build 951.4: OCO Cascade Fix + P1 Follower Cancel Routing in UpdateStopQuantity
+
+### Problem
+
+Two bugs in `UpdateStopQuantity` (Orders.Management.cs) that survived the 951.1-3 remediation wave.
+Both affect the target-fill -> stop-size-reduction path.
+
+**Bug 1 -- OCO Cascade (missing target snapshot):**
+When T1 fills, `UpdateStopQuantity` creates a `PendingStopReplacement` and cancels the stop
+for qty reduction. It never populated `CapturedTargets` or `BracketRestorationNeeded`. The broker
+OCO cascade cancels remaining targets (T2-T5) in response to the stop cancel, but since
+`BracketRestorationNeeded = false`, `RestoreCascadedTargets` is never called. All remaining
+targets were permanently lost after the first target fill.
+
+Build 950 fixed the identical problem in `UpdateStopOrder` (trailing/BE path). The
+`UpdateStopQuantity` (target-fill path) was missed in that wave.
+
+**Bug 2 -- P1 Logic (wrong cancel API for followers):**
+`CancelOrder(currentStop)` (line 450 in 951.3) is the NinjaScript-managed cancel API. It only
+works for orders submitted via `SubmitOrderUnmanaged()` (master account). Fleet follower stops
+are submitted via `acct.Submit()` (broker API). Calling `CancelOrder()` on a follower stop
+silently does nothing -- the pending replacement was registered but the old stop was never
+cancelled at the broker, so the confirmation callback never fired and the replacement stop
+was never created. Result: follower stop remained at full size after T1 fill.
+
+Build 925 P1 established this routing pattern in `RequestStopCancelLifecycleSafe`.
+`UpdateStopQuantity` was not updated at that time.
+
+### Fix
+
+Both fixes applied surgically to `UpdateStopQuantity` in Orders.Management.cs:
+
+**Part 1 -- Target snapshot (OCO cascade):**
+After `pendingStopReplacements.TryAdd()` and before the cancel call, added a Build 950-style
+target snapshot block that populates `newPending.CapturedTargets` and sets
+`newPending.BracketRestorationNeeded = true`. The existing `HandleOrderCancelled` and
+`HandleMatchedFollowerOrder` callbacks already call `RestoreCascadedTargets` when
+`BracketRestorationNeeded && CapturedTargets != null` -- no changes needed there.
+
+**Part 2 -- P1 cancel routing:**
+Replaced `CancelOrder(currentStop)` with an account-aware branch:
+- Follower (`pos.IsFollower && pos.ExecutingAccount != null`): `pos.ExecutingAccount.Cancel(new[] { currentStop })`
+- Master/local: `CancelOrder(currentStop)` (unchanged)
+
+### Files Changed
+
+- src/V12_002.Orders.Management.cs -- UpdateStopQuantity: target snapshot block + P1 cancel routing
+- src/V12_002.cs -- BUILD_TAG = "951.4"
+
+### Verification
+
+1. Compile: F5 in NinjaTrader -- zero errors expected
+2. T1 Fill -> T2/T3 Restore (OCO cascade):
+   - Enter 4-contract position (T1=1, T2=1, T3=1, stop=4 contracts)
+   - Let T1 fill -- confirm logs: "[B950] Target T2 restored", "[B950] Target T3 restored"
+   - Confirm stopOrders holds a 3-contract replacement stop
+3. Follower Stop Reduce (P1 routing):
+   - Enable SIMA, enter position on follower fleet account
+   - Let T1 fill -- confirm follower stop cancel is routed via ExecutingAccount.Cancel()
+   - Confirm 3-contract replacement stop appears in follower account
+4. Master account regression: T1 fill on master -- CancelOrder() still used (not Account.Cancel)

@@ -446,8 +446,31 @@ namespace NinjaTrader.NinjaScript.Strategies
                             Interlocked.Increment(ref pendingReplacementCount);
                         }
 
-                        // Cancel old stop - replacement will be created in OnOrderUpdate when confirmed
-                        CancelOrder(currentStop);
+                        // Build 951.4: Snapshot Working/Accepted targets before cancel for OCO cascade restoration.
+                        // UpdateStopQuantity cancels stop for qty reduction after a target fill; broker OCO may
+                        // cascade-cancel remaining targets (T2-T5). Without this, RestoreCascadedTargets is never
+                        // called and all remaining targets are permanently lost. Mirrors Build 950 pattern in UpdateStopOrder.
+                        {
+                            var _b951Targets = new System.Collections.Generic.List<TargetSnapshot>();
+                            for (int _t = 1; _t <= 5; _t++)
+                            {
+                                var _tD = GetTargetOrdersDictionary(_t);
+                                Order _tO;
+                                if (_tD != null && _tD.TryGetValue(entryName, out _tO) && _tO != null
+                                    && (_tO.OrderState == OrderState.Working || _tO.OrderState == OrderState.Accepted))
+                                    _b951Targets.Add(new TargetSnapshot { TargetNum = _t, Price = _tO.LimitPrice, Qty = _tO.Quantity, CapturedOrder = _tO });
+                            }
+                            newPending.CapturedTargets = _b951Targets.Count > 0 ? _b951Targets.ToArray() : null;
+                            newPending.BracketRestorationNeeded = _b951Targets.Count > 0;
+                        }
+
+                        // Build 951.4 [P1]: Route follower stop cancel via ExecutingAccount.Cancel().
+                        // CancelOrder() is master-local (SubmitOrderUnmanaged only) -- silently no-ops on fleet accounts.
+                        // Follower stops are submitted via acct.Submit(), so require broker-level Account.Cancel().
+                        if (pos.IsFollower && pos.ExecutingAccount != null)
+                            pos.ExecutingAccount.Cancel(new[] { currentStop });
+                        else
+                            CancelOrder(currentStop);
                         Print(string.Format("STOP CANCEL PENDING: {0} | Will replace with {1} contracts @ {2:F2}",
                             entryName, pos.RemainingContracts, pos.CurrentStopPrice));
                     }
