@@ -525,6 +525,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     };
 
                     // V8.30: Thread-safe add or update
+                    PendingStopReplacement _addedRecord = null;
                     if (pendingStopReplacements.TryAdd(entryName, newPending))
                     {
                         // V8.30: Track count for circuit breaker
@@ -536,11 +537,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                             Print(string.Format("V8.30: CIRCUIT BREAKER ACTIVATED - {0} pending replacements (threshold: {1})",
                                 currentCount, CIRCUIT_BREAKER_THRESHOLD));
                         }
+                        _addedRecord = newPending;
                     }
                     else if (pendingStopReplacements.TryGetValue(entryName, out var pending))
                     {
-                        // Just update the pending price
+                        // Just update the pending price and size
                         pending.StopPrice = validatedStopPrice;
+                        pending.Quantity = pos.RemainingContracts; // Build 952.4: keep qty current mid-cancel
                         // Build 950: Refresh CapturedTargets on the live pending record if not yet populated.
                         if (!pending.BracketRestorationNeeded)
                         {
@@ -556,9 +559,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                             pending.CapturedTargets = _b950Refresh.Count > 0 ? _b950Refresh.ToArray() : null;
                             pending.BracketRestorationNeeded = _b950Refresh.Count > 0;
                         }
+                        _addedRecord = pending;
                     }
 
                     // Build 950: Snapshot Working/Accepted targets before cancel for OCO cascade restoration.
+                    // Build 952.4: Write to _addedRecord (live record) so TryAdd-failed path is not lost.
+                    if (_addedRecord != null)
                     {
                         var _b950Targets = new System.Collections.Generic.List<TargetSnapshot>();
                         for (int _t = 1; _t <= 5; _t++)
@@ -569,8 +575,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 && (_tO.OrderState == OrderState.Working || _tO.OrderState == OrderState.Accepted))
                                 _b950Targets.Add(new TargetSnapshot { TargetNum = _t, Price = _tO.LimitPrice, Qty = _tO.Quantity, CapturedOrder = _tO });
                         }
-                        newPending.CapturedTargets = _b950Targets.Count > 0 ? _b950Targets.ToArray() : null;
-                        newPending.BracketRestorationNeeded = _b950Targets.Count > 0;
+                        _addedRecord.CapturedTargets = _b950Targets.Count > 0 ? _b950Targets.ToArray() : null;
+                        _addedRecord.BracketRestorationNeeded = _b950Targets.Count > 0;
                     }
 
                     pos.CurrentStopPrice = validatedStopPrice;

@@ -819,6 +819,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (kvp.Value.ExecutingAccount != null
                     && string.Equals(kvp.Value.ExecutingAccount.Name, accountName, StringComparison.OrdinalIgnoreCase))
                     return true;
+                // Build 952.4: Master bracket specs have null ExecutingAccount; match by Account.Name.
+                if (kvp.Value.ExecutingAccount == null
+                    && string.Equals(Account.Name, accountName, StringComparison.OrdinalIgnoreCase))
+                    return true;
             }
             foreach (var kvp in pendingStopReplacements)
             {

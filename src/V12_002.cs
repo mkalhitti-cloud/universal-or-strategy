@@ -39,7 +39,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "952.3";  // V12.952.3: IPC dead code sweep, exception safety, PS regex fix
+        public const string BUILD_TAG = "952.4";  // V12.952.4: IPC REJECT log, REAPER master FSM guard, fill gate, trailing TryAdd qty+snapshot
 
         #region Variables
 

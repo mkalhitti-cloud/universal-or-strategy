@@ -477,7 +477,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (order.Instrument != null && order.Instrument.FullName != Instrument.FullName) return;
 
             if (order.OrderState != OrderState.Cancelled && order.OrderState != OrderState.Rejected &&
-                order.OrderState != OrderState.Unknown && order.OrderState != OrderState.Filled)
+                order.OrderState != OrderState.Unknown)
             {
                 return;
             }

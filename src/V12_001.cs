@@ -2932,7 +2932,12 @@ namespace NinjaTrader.NinjaScript.Indicators
                             data = data.Substring(newlineIdx + 1);
 
                             if (!string.IsNullOrEmpty(message))
-                                responseQueue.Enqueue(message);
+                            {
+                                if (message.Length > 4096)
+                                    Print("[V12 IPC REJECT] Malformed or oversized message discarded. Length=" + message.Length);
+                                else
+                                    responseQueue.Enqueue(message);
+                            }
                         }
                         buffer.Clear();
                         buffer.Append(data);
