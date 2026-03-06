@@ -6,8 +6,29 @@ obj/
 # Zero-Waste Discovery Rule: .agent/rules/zero_waste_discovery.md
 
 # AI System Plumbing (Claude Code / MCP / Antigravity)
+# Unignored for portability (identity/manifesto), but brain/logs remain private
 .agent/
+!.agent/agents/
+!.agent/workflows/
+!.agent/skills/
+!.agent/standards_manifesto.md
+!.agent/DIRECTOR.md
+.agent/brain/
+.agent/logs/
+
 .agents/
+!.agents/agents/
+!.agents/workflows/
+!.agents/skills/
+.agents/brain/
+.agents/logs/
+
+.claude/
+!.claude/settings.json
+!.claude/skills/
+!.claude/workflows/
+.claude/logs/
+
 .mcp/
 
 # JavaScript / TestSprite noise

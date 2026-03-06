@@ -1,27 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(powershell.exe -ExecutionPolicy Bypass -File \"C:\\\\WSGTA\\\\universal-or-strategy\\\\scripts\\\\sima_toggle_stress.ps1\")",
       "Bash(powershell.exe:*)",
-      "Bash(Select-Object -Last 15)",
-      "Bash(find:*)",
-      "Bash(for f in UniversalORStrategyV12_002_Dev.SIMA.cs UniversalORStrategyV12_002_Dev.Orders.Management.cs UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs)",
-      "Bash(do echo \"=== $f ===\")",
-      "Bash(done)",
-      "Bash(node -e:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git diff-tree:*)",
-      "Bash(grep:*)",
-      "Bash(powershell -ExecutionPolicy Bypass -File \"C:\\\\WSGTA\\\\universal-or-strategy\\\\deploy-sync.ps1\")",
-      "Skill(commit-commands:commit)",
-      "Skill(commit-commands:commit:*)",
-      "Bash(git rm --cached --ignore-unmatch CONSOLIDATED_AUDIT.md HANDOFF_PROJECT_MANAGER.md PROPERTIES_AUDIT_REPORT.md acli.exe src/StressTest.cs src/V12StandardPanel_V12_001_Dev.cs)",
-      "Bash(git rm CONSOLIDATED_AUDIT.md HANDOFF_PROJECT_MANAGER.md PROPERTIES_AUDIT_REPORT.md acli.exe src/StressTest.cs src/V12StandardPanel_V12_001_Dev.cs)",
-      "Bash(git checkout -b build-935-emergency-reform)",
-      "Bash(node --input-type=commonjs:*)",
-      "Bash(python3 -c \":*)",
-      "Bash(powershell -Command \":*)"
+      "Bash(git:*)",
+      "Bash(node:*)",
+      "Skill(*)"
     ]
   }
 }

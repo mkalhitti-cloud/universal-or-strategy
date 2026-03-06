@@ -682,6 +682,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             else if (isFilled && bStopFilled)
                             {
                                 stopOrders.TryRemove(kvp.Key, out _);
+                                lock (bSpec.SyncRoot) { bSpec.PositionClosed = true; }  // Build 951.5: stop filled = position flat
                                 Print(string.Format("[MOVE-SYNC] FSM: Gap fill accounted Bracket_{0} stop leg.", kvp.Key));
                             }
 
@@ -1450,6 +1451,22 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (newLimit <= 0) return;
             var targetDict = GetTargetOrdersDictionary(targetNum);
             if (targetDict == null) return;
+
+            // Build 951.5 [P2]: Check FSM in-flight BEFORE order-state gate.
+            // During the cancel-gap the order won't be Working/Accepted -- the spec owns the price.
+            BracketReplaceSpec inFlightSpec;
+            if (_bracketReplaceSpecs.TryGetValue(fleetEntryName, out inFlightSpec))
+            {
+                lock (inFlightSpec.SyncRoot)
+                {
+                    inFlightSpec.TargetPrices[targetNum - 1] =
+                        Instrument.MasterInstrument.RoundToTickSize(newLimit);
+                }
+                Print(string.Format("[MOVE-SYNC] T{0} move absorbed into in-flight FSM for {1}",
+                    targetNum, fleetEntryName));
+                return;
+            }
+
             if (!targetDict.TryGetValue(fleetEntryName, out var tOrder) || tOrder == null) return;
             if (tOrder.OrderState != OrderState.Working && tOrder.OrderState != OrderState.Accepted) return;
 
@@ -1771,6 +1788,46 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        // Build 951.5: Emergency account protection when FSM resubmission fails.
+        // Called before TryRemove in CreateOrder-null and Submit() exception paths.
+        // Mirrors ProcessReaperFlattenQueue pattern (REAPER.cs). ASCII-only strings.
+        private void EmergencyProtectFollowerAccount(Account execAccount, string entryName, List<Order> ordersToCancel)
+        {
+            if (execAccount == null) return;
+            Print(string.Format("[FSM-GUARD] Emergency protection for {0} on {1}", entryName, execAccount.Name));
+            try
+            {
+                if (ordersToCancel != null && ordersToCancel.Count > 0)
+                    execAccount.Cancel(ordersToCancel.ToArray());
+            }
+            catch (Exception ex)
+            {
+                Print(string.Format("[FSM-GUARD] Cancel failed for {0}: {1}", entryName, ex.Message));
+            }
+            try
+            {
+                foreach (Position brkPos in execAccount.Positions)
+                {
+                    if (brkPos.Instrument.FullName != Instrument.FullName) continue;
+                    if (brkPos.MarketPosition == MarketPosition.Flat || brkPos.Quantity <= 0) continue;
+                    int flatQty = brkPos.Quantity;
+                    OrderAction flatAction = brkPos.MarketPosition == MarketPosition.Long
+                        ? OrderAction.Sell : OrderAction.BuyToCover;
+                    string sigName = "FSM_ERR_" + entryName;
+                    if (sigName.Length > 50) sigName = sigName.Substring(0, 50);
+                    Order flatOrder = execAccount.CreateOrder(Instrument, flatAction,
+                        OrderType.Market, TimeInForce.Gtc, flatQty, 0, 0, "", sigName, null);
+                    if (flatOrder != null)
+                        execAccount.Submit(new[] { flatOrder });
+                    break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Print(string.Format("[FSM-GUARD] Flatten failed for {0}: {1}", entryName, ex.Message));
+            }
+        }
+
         // Build 951: Phase 2 of bracket replace FSM.
         // Runs on strategy thread via TriggerCustomEvent after ALL legs confirm cancellation.
         // All resubmissions share spec.FreshOcoId -- broker sees a coherent OCO group.
@@ -1817,6 +1874,39 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 Print(string.Format(
                     "[MOVE-SYNC] FSM: Position {0} closed during cancel-gap -- aborting bracket replacement.",
+                    spec.EntryName));
+                _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
+                return;
+            }
+
+            // Build 951.5 [P1]: Abort if stop filled during cancel-gap -- position is already flat.
+            bool positionClosed;
+            lock (spec.SyncRoot) { positionClosed = spec.PositionClosed; }
+            if (positionClosed)
+            {
+                Print(string.Format(
+                    "[MOVE-SYNC] FSM: Stop filled during cancel-gap for Bracket_{0} -- aborting target recreation.",
+                    spec.EntryName));
+                _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
+                return;
+            }
+
+            // Build 951.5 [P1]: Cross-check broker-live position before submitting -- activePositions may lag.
+            bool brokerLiveExists = false;
+            foreach (Position brkPos in spec.ExecutingAccount.Positions)
+            {
+                if (brkPos.Instrument.FullName == Instrument.FullName
+                    && brkPos.MarketPosition != MarketPosition.Flat
+                    && brkPos.Quantity > 0)
+                {
+                    brokerLiveExists = true;
+                    break;
+                }
+            }
+            if (!brokerLiveExists)
+            {
+                Print(string.Format(
+                    "[MOVE-SYNC] FSM: Broker-live position absent for Bracket_{0} -- aborting replacement.",
                     spec.EntryName));
                 _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
                 return;
@@ -1875,6 +1965,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (newStop == null)
                 {
                     Print(string.Format("[MOVE-SYNC] ERROR SubmitBracketReplacement {0}: CreateOrder null (stop)", spec.EntryName));
+                    EmergencyProtectFollowerAccount(spec.ExecutingAccount, spec.EntryName, null);  // Build 951.5
                     _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
                     return;
                 }
@@ -1896,6 +1987,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (newTarget == null)
                     {
                         Print(string.Format("[MOVE-SYNC] ERROR SubmitBracketReplacement {0}: CreateOrder null (T{1})", spec.EntryName, t + 1));
+                        EmergencyProtectFollowerAccount(spec.ExecutingAccount, spec.EntryName, toSubmit);  // Build 951.5
                         _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
                         return;
                     }
@@ -1940,6 +2032,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
+                // Build 951.5: Emergency protect before removing -- Submit() may have partially landed orders.
+                EmergencyProtectFollowerAccount(spec.ExecutingAccount, spec.EntryName, toSubmit);
                 // Build 951.1: TryRemove on exception to prevent orphaned REAPER suppression.
                 _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
                 Print(string.Format("[MOVE-SYNC] ERROR SubmitBracketReplacement {0}: {1}",

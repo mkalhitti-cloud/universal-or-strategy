@@ -41,7 +41,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "951.4";  // V12.951.4: OCO cascade fix + P1 follower cancel routing in UpdateStopQuantity
+        public const string BUILD_TAG = "951.5";  // V12.951.5: FSM failure guard, stop-gap fill termination, broker-live sync, target absorption fix
 
         #region Variables
 
@@ -592,6 +592,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             public readonly HashSet<string> PendingOrderIds = new HashSet<string>();
             public int            RemainingCancels;     // Interlocked.Decrement; fires resubmit at <= 0
             public bool           GapFillDetected;      // Build 951.3: true when any leg FILLED during cancel-gap
+            public bool           PositionClosed;       // Build 951.5: true when stop filled during cancel-gap (position now flat)
             // Replacement prices (updated in-place if a new move arrives while in-flight)
             public double         StopPrice;            // 0 = no active stop
             public int            StopQty;

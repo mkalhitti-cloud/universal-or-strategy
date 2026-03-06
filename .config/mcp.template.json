@@ -14,6 +14,14 @@
       "headers": {
         "Authorization": "Bearer ${GREPTILE_API_TOKEN}"
       }
+    },
+    "context7": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@upstash/context7-mcp@latest"],
+      "env": {
+        "UPSTASH_REDIS_REST_URL": "${CONTEXT7_URL}",
+        "UPSTASH_REDIS_REST_TOKEN": "${CONTEXT7_TOKEN}"
+      }
     }
   }
 }
