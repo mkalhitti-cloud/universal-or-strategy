@@ -158,5 +158,15 @@ OnLineInfo ... status=open <- live untracked GTC order at broker
 
 ---
 
+## 11. Build 952: Modular Pruning & Lean Core Standard
+
+- **NT8-Native**: All trade levels (OR High/Low, EMA) MUST be calculated locally within the script. External bridge/TOS input is DEPRECATED.
+- **Feature Isolation**: Removed modules (MOMO, FFMA, OR) are stored in `feature/v12-legacy-archive`. DO NOT reintegrate without a formal Mission Brief.
+- **UI Minimalism**: Manual entry rows and external bridge controls are removed to prevent state noise.
+- **FSM Dominance**: Every follower order replacement MUST use the two-phase `FollowerReplaceState` FSM. No exceptions.
+- **REAPER Suppression**: Use the `IsBracketMoveInFlight` unified guard (H-13) to suppress audit repairs during FSM cancel-gaps.
+
+---
+
 > [!NOTE]
-> This document defines **Permanent Standards**. For current active refactoring goals (e.g. Phase 6.0 Simplification), refer to the specific **Implementation Plan** or **Refactoring Roadmap** files.
+> This document defines **Permanent Standards**. For current active refactoring goals (e.g. Phase 6.0 Simplification), refer to the specific **Implementation Plan** or \*\*Refactoring Roadmap files.

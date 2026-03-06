@@ -39,7 +39,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "952.2";  // V12.952.2: Replace spec leak, log mismatch, tSig length, REAPER spam, stale RMA log
+        public const string BUILD_TAG = "952.3";  // V12.952.3: IPC dead code sweep, exception safety, PS regex fix
 
         #region Variables
 
@@ -933,7 +933,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         #endregion
 
-        #region OnMarketData - V10.1: Process IPC on every tick for real-time responsiveness
+        #region OnMarketData
 
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
@@ -942,10 +942,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 // Update last known price for real-time tracking
                 lastKnownPrice = marketDataUpdate.Price;
-                
-                // Process IPC commands immediately on every tick
-                // This ensures Remote App buttons work even outside session time
-                ProcessIpcCommands();
             }
         }
 
@@ -977,9 +973,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
 
                 // V8.21: Reduced log volume - OR buildings and updates are handled via DrawORBox and UpdateDisplay
-
-                // Process IPC Commands
-                ProcessIpcCommands();
 
                 // CIT Logic
                 ManageCIT();

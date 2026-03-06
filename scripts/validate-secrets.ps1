@@ -11,7 +11,7 @@ $patterns = @(
     'sk-[a-zA-Z0-9]{32,}',     # Generic OpenAI/Secret Key pattern
     'ghp_[a-zA-Z0-9]{36,}',    # GitHub PAT
     '"API_KEY":\s*"[^\$]',      # Plaintext API Key in JSON (not a variable)
-    '(?i)authorization\s*[:=]\s*["'']?\s*bearer\s+(?![\$<{])(?!token\b|your[_-]?token\b|example\b)[-A-Za-z0-9._~+/]{20,}={0,2}' # Bearer tokens
+    "(?i)authorization\s*[:=]\s*[`"'']?\s*bearer\s+(?![\`$<{])(?!token\b|your[_-]?token\b|example\b)[-A-Za-z0-9._~+/]{20,}={0,2}" # Bearer tokens
 )
 
 $trackedFiles = git -C $rootPath ls-files -- '*.md' '*.json' '*.txt' '*.cs' '*.ps1'

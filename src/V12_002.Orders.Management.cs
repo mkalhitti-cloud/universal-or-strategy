@@ -591,7 +591,17 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     // Attempt to flatten position immediately
                     Print(string.Format("?? ?? Attempting emergency flatten for {0}...", entryName));
-                    FlattenPositionByName(entryName);
+                    // Build 952.3: If flatten itself throws, log explicit UNPROTECTED state warning.
+                    try
+                    {
+                        FlattenPositionByName(entryName);
+                    }
+                    catch (Exception flatEx)
+                    {
+                        Print(string.Format(
+                            "[B952] CRITICAL: FlattenPositionByName FAILED for {0} -- POSITION UNPROTECTED AND NOT FLATTENED: {1}",
+                            entryName, flatEx.Message));
+                    }
                     return;
                 }
 
@@ -664,24 +674,34 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (isFollower && executingAccount != null)
                 {
-                    string tSig = SymmetryTrim("T" + snap.TargetNum + "_" + entryName, 40);
-                    Order tOrd = executingAccount.CreateOrder(
-                        Instrument, exitAction, OrderType.Limit, TimeInForce.Gtc,
-                        snap.Qty, restoredPrice, 0, bracketOcoId, tSig, null);
-                    if (tOrd != null)
+                    // Build 952.3: Guard CreateOrder -- broker-offline can throw here, not just Submit.
+                    try
                     {
-                        // Build 951.2: Guard follower submit -- broker exceptions must not crash the strategy loop.
-                        try
+                        string tSig = SymmetryTrim("T" + snap.TargetNum + "_" + entryName, 40);
+                        Order tOrd = executingAccount.CreateOrder(
+                            Instrument, exitAction, OrderType.Limit, TimeInForce.Gtc,
+                            snap.Qty, restoredPrice, 0, bracketOcoId, tSig, null);
+                        if (tOrd != null)
                         {
-                            executingAccount.Submit(new[] { tOrd });
-                            newTarget = tOrd;
+                            // Build 951.2: Guard follower submit -- broker exceptions must not crash the strategy loop.
+                            try
+                            {
+                                executingAccount.Submit(new[] { tOrd });
+                                newTarget = tOrd;
+                            }
+                            catch (Exception submitEx)
+                            {
+                                Print(string.Format(
+                                    "[B950] ERROR: RestoreCascadedTargets Submit threw for {0} T{1}: {2}",
+                                    entryName, snap.TargetNum, submitEx.Message));
+                            }
                         }
-                        catch (Exception submitEx)
-                        {
-                            Print(string.Format(
-                                "[B950] ERROR: RestoreCascadedTargets Submit threw for {0} T{1}: {2}",
-                                entryName, snap.TargetNum, submitEx.Message));
-                        }
+                    }
+                    catch (Exception createEx)
+                    {
+                        Print(string.Format(
+                            "[B952] ERROR: RestoreCascadedTargets CreateOrder threw for {0} T{1}: {2}",
+                            entryName, snap.TargetNum, createEx.Message));
                     }
                 }
                 else

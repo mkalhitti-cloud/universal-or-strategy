@@ -324,110 +324,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        /// <summary>
-        /// V10.1: Custom RMA entry for IPC commands - forces direction and uses specified price
-        /// </summary>
-        private void ExecuteRMAEntryCustom(double price, MarketPosition direction)
-        {
-            // V12.Phase7 [C-09]: Compliance enforcement gate.
-            if (!IsOrderAllowed()) return;
-            // V12.Phase6 [FLATTEN-GUARD]: Prevent order submission during active flatten
-            if (isFlattenRunning) return;
-
-            if (currentATR <= 0)
-            {
-                Print("IPC RMACustom Ignored: ATR not available");
-                return;
-            }
-
-            try
-            {
-                // V12.Phase9.2: RMA Intelligence Exhaustion Guard (IPC Path)
-                if (!IsRmaSetupExhausted(price, direction))
-                {
-                    Print("[IPC RMACustom REJECT] Setup not exhausted. Entry blocked.");
-                    return;
-                }
-
-                double stopDistance = CalculateATRStopDistance(RMAStopATRMultiplier); // V12.30: Ceiling-rounded, MaximumStop cap
-
-                double entryPrice = Instrument.MasterInstrument.RoundToTickSize(price);
-                // V12.Phase6 [TICK-01]: All prices rounded to valid tick increments
-                double stopPrice = Instrument.MasterInstrument.RoundToTickSize(direction == MarketPosition.Long
-                    ? entryPrice - stopDistance
-                    : entryPrice + stopDistance);
-
-                // Universal Ladder: T(n)Type dropdown drives all target pricing.
-                double target1Price = CalculateTargetPrice(direction, entryPrice, 1);
-                double target2Price = CalculateTargetPrice(direction, entryPrice, 2);
-                double target3Price = CalculateTargetPrice(direction, entryPrice, 3);
-                double target4Price = CalculateTargetPrice(direction, entryPrice, 4);
-                double target5Price = CalculateTargetPrice(direction, entryPrice, 5);
-
-                int contracts = CalculatePositionSize(stopDistance);
-                int t1Qty, t2Qty, t3Qty, t4Qty, t5Qty;
-                GetTargetDistribution(contracts, out t1Qty, out t2Qty, out t3Qty, out t4Qty, out t5Qty);
-
-                string signalName = direction == MarketPosition.Long ? "IPCLong" : "IPCShort";
-                string entryName = signalName + "_" + DateTime.Now.ToString("HHmmssffff");
-
-                PositionInfo pos = new PositionInfo
-                {
-                    SignalName = entryName,
-                    Direction = direction,
-                    TotalContracts = contracts,
-                    T1Contracts = t1Qty,
-                    T2Contracts = t2Qty,
-                    T3Contracts = t3Qty,
-                    T4Contracts = t4Qty,
-                    T5Contracts = t5Qty,
-                    RemainingContracts = contracts,
-                    EntryPrice = entryPrice,
-                    InitialStopPrice = stopPrice,
-                    CurrentStopPrice = stopPrice,
-                    Target1Price = target1Price,
-                    Target2Price = target2Price,
-                    Target3Price = target3Price,
-                    Target4Price = target4Price,
-                    Target5Price = target5Price,
-                    IsRMATrade = true,
-                    // Build 936 [FIX-2]: Deterministic OCO group ID for broker-native bracket protection.
-                    OcoGroupId = "V12_" + GetStableHash(entryName)
-                };
-                ApplyTargetLadderGuard(pos);
-
-                activePositions[entryName] = pos;
-
-                // Build 1102Y-V3 [MS-02]: Register Master's expected position in the Order Ledger BEFORE submit.
-                int masterDeltaRMACustom = (direction == MarketPosition.Long) ? contracts : -contracts;
-                AddExpectedPositionDeltaLocked(ExpKey(Account.Name), masterDeltaRMACustom);
-
-                // Execute as MARKET order for IPC commands to ensure immediate fill (V9 style)
-                Order entryOrderCustom = direction == MarketPosition.Long
-                    ? SubmitOrderUnmanaged(0, OrderAction.Buy, OrderType.Market, contracts, 0, 0, "", entryName)
-                    : SubmitOrderUnmanaged(0, OrderAction.SellShort, OrderType.Market, contracts, 0, 0, "", entryName);
-
-                if (entryOrderCustom == null)
-                {
-                    // Build 1102Y-V3 [MS-02 ROLLBACK]: Submit failed -- undo reservation.
-                    AddExpectedPositionDeltaLocked(ExpKey(Account.Name), -masterDeltaRMACustom);
-                    Print("[ERROR][1102Y-V3] RMACustom SubmitOrderUnmanaged returned NULL for " + entryName + " -- Master expected rolled back.");
-                }
-
-                Print(string.Format("IPC EXEC: {0} {1} contracts at MKT (Ref: {2:F2})", direction, contracts, entryPrice));
-
-                // V12.1: Smart Dispatch to SIMA Fleet
-                if (EnableSIMA)
-                {
-                    ExecuteSmartDispatchEntry("RMA_IPC", direction == MarketPosition.Long ? OrderAction.Buy : OrderAction.SellShort, contracts, entryPrice, OrderType.Limit);
-                }
-            }
-            catch (Exception ex)
-            {
-                Print("Error ExecuteRMAEntryCustom: " + ex.Message);
-            }
-        }
-
         private void ActivateRMAMode()
         {
             isRMAModeActive = true;
@@ -437,17 +333,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             isRMAModeActive = false;
             isRMAButtonClicked = false;
-
-            // V12.14: Broadcast RMA deactivation to panel
-            string deactivateConfig = string.Format(
-                "CONFIG|OR|COUNT:{0};T1:{1};T1TYPE:{2};T2:{3};T2TYPE:{4};T3:{5};T3TYPE:{6};T4:{7};T4TYPE:{8};T5:{9};T5TYPE:{10};STR:{11};MAX:{12};",
-                minContracts,
-                Target1Value, ToIpcTargetMode(T1Type),
-                Target2Value, ToIpcTargetMode(T2Type),
-                Target3Value, ToIpcTargetMode(T3Type),
-                Target4Value, ToIpcTargetMode(T4Type),
-                Target5Value, ToIpcTargetMode(T5Type),
-                StopMultiplier, MaxRiskAmount);
         }
 
         #endregion

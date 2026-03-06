@@ -199,25 +199,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             return fleet.OrderBy(a => a.DailyPL).ToList();
         }
 
-        private void SetRmaAnchorFromIpc(string anchorStr)
-        {
-            try
-            {
-                if (anchorStr == "EMA30") currentRmaAnchor = RmaAnchorType.Ema30;
-                else if (anchorStr == "EMA65") currentRmaAnchor = RmaAnchorType.Ema65;
-                else if (anchorStr == "EMA200") currentRmaAnchor = RmaAnchorType.Ema200;
-                else if (anchorStr == "OR_HIGH") currentRmaAnchor = RmaAnchorType.OrHigh;
-                else if (anchorStr == "OR_LOW") currentRmaAnchor = RmaAnchorType.OrLow;
-                else if (anchorStr == "MANUAL") currentRmaAnchor = RmaAnchorType.Manual;
-
-                Print("IPC SET ANCHOR: " + anchorStr);
-            }
-            catch (Exception ex)
-            {
-                Print("Error SetRmaAnchorFromIpc: " + ex.Message);
-            }
-        }
-
         #region V12 SIMA Multi-Account Execution Engine
 
         /// <summary>
