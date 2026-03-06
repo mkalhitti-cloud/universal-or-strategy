@@ -549,6 +549,18 @@ namespace NinjaTrader.NinjaScript.Strategies
             bool isEntryCancelLike = isCancelLike || reason == "UNKNOWN";
             bool isFilled = reason == "FILLED";
 
+            // Build 952.1: Follower fill race guard.
+            // Entry FILLED events must NOT be processed here -- entryOrders must stay intact
+            // so ProcessQueuedExecution can find them and run SymmetryGuardOnFollowerFill().
+            // Bracket/stop legs (non-entry orders) still pass through for FSM accounting.
+            if (isFilled
+                && entryOrders.TryGetValue(matchedEntry, out var entryFillGuard)
+                && (entryFillGuard == order || (entryFillGuard != null && entryFillGuard.OrderId == order.OrderId))
+                && !matchedPos.EntryFilled)
+            {
+                return; // Let OnExecutionUpdate / ProcessQueuedExecution own this fill.
+            }
+
             if (isEntryCancelLike &&
                 entryOrders.TryGetValue(matchedEntry, out var entryOrder) &&
                 (entryOrder == order || (entryOrder != null && entryOrder.OrderId == order.OrderId)) &&
@@ -964,7 +976,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                 }
             }
-            SendResponseToRemote($"SYNC_TARGET_STATE|{syncCount}");
         }
 
         protected override void OnExecutionUpdate(Execution execution, string executionId, double price, int quantity, MarketPosition marketPosition, string orderId, DateTime time)
@@ -1293,7 +1304,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if      (masterPosForType.IsTRENDTrade)  masterTradeType = "TREND";
                 else if (masterPosForType.IsRetestTrade) masterTradeType = "RETEST"; // <- before RMA
                 else if (masterPosForType.IsRMATrade)    masterTradeType = "RMA";
-                else                                     masterTradeType = "RMA";
+                else
+                {
+                    Print(string.Format("[WARN] masterTradeType fallback to RMA for {0} -- no trade-type flag set",
+                        masterPosForType.SignalName));
+                    masterTradeType = "UNKNOWN";
+                }
             }
 
             IEnumerable<string> followerEntryNames;

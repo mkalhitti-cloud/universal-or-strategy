@@ -171,7 +171,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Only sync UNFILLED entries
                 if (pos.EntryFilled) continue;
 
-                // Skip non-ATR modes (FFMA/MOMO removed in Build 952)
+                // Skip non-ATR modes (FFMA/MOMO modules removed)
 
                 // V1102Q [SOVEREIGN-DRIFT]: Followers skip active ATR-sync. 
                 // They purely follow the master-dispatched quantity.

@@ -823,10 +823,19 @@ namespace NinjaTrader.NinjaScript.Strategies
             foreach (var kvp in pendingStopReplacements)
             {
                 PositionInfo fsmPos;
-                if (activePositions.TryGetValue(kvp.Key, out fsmPos)
-                    && fsmPos != null && fsmPos.ExecutingAccount != null
-                    && string.Equals(fsmPos.ExecutingAccount.Name, accountName, StringComparison.OrdinalIgnoreCase))
-                    return true;
+                if (activePositions.TryGetValue(kvp.Key, out fsmPos) && fsmPos != null)
+                {
+                    if (fsmPos.ExecutingAccount != null
+                        && string.Equals(fsmPos.ExecutingAccount.Name, accountName, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                    // Build 952.1: Master positions have ExecutingAccount = null; match by Account.Name directly.
+                    if (!fsmPos.IsFollower
+                        && string.Equals(Account.Name, accountName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        Print(string.Format("[REAPER] FSM in-flight for {0} (Master) -- suppressing desync check.", accountName));
+                        return true;
+                    }
+                }
             }
             return false;
         }

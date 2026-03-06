@@ -66,9 +66,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        // Build 952: IPC server removed. SendResponseToRemote is now a no-op stub.
-        private void SendResponseToRemote(string msg) { }
-
         /// <summary>
         /// V8.6: Click-to-Price handler for RMA entries.
         /// RMA uses Limit orders (click above = short, click below = long).
@@ -154,11 +151,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private void OnKeyDown(object sender, KeyEventArgs e)
         {
-            // Basic hotkeys
-            if (e.Key == Key.L) { double orStopDist = CalculateORStopDistance(); int orContracts = CalculatePositionSize(orStopDist); ExecuteLong(orContracts); e.Handled = true; }
-            else if (e.Key == Key.S) { double orStopDist = CalculateORStopDistance(); int orContracts = CalculatePositionSize(orStopDist); ExecuteShort(orContracts); e.Handled = true; }
             // V12.1101E [PH5-COLLIDE-01]: Panic hotkey routes through lifecycle-safe flatten pipeline.
-            else if (e.Key == Key.F) { FlattenAll(); e.Handled = true; }
+            if (e.Key == Key.F) { FlattenAll(); e.Handled = true; }
 
             // v5.12: T1 Actions (1 + letter)
             else if (Keyboard.IsKeyDown(Key.D1) || Keyboard.IsKeyDown(Key.NumPad1))

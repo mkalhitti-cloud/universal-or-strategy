@@ -448,7 +448,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Target4Value, ToIpcTargetMode(T4Type),
                 Target5Value, ToIpcTargetMode(T5Type),
                 StopMultiplier, MaxRiskAmount);
-            SendResponseToRemote(deactivateConfig);
             Print("V12.14: DeactivateRMAMode - CONFIG broadcast sent");
         }
 
@@ -549,8 +548,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                         CancelOrder(order);
                         RemoveDrawObject("Prox_" + kvp.Key);
                         
-                        // Speak it
-                        SendResponseToRemote("SOUND|SENTINEL_PROXIMITY_CANCEL");
                     }
                 }
             }

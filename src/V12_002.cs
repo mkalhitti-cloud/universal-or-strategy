@@ -39,7 +39,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "952.0";  // V12.952.0: Modular pruning -- removed IPC/TOS bridge, MOMO, FFMA, OR entry modules
+        public const string BUILD_TAG = "952.1";  // V12.952.1: Follower fill race, REAPER master suppression, trade-type fallback
 
         #region Variables
 
