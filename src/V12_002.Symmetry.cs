@@ -765,8 +765,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 if (pos.IsTRENDTrade) return "TREND";
                 if (pos.IsRetestTrade) return "RETEST";
-                if (pos.IsFFMATrade) return "FFMA";
-                if (pos.IsMOMOTrade) return "MOMO";
                 if (pos.IsRMATrade) return "RMA";
             }
             return SymmetryNormalizeTradeType(entryName);

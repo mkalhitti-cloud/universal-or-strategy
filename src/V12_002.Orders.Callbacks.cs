@@ -1293,9 +1293,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if      (masterPosForType.IsTRENDTrade)  masterTradeType = "TREND";
                 else if (masterPosForType.IsRetestTrade) masterTradeType = "RETEST"; // <- before RMA
                 else if (masterPosForType.IsRMATrade)    masterTradeType = "RMA";
-                else if (masterPosForType.IsMOMOTrade)   masterTradeType = "MOMO";
-                else if (masterPosForType.IsFFMATrade)   masterTradeType = "FFMA";
-                else                                     masterTradeType = "OR";
+                else                                     masterTradeType = "RMA";
             }
 
             IEnumerable<string> followerEntryNames;
@@ -1362,13 +1360,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                         }
                     }
 
-                    // Fallback: segment parsing failed -- use boolean flags (RMA/OR ambiguity defaults to RMA)
+                    // Fallback: segment parsing failed -- use boolean flags
                     if (followerType == null)
                     {
                         if      (kvp.Value.IsTRENDTrade)  followerType = "TREND";
                         else if (kvp.Value.IsRetestTrade)  followerType = "RETEST";
-                        else if (kvp.Value.IsMOMOTrade)    followerType = "MOMO";
-                        else if (kvp.Value.IsFFMATrade)    followerType = "FFMA";
                         else                               followerType = "RMA";
                     }
 

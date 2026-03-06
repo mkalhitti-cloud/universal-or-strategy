@@ -35,7 +35,6 @@ namespace NinjaTrader.NinjaScript.Strategies
     {
         // V12 SIMA: BroadcastEntrySignal and V8 Copy Trading region removed.
         // Trade copying is replaced by direct Account.All iteration in ExecuteSmartDispatchEntry.
-        // SignalBroadcaster is retained ONLY for IPC app relay (HandleExternalSignal).
 
         // V11: Trend RMA (9/15 Split) Logic
         private void ExecuteTrendSplitEntry()

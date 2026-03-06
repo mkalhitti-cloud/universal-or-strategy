@@ -25,8 +25,6 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.Strategies;
-using System.Net;
-using System.Net.Sockets;
 
 namespace NinjaTrader.NinjaScript.Strategies
 {
@@ -68,19 +66,20 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        // Build 952: IPC server removed. SendResponseToRemote is now a no-op stub.
+        private void SendResponseToRemote(string msg) { }
+
         /// <summary>
-        /// V8.6: Click-to-Price handler for RMA and MOMO entries
-        /// RMA uses Limit orders (click above = short, click below = long)
-        /// MOMO uses Stop Market orders (click above = long, click below = short)
+        /// V8.6: Click-to-Price handler for RMA entries.
+        /// RMA uses Limit orders (click above = short, click below = long).
         /// </summary>
         private void OnChartClick(object sender, MouseButtonEventArgs e)
         {
-            // Check if Shift is held OR RMA/MOMO button mode is active
+            // Check if Shift is held OR RMA button mode is active
             bool shiftHeld = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
             bool rmaActive = (RMAEnabled && (shiftHeld || isRMAModeActive));
-            bool momoActive = (MOMOEnabled && isMOMOModeActive);
 
-            if (!rmaActive && !momoActive) return;
+            if (!rmaActive) return;
 
             try
             {
@@ -119,9 +118,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 double yRatio = yInPanel / effectivePriceHeight;
                 double clickPrice = maxPrice - (yRatio * priceRange);
 
-                string modeLabel = momoActive ? "MOMO" : "RMA";
-                Print(string.Format("{0} v12.4 CLICK: x={1:F1}, y={2:F1}, w={3:F1}, h={4:F1}, ratio={5:F3}, price={6:F2} (Market={7:F2})",
-                    modeLabel, mouseInPanel.X, mouseInPanel.Y, ChartPanel.W, panelHeight, yRatio, clickPrice, currentPrice));
+                Print(string.Format("RMA v12.4 CLICK: x={0:F1}, y={1:F1}, w={2:F1}, h={3:F1}, ratio={4:F3}, price={5:F2} (Market={6:F2})",
+                    mouseInPanel.X, mouseInPanel.Y, ChartPanel.W, panelHeight, yRatio, clickPrice, currentPrice));
 
                 // Round to tick size
                 clickPrice = Instrument.MasterInstrument.RoundToTickSize(clickPrice);
@@ -129,34 +127,21 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Validate price is within chart range
                 if (clickPrice < minPrice - priceRange || clickPrice > maxPrice + priceRange)
                 {
-                    Print(string.Format("{0}: Click price {1:F2} outside valid range [{2:F2} - {3:F2}]",
-                        modeLabel, clickPrice, minPrice, maxPrice));
+                    Print(string.Format("RMA: Click price {0:F2} outside valid range [{1:F2} - {2:F2}]",
+                        clickPrice, minPrice, maxPrice));
                     return;
                 }
 
-                if (momoActive)
-                {
-                    // MOMO uses a fixed-points stop: Math.Min(MOMOStopPoints, MaximumStop)
-                    double momoStopDist = Math.Min(MOMOStopPoints, MaximumStop);
-                    int momoContracts   = CalculatePositionSize(momoStopDist);
-                    ExecuteMOMOEntry(clickPrice, momoContracts);
-                }
-                else
-                {
-                    MarketPosition direction = (clickPrice > currentPrice) ? MarketPosition.Short : MarketPosition.Long;
-                    double rmaStopDist = CalculateATRStopDistance(RMAStopATRMultiplier);
-                    int rmaContracts   = CalculatePositionSize(rmaStopDist);
-                    ExecuteRMAEntryV2(clickPrice, direction, rmaContracts);
+                MarketPosition direction = (clickPrice > currentPrice) ? MarketPosition.Short : MarketPosition.Long;
+                double rmaStopDist = CalculateATRStopDistance(RMAStopATRMultiplier);
+                int rmaContracts   = CalculatePositionSize(rmaStopDist);
+                ExecuteRMAEntryV2(clickPrice, direction, rmaContracts);
 
-                    if (isRMAButtonClicked)
-                    {
-                        isRMAButtonClicked = false;
-                        isRMAModeActive = false;
-
-                        // V12.43: Lightweight deactivation -- only signal mode change, don't clobber config
-                        SendResponseToRemote("SET_RMA_MODE|OFF");
-                        Print("V12.43: RMA auto-deactivated after entry (lightweight signal, no CONFIG clobber)");
-                    }
+                if (isRMAButtonClicked)
+                {
+                    isRMAButtonClicked = false;
+                    isRMAModeActive = false;
+                    Print("V12.43: RMA auto-deactivated after entry");
                 }
 
                 e.Handled = true;

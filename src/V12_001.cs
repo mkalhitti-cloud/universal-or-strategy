@@ -197,16 +197,10 @@ namespace NinjaTrader.NinjaScript.Indicators
         private Popup fleetPopup; // Popup for multi-select checkboxes
         private StackPanel fleetCheckboxPanel; // Container for account checkboxes
         private List<string> selectedFleetAccounts = new List<string>(); // Tracked selected accounts
-        private ComboBox directionCombo;
-        private TextBox priceInput;
-        private Button submitButton;
-
         // UI Components - Section 1: Execution
-        private Button orLongButton, orShortButton;
         private Button retestButton, rmaButton;
         private int retestCycleState = 0;        // 0=RETEST, 1=RET+, 2=RET-
         private bool isRmaModeActive = false;    // RMA chart-click mode toggle
-        private Button momoButton, ffmaButton, ffmaManualButton, mButton;
         private Button trendButton, trendRmaToggle, retestRmaToggle;
         private Button t1Button, t2Button, t3Button, t4Button, t5Button;
         private Button trim50Button, beButton, trailButton;
@@ -217,7 +211,6 @@ namespace NinjaTrader.NinjaScript.Indicators
         // V12.27: Contextual UI - Grid references for visibility control
         private Grid execRetestRow;   // Retest + R toggle row
         private Grid execTrendRow;    // Trend + R toggle row
-        private Grid manualEntryRow;  // Direction + Price + Submit row
 
         // UI Components - Section 1.5: Risk Manager
         private TextBlock complianceSummaryText;
@@ -234,8 +227,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         private TextBlock trendText;
 
         // UI Components - Section 3: Config
-        private Button modeOrbButton, modeRmaButton, modeRetestButton;
-        private Button modeMomoButton, modeFfmaButton, modeTrendButton;
+        private Button modeRmaButton, modeRetestButton, modeTrendButton;
         private Button cnt1, cnt2, cnt3, cnt4, cnt5;
         private TextBox svT1Val, svT2Val, svT3Val, svT4Val, svT5Val;
         private ComboBox svT1Type, svT2Type, svT3Type, svT4Type, svT5Type, svStrType;
@@ -810,19 +802,16 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             switch(mode.ToUpper())
             {
-                case "ORB": return modeOrbButton;
                 case "RMA": return modeRmaButton;
                 case "RETEST": return modeRetestButton;
-                case "MOMO": return modeMomoButton;
-                case "FFMA": return modeFfmaButton;
                 case "TREND": return modeTrendButton;
-                default: return modeOrbButton;
+                default: return modeRmaButton;
             }
         }
 
         private void HighlightModeButton(Button btn)
         {
-            foreach (var b in new[] { modeOrbButton, modeRmaButton, modeRetestButton, modeMomoButton, modeFfmaButton, modeTrendButton })
+            foreach (var b in new[] { modeRmaButton, modeRetestButton, modeTrendButton })
             {
                 if (b == null) continue;
                 b.Background = BtnBg;
@@ -1521,34 +1510,6 @@ namespace NinjaTrader.NinjaScript.Indicators
             
             stack.Children.Add(fleetRow);
 
-            // Row 3: Direction + Price + Submit + Close (SHIFTED DOWN)
-            Grid row3 = new Grid { Margin = new Thickness(0, 1, 0, 1) };
-            manualEntryRow = row3; // V12.27: Store reference for contextual visibility
-            row3.HorizontalAlignment = HorizontalAlignment.Stretch; // V12.21: Fluid
-            row3.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // V12.21: Fluid Auto width
-            row3.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            row3.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-
-            directionCombo = CreateCombo(0, new[] { "OR LONG", "OR SHORT" });
-            directionCombo.HorizontalAlignment = HorizontalAlignment.Stretch;
-            Grid.SetColumn(directionCombo, 0);
-            row3.Children.Add(directionCombo);
-
-            priceInput = CreateTextBox(0, "6961.25");
-            priceInput.Margin = new Thickness(4, 0, 4, 0);
-            Grid.SetColumn(priceInput, 1);
-            row3.Children.Add(priceInput);
-
-            submitButton = CreateButton("SUBMIT", 60, GreenBg, GreenFg, GreenBorder);
-            submitButton.Height = 22;
-            submitButton.Click += Submit_Click;
-            Grid.SetColumn(submitButton, 2);
-            row3.Children.Add(submitButton);
-
-
-
-            stack.Children.Add(row3);
 
 
 
@@ -1581,17 +1542,6 @@ namespace NinjaTrader.NinjaScript.Indicators
             // -------------------------------------------------------------------------------
             StackPanel leftCol = new StackPanel { Margin = new Thickness(0, 0, 1, 0), HorizontalAlignment = HorizontalAlignment.Stretch };
             
-            // OR L button
-            orLongButton = CreateDashedButton("OR L", CyanAccent);
-            orLongButton.Click += (s, e) => { SendCommand("OR_LONG"); ResetExecutionMode(); TriggerGlow(CyanAccent); };
-            leftCol.Children.Add(orLongButton);
-
-            // OR S (Short) button
-            orShortButton = CreateDashedButton("OR S", PinkFg);
-            orShortButton.Margin = new Thickness(0, 2, 0, 0);
-            orShortButton.Click += (s, e) => { SendCommand("OR_SHORT"); ResetExecutionMode(); TriggerGlow(PinkFg); };
-            leftCol.Children.Add(orShortButton);
-
             // RETEST row with R toggle
             // V12.3: Locked to 36px to match TRAIL input for perfect center-line
             execRetestRow = new Grid { Margin = new Thickness(0, 2, 0, 0) }; // V12.27: Store reference for contextual UI
@@ -1656,52 +1606,6 @@ namespace NinjaTrader.NinjaScript.Indicators
             };
             leftCol.Children.Add(rmaButton);
 
-
-            // MOMO button
-            momoButton = CreateButton("MOMO", double.NaN, GreenBg, GreenFg, GreenBorder);
-            momoButton.Margin = new Thickness(0, 2, 0, 0);
-            momoButton.Click += (s, e) => { 
-                SendCommand("MODE_MOMO"); 
-                ResetExecutionMode(); // V12.20: One Click = One Order
-                TriggerGlow(GreenFg); 
-                // V12.2: Switch config mode when entry button clicked
-                SelectConfigMode("MOMO", modeMomoButton);
-                SendCommand("SYNC_MODE|MOMO");
-            };
-            leftCol.Children.Add(momoButton);
-
-
-            // V12.27: FFMA Auto button (strategy arms and auto-enters on conditions)
-            ffmaButton = CreateButton("A.FFMA", double.NaN, PinkBg, PinkFg, PinkBorder);
-            ffmaButton.Margin = new Thickness(0, 2, 0, 0);
-            ffmaButton.Click += (s, e) => { 
-                SendCommand("MODE_FFMA"); 
-                ResetExecutionMode(); // V12.20: One Click = One Order
-                TriggerGlow(PinkFg); 
-                // V12.2: Switch config mode when entry button clicked
-                SelectConfigMode("FFMA", modeFfmaButton);
-                SendCommand("SYNC_MODE|FFMA");
-            };
-            leftCol.Children.Add(ffmaButton);
-
-            // V12.27: FFMA Manual button (instant market order, direction toward 9 EMA)
-            ffmaManualButton = CreateButton("M.FFMA", double.NaN, PinkBg, PinkFg, PinkBorder);
-            ffmaManualButton.Margin = new Thickness(0, 2, 0, 0);
-            ffmaManualButton.Click += (s, e) => {
-                SendCommand("FFMA_MANUAL_MARKET");
-                ResetExecutionMode();
-                TriggerGlow(PinkFg);
-                SelectConfigMode("FFMA", modeFfmaButton);
-                SendCommand("SYNC_MODE|FFMA");
-            };
-            leftCol.Children.Add(ffmaManualButton);
-
-
-            // MNL (M) button
-            mButton = CreateButton("MNL", double.NaN, OrangeBg, OrangeFg, OrangeBorder);
-            mButton.Margin = new Thickness(0, 2, 0, 0);
-            mButton.Click += (s, e) => { SendCommand("MODE_M"); TriggerGlow(OrangeFg); };
-            leftCol.Children.Add(mButton);
 
             // TREND row with R toggle
             // V12.3: Locked to 36px to match TRAIL/RETEST for perfect center-line
@@ -2108,18 +2012,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             // LEFT COLUMN: Modes
             StackPanel modeColumn = new StackPanel { Margin = new Thickness(0, 0, 1, 0), HorizontalAlignment = HorizontalAlignment.Stretch };
-            modeOrbButton = CreateModeChip("ORB", false, -1); // V12.42: No hardcoded default - LoadConfig sets active
             modeRmaButton = CreateModeChip("RMA", false, -1);
             modeRetestButton = CreateModeChip("RETEST", false, -1);
-            modeMomoButton = CreateModeChip("MOMO", false, -1);
-            modeFfmaButton = CreateModeChip("FFMA", false, -1);
             modeTrendButton = CreateModeChip("TREND", false, -1);
 
-            modeColumn.Children.Add(modeOrbButton);
             modeColumn.Children.Add(modeRmaButton);
             modeColumn.Children.Add(modeRetestButton);
-            modeColumn.Children.Add(modeMomoButton);
-            modeColumn.Children.Add(modeFfmaButton);
             modeColumn.Children.Add(modeTrendButton);
             Grid.SetColumn(modeColumn, 0);
             modeCountGrid.Children.Add(modeColumn);
@@ -2435,73 +2333,22 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (execRetestRow != null) execRetestRow.Visibility = Visibility.Collapsed;
             if (execTrendRow != null) execTrendRow.Visibility = Visibility.Collapsed;
             if (rmaButton != null) rmaButton.Visibility = Visibility.Collapsed;
-            if (momoButton != null) momoButton.Visibility = Visibility.Collapsed;
-            if (ffmaButton != null) ffmaButton.Visibility = Visibility.Collapsed;
-            if (ffmaManualButton != null) ffmaManualButton.Visibility = Visibility.Collapsed;
-            if (mButton != null) mButton.Visibility = Visibility.Collapsed;
-            if (orLongButton != null) orLongButton.Visibility = Visibility.Collapsed;
-            if (orShortButton != null) orShortButton.Visibility = Visibility.Collapsed;
-
-            // V12.27: Default manual entry row visible (hidden only for FFMA)
-            if (manualEntryRow != null) manualEntryRow.Visibility = Visibility.Visible;
 
             // Show elements relevant to the active mode
             switch (upperMode)
             {
-                case "ORB":
-                    if (orLongButton != null) orLongButton.Visibility = Visibility.Visible;
-                    if (orShortButton != null) orShortButton.Visibility = Visibility.Visible;
-                    break;
                 case "RMA":
                     if (rmaButton != null) rmaButton.Visibility = Visibility.Visible;
                     break;
                 case "RETEST":
                     if (execRetestRow != null) execRetestRow.Visibility = Visibility.Visible;
                     break;
-                case "MOMO":
-                    if (momoButton != null) momoButton.Visibility = Visibility.Visible;
-                    break;
-                case "FFMA":
-                    if (ffmaButton != null) ffmaButton.Visibility = Visibility.Visible;
-                    if (ffmaManualButton != null) ffmaManualButton.Visibility = Visibility.Visible;
-                    // V12.27: FFMA hides manual entry row ? M.FFMA auto-detects direction
-                    if (manualEntryRow != null) manualEntryRow.Visibility = Visibility.Collapsed;
-                    break;
                 case "TREND":
                     if (execTrendRow != null) execTrendRow.Visibility = Visibility.Visible;
                     break;
-                case "MNL":
-                    if (mButton != null) mButton.Visibility = Visibility.Visible;
-                    break;
                 default:
-                    if (orLongButton != null) orLongButton.Visibility = Visibility.Visible;
-                    if (orShortButton != null) orShortButton.Visibility = Visibility.Visible;
+                    if (rmaButton != null) rmaButton.Visibility = Visibility.Visible;
                     break;
-            }
-
-            // V12.27: Update dropdown items based on active mode
-            if (directionCombo != null)
-            {
-                isApplyingSettings = true; // Prevent auto-save during dropdown rebuild
-                try
-                {
-                    directionCombo.Items.Clear();
-                    if (upperMode == "ORB")
-                    {
-                        directionCombo.Items.Add(new ComboBoxItem { Content = "OR LONG" });
-                        directionCombo.Items.Add(new ComboBoxItem { Content = "OR SHORT" });
-                    }
-                    else
-                    {
-                        directionCombo.Items.Add(new ComboBoxItem { Content = "LONG" });
-                        directionCombo.Items.Add(new ComboBoxItem { Content = "SHORT" });
-                    }
-                    directionCombo.SelectedIndex = 0;
-                }
-                finally
-                {
-                    isApplyingSettings = false;
-                }
             }
 
             Print($"V12.27: Contextual UI updated for mode: {mode}");
@@ -2838,45 +2685,6 @@ namespace NinjaTrader.NinjaScript.Indicators
         #endregion
 
         #region Event Handlers
-
-        private void Submit_Click(object sender, RoutedEventArgs e)
-        {
-            string direction = (directionCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "OR LONG";
-            string price = priceInput.Text;
-            string mode = selectedConfigMode?.ToUpper() ?? "ORB";
-
-            // V12.27: Mode-aware manual entry command routing
-            string cmd;
-            if (mode == "TREND")
-            {
-                // TREND manual: 100% risk allocation at manual price
-                string dir = direction.Contains("LONG") ? "LONG" : "SHORT";
-                cmd = $"TREND_MANUAL_LIMIT|{activeSymbol}|{dir}|{price}";
-            }
-            else if (mode == "RETEST")
-            {
-                // RETEST manual: Limit order at manual price with RMA targets
-                string dir = direction.Contains("LONG") ? "LONG" : "SHORT";
-                cmd = $"RETEST_MANUAL_LIMIT|{activeSymbol}|{dir}|{price}";
-            }
-            else if (mode == "FFMA")
-            {
-                // FFMA manual: Limit order at manual price
-                string dir = direction.Contains("LONG") ? "LONG" : "SHORT";
-                cmd = $"FFMA_MANUAL_LIMIT|{activeSymbol}|{dir}|{price}";
-            }
-            else
-            {
-                // ORB/RMA/MOMO: Original OR LONG/SHORT behavior
-                cmd = direction.Contains("LONG") ? "OR_LONG" : "OR_SHORT";
-                cmd += $"|{activeSymbol}";
-                if (!string.IsNullOrEmpty(price) && price != "0.00")
-                    cmd += $"|{price}";
-            }
-
-            SendCommand(cmd);
-            TriggerGlow(GreenFg);
-        }
 
         private void Fleet_Click(object sender, RoutedEventArgs e)
         {

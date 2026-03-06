@@ -34,14 +34,12 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.Strategies;
-using System.Net;
-using System.Net.Sockets;
 
 namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "951.5";  // V12.951.5: FSM failure guard, stop-gap fill termination, broker-live sync, target absorption fix
+        public const string BUILD_TAG = "952.0";  // V12.952.0: Modular pruning -- removed IPC/TOS bridge, MOMO, FFMA, OR entry modules
 
         #region Variables
 
@@ -50,7 +48,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         private double sessionLow;
         private double sessionMid;
         private double sessionRange;
-        private bool isInORWindow;
         private bool orComplete;
         private volatile bool retestFiredThisSession;  // V12.1101E [B-2]: Latch -- prevent multiple RETEST entries per session | V12.Phase8 [F-06]: volatile for cross-thread visibility
         private DateTime orStartDateTime;
@@ -88,9 +85,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         private double _ema200Val;
         private double _orHighVal;
         private double _orLowVal;
-
-        // V8.7: RSI indicator for FFMA trades
-        private RSI rsiIndicator;
 
         // V12.2: ATR Sizing & Risk Management (MaxRiskAmount is Properties.cs passthrough to RiskPerTrade)
         private ConcurrentDictionary<string, bool> activeFleetAccounts = new ConcurrentDictionary<string, bool>();
@@ -141,20 +135,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         // V8.4: RETEST Mode tracking
         private volatile bool isRetestModeActive;
 
-        // V8.6: MOMO Mode tracking
-        private volatile bool isMOMOModeActive;
-
-        // V8.7: FFMA Mode tracking (Far From Moving Average)
-        private volatile bool isFFMAModeArmed;
-        private double ffmaEntryBarHigh;   // Store entry candle high for stop (short)
-        private double ffmaEntryBarLow;    // Store entry candle low for stop (long)
-
         // V11 Logic State
         private volatile bool isTrendRmaMode = false; // False = STD (All-in), True = RMA (9/15 Split)
         private volatile bool isRetestRmaMode = false; // V12: RETEST RMA toggle state
 
         // V12.2 Hybrid Sync: Logic State
-        private volatile bool isTosSyncMode = false;
         private bool isLongArmed = false;
         private bool isShortArmed = false;
         private DateTime lastArmedTime = DateTime.MinValue;
@@ -188,15 +173,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private int adaptiveThrottleMs = 100;
 
 
-        // V9.1.8 IPC Integration
-        private TcpListener ipcListener;
-        private Thread ipcThread;
-        private volatile bool isIpcRunning;
-        private readonly object ipcLock = new object();
         private readonly object stateLock = new object();  // V12.20: Atomic mode transitions
-        private ConcurrentQueue<string> ipcCommandQueue;
-        // V12.2: Multi-Client Support
-        private ConcurrentDictionary<int, TcpClient> connectedClients;
 
         // V12 SIMA: Multi-Account Execution Engine
         private Thread reaperThread;
@@ -342,12 +319,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             // V8.4: RETEST trade tracking
             public bool IsRetestTrade;          // Flag for RETEST trades
             public bool RetestTrailActivated;   // V8.4: True when retest switches from fixed stop to 9 EMA trail
-
-            // V8.6: MOMO trade tracking
-            public bool IsMOMOTrade;            // Flag for MOMO trades
-
-            // V8.7: FFMA trade tracking
-            public bool IsFFMATrade;            // Flag for FFMA trades
 
             // V12.1: SIMA Multi-Account tracking
             public Account ExecutingAccount;    // The account this position belongs to (null = Master)
@@ -678,10 +649,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 StopMultiplier = 0.5;
                 MinimumStop = 4.0;  // 1102Z-A F2: raised floor from 1.0 to 4.0 for current volatility
                 MaximumStop = 15.0;  // V8.31: Increased from 8.0
-                IpcPort = 5001;
-                IpcExposeSensitiveFleetIdentity = false;
-
-
                 // V12.1101E: 5-target system with configurable runner selection
                 Target1Value = 1.0;
                 Target2Value = 0.5;
@@ -721,16 +688,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // V8.4: RETEST defaults
                 RetestEnabled = true;
                 RetestATRMultiplier = 1.1;        // 1.1x ATR for both stop and trail
-
-                // V8.6: MOMO defaults
-                MOMOEnabled = true;
-                MOMOStopPoints = 0.5;             // Fixed 0.5pt stop for MOMO trades
-
-                // V8.7: FFMA defaults
-                FFMAEnabled = true;
-                FFMAEMADistance = 10.0;           // 10 points from 9 EMA
-                FFMARSIOverbought = 80;
-                FFMARSIOversold = 20;
 
                 // V12 SIMA defaults
                 AccountPrefix = "Apex";
@@ -784,10 +741,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // V8.30: Thread-safe dictionary
                 pendingStopReplacements = new ConcurrentDictionary<string, PendingStopReplacement>(2, 4);
 
-
-                // IPC Queue
-                ipcCommandQueue = new ConcurrentQueue<string>();
-                connectedClients = new ConcurrentDictionary<int, TcpClient>(); // Build 935 [Fix-1]: prevent NullReferenceException in StopIpcServer
 
                 // V12 SIMA: Initialize expected positions tracking
                 expectedPositions = new ConcurrentDictionary<string, int>(2, 20); // Up to 20 accounts
@@ -846,17 +799,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ema65 = this.EMA(65);
                 ema200 = this.EMA(200);
                 
-                // V8.7: Initialize RSI for FFMA trades
-                rsiIndicator = this.RSI(14, 3);
-                
                 // V8.2 DEBUG: Verify EMA periods are correct
                 Print(string.Format("EMA INIT DEBUG: ema9.Period={0} ema15.Period={1}", ema9.Period, ema15.Period));
 
                 ResetOR();
-
-                // V12.2 HEADLESS SAFETY: Start core services even if ChartControl is null (for background execution)
-                // [Build 932]: Start IPC in DataLoaded so Control Surface connects even if market is closed/offline.
-                StartIpcServer();
 
                 Print(string.Format("UniversalORStrategy V12.14 | {0} | Tick: {1} | PV: ${2}", symbol, tickSize, pointValue));
                 Print(string.Format("Session: {0} - {1} {2} | OR: {3} min",
@@ -867,7 +813,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                     RMAEnabled, RMAATRPeriod, RMAStopATRMultiplier));
                 Print("V12.9 REPAIRED: Definitive Chart-Click Fix + Logic Refresh");
                 Print(string.Format("TREND: Enabled={0} E1Stop={1}xATR E2Trail={2}xATR", TRENDEnabled, TRENDEntry1ATRMultiplier, TRENDEntry2ATRMultiplier));
-                Print(string.Format("FFMA: Enabled={0} Distance={1}pt RSI={2}/{3}", FFMAEnabled, FFMAEMADistance, FFMARSIOversold, FFMARSIOverbought));
                 Print(string.Format("V12 SIMA: {0} | AccountPrefix: \"{1}\"", EnableSIMA ? "ENABLED - Fleet mode" : "DISABLED - Single account", AccountPrefix));
 
                 // Build 935 [Fix-2]: Symbol-specific log paths prevent file-lock collisions
@@ -897,8 +842,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
 
                 // V10.3: Subscribe to external signals for multi-chart sync
-                // SignalBroadcaster.OnExternalCommand += HandleExternalSignal;
-
                 if (ChartControl != null)
                 {
                     ChartControl.Dispatcher.InvokeAsync(() =>
@@ -925,9 +868,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // force=true: hard terminate, cancel regardless of open positions.
                 CancelAllV12GtcOrders(true);
 
-                // Stop IPC Server
-                StopIpcServer();
-                
                 // V12 SIMA: Stop Reaper audit thread
                 StopReaperAudit();
                 
@@ -936,9 +876,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // to handle cases where flag was toggled OFF mid-session while handlers were still subscribed.
                 UnsubscribeFromFleetAccounts();
                 
-                // V10.3: Unsubscribe
-                SignalBroadcaster.OnExternalCommand -= HandleExternalSignal;
-
                 // V12.Phase7 [C-08]: Clear ALL static SignalBroadcaster event handlers on termination.
                 // Static events survive instance disposal -- without this, dead instance handlers accumulate
                 // and fire into garbage-collected strategy contexts on reload, causing phantom order submissions.
@@ -1129,13 +1066,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Build OR during window
                 if (currentTime > sessionStartTime && currentTime <= orEndTime)
                 {
-                    if (!isInORWindow)
+                    if (orStartDateTime == DateTime.MinValue)
                     {
                         Print(string.Format("OR WINDOW START: {0} (Bar time in {1})",
                             barTimeInZone.ToString("MM/dd/yyyy HH:mm:ss"), SelectedTimeZone));
                     }
 
-                    isInORWindow = true;
                     sessionHigh = Math.Max(sessionHigh, High[0]);
                     sessionLow = Math.Min(sessionLow, Low[0]);
                     sessionRange = sessionHigh - sessionLow;
@@ -1153,15 +1089,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Mark OR complete when the last bar of the window closes
                 if (currentTime >= orEndTime && !orComplete && orStartBarIndex > 0)
                 {
-                    isInORWindow = false;
                     orComplete = true;
                     orEndDateTime = Time[0];
                     orEndBarIndex = CurrentBar;
 
                     Print(string.Format("OR COMPLETE at {0}: H={1:F2} L={2:F2} M={3:F2} R={4:F2}",
                         barTimeInZone.ToString("HH:mm:ss"), sessionHigh, sessionLow, sessionMid, sessionRange));
-                    Print(string.Format("OR Targets: T1={0}({1}) T2={2}({3}) Stop=-{4:F2}",
-                        Target1Value, T1Type, Target2Value, T2Type, CalculateORStopDistance()));
+                    Print(string.Format("OR Complete: T1={0}({1}) T2={2}({3})",
+                        Target1Value, T1Type, Target2Value, T2Type));
 
                     // V8.30: Always draw immediately when OR completes (important event)
                     DrawORBox();
@@ -1200,12 +1135,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                     ManageCIT();
                 }
 
-                // V8.7: Check FFMA conditions when armed
-                if (isFFMAModeArmed && FFMAEnabled)
-                {
-                    CheckFFMAConditions();
-                }
-
                 SyncPendingOrders();  // V12.30: Real-time sizing synchronization
             }
             catch (Exception ex)
@@ -1215,9 +1144,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         #endregion
-
-        // V12.16: FFMA entry logic moved to Entries.cs
-
 
         #region Drawing - Box Instead of Rays
 
@@ -1311,7 +1237,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             sessionLow = double.MaxValue;
             sessionMid = 0;
             sessionRange = 0;
-            isInORWindow = false;
             orComplete = false;
             retestFiredThisSession = false;  // V12.1101E [B-2]: Reset RETEST latch at session start
             orStartDateTime = DateTime.MinValue;
@@ -1382,7 +1307,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         #endregion
 
-        // V12.16: OR, RMA, MOMO, TREND, RETEST entry logic moved to Entries.cs
+        // V12.16: RMA, TREND, RETEST entry logic in Entries.cs
 
 
         // V12.16: Order Management, Trailing Stops, Position Sync moved to Orders.cs

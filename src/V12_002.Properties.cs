@@ -244,47 +244,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         public double RetestATRMultiplier { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "MOMO Enabled", GroupName = "10. MOMO", Order = 1)]
-        public bool MOMOEnabled { get; set; }
-
-        [NinjaScriptProperty]
-        [Display(Name = "MOMO Stop (Points)", GroupName = "10. MOMO", Order = 2)]
-        public double MOMOStopPoints { get; set; }
-
-        [NinjaScriptProperty]
-        [Display(Name = "FFMA Enabled", GroupName = "11. FFMA", Order = 1)]
-        public bool FFMAEnabled { get; set; }
-
-        [NinjaScriptProperty]
-        [Display(Name = "FFMA EMA Distance", GroupName = "11. FFMA", Order = 2)]
-        public double FFMAEMADistance { get; set; }
-
-        [NinjaScriptProperty]
-        [Range(0, 100)]
-        [Display(Name = "FFMA RSI Overbought", GroupName = "11. FFMA", Order = 3)]
-        public int FFMARSIOverbought { get; set; }
-
-        [NinjaScriptProperty]
-        [Range(0, 100)]
-        [Display(Name = "FFMA RSI Oversold", GroupName = "11. FFMA", Order = 4)]
-        public int FFMARSIOversold { get; set; }
-
-        [NinjaScriptProperty]
         [Display(Name = "Enable SIMA", GroupName = "12. SIMA", Order = 1)]
         public bool EnableSIMA { get; set; }
 
         [NinjaScriptProperty]
         [Display(Name = "Account Prefix", GroupName = "12. SIMA", Order = 2)]
         public string AccountPrefix { get; set; }
-
-        [NinjaScriptProperty]
-        [Range(1, int.MaxValue)]
-        [Display(Name = "IPC Port", GroupName = "12. SIMA", Order = 3)]
-        public int IpcPort { get; set; }
-
-        [NinjaScriptProperty]
-        [Display(Name = "Expose Fleet Identity Over IPC", Description = "When false (default), IPC uses aliases (F01/F02) instead of real account names.", GroupName = "12. SIMA", Order = 3)]
-        public bool IpcExposeSensitiveFleetIdentity { get; set; }
 
         [NinjaScriptProperty]
         [Display(Name = "Enable Path B", GroupName = "12. SIMA", Order = 4)]
