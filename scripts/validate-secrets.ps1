@@ -1,7 +1,11 @@
 # Secrets Validation Script (BMad System)
 
-$root = Get-Location
-$rootPath = $root.Path
+# Resolve repo root regardless of CWD
+$rootPath = (git rev-parse --show-toplevel 2>$null).Trim()
+if ($LASTEXITCODE -ne 0 -or -not $rootPath) {
+    Write-Host "[FAIL] Could not determine repo root via git rev-parse." -ForegroundColor Red
+    exit 2
+}
 $violations = 0
 
 Write-Host "--- Scanning for plaintext secrets in tracked files ---" -ForegroundColor Cyan

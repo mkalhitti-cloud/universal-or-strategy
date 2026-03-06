@@ -185,7 +185,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 retestFiredThisSession = true;  // V12.1101E [B-2]: Arm latch -- no further RETEST entries this session
 
                 Print($"RETEST ENTRY ORDER: {signalName} {contracts}@{entryPrice:F2} | ATR: {currentATR:F2}");
-                Print($"RETEST STOP: {stopPrice:F2} ({RetestATRMultiplier:F2}x ATR = {stopDistance:F2}pts)");
+                Print($"RETEST STOP: {stopPrice:F2} ({multToUse:F2}x ATR = {stopDistance:F2}pts)");
                 Print($"RETEST TARGETS: T1:{t1Qty}@{target1Price:F2}(+{target1Price - entryPrice:F2}pt) | T2:{t2Qty}@{target2Price:F2} | T3:{t3Qty}@{target3Price:F2} | T4:{t4Qty}@{target4Price:F2} | T5:{t5Qty}@{target5Price:F2} (Runner targets trail-only)");
 
                 // V12.1: Smart Dispatch to SIMA Fleet

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)"
+    ],
+    "_comment": "Copy to settings.local.json and add project-specific permissions. Do not commit settings.local.json."
+  }
+}

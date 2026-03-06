@@ -774,6 +774,11 @@ namespace NinjaTrader.NinjaScript.Indicators
                     activeCount = fullConfig.ActiveCount > 0 ? fullConfig.ActiveCount : 3;
                 
                 selectedConfigMode = activeMode;
+                // Normalize: GetModeButton falls back to RMA for any unrecognized mode.
+                // Sync selectedConfigMode to match so UI and execution engine stay consistent.
+                string normalizedMode = activeMode.ToUpper();
+                if (normalizedMode != "RMA" && normalizedMode != "RETEST" && normalizedMode != "TREND")
+                    selectedConfigMode = "RMA";
                 selectedTargetCount = activeCount;
 
                 Button modeBtn = GetModeButton(activeMode);

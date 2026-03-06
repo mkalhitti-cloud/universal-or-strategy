@@ -1,6 +1,6 @@
 # Protocol: Compounding Forensic Pipeline (CFP)
 
-The CFP is a zero-trust multi-agent verification chain designed to prevent logic debt and race conditions in complex trading systems. It ensures diagnostic accurately "compounds" as it moves through the development pipeline.
+The CFP is a zero-trust multi-agent verification chain designed to prevent logic debt and race conditions in complex trading systems. It ensures diagnostics accurately "compound" as it moves through the development pipeline.
 
 ## 🏁 Phase 1: Antigravity (Strategic Architect)
 
