@@ -687,6 +687,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else
                 {
                     string tSig = "T" + snap.TargetNum + "_" + entryName;
+                    if (tSig.Length > 50) tSig = tSig.Substring(0, 50); // Build 952.2: NinjaTrader 50-char signalName limit.
                     newTarget = direction == MarketPosition.Long
                         ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Limit,
                             snap.Qty, restoredPrice, 0, bracketOcoId, tSig)

@@ -832,7 +832,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (!fsmPos.IsFollower
                         && string.Equals(Account.Name, accountName, StringComparison.OrdinalIgnoreCase))
                     {
-                        Print(string.Format("[REAPER] FSM in-flight for {0} (Master) -- suppressing desync check.", accountName));
                         return true;
                     }
                 }

@@ -448,7 +448,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Target4Value, ToIpcTargetMode(T4Type),
                 Target5Value, ToIpcTargetMode(T5Type),
                 StopMultiplier, MaxRiskAmount);
-            Print("V12.14: DeactivateRMAMode - CONFIG broadcast sent");
         }
 
         #endregion

@@ -39,7 +39,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "952.1";  // V12.952.1: Follower fill race, REAPER master suppression, trade-type fallback
+        public const string BUILD_TAG = "952.2";  // V12.952.2: Replace spec leak, log mismatch, tSig length, REAPER spam, stale RMA log
 
         #region Variables
 

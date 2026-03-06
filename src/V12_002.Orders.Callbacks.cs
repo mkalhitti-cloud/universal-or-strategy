@@ -558,6 +558,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 && (entryFillGuard == order || (entryFillGuard != null && entryFillGuard.OrderId == order.OrderId))
                 && !matchedPos.EntryFilled)
             {
+                _followerReplaceSpecs.TryRemove(matchedEntry, out _); // Build 952.2: drain leaked spec on fill.
                 return; // Let OnExecutionUpdate / ProcessQueuedExecution own this fill.
             }
 
@@ -1306,7 +1307,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (masterPosForType.IsRMATrade)    masterTradeType = "RMA";
                 else
                 {
-                    Print(string.Format("[WARN] masterTradeType fallback to RMA for {0} -- no trade-type flag set",
+                    Print(string.Format("[WARN] masterTradeType fallback to UNKNOWN for {0} -- no trade-type flag set",
                         masterPosForType.SignalName));
                     masterTradeType = "UNKNOWN";
                 }
