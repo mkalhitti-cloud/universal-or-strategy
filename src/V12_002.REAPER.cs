@@ -814,7 +814,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         // alert fires (REAPER uses a 30s grace period via _nakedPositionFirstSeen).
         private void SweepStaleBracketReplaceSpecs()
         {
-            DateTime now = DateTime.Now;
+            DateTime now = DateTime.UtcNow;
             foreach (var kvp in _bracketReplaceSpecs.ToArray())
             {
                 if ((now - kvp.Value.CreatedTime).TotalSeconds > 15)

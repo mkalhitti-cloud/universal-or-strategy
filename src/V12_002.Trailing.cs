@@ -536,6 +536,20 @@ namespace NinjaTrader.NinjaScript.Strategies
                             Print(string.Format("V8.30: CIRCUIT BREAKER ACTIVATED - {0} pending replacements (threshold: {1})",
                                 currentCount, CIRCUIT_BREAKER_THRESHOLD));
                         }
+
+                        // Build 950: Snapshot Working/Accepted targets before cancel for OCO cascade restoration.
+                        // Placed here (TryAdd success only) -- newPending is only tracked when TryAdd succeeds.
+                        var _b950Targets = new System.Collections.Generic.List<TargetSnapshot>();
+                        for (int _t = 1; _t <= 5; _t++)
+                        {
+                            var _tD = GetTargetOrdersDictionary(_t);
+                            Order _tO;
+                            if (_tD != null && _tD.TryGetValue(entryName, out _tO) && _tO != null
+                                && (_tO.OrderState == OrderState.Working || _tO.OrderState == OrderState.Accepted))
+                                _b950Targets.Add(new TargetSnapshot { TargetNum = _t, Price = _tO.LimitPrice, Qty = _tO.Quantity, CapturedOrder = _tO });
+                        }
+                        newPending.CapturedTargets = _b950Targets.Count > 0 ? _b950Targets.ToArray() : null;
+                        newPending.BracketRestorationNeeded = _b950Targets.Count > 0;
                     }
                     else if (pendingStopReplacements.TryGetValue(entryName, out var pending))
                     {
@@ -556,21 +570,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                             pending.CapturedTargets = _b950Refresh.Count > 0 ? _b950Refresh.ToArray() : null;
                             pending.BracketRestorationNeeded = _b950Refresh.Count > 0;
                         }
-                    }
-
-                    // Build 950: Snapshot Working/Accepted targets before cancel for OCO cascade restoration.
-                    {
-                        var _b950Targets = new System.Collections.Generic.List<TargetSnapshot>();
-                        for (int _t = 1; _t <= 5; _t++)
-                        {
-                            var _tD = GetTargetOrdersDictionary(_t);
-                            Order _tO;
-                            if (_tD != null && _tD.TryGetValue(entryName, out _tO) && _tO != null
-                                && (_tO.OrderState == OrderState.Working || _tO.OrderState == OrderState.Accepted))
-                                _b950Targets.Add(new TargetSnapshot { TargetNum = _t, Price = _tO.LimitPrice, Qty = _tO.Quantity, CapturedOrder = _tO });
-                        }
-                        newPending.CapturedTargets = _b950Targets.Count > 0 ? _b950Targets.ToArray() : null;
-                        newPending.BracketRestorationNeeded = _b950Targets.Count > 0;
                     }
 
                     pos.CurrentStopPrice = validatedStopPrice;

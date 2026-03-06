@@ -1456,8 +1456,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             double roundedLimit = Instrument.MasterInstrument.RoundToTickSize(newLimit);
             if (Math.Abs(tOrder.LimitPrice - roundedLimit) <= tickSize / 2) return;
 
+            string acctNameLog = pos.ExecutingAccount != null ? pos.ExecutingAccount.Name : "local";
             Print(string.Format("[MOVE-SYNC] T{0} move: {1} on {2}: {3:F2} -> {4:F2}",
-                targetNum, fleetEntryName, pos.ExecutingAccount.Name, tOrder.LimitPrice, roundedLimit));
+                targetNum, fleetEntryName, acctNameLog, tOrder.LimitPrice, roundedLimit));
 
             // Build 951: SIMA followers use unified bracket replace -- maintains shared OCO ID.
             if (pos.IsFollower && pos.ExecutingAccount != null)
@@ -1466,7 +1467,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
-            // Non-follower (local) path: original direct cancel+submit (unmanaged, no shared OCO group).
+            // Non-follower (local) path: direct Account cancel+submit (managed Account API, no shared SIMA OCO group).
             try
             {
                 pos.ExecutingAccount.Cancel(new[] { tOrder });
@@ -1709,7 +1710,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 FreshOcoId       = freshOcoId,
                 Direction        = pos.Direction,
                 ExecutingAccount = pos.ExecutingAccount,
-                CreatedTime      = DateTime.Now,
+                CreatedTime      = DateTime.UtcNow,
                 // Build 951.1 Bug-C1: Store back-reference so SubmitBracketReplacement can commit
                 // pos.CurrentStopPrice atomically with the successful broker submit.
                 PosRef           = pos
