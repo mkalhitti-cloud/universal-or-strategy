@@ -113,8 +113,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (!pos.Entry1TrailActivated && priceInFavor)
                     {
                         pos.Entry1TrailActivated = true;
-                        Print(string.Format("TREND E1: Switching to EMA9 trail (Price={0:F2} crossed EMA9={1:F2})",
-                            currentPrice, ema9Live));
+                        Print($"TREND E1: Switching to EMA9 trail (Price={currentPrice:F2} crossed EMA9={ema9Live:F2})");
                     }
 
                     // If trailing is activated, manage the EMA9 trail
@@ -131,7 +130,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         if (shouldUpdate)
                         {
                             UpdateStopOrder(entryName, pos, trendStop, pos.CurrentTrailLevel);
-                            // Print(string.Format("TREND E1 TRAIL: Stop moved to {0:F2} (EMA9={1:F2} - {2}xATR)",
+                            // Print($"TREND E1 TRAIL: Stop moved to {trendStop:F2} (EMA9={ema9Live:F2} - {TRENDEntry2ATRMultiplier}xATR)",
                             //    trendStop, ema9Live, TRENDEntry2ATRMultiplier));
                         }
                     }
@@ -155,8 +154,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (shouldUpdate)
                     {
                         UpdateStopOrder(entryName, pos, trendStop, pos.CurrentTrailLevel);
-                        Print(string.Format("TREND E2 TRAIL: Stop moved to {0:F2} (EMA15={1:F2} - {2}xATR)", 
-                            trendStop, ema15Live, TRENDEntry2ATRMultiplier));
+                        Print($"TREND E2 TRAIL: Stop moved to {trendStop:F2} (EMA15={ema15Live:F2} - {TRENDEntry2ATRMultiplier}xATR)");
                     }
                     continue; // Skip normal trailing logic for TREND E2
                 }
@@ -178,8 +176,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         if (priceInFavor)
                         {
                             pos.RetestTrailActivated = true;
-                            Print(string.Format("RETEST: Switching to EMA9 trail (Price={0:F2} crossed EMA9={1:F2})",
-                                currentPrice, ema9Live));
+                            Print($"RETEST: Switching to EMA9 trail (Price={currentPrice:F2} crossed EMA9={ema9Live:F2})");
                         }
                         // Stay at fixed stop until price crosses EMA
                         continue;
@@ -198,8 +195,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (shouldUpdate)
                     {
                         UpdateStopOrder(entryName, pos, retestStop, pos.CurrentTrailLevel);
-                        Print(string.Format("RETEST TRAIL: Stop moved to {0:F2} (EMA9={1:F2} - {2}xATR)",
-                            retestStop, ema9Live, RetestATRMultiplier));
+                        Print($"RETEST TRAIL: Stop moved to {retestStop:F2} (EMA9={ema9Live:F2} - {RetestATRMultiplier}xATR)");
                     }
                     continue; // Skip normal trailing logic for RETEST
                 }
@@ -251,8 +247,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             newStopPrice = manualBEStop;
                             newTrailLevel = 1; // Same as automatic breakeven
                             pos.ManualBreakevenTriggered = true;
-                            Print(string.Format("? MANUAL BREAKEVEN TRIGGERED: {0} -> Stop moved to {1:F2} (Entry + {2} tick)", 
-                                entryName, manualBEStop, BreakEvenOffsetTicks));
+                            Print($"? MANUAL BREAKEVEN TRIGGERED: {entryName} -> Stop moved to {manualBEStop:F2} (Entry + {BreakEvenOffsetTicks} tick)");
                         }
                     }
                 }
@@ -436,8 +431,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         if (isBetter)
                         {
                             UpdateStopOrder(entryName2, fol, syncStopPrice, targetLevel);
-                            Print(string.Format("FLEET SYNC: {0} synced to Level {1} -> Stop {2:F2} (Leader advanced)",
-                                entryName2, targetLevel, syncStopPrice));
+                            Print($"FLEET SYNC: {entryName2} synced to Level {targetLevel} -> Stop {syncStopPrice:F2} (Leader advanced)");
                         }
                     }
                 }
@@ -458,12 +452,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (pendingStopReplacements.TryRemove(kvp.Key, out var pending))
                     {
                         Interlocked.Decrement(ref pendingReplacementCount);
-                        Print(string.Format("V8.30: Stale pending replacement REMOVED for {0} (>5sec old)", kvp.Key));
+                        Print($"V8.30: Stale pending replacement REMOVED for {kvp.Key} (>5sec old)");
 
                         // If position still exists and needs protection, create emergency stop
                         if (activePositions.TryGetValue(kvp.Key, out var pos) && pos.EntryFilled && pos.RemainingContracts > 0)
                         {
-                            Print(string.Format("V8.30: Creating EMERGENCY replacement stop for {0}", kvp.Key));
+                            Print($"V8.30: Creating EMERGENCY replacement stop for {kvp.Key}");
                             // V12.1101E [F-02]: Use live RemainingContracts under stateLock instead of stale pending.Quantity
                             int replacementQty;
                             lock (stateLock)
@@ -534,8 +528,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         {
                             circuitBreakerActive = true;
                             circuitBreakerActivatedTime = DateTime.Now;
-                            Print(string.Format("V8.30: CIRCUIT BREAKER ACTIVATED - {0} pending replacements (threshold: {1})",
-                                currentCount, CIRCUIT_BREAKER_THRESHOLD));
+                            Print($"V8.30: CIRCUIT BREAKER ACTIVATED - {currentCount} pending replacements (threshold: {CIRCUIT_BREAKER_THRESHOLD})");
                         }
                         _addedRecord = newPending;
                     }
@@ -581,7 +574,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     pos.CurrentStopPrice = validatedStopPrice;
                     pos.CurrentTrailLevel = newTrailLevel;
-                    Print(string.Format("V8.12: Stop update queued for {0} (current state: {1})", entryName, currentStop.OrderState));
+                    Print($"V8.12: Stop update queued for {entryName} (current state: {currentStop.OrderState})");
                     return;
                 }
 
@@ -605,7 +598,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         {
                             circuitBreakerActive = true;
                             circuitBreakerActivatedTime = DateTime.Now;
-                            Print(string.Format("V8.30: CIRCUIT BREAKER ACTIVATED - {0} pending replacements", currentCount));
+                            Print($"V8.30: CIRCUIT BREAKER ACTIVATED - {currentCount} pending replacements");
                         }
                     }
 
@@ -635,8 +628,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     pos.CurrentStopPrice = validatedStopPrice;
                     pos.CurrentTrailLevel = newTrailLevel;
 
-                    string levelName = newTrailLevel <= 0 ? "Initial" : (newTrailLevel == 1 ? "BE" : "T" + (newTrailLevel - 1));
-                    Print(string.Format("STOP UPDATED: {0} -> {1:F2} (Level: {2})", entryName, validatedStopPrice, levelName));
+                    string levelName = newTrailLevel <= 0 ? "Initial" : (newTrailLevel == 1 ? "BE" : $"T{newTrailLevel - 1}");
+                    Print($"STOP UPDATED: {entryName} -> {validatedStopPrice:F2} (Level: {levelName})");
                     return;
                 }
 
@@ -644,7 +637,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (pos.ExecutingAccount != null)
                 {
                     newStop = pos.ExecutingAccount.CreateOrder(Instrument, pos.Direction == MarketPosition.Long ? OrderAction.Sell : OrderAction.BuyToCover, 
-                        OrderType.StopMarket, TimeInForce.Gtc, pos.RemainingContracts, 0, validatedStopPrice, "Stop_" + entryName, "Stop_" + entryName, null);
+                        OrderType.StopMarket, TimeInForce.Gtc, pos.RemainingContracts, 0, validatedStopPrice, $"Stop_{entryName}", $"Stop_{entryName}", null);
                     pos.ExecutingAccount.Submit(new[] { newStop });
                     stopOrders[entryName] = newStop;
                 }
@@ -652,7 +645,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     // V12.3: Truncate signal name to stay under 50-char NinjaTrader limit
                     string suffix = (DateTime.Now.Ticks % 100000000).ToString();
-                    string stopSigName = "S_" + entryName + "_" + suffix;
+                    string stopSigName = $"S_{entryName}_{suffix}";
                     if (stopSigName.Length > 50) stopSigName = stopSigName.Substring(0, 50);
                     OrderAction stopExitAction = pos.Direction == MarketPosition.Long ? OrderAction.Sell : OrderAction.BuyToCover;
                     newStop = SubmitOrderUnmanaged(0, stopExitAction, OrderType.StopMarket, pos.RemainingContracts, 0, validatedStopPrice, "", stopSigName);
@@ -662,14 +655,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (newStop == null)
                 {
-                    Print(string.Format("(!) CRITICAL ERROR: Stop order submission returned NULL for {0}!", entryName));
-                    Print(string.Format("(!) POSITION UNPROTECTED: {0} {1} contracts @ {2:F2}",
-                        pos.Direction == MarketPosition.Long ? "LONG" : "SHORT",
-                        pos.RemainingContracts,
-                        pos.EntryPrice));
-                    Print(string.Format("(!) Attempted stop price: {0:F2} | Current price: {1:F2}", validatedStopPrice, Close[0]));
+                    Print($"(!) CRITICAL ERROR: Stop order submission returned NULL for {entryName}!");
+                    Print($"(!) POSITION UNPROTECTED: {(pos.Direction == MarketPosition.Long ? "LONG" : "SHORT")} {pos.RemainingContracts} contracts @ {pos.EntryPrice:F2}");
+                    Print($"(!) Attempted stop price: {validatedStopPrice:F2} | Current price: {Close[0]:F2}");
 
-                    Print(string.Format("(!) Attempting emergency flatten for {0}...", entryName));
+                    Print($"(!) Attempting emergency flatten for {entryName}...");
                     FlattenPositionByName(entryName);
                     return;
                 }
@@ -678,24 +668,24 @@ namespace NinjaTrader.NinjaScript.Strategies
                 pos.CurrentStopPrice = validatedStopPrice;
                 pos.CurrentTrailLevel = newTrailLevel;
 
-                string levelName2 = newTrailLevel == 1 ? "BE" : "T" + (newTrailLevel - 1);
-                Print(string.Format("STOP UPDATED: {0} -> {1:F2} (Level: {2})", entryName, validatedStopPrice, levelName2));
+                string levelName2 = newTrailLevel == 1 ? "BE" : $"T{newTrailLevel - 1}";
+                Print($"STOP UPDATED: {entryName} -> {validatedStopPrice:F2} (Level: {levelName2})");
 
             }
             catch (Exception ex)
             {
-                Print(string.Format("(!) ERROR UpdateStopOrder for {0}: {1}", entryName, ex.Message));
-                Print(string.Format("(!) POSITION MAY BE UNPROTECTED: {0} contracts", pos.RemainingContracts));
+                Print($"(!) ERROR UpdateStopOrder for {entryName}: {ex.Message}");
+                Print($"(!) POSITION MAY BE UNPROTECTED: {pos.RemainingContracts} contracts");
                 
                 // Attempt emergency flatten
                 try
                 {
-                    Print(string.Format("(!) Attempting emergency flatten for {0}...", entryName));
+                    Print($"(!) Attempting emergency flatten for {entryName}...");
                     FlattenPositionByName(entryName);
                 }
                 catch (Exception flattenEx)
                 {
-                    Print(string.Format("(!)(!) EMERGENCY FLATTEN FAILED: {0}", flattenEx.Message));
+                    Print($"(!)(!) EMERGENCY FLATTEN FAILED: {flattenEx.Message}");
                 }
             }
         }
@@ -704,28 +694,23 @@ namespace NinjaTrader.NinjaScript.Strategies
         // using the position's own entry/extreme prices. Pure calculation, no side effects.
         private double CalculateStopForLevel(PositionInfo pos, int level)
         {
-            bool isLong = (pos.Direction == MarketPosition.Long);
-            switch (level)
+            bool isLong = pos.Direction == MarketPosition.Long;
+            return level switch
             {
-                case 1: // Breakeven
-                    return isLong
-                        ? pos.EntryPrice + (BreakEvenOffsetTicks * tickSize)
-                        : pos.EntryPrice - (BreakEvenOffsetTicks * tickSize);
-                case 2: // Trail 1
-                    return isLong
-                        ? pos.ExtremePriceSinceEntry - Trail1DistancePoints
-                        : pos.ExtremePriceSinceEntry + Trail1DistancePoints;
-                case 3: // Trail 2
-                    return isLong
-                        ? pos.ExtremePriceSinceEntry - Trail2DistancePoints
-                        : pos.ExtremePriceSinceEntry + Trail2DistancePoints;
-                case 4: // Trail 3
-                    return isLong
-                        ? pos.ExtremePriceSinceEntry - Trail3DistancePoints
-                        : pos.ExtremePriceSinceEntry + Trail3DistancePoints;
-                default:
-                    return pos.CurrentStopPrice; // No change
-            }
+                1 => isLong
+                    ? pos.EntryPrice + (BreakEvenOffsetTicks * tickSize)
+                    : pos.EntryPrice - (BreakEvenOffsetTicks * tickSize),
+                2 => isLong
+                    ? pos.ExtremePriceSinceEntry - Trail1DistancePoints
+                    : pos.ExtremePriceSinceEntry + Trail1DistancePoints,
+                3 => isLong
+                    ? pos.ExtremePriceSinceEntry - Trail2DistancePoints
+                    : pos.ExtremePriceSinceEntry + Trail2DistancePoints,
+                4 => isLong
+                    ? pos.ExtremePriceSinceEntry - Trail3DistancePoints
+                    : pos.ExtremePriceSinceEntry + Trail3DistancePoints,
+                _ => pos.CurrentStopPrice
+            };
         }
 
         private void OnBreakevenButtonClick()
@@ -780,21 +765,20 @@ namespace NinjaTrader.NinjaScript.Strategies
                         {
                             // Disarm
                             pos.ManualBreakevenArmed = false;
-                            Print(string.Format("BREAKEVEN DISARMED: {0}", kvp.Key));
+                            Print($"BREAKEVEN DISARMED: {kvp.Key}");
                         }
                         else
                         {
                             // Arm
                             pos.ManualBreakevenArmed = true;
-                            Print(string.Format("BREAKEVEN ARMED: {0} - Will trigger at Entry + {1} tick(s)",
-                                kvp.Key, BreakEvenOffsetTicks));
+                            Print($"BREAKEVEN ARMED: {kvp.Key} - Will trigger at Entry + {BreakEvenOffsetTicks} tick(s)");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                Print("ERROR OnBreakevenButtonClick: " + ex.Message);
+                Print($"ERROR OnBreakevenButtonClick: {ex.Message}");
             }
         }
 
@@ -836,7 +820,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // ManageTrailingStops() will call UpdateStopOrder when price crosses the threshold.
                     if (lastKnownPrice <= 0)
                     {
-                        Print(string.Format("[BE_ABORT] {0}: Price data stale (0). Waiting for next tick.", entryName));
+                        Print($"[BE_ABORT] {entryName}: Price data stale (0). Waiting for next tick.");
                         continue;
                     }
                     double referencePrice = lastKnownPrice;
@@ -848,7 +832,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         pos.ManualBreakevenArmed = true;
                         pos.ManualBreakevenTriggered = false;
-                        Print(string.Format("[V12] BE Armed: {0} Price has not reached threshold. Shielding entry once cleared.", entryName));
+                        Print($"[V12] BE Armed: {entryName} Price has not reached threshold. Shielding entry once cleared.");
                         continue;
                     }
 
@@ -858,8 +842,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     if (!isBetter)
                     {
-                        Print(string.Format("BE+{0}: Stop already better for {1}. Current={2:F2}, Request={3:F2}",
-                            offsetPoints, entryName, pos.CurrentStopPrice, newStopPrice));
+                        Print($"BE+{offsetPoints}: Stop already better for {entryName}. Current={pos.CurrentStopPrice:F2}, Request={newStopPrice:F2}");
                         continue;
                     }
 
@@ -867,12 +850,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // (ChangeOrder only works for Master -- followers were silently skipped)
                     UpdateStopOrder(entryName, pos, newStopPrice, 1);
                     pos.ManualBreakevenTriggered = true;
-                    Print(string.Format("BE+{0} MOVED: {1} Stop -> {2:F2}", offsetPoints, entryName, newStopPrice));
+                    Print($"BE+{offsetPoints} MOVED: {entryName} Stop -> {newStopPrice:F2}");
                 }
             }
             catch (Exception ex)
             {
-                Print("ERROR MoveStopsToBreakevenWithOffset: " + ex.Message);
+                Print($"ERROR MoveStopsToBreakevenWithOffset: {ex.Message}");
             }
         }
 

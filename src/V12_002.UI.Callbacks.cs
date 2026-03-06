@@ -115,8 +115,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 double yRatio = yInPanel / effectivePriceHeight;
                 double clickPrice = maxPrice - (yRatio * priceRange);
 
-                Print(string.Format("RMA v12.4 CLICK: x={0:F1}, y={1:F1}, w={2:F1}, h={3:F1}, ratio={4:F3}, price={5:F2} (Market={6:F2})",
-                    mouseInPanel.X, mouseInPanel.Y, ChartPanel.W, panelHeight, yRatio, clickPrice, currentPrice));
+                Print($"RMA v12.4 CLICK: x={mouseInPanel.X:F1}, y={mouseInPanel.Y:F1}, w={ChartPanel.W:F1}, h={panelHeight:F1}, ratio={yRatio:F3}, price={clickPrice:F2} (Market={currentPrice:F2})");
 
                 // Round to tick size
                 clickPrice = Instrument.MasterInstrument.RoundToTickSize(clickPrice);
@@ -124,8 +123,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Validate price is within chart range
                 if (clickPrice < minPrice - priceRange || clickPrice > maxPrice + priceRange)
                 {
-                    Print(string.Format("RMA: Click price {0:F2} outside valid range [{1:F2} - {2:F2}]",
-                        clickPrice, minPrice, maxPrice));
+                    Print($"RMA: Click price {clickPrice:F2} outside valid range [{minPrice:F2} - {maxPrice:F2}]");
                     return;
                 }
 
@@ -145,7 +143,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("ERROR OnChartClick: " + ex.Message);
+                Print($"ERROR OnChartClick: {ex.Message}");
             }
         }
 
@@ -200,7 +198,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 if (activePositions.Count == 0)
                 {
-                    Print(string.Format("{0} ACTION: No active positions", targetType));
+                    Print($"{targetType} ACTION: No active positions");
                     return;
                 }
 
@@ -213,32 +211,31 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     if (!pos.EntryFilled)
                     {
-                        Print(string.Format("{0} ACTION: Position {1} not filled yet", targetType, entryName));
+                        Print($"{targetType} ACTION: Position {entryName} not filled yet");
                         continue;
                     }
 
                     if (!TryResolveTargetContext(pos, targetType, out int targetNumber, out var targetOrders, out int targetContracts, out bool targetFilled))
                     {
-                        Print(string.Format("{0} ACTION: Invalid target identifier", targetType));
+                        Print($"{targetType} ACTION: Invalid target identifier");
                         continue;
                     }
 
                     if (targetContracts <= 0)
                     {
-                        Print(string.Format("{0} ACTION: No contracts assigned for {1}", targetType, entryName));
+                        Print($"{targetType} ACTION: No contracts assigned for {entryName}");
                         continue;
                     }
 
                     if (IsRunnerTarget(targetNumber) && action != "market" && action != "cancel")
                     {
-                        Print(string.Format("{0} ACTION: Target is configured as Runner (trail-only), action {1} skipped for {2}",
-                            targetType, action, entryName));
+                        Print($"{targetType} ACTION: Target is configured as Runner (trail-only), action {action} skipped for {entryName}");
                         continue;
                     }
 
                     if (targetFilled)
                     {
-                        Print(string.Format("{0} ACTION: {1} already filled for {2}", targetType, targetType, entryName));
+                        Print($"{targetType} ACTION: {targetType} already filled for {entryName}");
                         continue;
                     }
 
@@ -255,10 +252,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                             }
 
                             Order marketOrder = pos.Direction == MarketPosition.Long
-                                ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Market, targetContracts, 0, 0, "", targetType + "_Market_" + entryName)
-                                : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Market, targetContracts, 0, 0, "", targetType + "_Market_" + entryName);
+                                ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Market, targetContracts, 0, 0, "", $"{targetType}_Market_{entryName}")
+                                : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Market, targetContracts, 0, 0, "", $"{targetType}_Market_{entryName}");
 
-                            Print(string.Format("? {0} MARKET FILL: {1} - Closing {2} contracts at market", targetType, entryName, targetContracts));
+                            Print($"? {targetType} MARKET FILL: {entryName} - Closing {targetContracts} contracts at market");
                             break;
 
                         case "1point":
@@ -268,8 +265,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 : pos.EntryPrice - 1.0;
                             newPrice1pt = Instrument.MasterInstrument.RoundToTickSize(newPrice1pt);
 
-                            Print(string.Format("? {0} -> 1 POINT PROFIT: {1} - New target @ {2:F2} (Entry was {3:F2})",
-                                targetType, entryName, newPrice1pt, pos.EntryPrice));
+                            Print($"? {targetType} -> 1 POINT PROFIT: {entryName} - New target @ {newPrice1pt:F2} (Entry was {pos.EntryPrice:F2})");
 
                             MoveTargetOrder(entryName, targetType, newPrice1pt, targetContracts, pos.Direction);
                             break;
@@ -281,8 +277,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 : pos.EntryPrice - 2.0;
                             newPrice2pt = Instrument.MasterInstrument.RoundToTickSize(newPrice2pt);
 
-                            Print(string.Format("? {0} -> 2 POINTS PROFIT: {1} - New target @ {2:F2} (Entry was {3:F2})",
-                                targetType, entryName, newPrice2pt, pos.EntryPrice));
+                            Print($"? {targetType} -> 2 POINTS PROFIT: {entryName} - New target @ {newPrice2pt:F2} (Entry was {pos.EntryPrice:F2})");
 
                             MoveTargetOrder(entryName, targetType, newPrice2pt, targetContracts, pos.Direction);
                             break;
@@ -291,13 +286,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                             // Move target to current market price (instant fill)
                             double marketPrice = Instrument.MasterInstrument.RoundToTickSize(currentPrice);
                             MoveTargetOrder(entryName, targetType, marketPrice, targetContracts, pos.Direction);
-                            Print(string.Format("? {0} -> MARKET PRICE: {1} - New target @ {2:F2}", targetType, entryName, marketPrice));
+                            Print($"? {targetType} -> MARKET PRICE: {entryName} - New target @ {marketPrice:F2}");
                             break;
 
                         case "breakeven":
                             // Move target to breakeven (entry price)
                             MoveTargetOrder(entryName, targetType, pos.EntryPrice, targetContracts, pos.Direction);
-                            Print(string.Format("? {0} -> BREAKEVEN: {1} - New target @ {2:F2}", targetType, entryName, pos.EntryPrice));
+                            Print($"? {targetType} -> BREAKEVEN: {entryName} - New target @ {pos.EntryPrice:F2}");
                             break;
 
                         case "cancel":
@@ -306,7 +301,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             if (targetOrders.TryRemove(entryName, out var cancelOrder))
                             {
                                 CancelOrder(cancelOrder);
-                                Print(string.Format("? {0} CANCELLED: {1} - {2} contracts will run with stop", targetType, entryName, targetContracts));
+                                Print($"? {targetType} CANCELLED: {entryName} - {targetContracts} contracts will run with stop");
                             }
                             break;
                     }
@@ -314,7 +309,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print(string.Format("ERROR ExecuteTargetAction ({0}, {1}): {2}", targetType, action, ex.Message));
+                Print($"ERROR ExecuteTargetAction ({targetType}, {action}): {ex.Message}");
             }
         }
 
@@ -326,7 +321,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Runner targets are trail-only: do not submit limit orders.
             if (IsRunnerTarget(targetNumber))
             {
-                Print(string.Format("MoveTargetOrder SKIPPED: {0} is configured as Runner (trail-only)", targetType));
+                Print($"MoveTargetOrder SKIPPED: {targetType} is configured as Runner (trail-only)");
                 return;
             }
 
@@ -343,8 +338,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             // Submit new target order at new price
             Order newTargetOrder = direction == MarketPosition.Long
-                ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Limit, quantity, newPrice, 0, "", targetType + "_" + entryName)
-                : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Limit, quantity, newPrice, 0, "", targetType + "_" + entryName);
+                ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Limit, quantity, newPrice, 0, "", $"{targetType}_{entryName}")
+                : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Limit, quantity, newPrice, 0, "", $"{targetType}_{entryName}");
 
             if (newTargetOrder != null)
             {
@@ -386,18 +381,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                    targetNumber <= 5;
         }
 
-        private ConcurrentDictionary<string, Order> GetTargetOrdersDictionary(int targetNumber)
+        private ConcurrentDictionary<string, Order> GetTargetOrdersDictionary(int targetNumber) => targetNumber switch
         {
-            switch (targetNumber)
-            {
-                case 1: return target1Orders;
-                case 2: return target2Orders;
-                case 3: return target3Orders;
-                case 4: return target4Orders;
-                case 5: return target5Orders;
-                default: return null;
-            }
-        }
+            1 => target1Orders,
+            2 => target2Orders,
+            3 => target3Orders,
+            4 => target4Orders,
+            5 => target5Orders,
+            _ => null
+        };
 
         // v5.12: Execute runner actions
         private void ExecuteRunnerAction(string action)
@@ -419,7 +411,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     if (!pos.EntryFilled)
                     {
-                        Print(string.Format("RUNNER ACTION: Position {0} not filled yet", entryName));
+                        Print($"RUNNER ACTION: Position {entryName} not filled yet");
                         continue;
                     }
 
@@ -427,7 +419,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     int runnerContracts = pos.RemainingContracts;
                     if (runnerContracts <= 0)
                     {
-                        Print(string.Format("RUNNER ACTION: No runner contracts for {0}", entryName));
+                        Print($"RUNNER ACTION: No runner contracts for {entryName}");
                         continue;
                     }
 
@@ -438,10 +430,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                         case "market":
                             // Close runner at market
                             Order runnerMarketOrder = pos.Direction == MarketPosition.Long
-                                ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Market, runnerContracts, 0, 0, "", "Runner_Market_" + entryName)
-                                : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Market, runnerContracts, 0, 0, "", "Runner_Market_" + entryName);
+                                ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Market, runnerContracts, 0, 0, "", $"Runner_Market_{entryName}")
+                                : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Market, runnerContracts, 0, 0, "", $"Runner_Market_{entryName}");
 
-                            Print(string.Format("? RUNNER MARKET CLOSE: {0} - Closing {1} contracts at market", entryName, runnerContracts));
+                            Print($"? RUNNER MARKET CLOSE: {entryName} - Closing {runnerContracts} contracts at market");
                             break;
 
                         case "stop1pt":
@@ -453,7 +445,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                             // Safety: Only move if it's better than current stop or entry-relative profit-lock
                             UpdateStopOrder(entryName, pos, newStop1pt, pos.CurrentTrailLevel);
-                            Print(string.Format("? RUNNER STOP -> 1 PT PROFIT LOCK: {0} - Stop @ {1:F2} (Entry was {2:F2})", entryName, newStop1pt, pos.EntryPrice));
+                            Print($"? RUNNER STOP -> 1 PT PROFIT LOCK: {entryName} - Stop @ {newStop1pt:F2} (Entry was {pos.EntryPrice:F2})");
                             break;
 
                         case "stop2pt":
@@ -464,7 +456,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             newStop2pt = Instrument.MasterInstrument.RoundToTickSize(newStop2pt);
 
                             UpdateStopOrder(entryName, pos, newStop2pt, pos.CurrentTrailLevel);
-                            Print(string.Format("? RUNNER STOP -> 2 PT PROFIT LOCK: {0} - Stop @ {1:F2} (Entry was {2:F2})", entryName, newStop2pt, pos.EntryPrice));
+                            Print($"? RUNNER STOP -> 2 PT PROFIT LOCK: {entryName} - Stop @ {newStop2pt:F2} (Entry was {pos.EntryPrice:F2})");
                             break;
 
                         case "stopbe":
@@ -481,15 +473,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                             {
                                 pos.ManualBreakevenArmed     = true;
                                 pos.ManualBreakevenTriggered = false;
-                                Print(string.Format("? BE SHIELD: {0} price {1:F2} not at BE level {2:F2} -- armed for auto-trigger",
-                                    entryName, currentPrice, beStopTarget));
+                                Print($"? BE SHIELD: {entryName} price {currentPrice:F2} not at BE level {beStopTarget:F2} -- armed for auto-trigger");
                                 break;
                             }
                             UpdateStopOrder(entryName, pos, beStopTarget, 1);
                             // [Build 1102K] Mark triggered so ManageTrailingStops armed path does not re-fire.
                             pos.ManualBreakevenTriggered = true;
-                            Print(string.Format("? RUNNER STOP -> BREAKEVEN: {0} - Stop @ {1:F2} (Entry +/- {2} ticks)",
-                                entryName, beStopTarget, BreakEvenOffsetTicks));
+                            Print($"? RUNNER STOP -> BREAKEVEN: {entryName} - Stop @ {beStopTarget:F2} (Entry +/- {BreakEvenOffsetTicks} ticks)");
                             break;
 
                         case "lock50":
@@ -502,20 +492,20 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 : pos.EntryPrice - (unrealizedProfit * 0.5);
                             lock50Stop = Instrument.MasterInstrument.RoundToTickSize(lock50Stop);
                             UpdateStopOrder(entryName, pos, lock50Stop, pos.CurrentTrailLevel);
-                            Print(string.Format("? RUNNER LOCK 50%: {0} - Stop @ {1:F2} (profit: {2:F2})", entryName, lock50Stop, unrealizedProfit));
+                            Print($"? RUNNER LOCK 50%: {entryName} - Stop @ {lock50Stop:F2} (profit: {unrealizedProfit:F2})");
                             break;
 
                         case "disabletrail":
                             // Disable trailing - keep stop where it is
                             pos.CurrentTrailLevel = 999; // Set to high number to prevent further trailing
-                            Print(string.Format("? RUNNER TRAILING DISABLED: {0} - Stop fixed @ {1:F2}", entryName, pos.CurrentStopPrice));
+                            Print($"? RUNNER TRAILING DISABLED: {entryName} - Stop fixed @ {pos.CurrentStopPrice:F2}");
                             break;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Print(string.Format("ERROR ExecuteRunnerAction ({0}): {1}", action, ex.Message));
+                Print($"ERROR ExecuteRunnerAction ({action}): {ex.Message}");
             }
         }
         #endregion

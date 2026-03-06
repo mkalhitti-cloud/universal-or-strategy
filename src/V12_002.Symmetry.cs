@@ -78,15 +78,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                         !existing.IsResolved &&
                         (now - existing.CreatedUtc) < SymmetryDispatchTtl)
                     {
-                        Print(string.Format("[SYMMETRY] Duplicate dispatch suppressed: {0} {1} -- reusing {2}", normalizedType, direction, existing.DispatchId));
+                        Print($"[SYMMETRY] Duplicate dispatch suppressed: {normalizedType} {direction} -- reusing {existing.DispatchId}");
                         return existing.DispatchId;
                     }
                 }
 
-                string dispatchId = string.Format("SG_{0}_{1}_{2}",
-                    now.Ticks,
-                    normalizedType,
-                    (int)action);
+                string dispatchId = $"SG_{now.Ticks}_{normalizedType}_{(int)action}";
 
                 var ctx = new SymmetryDispatchContext
                 {
@@ -167,8 +164,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (resolvedNow)
             {
-                Print(string.Format("[SYMMETRY_GUARD] MASTER ANCHOR LOCKED | Trade={0} | Anchor={1:F2} | FillQty={2}",
-                    ctx.TradeType, ctx.MasterAnchorPrice, ctx.MasterFilledQuantity));
+                Print($"[SYMMETRY_GUARD] MASTER ANCHOR LOCKED | Trade={ctx.TradeType} | Anchor={ctx.MasterAnchorPrice:F2} | FillQty={ctx.MasterFilledQuantity}");
 
                 SymmetryGuardTryResolveFollowersForDispatch(ctx.DispatchId, DateTime.UtcNow);
             }
@@ -229,8 +225,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     if (anchorReady && preCheckAnchor > 0)
                     {
-                        Print(string.Format("[ANCHOR-01] Pre-applying master anchor {0:F2} for {1} -- bracket will use master fill price",
-                            preCheckAnchor, fleetEntryName));
+                        Print($"[ANCHOR-01] Pre-applying master anchor {preCheckAnchor:F2} for {fleetEntryName} -- bracket will use master fill price");
                         SymmetryGuardApplyMasterAnchor(followerPos, preCheckAnchor);
                         shouldSubmitImmediately = true;
                     }
@@ -241,7 +236,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else
                 {
-                    Print(string.Format("[ANCHOR-GATE] Delaying follower bracket for {0} until master anchor resolves.", fleetEntryName));
+                    Print($"[ANCHOR-GATE] Delaying follower bracket for {fleetEntryName} until master anchor resolves.");
                 }
             }
 
@@ -346,7 +341,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     pending.FleetFillPrice,
                     slippageTicks,
                     slippageUsdPerContract,
-                    string.Format("Slippage Buffer breach vs Master {0:F2}", masterAnchor));
+                    $"Slippage Buffer breach vs Master {masterAnchor:F2}");
                 return true;
             }
 
@@ -364,9 +359,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 bool alreadyAnchored = tickSize > 0 && Math.Abs(priorEntryPrice - masterAnchor) < tickSize;
                 if (alreadyAnchored)
                 {
-                    Print(string.Format(
-                        "[ANCHOR-02] Bracket already anchor-aligned for {0} (prior={1:F2} anchor={2:F2}) -- retarget skipped",
-                        fleetEntryName, priorEntryPrice, masterAnchor));
+                    Print($"[ANCHOR-02] Bracket already anchor-aligned for {fleetEntryName} (prior={priorEntryPrice:F2} anchor={masterAnchor:F2}) -- retarget skipped");
                 }
                 else
                 {
@@ -378,9 +371,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 SymmetryGuardSubmitFollowerBracket(fleetEntryName, pos);
             }
 
-            Print(string.Format(
-                "[SYMMETRY_GUARD] ANCHORED | {0} | Master={1:F2} Fleet={2:F2} Slip={3:F1} ticks (${4:F2}/ct) | Scalp Anchor T1={5:F2} | Runner Targets=Trail",
-                fleetEntryName, masterAnchor, pending.FleetFillPrice, slippageTicks, slippageUsdPerContract, pos.Target1Price));
+            Print($"[SYMMETRY_GUARD] ANCHORED | {fleetEntryName} | Master={masterAnchor:F2} Fleet={pending.FleetFillPrice:F2} Slip={slippageTicks:F1} ticks (${slippageUsdPerContract:F2}/ct) | Scalp Anchor T1={pos.Target1Price:F2} | Runner Targets=Trail");
 
             return true;
         }
@@ -464,8 +455,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 double targetPrice = GetTargetPrice(pos, targetNum);
                 if (targetPrice <= 0)
                 {
-                    Print(string.Format("[SYMMETRY TARGET_SKIP] T{0} for {1} has qty={2} but invalid price={3:F2}; skipped",
-                        targetNum, fleetEntryName, targetQty, targetPrice));
+                    Print($"[SYMMETRY TARGET_SKIP] T{targetNum} for {fleetEntryName} has qty={targetQty} but invalid price={targetPrice:F2}; skipped");
                     continue;
                 }
 
@@ -502,8 +492,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             acct.Submit(ordersToSubmit.ToArray());
             pos.BracketSubmitted = true;
-            Print(string.Format("[SYMMETRY STOP_AUDIT] OK {0}: StopQty={1} NonRunnerLimits={2} RunnerQty={3}",
-                fleetEntryName, pos.TotalContracts, nonRunnerLimitQty, runnerQty));
+            Print($"[SYMMETRY STOP_AUDIT] OK {fleetEntryName}: StopQty={pos.TotalContracts} NonRunnerLimits={nonRunnerLimitQty} RunnerQty={runnerQty}");
         }
 
         private void SymmetryGuardRetargetExistingFollowerBracket(string fleetEntryName, PositionInfo pos)
@@ -585,9 +574,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             double slippageUsdPerContract,
             string reason)
         {
-            Print(string.Format(
-                "[SYMMETRY_GUARD] SKIP | {0} | {1} | FleetFill={2:F2} | Slip={3:F1} ticks (${4:F2}/ct)",
-                fleetEntryName, reason, fleetFillPrice, slippageTicks, slippageUsdPerContract));
+            Print($"[SYMMETRY_GUARD] SKIP | {fleetEntryName} | {reason} | FleetFill={fleetFillPrice:F2} | Slip={slippageTicks:F1} ticks (${slippageUsdPerContract:F2}/ct)");
 
             pos.EntryFilled = true;
             lock (stateLock)
@@ -674,7 +661,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             string[] followers;
             lock (ctx.Sync) { followers = ctx.FollowerEntries.ToArray(); }
 
-            Print(string.Format("[CASCADE] Master {0} cancelled -- terminating {1} linked follower(s).", masterEntryName, followers.Length));
+            Print($"[CASCADE] Master {masterEntryName} cancelled -- terminating {followers.Length} linked follower(s).");
 
             foreach (string followerName in followers)
             {
@@ -686,7 +673,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     order.OrderState == OrderState.Submitted ||
                     order.OrderState == OrderState.Accepted)
                 {
-                    Print(string.Format("[CASCADE] Cancelling follower entry: {0} (Acc: {1})", followerName, pos.ExecutingAccount != null ? pos.ExecutingAccount.Name : "Master"));
+                    Print($"[CASCADE] Cancelling follower entry: {followerName} (Acc: {pos.ExecutingAccount?.Name ?? "Master"})");
                     if (pos.ExecutingAccount != null)
                         pos.ExecutingAccount.Cancel(new[] { order });
                     else

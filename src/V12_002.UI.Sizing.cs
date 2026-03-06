@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             int distSum = buckets[0] + buckets[1] + buckets[2] + buckets[3] + buckets[4];
             if (distSum != contracts)
             {
-                Print(string.Format("[SIZING_FATAL] Sum={0} Expected={1}. Forcing to T{2}.", distSum, contracts, count));
+                Print($"[SIZING_FATAL] Sum={distSum} Expected={contracts}. Forcing to T{count}.");
                 buckets[captureIndex] += contracts - distSum;
             }
 

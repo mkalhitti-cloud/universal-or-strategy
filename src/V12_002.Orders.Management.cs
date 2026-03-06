@@ -65,7 +65,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // [BUILD 924 - Fix B / Director's Note] Null-guard after CreateOrder matches S-001 pattern.
                     if (sOrd == null)
                     {
-                        Print(string.Format("[BRACKET_FATAL] Follower stop CreateOrder returned null for {0}. Flattening.", entryName));
+                        Print($"[BRACKET_FATAL] Follower stop CreateOrder returned null for {entryName}. Flattening.");
                         FlattenPositionByName(entryName);
                         return;
                     }
@@ -79,7 +79,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     catch (Exception submitEx)
                     {
-                        Print(string.Format("[BRACKET_FATAL] Follower stop Submit THREW for {0}: {1}. Emergency flattening.", entryName, submitEx.Message));
+                        Print($"[BRACKET_FATAL] Follower stop Submit THREW for {entryName}: {submitEx.Message}. Emergency flattening.");
                         EmergencyFlattenSingleFleetAccount(pos.ExecutingAccount);
                         return;
                     }
@@ -96,7 +96,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // the stop, flatten immediately -- never leave a position with a false "protected" state.
                 if (stopOrder == null)
                 {
-                    Print(string.Format("[BRACKET_FATAL] Stop order submission returned null for {0}. Flattening.", entryName));
+                    Print($"[BRACKET_FATAL] Stop order submission returned null for {entryName}. Flattening.");
                     FlattenPositionByName(entryName);
                     return;
                 }
@@ -114,24 +114,21 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (IsRunnerTarget(targetNum))
                     {
                         runnerQty += targetQty;
-                        Print(string.Format("[FORENSIC] T{0} {1}: Runner qty={2} -- limit SKIPPED",
-                            targetNum, entryName, targetQty));
+                        Print($"[FORENSIC] T{targetNum} {entryName}: Runner qty={targetQty} -- limit SKIPPED");
                         continue;
                     }
 
                     double targetPrice = GetTargetPrice(pos, targetNum);
                     if (targetPrice <= 0)
                     {
-                        Print(string.Format("[TARGET_SKIP] T{0} for {1} has qty={2} but invalid price={3:F2}; skipped",
-                            targetNum, entryName, targetQty, targetPrice));
+                        Print($"[TARGET_SKIP] T{targetNum} for {entryName} has qty={targetQty} but invalid price={targetPrice:F2}; skipped");
                         continue;
                     }
 
                     // V12.Phase7 [C-04]: Round target price to valid tick boundary before submission.
                     targetPrice = Instrument.MasterInstrument.RoundToTickSize(targetPrice);
 
-                    Print(string.Format("[FORENSIC] T{0} {1}: qty={2} price={3:F2} submitting limit",
-                        targetNum, entryName, targetQty, targetPrice));
+                    Print($"[FORENSIC] T{targetNum} {entryName}: qty={targetQty} price={targetPrice:F2} submitting limit");
 
                     Order limitOrder;
                     if (isFollowerSubmit)
@@ -145,14 +142,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                         if (tOrd != null)
                             pos.ExecutingAccount.Submit(new[] { tOrd });
                         else
-                            Print(string.Format("[TARGET_WARN] Follower target T{0} CreateOrder returned null for {1}.", targetNum, entryName));
+                            Print($"[TARGET_WARN] Follower target T{targetNum} CreateOrder returned null for {entryName}.");
                         limitOrder = tOrd;
                     }
                     else
                     {
                         limitOrder = pos.Direction == MarketPosition.Long
-                            ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Limit, targetQty, targetPrice, 0, bracketOcoId, "T" + targetNum + "_" + entryName)
-                            : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Limit, targetQty, targetPrice, 0, bracketOcoId, "T" + targetNum + "_" + entryName);
+                            ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Limit, targetQty, targetPrice, 0, bracketOcoId, $"T{targetNum}_{entryName}")
+                            : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Limit, targetQty, targetPrice, 0, bracketOcoId, $"T{targetNum}_{entryName}");
                     }
 
                     var targetDict = GetTargetOrdersDictionary(targetNum);
@@ -163,7 +160,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         if (limitOrder == null)
                         {
-                            Print(string.Format("[TARGET_WARN] Target {0} order submission returned null for {1}. Target tracking disabled.", targetNum, entryName));
+                            Print($"[TARGET_WARN] Target {targetNum} order submission returned null for {entryName}. Target tracking disabled.");
                         }
                         else
                         {
@@ -179,13 +176,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Zero-trust stop audit: stop quantity must always cover full position.
                 if (stopOrder != null && stopOrder.Quantity != pos.TotalContracts)
                 {
-                    Print(string.Format("[STOP_AUDIT] MISMATCH {0}: StopQty={1} Total={2}",
-                        entryName, stopOrder.Quantity, pos.TotalContracts));
+                    Print($"[STOP_AUDIT] MISMATCH {entryName}: StopQty={stopOrder.Quantity} Total={pos.TotalContracts}");
                 }
                 else
                 {
-                    Print(string.Format("[STOP_AUDIT] OK {0}: StopQty={1} NonRunnerLimits={2} RunnerQty={3}",
-                        entryName, pos.TotalContracts, nonRunnerLimitQty, runnerQty));
+                    Print($"[STOP_AUDIT] OK {entryName}: StopQty={pos.TotalContracts} NonRunnerLimits={nonRunnerLimitQty} RunnerQty={runnerQty}");
                 }
 
                 // V12.Audit [S-003]: BracketSubmitted is set AFTER the stop quantity audit so that
@@ -194,8 +189,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // [938-BRACKET] Confirm full bracket submitted for follower accounts.
                 if (isFollowerSubmit)
-                    Print(string.Format("[938-BRACKET] Follower bracket submitted: {0} T1={1:F2} Stop={2:F2}",
-                        entryName, pos.Target1Price, validatedStopPrice));
+                    Print($"[938-BRACKET] Follower bracket submitted: {entryName} T1={pos.Target1Price:F2} Stop={validatedStopPrice:F2}");
 
                 StringBuilder bracketMsg = new StringBuilder();
                 string tradeType = pos.IsRMATrade ? "RMA" : "OR";
@@ -219,13 +213,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 int _targetSum = nonRunnerLimitQty + runnerQty;
                 if (_targetSum != pos.TotalContracts)
                 {
-                    Print(string.Format("[BRACKET_WARN] Target sum mismatch for {0}: targets={1} totalContracts={2}. Distribution may have lost contracts.",
-                        entryName, _targetSum, pos.TotalContracts));
+                    Print($"[BRACKET_WARN] Target sum mismatch for {entryName}: targets={_targetSum} totalContracts={pos.TotalContracts}. Distribution may have lost contracts.");
                 }
             }
             catch (Exception ex)
             {
-                Print("ERROR SubmitBracketOrders: " + ex.Message);
+                Print($"ERROR SubmitBracketOrders: {ex.Message}");
             }
         }
 
@@ -261,7 +254,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Guard: skip SIMA followers -- fleet dispatch is out of scope for Phase 9.1
                 if (pos.IsFollower)
                 {
-                    Print(string.Format("[SYNC_ALL] Skipping follower position {0}", entryName));
+                    Print($"[SYNC_ALL] Skipping follower position {entryName}");
                     continue;
                 }
 
@@ -286,7 +279,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // [C-06 parity]: Skip ChangePending orders to avoid broker race
                     if (existingOrder != null && existingOrder.OrderState == OrderState.ChangePending)
                     {
-                        Print(string.Format("[SYNC_ALL] T{0} {1}: ChangePending -- skipping", targetNum, entryName));
+                        Print($"[SYNC_ALL] T{targetNum} {entryName}: ChangePending -- skipping");
                         continue;
                     }
 
@@ -301,12 +294,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                             {
                                 CancelOrder(existingOrder);
                                 targetDict.TryRemove(entryName, out _);
-                                Print(string.Format("[SYNC_ALL] T{0} {1}: Limit cancelled -> now Runner", targetNum, entryName));
+                                Print($"[SYNC_ALL] T{targetNum} {entryName}: Limit cancelled -> now Runner");
                                 refreshed++;
                             }
                             catch (Exception ex)
                             {
-                                Print(string.Format("[SYNC_ALL] T{0} {1}: CancelOrder failed -- {2}", targetNum, entryName, ex.Message));
+                                Print($"[SYNC_ALL] T{targetNum} {entryName}: CancelOrder failed -- {ex.Message}");
                             }
                         }
                         continue;
@@ -317,7 +310,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     double newPrice = CalculateTargetPriceFromPos(pos.Direction, pos.EntryPrice, pos, targetNum);
                     if (newPrice <= 0)
                     {
-                        Print(string.Format("[SYNC_ALL] T{0} {1}: Calculated price invalid ({2:F2}) -- skipped", targetNum, entryName, newPrice));
+                        Print($"[SYNC_ALL] T{targetNum} {entryName}: Calculated price invalid ({newPrice:F2}) -- skipped");
                         continue;
                     }
 
@@ -337,17 +330,17 @@ namespace NinjaTrader.NinjaScript.Strategies
                                     case 4: pos.Target4Price = newPrice; break;
                                     case 5: pos.Target5Price = newPrice; break;
                                 }
-                                Print(string.Format("[SYNC_ALL] T{0} {1}: Repriced -> {2:F2}", targetNum, entryName, newPrice));
+                                Print($"[SYNC_ALL] T{targetNum} {entryName}: Repriced -> {newPrice:F2}");
                                 refreshed++;
                             }
                             catch (Exception ex)
                             {
-                                Print(string.Format("[SYNC_ALL] T{0} {1}: ChangeOrder failed -- {2}", targetNum, entryName, ex.Message));
+                                Print($"[SYNC_ALL] T{targetNum} {entryName}: ChangeOrder failed -- {ex.Message}");
                             }
                         }
                         else
                         {
-                            Print(string.Format("[SYNC_ALL] T{0} {1}: Price unchanged at {2:F2} -- no action", targetNum, entryName, newPrice));
+                            Print($"[SYNC_ALL] T{targetNum} {entryName}: Price unchanged at {newPrice:F2} -- no action");
                         }
                     }
                     else
@@ -356,8 +349,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                         try
                         {
                             Order newLimit = pos.Direction == MarketPosition.Long
-                                ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Limit, targetQty, newPrice, 0, "", "T" + targetNum + "_" + entryName)
-                                : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Limit, targetQty, newPrice, 0, "", "T" + targetNum + "_" + entryName);
+                                ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Limit, targetQty, newPrice, 0, "", $"T{targetNum}_{entryName}")
+                                : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Limit, targetQty, newPrice, 0, "", $"T{targetNum}_{entryName}");
 
                             if (newLimit != null)
                             {
@@ -370,23 +363,23 @@ namespace NinjaTrader.NinjaScript.Strategies
                                     case 4: pos.Target4Price = newPrice; break;
                                     case 5: pos.Target5Price = newPrice; break;
                                 }
-                                Print(string.Format("[SYNC_ALL] T{0} {1}: New limit submitted @ {2:F2} qty={3}", targetNum, entryName, newPrice, targetQty));
+                                Print($"[SYNC_ALL] T{targetNum} {entryName}: New limit submitted @ {newPrice:F2} qty={targetQty}");
                                 refreshed++;
                             }
                             else
                             {
-                                Print(string.Format("[SYNC_ALL] T{0} {1}: SubmitOrderUnmanaged returned null @ {2:F2}", targetNum, entryName, newPrice));
+                                Print($"[SYNC_ALL] T{targetNum} {entryName}: SubmitOrderUnmanaged returned null @ {newPrice:F2}");
                             }
                         }
                         catch (Exception ex)
                         {
-                            Print(string.Format("[SYNC_ALL] T{0} {1}: Submit failed -- {2}", targetNum, entryName, ex.Message));
+                            Print($"[SYNC_ALL] T{targetNum} {entryName}: Submit failed -- {ex.Message}");
                         }
                     }
                 }
             }
 
-            Print(string.Format("[SYNC_ALL] Complete. Positions scanned: {0} | Actions taken: {1}", snapshot.Count, refreshed));
+            Print($"[SYNC_ALL] Complete. Positions scanned: {snapshot.Count} | Actions taken: {refreshed}");
         }
 
         /// <summary>
@@ -424,7 +417,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             if (pendingStopReplacements.TryGetValue(entryName, out var existingPending))
                             {
                                 existingPending.Quantity = pos.RemainingContracts;
-                                Print(string.Format("V8.31: Updated existing pending replacement for {0} to {1} contracts", entryName, pos.RemainingContracts));
+                                Print($"V8.31: Updated existing pending replacement for {entryName} to {pos.RemainingContracts} contracts");
                             }
                             return;
                         }
@@ -471,8 +464,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             pos.ExecutingAccount.Cancel(new[] { currentStop });
                         else
                             CancelOrder(currentStop);
-                        Print(string.Format("STOP CANCEL PENDING: {0} | Will replace with {1} contracts @ {2:F2}",
-                            entryName, pos.RemainingContracts, pos.CurrentStopPrice));
+                        Print($"STOP CANCEL PENDING: {entryName} | Will replace with {pos.RemainingContracts} contracts @ {pos.CurrentStopPrice:F2}");
                     }
                     else
                     {
@@ -483,8 +475,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 catch (Exception ex)
                 {
-                    Print(string.Format("(!) ERROR UpdateStopQuantity for {0}: {1}", entryName, ex.Message));
-                    Print(string.Format("(!) POSITION MAY BE UNPROTECTED: {0} contracts", pos.RemainingContracts));
+                    Print($"(!) ERROR UpdateStopQuantity for {entryName}: {ex.Message}");
+                    Print($"(!) POSITION MAY BE UNPROTECTED: {pos.RemainingContracts} contracts");
                 }
             }
         }
@@ -500,18 +492,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     if (targetPos.RemainingContracts <= 0)
                     {
-                        Print(string.Format("[STOP_GUARD] BLOCKED zombie stop for {0} - Position is FLAT (Remaining=0)", entryName));
+                        Print($"[STOP_GUARD] BLOCKED zombie stop for {entryName} - Position is FLAT (Remaining=0)");
                         return;
                     }
                     if (!targetPos.EntryFilled)
                     {
-                        Print(string.Format("[STOP_GUARD] BLOCKED early stop for {0} - Fill not yet confirmed", entryName));
+                        Print($"[STOP_GUARD] BLOCKED early stop for {entryName} - Fill not yet confirmed");
                         return;
                     }
                 }
                 else
                 {
-                    Print(string.Format("[STOP_GUARD] BLOCKED orphan stop for {0} - No tracking record found", entryName));
+                    Print($"[STOP_GUARD] BLOCKED orphan stop for {entryName} - No tracking record found");
                     return;
                 }
 
@@ -526,7 +518,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         existingStop.OrderState == OrderState.ChangePending ||
                         existingStop.OrderState == OrderState.ChangeSubmitted))
                     {
-                        Print(string.Format("V12.Phase7: SKIPPING duplicate stop for {0} -- existing stop state={1}", entryName, existingStop.OrderState));
+                        Print($"V12.Phase7: SKIPPING duplicate stop for {entryName} -- existing stop state={existingStop.OrderState}");
                         return;
                     }
                 }
@@ -543,18 +535,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (activePositions.TryGetValue(entryName, out var pos) && pos.IsFollower && pos.ExecutingAccount != null)
                 {
                     // Build 951: Fresh OCO per replacement -- broker rejects reuse of cancelled OCO group.
-                    string freshStopOco = "S_" + Guid.NewGuid().ToString("N").Substring(0, 8);
+                    string freshStopOco = $"S_{Guid.NewGuid().ToString("N").Substring(0, 8)}";
                     lock (stateLock) { pos.OcoGroupId = freshStopOco; }
                     string _b950OcoId = freshStopOco;
-                    Print(string.Format("[RESCUE] Resubmitted with Fresh OCO: {0}", freshStopOco));
+                    Print($"[RESCUE] Resubmitted with Fresh OCO: {freshStopOco}");
                     // Fleet follower: use Account API
-                    string sigName = "S_" + entryName;
+                    string sigName = $"S_{entryName}";
                     if (sigName.Length > 50) sigName = sigName.Substring(0, 50);
                     newStop = pos.ExecutingAccount.CreateOrder(Instrument, exitAction,
                         OrderType.StopMarket, TimeInForce.Gtc, quantity, 0, stopPrice, _b950OcoId, sigName, null);
                     if (newStop == null)
                     {
-                        Print(string.Format("[BRACKET_FATAL] Follower stop CreateOrder returned null for {0}. Flattening.", entryName));
+                        Print($"[BRACKET_FATAL] Follower stop CreateOrder returned null for {entryName}. Flattening.");
                         FlattenPositionByName(entryName);
                         return;
                     }
@@ -564,7 +556,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     catch (Exception submitEx)
                     {
-                        Print(string.Format("[BRACKET_FATAL] Follower stop Submit THREW for {0}: {1}. Emergency flattening.", entryName, submitEx.Message));
+                        Print($"[BRACKET_FATAL] Follower stop Submit THREW for {entryName}: {submitEx.Message}. Emergency flattening.");
                         EmergencyFlattenSingleFleetAccount(pos.ExecutingAccount);
                         return;
                     }
@@ -572,25 +564,24 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else
                 {
                     // Build 951: Fresh OCO per replacement -- broker rejects reuse of cancelled OCO group.
-                    string freshStopOco = "S_" + Guid.NewGuid().ToString("N").Substring(0, 8);
+                    string freshStopOco = $"S_{Guid.NewGuid().ToString("N").Substring(0, 8)}";
                     if (pos != null) { lock (stateLock) { pos.OcoGroupId = freshStopOco; } }
                     string _b950OcoId = freshStopOco;
-                    Print(string.Format("[RESCUE] Resubmitted with Fresh OCO: {0}", freshStopOco));
+                    Print($"[RESCUE] Resubmitted with Fresh OCO: {freshStopOco}");
                     // Local: use SubmitOrderUnmanaged with truncated signal name
                     string suffix = (DateTime.Now.Ticks % 100000000).ToString();
-                    string sigName = "S_" + entryName + "_" + suffix;
+                    string sigName = $"S_{entryName}_{suffix}";
                     if (sigName.Length > 50) sigName = sigName.Substring(0, 50);
                     newStop = SubmitOrderUnmanaged(0, exitAction, OrderType.StopMarket, quantity, 0, stopPrice, _b950OcoId, sigName);
                 }
 
                 if (newStop == null)
                 {
-                    Print(string.Format("?? ?? CRITICAL ERROR: Stop order submission returned NULL for {0}!", entryName));
-                    Print(string.Format("?? ?? POSITION UNPROTECTED: {0} {1} contracts @ {2:F2}",
-                        direction == MarketPosition.Long ? "LONG" : "SHORT", quantity, stopPrice));
+                    Print($"?? ?? CRITICAL ERROR: Stop order submission returned NULL for {entryName}!");
+                    Print($"?? ?? POSITION UNPROTECTED: {(direction == MarketPosition.Long ? "LONG" : "SHORT")} {quantity} contracts @ {stopPrice:F2}");
 
                     // Attempt to flatten position immediately
-                    Print(string.Format("?? ?? Attempting emergency flatten for {0}...", entryName));
+                    Print($"?? ?? Attempting emergency flatten for {entryName}...");
                     // Build 952.3: If flatten itself throws, log explicit UNPROTECTED state warning.
                     try
                     {
@@ -598,9 +589,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     catch (Exception flatEx)
                     {
-                        Print(string.Format(
-                            "[B952] CRITICAL: FlattenPositionByName FAILED for {0} -- POSITION UNPROTECTED AND NOT FLATTENED: {1}",
-                            entryName, flatEx.Message));
+                        Print($"[B952] CRITICAL: FlattenPositionByName FAILED for {entryName} -- POSITION UNPROTECTED AND NOT FLATTENED: {flatEx.Message}");
                     }
                     return;
                 }
@@ -613,16 +602,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (pendingStopReplacements.TryGetValue(entryName, out var pendingForLatency))
                 {
                     double ocoLatencyMs = (DateTime.Now - pendingForLatency.CreatedTime).TotalMilliseconds;
-                    Print(string.Format("[LATENCY_AUDIT] Target Fill -> Stop Cancel Delta: {0:F1}ms (Entry: {1})",
-                        ocoLatencyMs, entryName));
+                    Print($"[LATENCY_AUDIT] Target Fill -> Stop Cancel Delta: {ocoLatencyMs:F1}ms (Entry: {entryName})");
                 }
 
-                Print(string.Format("STOP QTY UPDATED: {0} contracts @ {1:F2} (Order: {2})",
-                    quantity, stopPrice, newStop.Name));
+                Print($"STOP QTY UPDATED: {quantity} contracts @ {stopPrice:F2} (Order: {newStop.Name})");
             }
             catch (Exception ex)
             {
-                Print(string.Format("?? ?? ERROR CreateNewStopOrder for {0}: {1}", entryName, ex.Message));
+                Print($"?? ?? ERROR CreateNewStopOrder for {entryName}: {ex.Message}");
             }
         }
 
@@ -691,22 +678,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                             }
                             catch (Exception submitEx)
                             {
-                                Print(string.Format(
-                                    "[B950] ERROR: RestoreCascadedTargets Submit threw for {0} T{1}: {2}",
-                                    entryName, snap.TargetNum, submitEx.Message));
+                                Print($"[B950] ERROR: RestoreCascadedTargets Submit threw for {entryName} T{snap.TargetNum}: {submitEx.Message}");
                             }
                         }
                     }
                     catch (Exception createEx)
                     {
-                        Print(string.Format(
-                            "[B952] ERROR: RestoreCascadedTargets CreateOrder threw for {0} T{1}: {2}",
-                            entryName, snap.TargetNum, createEx.Message));
+                        Print($"[B952] ERROR: RestoreCascadedTargets CreateOrder threw for {entryName} T{snap.TargetNum}: {createEx.Message}");
                     }
                 }
                 else
                 {
-                    string tSig = "T" + snap.TargetNum + "_" + entryName;
+                    string tSig = $"T{snap.TargetNum}_{entryName}";
                     if (tSig.Length > 50) tSig = tSig.Substring(0, 50); // Build 952.2: NinjaTrader 50-char signalName limit.
                     newTarget = direction == MarketPosition.Long
                         ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Limit,
@@ -721,13 +704,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (newTarget != null)
                     {
                         tDict[entryName] = newTarget;
-                        Print(string.Format("[B950] Target T{0} restored for {1} @ {2:F2} qty={3}",
-                            snap.TargetNum, entryName, restoredPrice, snap.Qty));
+                        Print($"[B950] Target T{snap.TargetNum} restored for {entryName} @ {restoredPrice:F2} qty={snap.Qty}");
                     }
                     else
                     {
-                        Print(string.Format("[B950] WARN: Target T{0} restore NULL for {1}",
-                            snap.TargetNum, entryName));
+                        Print($"[B950] WARN: Target T{snap.TargetNum} restore NULL for {entryName}");
                     }
                 }
             }
@@ -758,15 +739,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                         // [Build 1102J] Entry Shield: for BE moves, clamp directly to entry price floor.
                         // Do NOT snap to current market -- that drags the stop into negative territory.
                         resultStop = entryPrice;
-                        Print(string.Format("[1102J] STOP VALIDATION: BE SHIELD clamped LONG stop from {0:F2} to entry floor {1:F2}",
-                            desiredStopPrice, resultStop));
+                        Print($"[1102J] STOP VALIDATION: BE SHIELD clamped LONG stop from {desiredStopPrice:F2} to entry floor {resultStop:F2}");
                     }
                     else
                     {
                         // Build 951.2: Apply minDistance for all levels including BE when no entryPrice floor is available.
                         resultStop = currentPrice - minDistance;
-                        Print(string.Format("STOP VALIDATION: Adjusted LONG stop from {0:F2} to {1:F2} (Level {2} {3} market)",
-                            desiredStopPrice, resultStop, level, (level == 1 ? "above" : "at/above")));
+                        Print($"STOP VALIDATION: Adjusted LONG stop from {desiredStopPrice:F2} to {resultStop:F2} (Level {level} {(level == 1 ? "above" : "at/above")} market)");
                     }
                 }
             }
@@ -781,15 +760,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                         // [Build 1102J] Entry Shield: for BE moves, clamp directly to entry price floor.
                         // Do NOT snap to current market -- that drags the stop into negative territory.
                         resultStop = entryPrice;
-                        Print(string.Format("[1102J] STOP VALIDATION: BE SHIELD clamped SHORT stop from {0:F2} to entry floor {1:F2}",
-                            desiredStopPrice, resultStop));
+                        Print($"[1102J] STOP VALIDATION: BE SHIELD clamped SHORT stop from {desiredStopPrice:F2} to entry floor {resultStop:F2}");
                     }
                     else
                     {
                         // Build 951.2: Apply minDistance for all levels including BE when no entryPrice floor is available.
                         resultStop = currentPrice + minDistance;
-                        Print(string.Format("STOP VALIDATION: Adjusted SHORT stop from {0:F2} to {1:F2} (Level {2} {3} market)",
-                            desiredStopPrice, resultStop, level, (level == 1 ? "below" : "at/below")));
+                        Print($"STOP VALIDATION: Adjusted SHORT stop from {desiredStopPrice:F2} to {resultStop:F2} (Level {level} {(level == 1 ? "below" : "at/below")} market)");
                     }
                 }
             }
@@ -950,7 +927,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     if (activePositions.Count == 0 && liveQty > 0)
                     {
-                         Print(string.Format("FLATTEN GHOST: Closing ORPHANED position of {0} contracts", liveQty));
+                         Print($"FLATTEN GHOST: Closing ORPHANED position of {liveQty} contracts");
                          if (liveDir == MarketPosition.Long)
                              SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Market, liveQty, 0, 0, "", "Flatten_Ghost");
                          else
@@ -1019,19 +996,18 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                         if (pos.EntryFilled)
                         {
-                            Print(string.Format("FLATTEN: Closing filled {0} position",
-                                pos.Direction == MarketPosition.Long ? "LONG" : "SHORT"));
+                            Print($"FLATTEN: Closing filled {(pos.Direction == MarketPosition.Long ? "LONG" : "SHORT")} position");
 
                             // V12.1101E [PH5-COLLIDE-01]: Lifecycle-safe stop cancellation.
                             // Keep stop dictionary refs until broker-confirmed terminal state.
                             RequestStopCancelLifecycleSafe(entryName);
-                            Print(string.Format("FLATTEN: Requested stop lifecycle cancel for {0}", entryName));
+                            Print($"FLATTEN: Requested stop lifecycle cancel for {entryName}");
 
                             // V8.31: Also clear any pending stop replacements to prevent orphaned stops
                             if (pendingStopReplacements.TryRemove(entryName, out _))
                             {
                                 Interlocked.Decrement(ref pendingReplacementCount);
-                                Print(string.Format("V8.31: Cleared pending stop replacement for {0}", entryName));
+                                Print($"V8.31: Cleared pending stop replacement for {entryName}");
                             }
 
                             // Cancel all target orders (T1-T5)
@@ -1052,11 +1028,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 if (Position != null && Position.MarketPosition != MarketPosition.Flat)
                                     livePositionQty = Position.Quantity;
                             }
-                            catch (Exception pEx) { Print("Flatten Error reading Position: " + pEx.Message); }
+                            catch (Exception pEx) { Print($"Flatten Error reading Position: {pEx.Message}"); }
 
                             // Use the smaller of cached and live to avoid overselling
                             // V10 DIAGNOSTIC: Print values
-                            Print(string.Format("FLATTEN DIAGNOSTIC: Entry={0} Cached={1} Live={2}", entryName, pos.RemainingContracts, livePositionQty));
+                            Print($"FLATTEN DIAGNOSTIC: Entry={entryName} Cached={pos.RemainingContracts} Live={livePositionQty}");
 
                             // V10 FLATTEN FIX: Trust cached contracts if live is 0 (latency protection)
                             // If cached says we have contracts, we close them.
@@ -1075,11 +1051,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                             if (flattenQty > 0)
                             {
                                 Order flattenOrder = pos.Direction == MarketPosition.Long
-                                    ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Market, flattenQty, 0, 0, "", "Flatten_" + entryName)
-                                    : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Market, flattenQty, 0, 0, "", "Flatten_" + entryName);
+                                    ? SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Market, flattenQty, 0, 0, "", $"Flatten_{entryName}")
+                                    : SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Market, flattenQty, 0, 0, "", $"Flatten_{entryName}");
 
                                 if (flattenOrder == null) Print("FLATTEN ERROR: SubmitOrderUnmanaged returned NULL");
-                                else Print(string.Format("FLATTEN SENT: {0} {1} contracts", pos.Direction == MarketPosition.Long ? "SELL" : "BUY", flattenQty));
+                                else Print($"FLATTEN SENT: {(pos.Direction == MarketPosition.Long ? "SELL" : "BUY")} {flattenQty} contracts");
                             }
                             else
                             {
@@ -1096,8 +1072,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 if (entryOrder != null && (entryOrder.OrderState == OrderState.Working || entryOrder.OrderState == OrderState.Accepted))
                                 {
                                     CancelOrder(entryOrder);
-                                    Print(string.Format("FLATTEN: Cancelled pending {0} entry order @ {1:F2}",
-                                        pos.Direction == MarketPosition.Long ? "LONG" : "SHORT", pos.EntryPrice));
+                                    Print($"FLATTEN: Cancelled pending {(pos.Direction == MarketPosition.Long ? "LONG" : "SHORT")} entry order @ {pos.EntryPrice:F2}");
                                 }
                             }
                         }
@@ -1105,7 +1080,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 catch (Exception ex)
                 {
-                    Print("ERROR FlattenAll: " + ex.Message);
+                    Print($"ERROR FlattenAll: {ex.Message}");
                 }
                 finally
                 {
@@ -1121,7 +1096,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (pos.EntryFilled && pos.RemainingContracts > 0)
             {
-                Print(string.Format("?? ?? EMERGENCY FLATTEN: Closing {0} position due to stop order failure", entryName));
+                Print($"?? ?? EMERGENCY FLATTEN: Closing {entryName} position due to stop order failure");
 
                 // V12.3: Determine if this is a fleet follower or local position
                 bool isFleetFollower = pos.IsFollower && pos.ExecutingAccount != null;
@@ -1164,7 +1139,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (isFleetFollower)
                 {
                     // Fleet follower: flatten on the follower's own account
-                    string sigName = "EF_" + entryName;
+                    string sigName = $"EF_{entryName}";
                     if (sigName.Length > 50) sigName = sigName.Substring(0, 50);
                     flattenOrder = pos.ExecutingAccount.CreateOrder(Instrument, flattenAction,
                         OrderType.Market, TimeInForce.Gtc, flattenQty, 0, 0, "", sigName, null);
@@ -1180,21 +1155,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     catch { }
 
-                    string sigName = "EF_" + entryName;
+                    string sigName = $"EF_{entryName}";
                     if (sigName.Length > 50) sigName = sigName.Substring(0, 50);
                     flattenOrder = SubmitOrderUnmanaged(0, flattenAction, OrderType.Market, flattenQty, 0, 0, "", sigName);
                 }
 
                 if (flattenOrder != null)
                 {
-                    Print(string.Format("Emergency flatten order submitted on {0}: {1} {2} contracts at MARKET",
-                        isFleetFollower ? pos.ExecutingAccount.Name : "LOCAL",
-                        pos.Direction == MarketPosition.Long ? "SELL" : "BUY",
-                        flattenQty));
+                    Print($"Emergency flatten order submitted on {(isFleetFollower ? pos.ExecutingAccount.Name : "LOCAL")}: {(pos.Direction == MarketPosition.Long ? "SELL" : "BUY")} {flattenQty} contracts at MARKET");
                 }
                 else
                 {
-                    Print(string.Format("?? ???? ???? ?? CRITICAL: Emergency flatten order FAILED for {0}!", entryName));
+                    Print($"?? ???? ???? ?? CRITICAL: Emergency flatten order FAILED for {entryName}!");
                     Print("?? ???? ???? ?? MANUAL INTERVENTION REQUIRED - Close position manually in NinjaTrader!");
                 }
             }
@@ -1323,8 +1295,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Interlocked.Decrement(ref pendingReplacementCount);
 
             if (cancelledStops > 0 || cancelledTargets > 0 || cancelledEntries > 0)
-                Print(string.Format("CLEANUP SUMMARY for {0}: Stops={1} Targets={2} Entries={3}",
-                    entryName, cancelledStops, cancelledTargets, cancelledEntries));
+                Print($"CLEANUP SUMMARY for {entryName}: Stops={cancelledStops} Targets={cancelledTargets} Entries={cancelledEntries}");
 
             // V12.Phase8.2 [META-GUARD]: Pre-compute followerExpected before any purge decision.
             // If the Reaper has a non-zero expectedPositions for this account, a Repair Hook is planning
@@ -1343,9 +1314,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 if (followerExpected != 0)
                 {
-                    Print(string.Format("[META-GUARD] {0}: Broker is flat but expectedPositions={1}. " +
-                        "Retaining activePositions metadata for Repair Hook. Will purge after repair completes.",
-                        entryName, followerExpected));
+                    Print($"[META-GUARD] {entryName}: Broker is flat but expectedPositions={followerExpected}. Retaining activePositions metadata for Repair Hook. Will purge after repair completes.");
                     // [Phase 8.2 Part 3] Explicit early-return: prevent fall-through into FIX-ZP-02
                     // which would forcibly purge activePositions even when the Repair Hook is pending.
                     return;
@@ -1375,7 +1344,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (activePositions.TryRemove(entryName, out _))
                     {
                         SymmetryGuardForgetEntry(entryName);
-                        Print(string.Format("[FIXED_G] Purging {0} - confirmed flat by broker.", entryName));
+                        Print($"[FIXED_G] Purging {entryName} - confirmed flat by broker.");
                     }
                 }
             }
@@ -1414,8 +1383,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         if (dict.TryRemove(kvp.Key, out _))
                         {
                             string matchType = (kvp.Value == order) ? "REF" : "ORDERID";
-                            Print(string.Format("[GHOST_FIX] Order {0}_{1} terminated ({2}). Nullifying reference. (match={3}, OrderId={4})",
-                                label, kvp.Key, reason, matchType, order.OrderId ?? "NULL"));
+                            Print($"[GHOST_FIX] Order {label}_{kvp.Key} terminated ({reason}). Nullifying reference. (match={matchType}, OrderId={order.OrderId ?? "NULL"})");
                             foundInDict = true;
                             removedLabel = label;
                             removedKey = kvp.Key;
@@ -1431,8 +1399,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     if (!stopOrders.ContainsKey(removedKey))
                     {
-                        Print(string.Format("V12.17: WARNING UNPROTECTED POSITION: {0} has {1} contracts with NO STOP after {2}. Manual intervention may be required.",
-                            removedKey, auditPos.RemainingContracts, reason));
+                        Print($"V12.17: WARNING UNPROTECTED POSITION: {removedKey} has {auditPos.RemainingContracts} contracts with NO STOP after {reason}. Manual intervention may be required.");
                     }
                 }
             }
@@ -1463,9 +1430,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         }
                         if (ghostExpected != 0)
                         {
-                            Print(string.Format("[META-GUARD] {0}: ZOMBIE_PURGE suppressed -- expectedPositions={1} on {2}. " +
-                                "Retaining metadata for Repair Hook.",
-                                removedKey, ghostExpected, ghostAcctName));
+                            Print($"[META-GUARD] {removedKey}: ZOMBIE_PURGE suppressed -- expectedPositions={ghostExpected} on {ghostAcctName}. Retaining metadata for Repair Hook.");
                             return;
                         }
                     }
@@ -1473,7 +1438,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (activePositions.TryRemove(removedKey, out _))
                     {
                         SymmetryGuardForgetEntry(removedKey);
-                        Print(string.Format("[ZOMBIE_PURGE] {0}: all order refs terminal. Purging activePositions.", removedKey));
+                        Print($"[ZOMBIE_PURGE] {removedKey}: all order refs terminal. Purging activePositions.");
                     }
                 }
             }
@@ -1492,14 +1457,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                         if (order.Name.Contains(kvp.Key))
                         {
                             positionStillActive = true;
-                            Print(string.Format("V12.17: WARNING {0} {1} - dict ref gone but position {2} still active (orphan risk, OrderId={3})",
-                                order.Name, reason, kvp.Key, order.OrderId ?? "NULL"));
+                            Print($"V12.17: WARNING {order.Name} {reason} - dict ref gone but position {kvp.Key} still active (orphan risk, OrderId={order.OrderId ?? "NULL"})");
                             break;
                         }
                     }
                     if (!positionStillActive)
                     {
-                        Print(string.Format("V12.17: {0} {1} - cleaned by upstream handler (expected cascade, OrderId={2})", order.Name, reason, order.OrderId ?? "NULL"));
+                        Print($"V12.17: {order.Name} {reason} - cleaned by upstream handler (expected cascade, OrderId={order.OrderId ?? "NULL"})");
                     }
                 }
             }
@@ -1547,7 +1511,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                         if (string.IsNullOrEmpty(entryName) || !activePositions.ContainsKey(entryName))
                         {
-                            Print(string.Format("ORPHANED ORDER DETECTED ({0}): {1} | Cancelling...", reason, name));
+                            Print($"ORPHANED ORDER DETECTED ({reason}): {name} | Cancelling...");
                             CancelOrder(order);
                             foundOrphans = true;
                         }
@@ -1557,7 +1521,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // === V12.18 REVERSE AUDIT: Strategy -> Broker ===
                 // For each tracked order ref, verify it still exists as Working/Accepted
                 // in the broker's order collection. If it doesn't, it's a ghost -- purge it.
-                Print(string.Format("[GHOST_FIX] REVERSE AUDIT START ({0})", reason));
+                Print($"[GHOST_FIX] REVERSE AUDIT START ({reason})");
                 int reverseGhosts = 0;
 
                 // Build a HashSet of live broker OrderIds for O(1) lookup
@@ -1619,22 +1583,21 @@ namespace NinjaTrader.NinjaScript.Strategies
                             if (dict.TryRemove(kvp.Key, out _))
                             {
                                 string state = trackedOrder.OrderState.ToString();
-                                Print(string.Format("[GHOST_FIX] REVERSE AUDIT: {0} ghost for {1} purged (State={2}, InBroker={3}, OrderId={4})",
-                                    label, kvp.Key, state, !notInBroker, trackedOrder.OrderId ?? "NULL"));
+                                Print($"[GHOST_FIX] REVERSE AUDIT: {label} ghost for {kvp.Key} purged (State={state}, InBroker={!notInBroker}, OrderId={trackedOrder.OrderId ?? "NULL"})");
                                 reverseGhosts++;
                             }
                         }
                     }
                 }
 
-                Print(string.Format("[GHOST_FIX] REVERSE AUDIT COMPLETE: {0} ghosts purged", reverseGhosts));
+                Print($"[GHOST_FIX] REVERSE AUDIT COMPLETE: {reverseGhosts} ghosts purged");
 
                 if (foundOrphans || reverseGhosts > 0)
                     Print("Orphaned order reconciliation complete.");
             }
             catch (Exception ex)
             {
-                Print("ERROR ReconcileOrphanedOrders: " + ex.Message);
+                Print($"ERROR ReconcileOrphanedOrders: {ex.Message}");
             }
         }
 

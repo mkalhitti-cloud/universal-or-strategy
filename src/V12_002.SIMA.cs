@@ -86,7 +86,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 int newVal = oldVal + delta;
                 expectedPositions[accountName] = newVal;
                 // [Phase 8.2 Part 3 - ACCOUNT_SYNC] Trace every mutation for desync audits.
-                Print(string.Format("[ACCOUNT_SYNC] {0} expected: {1} -> {2}", accountName, oldVal, newVal));
+                Print($"[ACCOUNT_SYNC] {accountName} expected: {oldVal} -> {newVal}");
             }
             if (delta != 0)
                 Interlocked.Exchange(ref _lastExpectedPositionSetTicks, DateTime.UtcNow.Ticks);
@@ -134,7 +134,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 expectedPositions.TryGetValue(accountName, out current);
                 int updated = current + delta;
                 expectedPositions[accountName] = updated;
-                Print(string.Format("[ACCOUNT_SYNC] {0} expected delta: {1} + ({2}) = {3}", accountName, current, delta, updated));
+                Print($"[ACCOUNT_SYNC] {accountName} expected delta: {current} + ({delta}) = {updated}");
             }
             if (delta != 0)
                 Interlocked.Exchange(ref _lastExpectedPositionSetTicks, DateTime.UtcNow.Ticks);
@@ -289,8 +289,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // [Phase 7.2 LATENCY] T_LoopStart + batch log buffer (flushed once after loop).
                 long tLoopStartTicks = sw.ElapsedTicks;
                 var dispatchLog = new StringBuilder(512);
-                dispatchLog.AppendLine(string.Format("[LATENCY] Loop start at {0:F3} ms from entry",
-                    (tLoopStartTicks - t0Ticks) * 1000.0 / Stopwatch.Frequency));
+                dispatchLog.AppendLine($"[LATENCY] Loop start at {(tLoopStartTicks - t0Ticks) * 1000.0 / Stopwatch.Frequency:F3} ms from entry");
 
                 for (int i = 0; i < fleet.Count; i++)
                 {
@@ -329,7 +328,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     catch (OverflowException)
                     {
-                        Print(string.Format("[923A-OVF] SIMA parity overflow qty={0} x mult={1} -- clamping to maxContracts ({2})", quantity, FleetParityMultiplier, maxContracts));
+                        Print($"[923A-OVF] SIMA parity overflow qty={quantity} x mult={FleetParityMultiplier} -- clamping to maxContracts ({maxContracts})");
                         followerQty = maxContracts;
                     }
 
@@ -441,8 +440,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 double targetPrice = GetTargetPrice(fleetPos, targetNum);
                                 if (targetPrice <= 0)
                                 {
-                                    dispatchLog.AppendLine(string.Format("[SIMA TARGET_SKIP] T{0} for {1} has qty={2} but invalid price={3:F2}; skipped",
-                                        targetNum, fleetEntryName, targetQty, targetPrice));
+                                    dispatchLog.AppendLine($"[SIMA TARGET_SKIP] T{targetNum} for {fleetEntryName} has qty={targetQty} but invalid price={targetPrice:F2}; skipped");
                                     continue;
                                 }
 
@@ -504,10 +502,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                             reservedDelta       = 0;
                             registeredForCleanup = false;
 
-                            dispatchLog.AppendLine(string.Format("  QUEUE | {0,-28} | Market+{1}orders | PENDING",
-                                acct.Name, ordersToSubmit.Count));
-                            dispatchLog.AppendLine(string.Format("[SIMA STOP_AUDIT] QUEUED {0}: StopQty={1} NonRunnerLimits={2} RunnerQty={3}",
-                                fleetEntryName, fleetPos.TotalContracts, nonRunnerLimitQty, runnerQty));
+                            dispatchLog.AppendLine($"  QUEUE | {acct.Name,-28} | Market+{ordersToSubmit.Count}orders | PENDING");
+                            dispatchLog.AppendLine($"[SIMA STOP_AUDIT] QUEUED {fleetEntryName}: StopQty={fleetPos.TotalContracts} NonRunnerLimits={nonRunnerLimitQty} RunnerQty={runnerQty}");
                         }
                         else
                         {
@@ -542,8 +538,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             reservedDelta       = 0;
                             registeredForCleanup = false;
 
-                            dispatchLog.AppendLine(string.Format("  QUEUE | {0,-28} | Limit        | PENDING",
-                                acct.Name));
+                            dispatchLog.AppendLine($"  QUEUE | {acct.Name,-28} | Limit        | PENDING");
                         }
 
                         rmaCount++;
@@ -600,7 +595,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("[DISPATCH] CRITICAL ERROR in ExecuteSmartDispatchEntry: " + ex.Message);
+                Print($"[DISPATCH] CRITICAL ERROR in ExecuteSmartDispatchEntry: {ex.Message}");
             }
             finally
             {
@@ -627,13 +622,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 req.Account.Submit(req.Orders);
                 ClearDispatchSyncPending(req.ExpectedKey);
                 syncCleared = true;
-                Print(string.Format("[PUMP] Submitted {0} orders for {1} | {2}",
-                    req.Orders.Length, req.FleetEntryName, req.Account.Name));
+                Print($"[PUMP] Submitted {req.Orders.Length} orders for {req.FleetEntryName} | {req.Account.Name}");
             }
             catch (Exception ex)
             {
-                Print(string.Format("[PUMP] Submit FAILED for {0} ({1}): {2}",
-                    req.FleetEntryName, req.Account.Name, ex.Message));
+                Print($"[PUMP] Submit FAILED for {req.FleetEntryName} ({req.Account.Name}): {ex.Message}");
                 if (!syncCleared)
                     ClearDispatchSyncPending(req.ExpectedKey);
                 if (req.ReservedDelta != 0)
@@ -667,7 +660,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Step 1: Inactive check -- prevents UI toggle race.
             if (!activeAccountSnapshot.Contains(acct.Name))
             {
-                dispatchLog.AppendLine(string.Format("[SIMA] {0} SKIPPED (Inactive)", acct.Name));
+                dispatchLog.AppendLine($"[SIMA] {acct.Name} SKIPPED (Inactive)");
                 return true;
             }
 
@@ -706,12 +699,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
 
                     if (hasPendingRepairOrder || hasActivePositionForAcct || isMasterWaiting)
-                        dispatchLog.AppendLine(string.Format("[DISPATCH] H-13 SKIP: {0} Flat but {1} -- not resetting",
-                            acct.Name, isMasterWaiting ? "Master working" : (hasPendingRepairOrder ? "repair in-flight" : "activePos present")));
+                        dispatchLog.AppendLine($"[DISPATCH] H-13 SKIP: {acct.Name} Flat but {(isMasterWaiting ? "Master working" : (hasPendingRepairOrder ? "repair in-flight" : "activePos present"))} -- not resetting");
                     else
                     {
                         SetExpectedPositionLocked(ExpKey(acct.Name), 0);
-                        dispatchLog.AppendLine(string.Format("[DISPATCH] H-13: Stale expectedPos cleared for {0} (broker Flat)", acct.Name));
+                        dispatchLog.AppendLine($"[DISPATCH] H-13: Stale expectedPos cleared for {acct.Name} (broker Flat)");
                     }
                 }
             }
@@ -720,7 +712,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Step 3: Consistency Lock -- skip if daily P&L cap hit.
             if (EnableConsistencyLock && rankInfo.DailyPL >= MaxDailyProfitCap)
             {
-                dispatchLog.AppendLine(string.Format("[DISPATCH] {0} SKIPPED - Consistency Lock ({1:C})", acct.Name, rankInfo.DailyPL));
+                dispatchLog.AppendLine($"[DISPATCH] {acct.Name} SKIPPED - Consistency Lock ({rankInfo.DailyPL:C})");
                 return true;
             }
 
@@ -956,19 +948,19 @@ namespace NinjaTrader.NinjaScript.Strategies
                         if (targetDict == null || key == null) continue;
 
                         lock (stateLock) { targetDict[key] = ord; }
-                        Print(string.Format("[SIMA HYDRATE] Adopted working order {0} into {1}", name, dictName));
+                        Print($"[SIMA HYDRATE] Adopted working order {name} into {dictName}");
                         adoptedCount++;
                     }
                 }
                 catch (Exception ex)
                 {
-                    Print(string.Format("[SIMA HYDRATE] WARNING: Could not read orders for {0}: {1}", acct.Name, ex.Message));
+                    Print($"[SIMA HYDRATE] WARNING: Could not read orders for {acct.Name}: {ex.Message}");
                 }
             }
 
             _orderAdoptionComplete = true;
             if (adoptedCount > 0)
-                Print(string.Format("[SIMA HYDRATE] Adopted {0} working order(s) from broker -- adoption complete.", adoptedCount));
+                Print($"[SIMA HYDRATE] Adopted {adoptedCount} working order(s) from broker -- adoption complete.");
             else
                 Print("[SIMA HYDRATE] No working orders to adopt -- adoption complete.");
         }
@@ -983,8 +975,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             int trackedCancels = SweepTrackedOrders(force);
             int brokerCancels  = SweepBrokerOrders(force);
-            Print(string.Format("[BUILD 948] GTC sweep: cancelled {0} tracked + {1} broker-scanned orders",
-                trackedCancels, brokerCancels));
+            Print($"[BUILD 948] GTC sweep: cancelled {trackedCancels} tracked + {brokerCancels} broker-scanned orders");
         }
 
         /// <summary>Phase 1: cancel orders held in strategy tracking dictionaries.</summary>
@@ -1049,7 +1040,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     catch { }
                     if (hasPosition)
                     {
-                        Print(string.Format("[BUILD 948] GTC sweep: SKIPPING {0} -- open position detected (force=false)", acct.Name));
+                        Print($"[BUILD 948] GTC sweep: SKIPPING {acct.Name} -- open position detected (force=false)");
                         continue;
                     }
                 }
@@ -1231,7 +1222,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // [A1]: Defensive guard ??" caller must pre-calculate a valid quantity.
             if (contracts <= 0)
             {
-                Print(string.Format("[RMA] ExecuteRMAEntryV2 received invalid contracts={0}. Aborting entry.", contracts));
+                Print($"[RMA] ExecuteRMAEntryV2 received invalid contracts={contracts}. Aborting entry.");
                 return;
             }
 
@@ -1241,7 +1232,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Close[0] is not yet initialized (strategy just loaded, pre-session bars not formed).
             if (price <= 0)
             {
-                Print(string.Format("[RMA V2] ABORT: price={0:F2} is zero or negative. Refusing to submit Limit @ 0 -- would fill as Market. Ensure lastKnownPrice is valid before dispatching.", price));
+                Print($"[RMA V2] ABORT: price={price:F2} is zero or negative. Refusing to submit Limit @ 0 -- would fill as Market. Ensure lastKnownPrice is valid before dispatching.");
                 return;
             }
 
@@ -1268,7 +1259,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 int rt1, rt2, rt3, rt4, rt5;
                 GetTargetDistribution(qty, out rt1, out rt2, out rt3, out rt4, out rt5);
 
-                string baseSignal = "RMA_" + DateTime.Now.Ticks;
+                string baseSignal = $"RMA_{DateTime.Now.Ticks}";
                 OrderAction entryAction = (direction == MarketPosition.Long) ? OrderAction.Buy : OrderAction.SellShort;
                 string symmetryDispatchId = SymmetryGuardBeginDispatch("RMA", entryAction, qty, price);
 
@@ -1365,7 +1356,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
 
                     // [923B-FIX-B]: fleetKey declared outside try so catch can access it for dict rollback.
-                    string fleetKey = acct.Name + "_RMA_" + baseSignal;
+                    string fleetKey = $"{acct.Name}_RMA_{baseSignal}";
                     string expectedKey = ExpKey(acct.Name);
                     int reservedDelta = 0;
                     bool syncPending = false;
@@ -1633,12 +1624,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         private void EmergencyFlattenSingleFleetAccount(Account acct)
         {
             if (acct == null) return;
-            Print(string.Format("[DEAD-01] EmergencyFlatten: Initiating kill for {0}", acct.Name));
+            Print($"[DEAD-01] EmergencyFlatten: Initiating kill for {acct.Name}");
 
             try
             {
                 // [938-EF-GUARD] Confirm bracket cancellation precedes market close.
-                Print(string.Format("[938-EF-GUARD] EF cancelling bracket first: {0}", acct.Name));
+                Print($"[938-EF-GUARD] EF cancelling bracket first: {acct.Name}");
 
                 // Step 1: Cancel ALL working orders on this instrument for this account.
                 var ordersToCancel = new List<Order>();
@@ -1657,7 +1648,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (ordersToCancel.Count > 0)
                 {
                     acct.Cancel(ordersToCancel);
-                    Print(string.Format("[DEAD-01] EmergencyFlatten: Cancelled {0} working order(s) on {1}.", ordersToCancel.Count, acct.Name));
+                    Print($"[DEAD-01] EmergencyFlatten: Cancelled {ordersToCancel.Count} working order(s) on {acct.Name}.");
                 }
 
                 // Step 2: Close any live position with a Market order.
@@ -1680,12 +1671,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                         "Emergency_Flatten_DEAD01",
                         null);
                     acct.Submit(new[] { closeOrder });
-                    Print(string.Format("[DEAD-01] EmergencyFlatten: Market {0} {1} submitted on {2}.",
-                        closeAction, pos.Quantity, acct.Name));
+                    Print($"[DEAD-01] EmergencyFlatten: Market {closeAction} {pos.Quantity} submitted on {acct.Name}.");
                 }
                 else
                 {
-                    Print(string.Format("[DEAD-01] EmergencyFlatten: {0} already flat -- no close order needed.", acct.Name));
+                    Print($"[DEAD-01] EmergencyFlatten: {acct.Name} already flat -- no close order needed.");
                 }
 
                 // Step 3: Clear ghost memory so REAPER does not trigger a second flatten.
@@ -1693,7 +1683,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print(string.Format("[DEAD-01] EmergencyFlatten ERROR on {0}: {1}", acct.Name, ex.Message));
+                Print($"[DEAD-01] EmergencyFlatten ERROR on {acct.Name}: {ex.Message}");
             }
         }
 

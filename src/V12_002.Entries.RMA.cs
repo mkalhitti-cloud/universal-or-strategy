@@ -118,14 +118,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 double weightedEntryPrice = ((e9 * qty9) + (e15 * qty15)) / Math.Max(1, finalTotalQty);
                 weightedEntryPrice = Instrument.MasterInstrument.RoundToTickSize(weightedEntryPrice);
 
-                Print(string.Format("TREND RMA SPLIT: {0} | Qty={1} (EMA9={2}, EMA15={3}) | EMA9={4:F2} EMA15={5:F2} | Anchor={6:F2}",
-                    direction == MarketPosition.Long ? "LONG" : "SHORT",
-                    finalTotalQty,
-                    qty9,
-                    qty15,
-                    e9,
-                    e15,
-                    weightedEntryPrice));
+                Print($"TREND RMA SPLIT: {(direction == MarketPosition.Long ? "LONG" : "SHORT")} | Qty={finalTotalQty} (EMA9={qty9}, EMA15={qty15}) | EMA9={e9:F2} EMA15={e15:F2} | Anchor={weightedEntryPrice:F2}");
 
                 if (EnableSIMA)
                 {
@@ -142,28 +135,23 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("ERROR ExecuteTrendSplitEntry: " + ex.Message);
+                Print($"ERROR ExecuteTrendSplitEntry: {ex.Message}");
             }
         }
 
         #region RMA Entry Logic
 
         // V11: Helper to get price of currently selected RMA Anchor
-        private double GetRmaAnchorPrice()
+        private double GetRmaAnchorPrice() => currentRmaAnchor switch
         {
-            switch (currentRmaAnchor)
-            {
-                case RmaAnchorType.Ema30: return ema30[0];
-                case RmaAnchorType.Ema65: return ema65[0];
-                case RmaAnchorType.Ema200: return ema200[0];
-                case RmaAnchorType.OrHigh: return sessionHigh;
-                case RmaAnchorType.OrLow: return sessionLow;
-                case RmaAnchorType.Manual:
-                    // Use thread-safe cache
-                    return cachedMnlPrice;
-            }
-            return ema65[0]; // Default
-        }
+            RmaAnchorType.Ema30 => ema30[0],
+            RmaAnchorType.Ema65 => ema65[0],
+            RmaAnchorType.Ema200 => ema200[0],
+            RmaAnchorType.OrHigh => sessionHigh,
+            RmaAnchorType.OrLow => sessionLow,
+            RmaAnchorType.Manual => cachedMnlPrice,
+            _ => ema65[0]
+        };
 
         private void ExecuteRMAEntry(double clickPrice, MarketPosition? forcedDirection = null)
         {
@@ -174,7 +162,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (currentATR <= 0)
             {
-                Print(string.Format("[RMA REJECT] ATR not ready. Check if 5-min bars (BarsArray[1]) are loaded and strategy has been running for {0} bars.", RMAATRPeriod));
+                Print($"[RMA REJECT] ATR not ready. Check if 5-min bars (BarsArray[1]) are loaded and strategy has been running for {RMAATRPeriod} bars.");
                 return;
             }
 
@@ -191,7 +179,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 double confluenceScore = GetRmaConfluenceScore(clickPrice);
                 if (RmaUseMtfConfluence && confluenceScore < 0.2)
                 {
-                    Print(string.Format("[RMA WARNING] Low Confluence Score ({0:F2}). Proceeding with caution.", confluenceScore));
+                    Print($"[RMA WARNING] Low Confluence Score ({confluenceScore:F2}). Proceeding with caution.");
                 }
 
                 // V11 FIX: Robust Check for Stale Price
@@ -216,12 +204,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Only use forcedDirection if it MATCHES the Safe Logic (or if prices are super close)
                 if (forcedDirection.HasValue && forcedDirection.Value != direction)
                 {
-                    Print(string.Format("RMA SAFEGUARD: Ignoring forced {0} because Click {1} vs Market {2} implies {3}",
-                        forcedDirection.Value, clickPrice, currentPrice, direction));
+                    Print($"RMA SAFEGUARD: Ignoring forced {forcedDirection.Value} because Click {clickPrice} vs Market {currentPrice} implies {direction}");
                 }
 
-                Print(string.Format("RMA Entry: Click={0:F2}, Market={1:F2}, Direction={2}",
-                    clickPrice, currentPrice, direction));
+                Print($"RMA Entry: Click={clickPrice:F2}, Market={currentPrice:F2}, Direction={direction}");
 
                 // Calculate RMA stop and targets using ATR
                 double stopDistance = CalculateATRStopDistance(RMAStopATRMultiplier); // V12.30: Ceiling-rounded, MaximumStop cap
@@ -244,7 +230,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 string signalName = direction == MarketPosition.Long ? "RMALong" : "RMAShort";
                 string timestamp = DateTime.Now.ToString("HHmmssffff");
-                string entryName = signalName + "_" + timestamp;
+                string entryName = $"{signalName}_{timestamp}";
 
                 PositionInfo pos = new PositionInfo
                 {
@@ -274,7 +260,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     CurrentTrailLevel = 0,
                     IsRMATrade = true,
                     // Build 936 [FIX-2]: Deterministic OCO group ID for broker-native bracket protection.
-                    OcoGroupId = "V12_" + GetStableHash(entryName)
+                    OcoGroupId = $"V12_{GetStableHash(entryName)}"
                 };
                 ApplyTargetLadderGuard(pos);
 
@@ -294,21 +280,19 @@ namespace NinjaTrader.NinjaScript.Strategies
                     activePositions[entryName] = pos; // Only add to panel if order submitted
 
                     // DEBUG: Visual Confirmation
-                    Draw.Text(this, "Debug_" + entryName, "ORDER SUBMITTED", 0, entryPrice, Brushes.Yellow);
-                    Draw.Line(this, "Line_" + entryName, 0, entryPrice, 10, entryPrice, Brushes.Yellow);
+                    Draw.Text(this, $"Debug_{entryName}", "ORDER SUBMITTED", 0, entryPrice, Brushes.Yellow);
+                    Draw.Line(this, $"Line_{entryName}", 0, entryPrice, 10, entryPrice, Brushes.Yellow);
                 }
                 else
                 {
                     // Build 1102Y-V3 [MS-01 ROLLBACK]: Submit failed -- undo reservation to prevent ghost position.
                     AddExpectedPositionDeltaLocked(ExpKey(Account.Name), -masterDeltaRMA);
-                    Print("[ERROR][1102Y-V3] SubmitOrderUnmanaged returned NULL for " + entryName + " -- Master expected rolled back.");
-                    Draw.Text(this, "Debug_Fail_" + entryName, "ORDER FAILED", 0, entryPrice, Brushes.Red);
+                    Print($"[ERROR][1102Y-V3] SubmitOrderUnmanaged returned NULL for {entryName} -- Master expected rolled back.");
+                    Draw.Text(this, $"Debug_Fail_{entryName}", "ORDER FAILED", 0, entryPrice, Brushes.Red);
                 }
 
-                Print(string.Format("RMA ENTRY ORDER: {0} {1}@{2:F2} | ATR: {3:F2}", signalName, contracts, entryPrice, currentATR));
-                Print(string.Format("RMA TARGETS: T1:{0}@{1:F2}(+{2:F2}pt) | T2:{3}@{4:F2} | T3:{5}@{6:F2} | T4:{7}@{8:F2} | T5:{9}@{10:F2} (Runner targets trail-only)",
-                    t1Qty, target1Price, target1Price - entryPrice,
-                    t2Qty, target2Price, t3Qty, target3Price, t4Qty, target4Price, t5Qty, target5Price));
+                Print($"RMA ENTRY ORDER: {signalName} {contracts}@{entryPrice:F2} | ATR: {currentATR:F2}");
+                Print($"RMA TARGETS: T1:{t1Qty}@{target1Price:F2}(+{target1Price - entryPrice:F2}pt) | T2:{t2Qty}@{target2Price:F2} | T3:{t3Qty}@{target3Price:F2} | T4:{t4Qty}@{target4Price:F2} | T5:{t5Qty}@{target5Price:F2} (Runner targets trail-only)");
 
                 // V12 SIMA: Dispatch to fleet (replaces legacy slave broadcast)
                 if (EnableSIMA)
@@ -320,7 +304,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("ERROR ExecuteRMAEntry: " + ex.Message);
+                Print($"ERROR ExecuteRMAEntry: {ex.Message}");
             }
         }
 
@@ -353,7 +337,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             double exhaustionThreshold = currentATR * RmaExhaustionAtrMultiplier;
             if (moveDist < exhaustionThreshold)
             {
-                Print(string.Format("[REJECT] No Exhaustion: Move={0:F2} vs Threshold={1:F2}", moveDist, exhaustionThreshold));
+                Print($"[REJECT] No Exhaustion: Move={moveDist:F2} vs Threshold={exhaustionThreshold:F2}");
                 return false;
             }
 
@@ -361,7 +345,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             double candleHeight = High[0] - Low[0];
             if (candleHeight < (currentATR * RmaStretchedCandleMultiplier))
             {
-                Print(string.Format("[REJECT] Not Stretched: Height={0:F2} vs Threshold={1:F2}", candleHeight, currentATR * RmaStretchedCandleMultiplier));
+                Print($"[REJECT] Not Stretched: Height={candleHeight:F2} vs Threshold={currentATR * RmaStretchedCandleMultiplier:F2}");
                 return false;
             }
 
@@ -369,7 +353,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             double openDist = Math.Abs(Open[0] - level);
             if (openDist < (currentATR * RmaFreshCandleBufferAtr))
             {
-                Print(string.Format("[REJECT] Fresh Candle: Open={0:F2} is within {1:F2} of level", Open[0], currentATR * RmaFreshCandleBufferAtr));
+                Print($"[REJECT] Fresh Candle: Open={Open[0]:F2} is within {currentATR * RmaFreshCandleBufferAtr:F2} of level");
                 return false;
             }
 
@@ -421,16 +405,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (distTicks <= RmaProximityTicks)
                 {
                     // Track that we were in proximity
-                    Draw.Dot(this, "Prox_" + kvp.Key, false, 0, level, Brushes.Cyan);
+                    Draw.Dot(this, $"Prox_{kvp.Key}", false, 0, level, Brushes.Cyan);
                 }
                 else if (distTicks >= RmaCancellationTicks)
                 {
                     // If we see a Cyan dot (meaning we were close) and now we are far, we cancel
-                    if (GetDrawObject("Prox_" + kvp.Key) != null)
+                    if (GetDrawObject($"Prox_{kvp.Key}") != null)
                     {
-                        Print(string.Format("[SENTINEL] Proximity Miss detected for {0}. Cancelling and rotating.", kvp.Key));
+                        Print($"[SENTINEL] Proximity Miss detected for {kvp.Key}. Cancelling and rotating.");
                         CancelOrder(order);
-                        RemoveDrawObject("Prox_" + kvp.Key);
+                        RemoveDrawObject($"Prox_{kvp.Key}");
                         
                     }
                 }

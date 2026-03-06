@@ -40,11 +40,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Callers (A7 UI layer) should invoke this before calling ExecuteRetestEntry to pre-calculate contracts.
         /// For manual RETEST entries call CalculateATRStopDistance(RMAStopATRMultiplier) directly.
         /// </summary>
-        private double CalculateRetestStopDistance()
-        {
-            double multToUse = isRetestRmaMode ? RMAStopATRMultiplier : RetestATRMultiplier;
-            return CalculateATRStopDistance(multToUse);
-        }
+        private double CalculateRetestStopDistance() =>
+            CalculateATRStopDistance(isRetestRmaMode ? RMAStopATRMultiplier : RetestATRMultiplier);
 
         // V8.4: Execute RETEST entry - auto-detects direction based on price vs OR Mid
         private void ExecuteRetestEntry(int contracts)
@@ -82,7 +79,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (contracts <= 0)
             {
-                Print(string.Format("[RETEST] ExecuteRetestEntry received invalid contracts={0}. Aborting entry.", contracts));
+                Print($"[RETEST] ExecuteRetestEntry received invalid contracts={contracts}. Aborting entry.");
                 return;
             }
 
@@ -99,21 +96,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     direction = MarketPosition.Long;
                     entryPrice = sessionHigh;  // Entry at OR High (NO buffer)
-                    Print(string.Format("RETEST: Price above OR Mid ({0:F2} > {1:F2}) = LONG at OR High {2:F2}",
-                        currentPrice, sessionMid, entryPrice));
+                    Print($"RETEST: Price above OR Mid ({currentPrice:F2} > {sessionMid:F2}) = LONG at OR High {entryPrice:F2}");
                 }
                 else
                 {
                     direction = MarketPosition.Short;
                     entryPrice = sessionLow;   // Entry at OR Low (NO buffer)
-                    Print(string.Format("RETEST: Price below OR Mid ({0:F2} < {1:F2}) = SHORT at OR Low {2:F2}",
-                        currentPrice, sessionMid, entryPrice));
+                    Print($"RETEST: Price below OR Mid ({currentPrice:F2} < {sessionMid:F2}) = SHORT at OR Low {entryPrice:F2}");
                 }
 
                 // Calculate stop and targets using ATR
                 double multToUse = isRetestRmaMode ? RMAStopATRMultiplier : RetestATRMultiplier;
-                Print(string.Format("V12.20: RETEST Multiplier -> Mode={0} Using={1:F2}x",
-                    isRetestRmaMode ? "RMA" : "STD", multToUse));
+                Print($"V12.20: RETEST Multiplier -> Mode={(isRetestRmaMode ? "RMA" : "STD")} Using={multToUse:F2}x");
                 double stopDistance = CalculateATRStopDistance(multToUse); // V12.30: Ceiling-rounded
 
                 // V12.Phase6 [TICK-01]: All prices rounded to valid tick increments
@@ -132,8 +126,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 GetTargetDistribution(contracts, out t1Qty, out t2Qty, out t3Qty, out t4Qty, out t5Qty);
 
                 string signalName = direction == MarketPosition.Long ? "RetestLong" : "RetestShort";
-                string timestamp = DateTime.Now.ToString("HHmmssffff");
-                string entryName = signalName + "_" + timestamp;
+                string entryName = $"{signalName}_{DateTime.Now:HHmmssffff}";
 
                 PositionInfo pos = new PositionInfo
                 {
@@ -167,7 +160,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     IsRetestTrade = true,              // V8.4: Mark as retest trade
                     RetestTrailActivated = false,      // V8.4: Trail not activated yet
                     // Build 936 [FIX-2]: Deterministic OCO group ID for broker-native bracket protection.
-                    OcoGroupId = "V12_" + GetStableHash(entryName)
+                    OcoGroupId = $"V12_{GetStableHash(entryName)}"
                 };
                 ApplyTargetLadderGuard(pos);
 
@@ -185,18 +178,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (entryOrder == null)
                 {
                     AddExpectedPositionDeltaLocked(ExpKey(Account.Name), -masterDeltaRetest);
-                    Print("[ERROR][1102Y-V3] RETEST SubmitOrderUnmanaged NULL for " + entryName + " -- rolled back.");
+                    Print($"[ERROR][1102Y-V3] RETEST SubmitOrderUnmanaged NULL for {entryName} -- rolled back.");
                 }
 
                 entryOrders[entryName] = entryOrder;
                 retestFiredThisSession = true;  // V12.1101E [B-2]: Arm latch -- no further RETEST entries this session
 
-                Print(string.Format("RETEST ENTRY ORDER: {0} {1}@{2:F2} | ATR: {3:F2}", signalName, contracts, entryPrice, currentATR));
-                Print(string.Format("RETEST STOP: {0:F2} ({1:F2}x ATR = {2:F2}pts)",
-                    stopPrice, RetestATRMultiplier, stopDistance));
-                Print(string.Format("RETEST TARGETS: T1:{0}@{1:F2}(+{2:F2}pt) | T2:{3}@{4:F2} | T3:{5}@{6:F2} | T4:{7}@{8:F2} | T5:{9}@{10:F2} (Runner targets trail-only)",
-                    t1Qty, target1Price, target1Price - entryPrice,
-                    t2Qty, target2Price, t3Qty, target3Price, t4Qty, target4Price, t5Qty, target5Price));
+                Print($"RETEST ENTRY ORDER: {signalName} {contracts}@{entryPrice:F2} | ATR: {currentATR:F2}");
+                Print($"RETEST STOP: {stopPrice:F2} ({RetestATRMultiplier:F2}x ATR = {stopDistance:F2}pts)");
+                Print($"RETEST TARGETS: T1:{t1Qty}@{target1Price:F2}(+{target1Price - entryPrice:F2}pt) | T2:{t2Qty}@{target2Price:F2} | T3:{t3Qty}@{target3Price:F2} | T4:{t4Qty}@{target4Price:F2} | T5:{t5Qty}@{target5Price:F2} (Runner targets trail-only)");
 
                 // V12.1: Smart Dispatch to SIMA Fleet
                 if (EnableSIMA)
@@ -215,19 +205,13 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("ERROR ExecuteRetestEntry: " + ex.Message);
+                Print($"ERROR ExecuteRetestEntry: {ex.Message}");
             }
         }
 
-        private void ActivateRetestMode()
-        {
-            isRetestModeActive = true;
-        }
+        private void ActivateRetestMode() => isRetestModeActive = true;
 
-        private void DeactivateRetestMode()
-        {
-            isRetestModeActive = false;
-        }
+        private void DeactivateRetestMode() => isRetestModeActive = false;
 
         /// <summary>
         /// V12.27: RETEST manual entry at user-specified price using Limit Order with RMA targets.
@@ -248,7 +232,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (contracts <= 0)
             {
-                Print(string.Format("[RETEST] ExecuteRetestManualEntry received invalid contracts={0}. Aborting entry.", contracts));
+                Print($"[RETEST] ExecuteRetestManualEntry received invalid contracts={contracts}. Aborting entry.");
                 return;
             }
 
@@ -274,7 +258,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 GetTargetDistribution(contracts, out t1Qty, out t2Qty, out t3Qty, out t4Qty, out t5Qty);
 
                 string signalName = direction == MarketPosition.Long ? "RetestMnlLong" : "RetestMnlShort";
-                string entryName = signalName + "_" + DateTime.Now.ToString("HHmmssffff");
+                string entryName = $"{signalName}_{DateTime.Now:HHmmssffff}";
 
                 PositionInfo pos = new PositionInfo
                 {
@@ -307,7 +291,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     IsRetestTrade = true,
                     RetestTrailActivated = false,
                     // Build 936 [FIX-2]: Deterministic OCO group ID for broker-native bracket protection.
-                    OcoGroupId = "V12_" + GetStableHash(entryName)
+                    OcoGroupId = $"V12_{GetStableHash(entryName)}"
                 };
                 ApplyTargetLadderGuard(pos);
 
@@ -325,14 +309,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (entryOrder == null)
                 {
                     AddExpectedPositionDeltaLocked(ExpKey(Account.Name), -masterDeltaRetestMnl);
-                    Print("[ERROR][1102Y-V3] RETEST_MANUAL SubmitOrderUnmanaged NULL for " + entryName + " -- rolled back.");
+                    Print($"[ERROR][1102Y-V3] RETEST_MANUAL SubmitOrderUnmanaged NULL for {entryName} -- rolled back.");
                 }
                 entryOrders[entryName] = entryOrder;
 
-                Print(string.Format("V12.27 RETEST_MANUAL: {0} {1}@{2:F2} LIMIT | Stop: {3:F2} | RMA Targets",
-                    direction, contracts, entryPrice, stopPrice));
-                Print(string.Format("V12.27 RETEST_MANUAL TARGETS: T1:{0}@{1:F2} | T2:{2}@{3:F2} | T3:{4}@{5:F2} | T4:{6}@{7:F2} | T5:{8}@{9:F2}",
-                    t1Qty, target1Price, t2Qty, target2Price, t3Qty, target3Price, t4Qty, target4Price, t5Qty, target5Price));
+                Print($"V12.27 RETEST_MANUAL: {direction} {contracts}@{entryPrice:F2} LIMIT | Stop: {stopPrice:F2} | RMA Targets");
+                Print($"V12.27 RETEST_MANUAL TARGETS: T1:{t1Qty}@{target1Price:F2} | T2:{t2Qty}@{target2Price:F2} | T3:{t3Qty}@{target3Price:F2} | T4:{t4Qty}@{target4Price:F2} | T5:{t5Qty}@{target5Price:F2}");
 
                 if (EnableSIMA)
                 {
@@ -348,7 +330,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("ERROR ExecuteRetestManualEntry: " + ex.Message);
+                Print($"ERROR ExecuteRetestManualEntry: {ex.Message}");
             }
         }
 

@@ -94,7 +94,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Name = "V12_Reaper_Audit"
             };
             reaperThread.Start();
-            Print("[REAPER] Audit thread STARTED - interval: " + ReaperIntervalMs + "ms");
+            Print($"[REAPER] Audit thread STARTED - interval: {ReaperIntervalMs}ms");
         }
 
         /// <summary>
@@ -162,7 +162,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 catch (Exception ex)
                 {
-                    Print("[REAPER] ERROR: " + ex.Message);
+                    Print($"[REAPER] ERROR: {ex.Message}");
                 }
             }
         }
@@ -331,7 +331,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (IsBracketMoveInFlight(acct.Name))
             {
                 if (shouldLog)
-                    Print(string.Format("[REAPER] FSM in-flight for {0} -- suppressing naked check.", acct.Name));
+                    Print($"[REAPER] FSM in-flight for {acct.Name} -- suppressing naked check.");
                 _nakedPositionFirstSeen.TryRemove(acct.Name, out _);
                 return hasState;
             }
@@ -352,8 +352,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (!_nakedPositionFirstSeen.TryGetValue(acct.Name, out firstSeen))
                     {
                         _nakedPositionFirstSeen[acct.Name] = DateTime.UtcNow;
-                        Print(string.Format("[REAPER][NAKED_POSITION] {0}: {1}ct naked -- starting {2}s grace window.",
-                            acct.Name, actualQty, graceSeconds));
+                        Print($"[REAPER][NAKED_POSITION] {acct.Name}: {actualQty}ct naked -- starting {graceSeconds}s grace window.");
                     }
                     else if ((DateTime.UtcNow - firstSeen).TotalSeconds >= graceSeconds)
                     {
@@ -362,11 +361,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                         if (!alreadyNakedInFlight)
                         {
                             lock (stateLock) { _reaperNakedStopInFlight.Add(acct.Name); }
-                            Print(string.Format("[REAPER][NAKED_POSITION] {0}: {1}ct CONFIRMED naked after {2:F1}s grace. Queuing emergency hard stop.",
-                                acct.Name, actualQty, (DateTime.UtcNow - firstSeen).TotalSeconds));
+                            Print($"[REAPER][NAKED_POSITION] {acct.Name}: {actualQty}ct CONFIRMED naked after {(DateTime.UtcNow - firstSeen).TotalSeconds:F1}s grace. Queuing emergency hard stop.");
                             _reaperNakedStopQueue.Enqueue((acct.Name, pos.MarketPosition, Math.Abs(actualQty)));
                             try { TriggerCustomEvent(e => ProcessReaperNakedStopQueue(), null); }
-                            catch (Exception tcEx) { Print(string.Format("[REAPER][NAKED_STOP] TriggerCustomEvent failed: {0}", tcEx.Message)); }
+                            catch (Exception tcEx) { Print($"[REAPER][NAKED_STOP] TriggerCustomEvent failed: {tcEx.Message}"); }
                         }
                     }
                 }
@@ -567,13 +565,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (repairPos == null)
                 {
                     int orphanCount = _reaperOrphanRepairCount.AddOrUpdate(accountName, 1, (k, v) => v + 1);
-                    Print(string.Format("[REAPER REPAIR] x No PositionInfo found for {0} -- cannot repair. (orphan attempt {1}/3)",
-                        accountName, orphanCount));
+                    Print($"[REAPER REPAIR] x No PositionInfo found for {accountName} -- cannot repair. (orphan attempt {orphanCount}/3)");
 
                     if (orphanCount >= 3)
                     {
-                        Print(string.Format("[REAPER] SELF-HEAL: {0} has no PositionInfo after 3 attempts. Force-zeroing expectedPositions to unblock repair loop.",
-                            accountName));
+                        Print($"[REAPER] SELF-HEAL: {accountName} has no PositionInfo after 3 attempts. Force-zeroing expectedPositions to unblock repair loop.");
                         // SetExpectedPositionLocked(..., 0) already removes from _dispatchSyncPendingExpKeys internally.
                         SetExpectedPositionLocked(ExpKey(accountName), 0);
                         _reaperOrphanRepairCount.TryRemove(accountName, out _);
@@ -737,7 +733,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     Account acct = Account.All.FirstOrDefault(a => a.Name == item.AccountName);
                     if (acct == null)
                     {
-                        Print(string.Format("[REAPER][NAKED_STOP] Account {0} not found -- skipping.", item.AccountName));
+                        Print($"[REAPER][NAKED_STOP] Account {item.AccountName} not found -- skipping.");
                         continue;
                     }
 
@@ -775,15 +771,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     // BUG-M2: Clear in-flight guard after successful submission
                     lock (stateLock) { _reaperNakedStopInFlight.Remove(item.AccountName); }
-                    Print(string.Format(
-                        "[REAPER][EMERGENCY_STOP] Submitted StopMarket for {0}: {1} {2}ct @ {3:F2} (Dist={4:F2})",
-                        item.AccountName, closeAction, item.Qty, stopPrice, emergencyStopDist));
+                    Print($"[REAPER][EMERGENCY_STOP] Submitted StopMarket for {item.AccountName}: {closeAction} {item.Qty}ct @ {stopPrice:F2} (Dist={emergencyStopDist:F2})");
                 }
                 catch (Exception ex)
                 {
                     // BUG-M2: Clear in-flight guard on failure so next cycle can retry
                     lock (stateLock) { _reaperNakedStopInFlight.Remove(item.AccountName); }
-                    Print(string.Format("[REAPER][EMERGENCY_STOP_FAIL] {0}: {1}", item.AccountName, ex.Message));
+                    Print($"[REAPER][EMERGENCY_STOP_FAIL] {item.AccountName}: {ex.Message}");
                 }
             }
         }
@@ -802,9 +796,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     if (_bracketReplaceSpecs.TryRemove(kvp.Key, out _))
                     {
-                        Print(string.Format(
-                            "[MOVE-SYNC] WARN: Bracket_{0} spec TIMEOUT (>15s) -- clearing stale FSM entry. REAPER suppression lifted.",
-                            kvp.Key));
+                        Print($"[MOVE-SYNC] WARN: Bracket_{kvp.Key} spec TIMEOUT (>15s) -- clearing stale FSM entry. REAPER suppression lifted.");
                     }
                 }
             }

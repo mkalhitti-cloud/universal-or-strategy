@@ -110,8 +110,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (isFollowerStop)
                 {
                     // Fleet follower stop: must use Account API -- CancelOrder() targets master account only.
-                    Print(string.Format("[925-P1] Follower stop cancel routed via ExecutingAccount.Cancel() for {0} on {1}",
-                        entryName, posRef.ExecutingAccount.Name));
+                    Print($"[925-P1] Follower stop cancel routed via ExecutingAccount.Cancel() for {entryName} on {posRef.ExecutingAccount.Name}");
                     posRef.ExecutingAccount.Cancel(new[] { stopOrder });
                 }
                 else
@@ -194,7 +193,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("ERROR OnOrderUpdate: " + ex.Message);
+                Print($"ERROR OnOrderUpdate: {ex.Message}");
             }
         }
 
@@ -217,7 +216,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     if (averageFillPrice <= 0)
                     {
-                        Print(string.Format("[PRICE_GUARD] CRITICAL: averageFillPrice=0 for {0}. Keeping intended price {1:F2}. NOT re-anchoring.", kvp.Key, pos.EntryPrice));
+                        Print($"[PRICE_GUARD] CRITICAL: averageFillPrice=0 for {kvp.Key}. Keeping intended price {pos.EntryPrice:F2}. NOT re-anchoring.");
                         SubmitBracketOrders(kvp.Key, pos);
                         return true;
                     }
@@ -238,7 +237,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     pos.InitialStopPrice = pos.Direction == MarketPosition.Long ? averageFillPrice - stopDistance : averageFillPrice + stopDistance;
                     pos.CurrentStopPrice = pos.InitialStopPrice;
 
-                    Print(string.Format("{0} ENTRY FILLED: {1} {2} @ {3:F2}", pos.IsRMATrade ? "RMA" : "OR", pos.Direction, pos.TotalContracts, averageFillPrice));
+                    Print($"{(pos.IsRMATrade ? "RMA" : "OR")} ENTRY FILLED: {pos.Direction} {pos.TotalContracts} @ {averageFillPrice:F2}");
                     SubmitBracketOrders(kvp.Key, pos);
                     return true;
                 }
@@ -262,7 +261,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         {
                             PositionInfo pos = kvp.Value;
                             ApplyTargetFill(pos, tNum, GetTargetContracts(pos, tNum), true, out _, out int appQty, out int rem);
-                            Print(string.Format("T{0} FILLED ({1}): {2} contracts @ {3:F2} | Remaining: {4}", tNum, kvp.Key, appQty, averageFillPrice, rem));
+                            Print($"T{tNum} FILLED ({kvp.Key}): {appQty} contracts @ {averageFillPrice:F2} | Remaining: {rem}");
                             UpdateStopQuantity(kvp.Key, pos);
                             tDict.TryRemove(kvp.Key, out _);
                             return true;
@@ -278,7 +277,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     if (stopOrders.TryGetValue(kvp.Key, out var sOrder) && sOrder == order)
                     {
-                        Print(string.Format("STOP FILLED: {0} contracts @ {1:F2}", kvp.Value.RemainingContracts, averageFillPrice));
+                        Print($"STOP FILLED: {kvp.Value.RemainingContracts} contracts @ {averageFillPrice:F2}");
                         CleanupPosition(kvp.Key);
                         return true;
                     }
@@ -287,7 +286,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 string entryName = ExtractEntryNameFromStop(orderName);
                 if (activePositions.TryGetValue(entryName, out var pos))
                 {
-                    Print(string.Format("STOP FILLED (by name): {0} contracts @ {1:F2}", pos.RemainingContracts, averageFillPrice));
+                    Print($"STOP FILLED (by name): {pos.RemainingContracts} contracts @ {averageFillPrice:F2}");
                     CleanupPosition(entryName);
                     return true;
                 }
@@ -315,7 +314,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private bool HandleOrderRejected(Order order, string nativeError)
         {
             string orderName = order.Name;
-            Print(string.Format("ORDER REJECTED: {0} | Error: {1}", orderName, nativeError));
+            Print($"ORDER REJECTED: {orderName} | Error: {nativeError}");
 
             if (stopOrders.Values.Contains(order))
             {
@@ -323,7 +322,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     if (stopOrders.TryGetValue(kvp.Key, out var sOrder) && sOrder == order)
                     {
-                        Print(string.Format("?? ?? CRITICAL: Stop REJECTED for {0}. Re-submitting...", kvp.Key));
+                        Print($"?? ?? CRITICAL: Stop REJECTED for {kvp.Key}. Re-submitting...");
                         stopOrders.TryRemove(kvp.Key, out _);
                         CreateNewStopOrder(kvp.Key, kvp.Value.RemainingContracts, kvp.Value.CurrentStopPrice, kvp.Value.Direction);
                         return true;
@@ -337,7 +336,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     if (entryOrders.TryGetValue(kvp.Key, out var eOrder) && eOrder == order && !kvp.Value.EntryFilled)
                     {
-                        Print(string.Format("[ZOMBIE-FIX] Entry REJECTED: {0}. Tearing down.", orderName));
+                        Print($"[ZOMBIE-FIX] Entry REJECTED: {orderName}. Tearing down.");
                         RollbackExpectedPosition(kvp.Key, kvp.Value);
                         CleanupPosition(kvp.Key);
                         return true;
@@ -375,8 +374,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (matched)
                 {
                     int remaining = Interlocked.Decrement(ref spec.RemainingCancels);
-                    Print(string.Format("[MOVE-SYNC] FSM: Cancel confirmed Bracket_{0} -- {1} legs remaining",
-                        kvp.Key, remaining));
+                    Print($"[MOVE-SYNC] FSM: Cancel confirmed Bracket_{kvp.Key} -- {remaining} legs remaining");
                     if (remaining <= 0)
                     {
                         // Build 951.1 Bug-A: TryRemove deferred to SubmitBracketReplacement after Account.Submit() succeeds.
@@ -443,7 +441,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         if (newPrice > 0 && Math.Abs(newPrice - kvp.Value.EntryPrice) > tickSize * 0.5)
                         {
                             kvp.Value.EntryPrice = newPrice;
-                            Print(string.Format("V12: Entry order MOVED: {0} to {1:F2}", kvp.Key, newPrice));
+                            Print($"V12: Entry order MOVED: {kvp.Key} to {newPrice:F2}");
                         }
                         if (quantity > 0 && quantity != kvp.Value.TotalContracts)
                         {
@@ -454,7 +452,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 ? kvp.Value.ExecutingAccount.Name : Account.Name;
                             int expDelta = (kvp.Value.Direction == MarketPosition.Long) ? qtyDiff : -qtyDiff;
                             DeltaExpectedPositionLocked(ExpKey(fixAcct), expDelta);
-                            Print(string.Format("[937-FIX] expectedPositions adjusted on qty change: {0} delta={1}", fixAcct, expDelta));
+                            Print($"[937-FIX] expectedPositions adjusted on qty change: {fixAcct} delta={expDelta}");
                             lock (stateLock)
                             {
                                 kvp.Value.TotalContracts = quantity;
@@ -620,14 +618,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     catch (Exception ex)
                     {
-                        Print("[FSM] TriggerCustomEvent failed for " + sigName + ": " + ex.Message);
+                        Print($"[FSM] TriggerCustomEvent failed for {sigName}: {ex.Message}");
                         _followerReplaceSpecs.TryRemove(sigName, out _);
                     }
                     return; // FSM-controlled cancel -- not a real desync
                 }
 
-                Print(string.Format("[SIMA] Follower entry cancelled: {0} on {1}. Reaper monitoring.", matchedEntry, acctName));
-                Draw.TextFixed(this, "SIMA_DESYNC_" + acctName, "(!) FOLLOWER DESYNC: " + acctName, TextPosition.TopLeft, Brushes.Red, new SimpleFont("Arial", 11), Brushes.Transparent, Brushes.Transparent, 50);
+                Print($"[SIMA] Follower entry cancelled: {matchedEntry} on {acctName}. Reaper monitoring.");
+                Draw.TextFixed(this, $"SIMA_DESYNC_{acctName}", $"(!) FOLLOWER DESYNC: {acctName}", TextPosition.TopLeft, Brushes.Red, new SimpleFont("Arial", 11), Brushes.Transparent, Brushes.Transparent, 50);
             }
             else
             {
@@ -685,9 +683,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                                         out alreadyProcessed, out appliedQty, out remainingAfter);
                                     if (!alreadyProcessed)
                                     {
-                                        Print(string.Format(
-                                            "[MOVE-SYNC] FSM: Gap fill accounted Bracket_{0} T{1} ({2} contracts). Remaining={3}",
-                                            kvp.Key, bTargetFilledNum, appliedQty, remainingAfter));
+                                        Print($"[MOVE-SYNC] FSM: Gap fill accounted Bracket_{kvp.Key} T{bTargetFilledNum} ({appliedQty} contracts). Remaining={remainingAfter}");
                                     }
                                 }
                                 RemoveTargetReferenceOnTerminalFill(order);
@@ -696,12 +692,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                             {
                                 stopOrders.TryRemove(kvp.Key, out _);
                                 lock (bSpec.SyncRoot) { bSpec.PositionClosed = true; }  // Build 951.5: stop filled = position flat
-                                Print(string.Format("[MOVE-SYNC] FSM: Gap fill accounted Bracket_{0} stop leg.", kvp.Key));
+                                Print($"[MOVE-SYNC] FSM: Gap fill accounted Bracket_{kvp.Key} stop leg.");
                             }
 
                             int bRemaining = Interlocked.Decrement(ref bSpec.RemainingCancels);
-                            Print(string.Format("[MOVE-SYNC] FSM: Follower terminal confirmed Bracket_{0} ({1}) -- {2} legs remaining",
-                                kvp.Key, reason, bRemaining));
+                            Print($"[MOVE-SYNC] FSM: Follower terminal confirmed Bracket_{kvp.Key} ({reason}) -- {bRemaining} legs remaining");
                             if (bRemaining <= 0)
                             {
                                 BracketReplaceSpec capturedBSpec = bSpec;
@@ -729,7 +724,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             // Build 951.2: Skip if bracket FSM already handling this entry.
                             if (_bracketReplaceSpecs.ContainsKey(_psr.Key))
                             {
-                                Print(string.Format("[MOVE-SYNC] Skipping legacy rescue for {0} -- bracket FSM in-flight.", _psr.Key));
+                                Print($"[MOVE-SYNC] Skipping legacy rescue for {_psr.Key} -- bracket FSM in-flight.");
                                 if (pendingStopReplacements.TryRemove(_psr.Key, out _))
                                     Interlocked.Decrement(ref pendingReplacementCount);
                                 return;
@@ -753,7 +748,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         }
                     }
                 }
-                Print(string.Format("[SIMA] Follower order terminal: {0} on {1} ({2}) | Id={3}", order.Name, acctName, reason, order.OrderId));
+                Print($"[SIMA] Follower order terminal: {order.Name} on {acctName} ({reason}) | Id={order.OrderId}");
                 RemoveGhostOrderRef(order, reason);
             }
         }
@@ -776,8 +771,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         string cascadeAcctName = cascadePos.ExecutingAccount != null ? cascadePos.ExecutingAccount.Name : "NULL";
                         if (!cascadePos.EntryFilled)
                         {
-                            Print(string.Format("[GHOST_FIX] SIMA CASCADE: Master cancel of {0} triggers follower teardown for {1} on {2}",
-                                orderSignal, kvp.Key, cascadeAcctName));
+                            Print($"[GHOST_FIX] SIMA CASCADE: Master cancel of {orderSignal} triggers follower teardown for {kvp.Key} on {cascadeAcctName}");
                             CleanupPosition(kvp.Key);
 
                             if (cascadePos.ExecutingAccount != null)
@@ -787,8 +781,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 lock (stateLock) { expectedPositions.TryGetValue(ExpKey(cascadeAcctName), out currentExp); }
                                 if (currentExp == 0)
                                 {
-                                    Print(string.Format("[GHOST_FIX] SKIP cascade delta for {0}: expectedPositions already 0 (purge-race guard). Delta suppressed.",
-                                        cascadeAcctName));
+                                    Print($"[GHOST_FIX] SKIP cascade delta for {cascadeAcctName}: expectedPositions already 0 (purge-race guard). Delta suppressed.");
                                 }
                                 else
                                 {
@@ -800,8 +793,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         }
                         else
                         {
-                            Print(string.Format("[DEAD-01] CASCADE-FILLED: Master cancel {0} -- follower {1} on {2} is FILLED. Issuing emergency flatten.",
-                                orderSignal, kvp.Key, cascadeAcctName));
+                            Print($"[DEAD-01] CASCADE-FILLED: Master cancel {orderSignal} -- follower {kvp.Key} on {cascadeAcctName} is FILLED. Issuing emergency flatten.");
                             if (cascadePos.ExecutingAccount != null)
                             {
                                 Account filledFollowerAcct = cascadePos.ExecutingAccount;
@@ -822,7 +814,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             string reason = order.OrderState.ToString().ToUpper();
             string acctName = item.Account != null ? item.Account.Name : "UNKNOWN";
-            Print(string.Format("[GHOST-AUDIT] OnAccountOrderUpdate: {0} | State={1} | Acct={2}", order.Name, reason, acctName));
+            Print($"[GHOST-AUDIT] OnAccountOrderUpdate: {order.Name} | State={reason} | Acct={acctName}");
 
             // Build 935 [R-01]: Single snapshot -- reused by both identity search and cascade cleanup,
             // eliminating the second activePositions.ToArray() allocation in the cascade path.
@@ -859,7 +851,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("ERROR OnPositionUpdate: " + ex.Message);
+                Print($"ERROR OnPositionUpdate: {ex.Message}");
             }
         }
 
@@ -997,7 +989,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         if (!processedExecutionIds.Add(executionId))
                         {
-                            Print(string.Format("[DEDUP] Skipping duplicate execution {0} for {1}", executionId, orderName));
+                            Print($"[DEDUP] Skipping duplicate execution {executionId} for {orderName}");
                             return;
                         }
                         // Bounded pruning: keep at most MaxProcessedExecutionIds entries
@@ -1012,13 +1004,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // Uses runtime order object identity + cumulative filled quantity.
                     int dedupOrderIdentity = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(execution.Order);
                     int dedupFilledQuantity = execution.Order.Filled > 0 ? execution.Order.Filled : Math.Max(0, quantity);
-                    string fallbackKey = string.Format("{0}|{1}", dedupOrderIdentity, dedupFilledQuantity);
+                    string fallbackKey = $"{dedupOrderIdentity}|{dedupFilledQuantity}";
 
                     lock (stateLock)
                     {
                         if (!processedExecutionFallbackKeys.Add(fallbackKey))
                         {
-                            Print(string.Format("[DEDUP] Skipping duplicate fallback execution {0} for {1}", fallbackKey, orderName));
+                            Print($"[DEDUP] Skipping duplicate fallback execution {fallbackKey} for {orderName}");
                             return;
                         }
                         processedExecutionFallbackQueue.Enqueue(fallbackKey);
@@ -1063,7 +1055,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             remainingAfterStop = pos.RemainingContracts;
                         }
 
-                        Print(string.Format("STOP FILLED: {0} @ {1:F2}. Cancelling targets.", quantity, price));
+                        Print($"STOP FILLED: {quantity} @ {price:F2}. Cancelling targets.");
 
                         // Manual OCO: Cancel all remaining profit targets immediately
                         // V12.1101E [F-07]: Keep target dictionary refs until terminal broker confirmation.
@@ -1083,7 +1075,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                         if (cancelledTargets > 0)
                         {
-                            Print(string.Format("OCO: Cancelled {0} target orders for {1}", cancelledTargets, entryName));
+                            Print($"OCO: Cancelled {cancelledTargets} target orders for {entryName}");
                         }
 
                         // Remove stop order reference
@@ -1101,7 +1093,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             activePositions.TryRemove(entryName, out _);
                             SymmetryGuardForgetEntry(entryName);
                             entryOrders.TryRemove(entryName, out _);
-                            Print(string.Format("Position {0} fully closed by stop.", entryName));
+                            Print($"Position {entryName} fully closed by stop.");
                         }
                     }
                 }
@@ -1127,7 +1119,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         ApplyTargetFill(pos, targetNum, quantity, terminalFill, out alreadyProcessed, out appliedQty, out remainingAfter);
                         if (alreadyProcessed)
                         {
-                            Print(string.Format("[1101E GUARD] T{0} already processed for {1} -- skipping duplicate OnExecutionUpdate fill", targetNum, entryName));
+                            Print($"[1101E GUARD] T{targetNum} already processed for {entryName} -- skipping duplicate OnExecutionUpdate fill");
                             if (terminalFill)
                             {
                                 var tDict = GetTargetOrdersDictionary(targetNum);
@@ -1136,8 +1128,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             return;
                         }
 
-                        Print(string.Format("TARGET FILLED: {0} @ {1:F2}. Reducing stop. Remaining: {2}",
-                            appliedQty, price, remainingAfter));
+                        Print($"TARGET FILLED: {appliedQty} @ {price:F2}. Reducing stop. Remaining: {remainingAfter}");
 
                         if (remainingAfter > 0)
                         {
@@ -1182,20 +1173,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                             remainingAfterTrim = pos.RemainingContracts;
                         }
 
-                        Print(string.Format("TRIM EXECUTION: {0} contracts closed for {1}. Position: {2} ??' {3}",
-                            quantity, entryName, previousQty, remainingAfterTrim));
+                        Print($"TRIM EXECUTION: {quantity} contracts closed for {entryName}. Position: {previousQty} ??' {remainingAfterTrim}");
 
                         // V10.3.1 FIX: MANDATORY stop quantity reduction to prevent reverse position
                         if (remainingAfterTrim > 0)
                         {
-                            Print(string.Format("STOP INTEGRITY: Reducing stop quantity from {0} to {1} for {2}",
-                                previousQty, remainingAfterTrim, entryName));
+                            Print($"STOP INTEGRITY: Reducing stop quantity from {previousQty} to {remainingAfterTrim} for {entryName}");
                             UpdateStopQuantity(entryName, pos);
                         }
                         else
                         {
                             // Position fully closed by trim, cancel stop
-                            Print(string.Format("TRIM FLATTEN: Position {0} fully closed. Cancelling stop.", entryName));
+                            Print($"TRIM FLATTEN: Position {entryName} fully closed. Cancelling stop.");
                             RequestStopCancelLifecycleSafe(entryName);
 
                             // Also clean up any pending replacements
@@ -1212,7 +1201,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("Error OnExecutionUpdate: " + ex.Message);
+                Print($"Error OnExecutionUpdate: {ex.Message}");
             }
         }
 
@@ -1307,8 +1296,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (masterPosForType.IsRMATrade)    masterTradeType = "RMA";
                 else
                 {
-                    Print(string.Format("[WARN] masterTradeType fallback to UNKNOWN for {0} -- no trade-type flag set",
-                        masterPosForType.SignalName));
+                    Print($"[WARN] masterTradeType fallback to UNKNOWN for {masterPosForType.SignalName} -- no trade-type flag set");
                     masterTradeType = "UNKNOWN";
                 }
             }
@@ -1432,10 +1420,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             double roundedStop = Instrument.MasterInstrument.RoundToTickSize(newStop);
             if (Math.Abs(pos.CurrentStopPrice - roundedStop) <= tickSize / 2) return;
 
-            Print(string.Format("[MOVE-SYNC] Stop move: {0} on {1}: {2:F2} -> {3:F2}",
-                fleetEntryName,
-                pos.ExecutingAccount != null ? pos.ExecutingAccount.Name : "local",
-                pos.CurrentStopPrice, roundedStop));
+            Print($"[MOVE-SYNC] Stop move: {fleetEntryName} on {(pos.ExecutingAccount != null ? pos.ExecutingAccount.Name : "local")}: {pos.CurrentStopPrice:F2} -> {roundedStop:F2}");
 
             // Build 951: SIMA followers use unified bracket replace (shared OCO ID across all legs).
             // Local/master path continues via UpdateStopOrder (unmanaged orders, different OCO rules).
@@ -1475,8 +1460,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     inFlightSpec.TargetPrices[targetNum - 1] =
                         Instrument.MasterInstrument.RoundToTickSize(newLimit);
                 }
-                Print(string.Format("[MOVE-SYNC] T{0} move absorbed into in-flight FSM for {1}",
-                    targetNum, fleetEntryName));
+                Print($"[MOVE-SYNC] T{targetNum} move absorbed into in-flight FSM for {fleetEntryName}");
                 return;
             }
 
@@ -1486,8 +1470,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             double roundedLimit = Instrument.MasterInstrument.RoundToTickSize(newLimit);
             if (Math.Abs(tOrder.LimitPrice - roundedLimit) <= tickSize / 2) return;
 
-            Print(string.Format("[MOVE-SYNC] T{0} move: {1} on {2}: {3:F2} -> {4:F2}",
-                targetNum, fleetEntryName, pos.ExecutingAccount.Name, tOrder.LimitPrice, roundedLimit));
+            Print($"[MOVE-SYNC] T{targetNum} move: {fleetEntryName} on {pos.ExecutingAccount.Name}: {tOrder.LimitPrice:F2} -> {roundedLimit:F2}");
 
             // Build 951: SIMA followers use unified bracket replace -- maintains shared OCO ID.
             if (pos.IsFollower && pos.ExecutingAccount != null)
@@ -1504,24 +1487,22 @@ namespace NinjaTrader.NinjaScript.Strategies
                 int qty = tOrder.Quantity;
                 OrderAction exitAction = pos.Direction == MarketPosition.Long
                     ? OrderAction.Sell : OrderAction.BuyToCover;
-                string signalName = SymmetryTrim("T" + targetNum + "_" + fleetEntryName, 40);
+                string signalName = SymmetryTrim($"T{targetNum}_{fleetEntryName}", 40);
 
                 Order replacement = pos.ExecutingAccount.CreateOrder(
                     Instrument, exitAction, OrderType.Limit, TimeInForce.Gtc,
                     qty, roundedLimit, 0,
-                    "MGT_" + Guid.NewGuid().ToString("N").Substring(0, 8),
+                    $"MGT_{Guid.NewGuid().ToString("N").Substring(0, 8)}",
                     signalName, null);
 
                 pos.ExecutingAccount.Submit(new[] { replacement });
                 targetDict[fleetEntryName] = replacement;
 
-                Print(string.Format("[MOVE-SYNC] T{0} resubmitted (local): {1} @ {2:F2}",
-                    targetNum, fleetEntryName, roundedLimit));
+                Print($"[MOVE-SYNC] T{targetNum} resubmitted (local): {fleetEntryName} @ {roundedLimit:F2}");
             }
             catch (Exception ex)
             {
-                Print(string.Format("[MOVE-SYNC] ERROR PropagateMasterTargetMove T{0} {1}: {2}",
-                    targetNum, fleetEntryName, ex.Message));
+                Print($"[MOVE-SYNC] ERROR PropagateMasterTargetMove T{targetNum} {fleetEntryName}: {ex.Message}");
             }
         }
 
@@ -1557,7 +1538,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (OverflowException)
             {
-                Print(string.Format("[923A-OVF] Parity scalar overflow for {0} -- clamping to maxContracts ({1})", fleetEntryName, maxContracts));
+                Print($"[923A-OVF] Parity scalar overflow for {fleetEntryName} -- clamping to maxContracts ({maxContracts})");
                 scaledQty = maxContracts;
             }
 
@@ -1565,8 +1546,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             bool quantityChanged = scaledQty != fEntry.Quantity;
             if (!priceChanged && !quantityChanged) return;
 
-            Print(string.Format("[MOVE-SYNC] Entry move: {0} on {1}: {2:F2} -> {3:F2} x{4}",
-                fleetEntryName, pos.ExecutingAccount.Name, fEffectivePrice, roundedLimit, scaledQty));
+            Print($"[MOVE-SYNC] Entry move: {fleetEntryName} on {pos.ExecutingAccount.Name}: {fEffectivePrice:F2} -> {roundedLimit:F2} x{scaledQty}");
 
             // 1102Z-D: Stamp grace BEFORE cancel -- opens 5-second REAPER suppression window.
             StampReaperMoveGrace();
@@ -1624,7 +1604,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (!entryOrders.TryGetValue(fleetEntryName, out currentEntry) || currentEntry == null)
                 {
-                    Print("[FSM] SKIP replace: no tracked entry for " + fleetEntryName);
+                    Print($"[FSM] SKIP replace: no tracked entry for {fleetEntryName}");
                     return;
                 }
 
@@ -1648,12 +1628,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             try
             {
                 acct.Cancel(new[] { currentEntry });
-                Print("[FSM] Cancel sent for " + fleetEntryName
-                    + " OrderId=" + currentEntry.OrderId);
+                Print($"[FSM] Cancel sent for {fleetEntryName} OrderId={currentEntry.OrderId}");
             }
             catch (Exception ex)
             {
-                Print("[FSM] Cancel failed for " + fleetEntryName + ": " + ex.Message);
+                Print($"[FSM] Cancel failed for {fleetEntryName}: {ex.Message}");
                 _followerReplaceSpecs.TryRemove(fleetEntryName, out _);
             }
         }
@@ -1668,7 +1647,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 a => string.Equals(a.Name, accountName, StringComparison.OrdinalIgnoreCase));
             if (acct == null)
             {
-                Print("[FSM] SUBMIT FAIL: account not found: " + accountName);
+                Print($"[FSM] SUBMIT FAIL: account not found: {accountName}");
                 return;
             }
 
@@ -1704,8 +1683,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
 
-            Print("[FSM] Replacement submitted: " + fleetSignalName
-                + " @ " + price + " x" + qty);
+            Print($"[FSM] Replacement submitted: {fleetSignalName} @ {price} x{qty}");
         }
 
         // Build 951: Unified bracket replace FSM entry point.
@@ -1726,7 +1704,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         existing.TargetPrices[movedTargetNum - 1] =
                             Instrument.MasterInstrument.RoundToTickSize(newTargetPrice);
                 }
-                Print(string.Format("[MOVE-SYNC] FSM: Bracket spec updated in-flight for {0}", fleetEntryName));
+                Print($"[MOVE-SYNC] FSM: Bracket spec updated in-flight for {fleetEntryName}");
                 return;
             }
 
@@ -1781,13 +1759,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (spec.RemainingCancels == 0)
             {
-                Print(string.Format("[MOVE-SYNC] FSM: No working legs for {0} -- bracket replace skipped", fleetEntryName));
+                Print($"[MOVE-SYNC] FSM: No working legs for {fleetEntryName} -- bracket replace skipped");
                 return;
             }
 
             _bracketReplaceSpecs[fleetEntryName] = spec;
-            Print(string.Format("[MOVE-SYNC] FSM: PendingCancel -> Bracket_{0} ({1} legs, OCO={2})",
-                fleetEntryName, spec.RemainingCancels, freshOcoId));
+            Print($"[MOVE-SYNC] FSM: PendingCancel -> Bracket_{fleetEntryName} ({spec.RemainingCancels} legs, OCO={freshOcoId})");
 
             try
             {
@@ -1797,7 +1774,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             catch (Exception ex)
             {
                 _bracketReplaceSpecs.TryRemove(fleetEntryName, out _);
-                Print(string.Format("[MOVE-SYNC] ERROR InitiateBracketReplace {0}: {1}", fleetEntryName, ex.Message));
+                Print($"[MOVE-SYNC] ERROR InitiateBracketReplace {fleetEntryName}: {ex.Message}");
             }
         }
 
@@ -1807,7 +1784,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private void EmergencyProtectFollowerAccount(Account execAccount, string entryName, List<Order> ordersToCancel)
         {
             if (execAccount == null) return;
-            Print(string.Format("[FSM-GUARD] Emergency protection for {0} on {1}", entryName, execAccount.Name));
+            Print($"[FSM-GUARD] Emergency protection for {entryName} on {execAccount.Name}");
             try
             {
                 if (ordersToCancel != null && ordersToCancel.Count > 0)
@@ -1815,7 +1792,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print(string.Format("[FSM-GUARD] Cancel failed for {0}: {1}", entryName, ex.Message));
+                Print($"[FSM-GUARD] Cancel failed for {entryName}: {ex.Message}");
             }
             try
             {
@@ -1826,7 +1803,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     int flatQty = brkPos.Quantity;
                     OrderAction flatAction = brkPos.MarketPosition == MarketPosition.Long
                         ? OrderAction.Sell : OrderAction.BuyToCover;
-                    string sigName = "FSM_ERR_" + entryName;
+                    string sigName = $"FSM_ERR_{entryName}";
                     if (sigName.Length > 50) sigName = sigName.Substring(0, 50);
                     Order flatOrder = execAccount.CreateOrder(Instrument, flatAction,
                         OrderType.Market, TimeInForce.Gtc, flatQty, 0, 0, "", sigName, null);
@@ -1837,7 +1814,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print(string.Format("[FSM-GUARD] Flatten failed for {0}: {1}", entryName, ex.Message));
+                Print($"[FSM-GUARD] Flatten failed for {entryName}: {ex.Message}");
             }
         }
 
@@ -1848,9 +1825,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (spec.ExecutingAccount == null) return;
 
-            Print(string.Format("[MOVE-SYNC] FSM: Submitting Replacement -> Bracket_{0} @ OCO={1}",
-                spec.EntryName, spec.FreshOcoId));
-            Print(string.Format("[RESCUE] Resubmitted with Fresh OCO: {0}", spec.FreshOcoId));
+            Print($"[MOVE-SYNC] FSM: Submitting Replacement -> Bracket_{spec.EntryName} @ OCO={spec.FreshOcoId}");
+            Print($"[RESCUE] Resubmitted with Fresh OCO: {spec.FreshOcoId}");
 
             OrderAction exitAction = spec.Direction == MarketPosition.Long
                 ? OrderAction.Sell : OrderAction.BuyToCover;
@@ -1885,9 +1861,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (liveRemaining <= 0)
             {
-                Print(string.Format(
-                    "[MOVE-SYNC] FSM: Position {0} closed during cancel-gap -- aborting bracket replacement.",
-                    spec.EntryName));
+                Print($"[MOVE-SYNC] FSM: Position {spec.EntryName} closed during cancel-gap -- aborting bracket replacement.");
                 _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
                 return;
             }
@@ -1897,9 +1871,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             lock (spec.SyncRoot) { positionClosed = spec.PositionClosed; }
             if (positionClosed)
             {
-                Print(string.Format(
-                    "[MOVE-SYNC] FSM: Stop filled during cancel-gap for Bracket_{0} -- aborting target recreation.",
-                    spec.EntryName));
+                Print($"[MOVE-SYNC] FSM: Stop filled during cancel-gap for Bracket_{spec.EntryName} -- aborting target recreation.");
                 _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
                 return;
             }
@@ -1918,9 +1890,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             if (!brokerLiveExists)
             {
-                Print(string.Format(
-                    "[MOVE-SYNC] FSM: Broker-live position absent for Bracket_{0} -- aborting replacement.",
-                    spec.EntryName));
+                Print($"[MOVE-SYNC] FSM: Broker-live position absent for Bracket_{spec.EntryName} -- aborting replacement.");
                 _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
                 return;
             }
@@ -1957,10 +1927,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             if (qtyAdjusted || gapFillDetected)
             {
-                Print(string.Format(
-                    "[MOVE-SYNC] FSM: Qty reconcile Bracket_{0} stop {1}->{2} targets {3}->{4} live={5} gapFill={6}",
-                    spec.EntryName, Math.Max(0, stopQtySnap), reconciledStopQty,
-                    targetSnapshotTotal, targetReconciledTotal, liveRemaining, gapFillDetected));
+                Print($"[MOVE-SYNC] FSM: Qty reconcile Bracket_{spec.EntryName} stop {Math.Max(0, stopQtySnap)}->{reconciledStopQty} targets {targetSnapshotTotal}->{targetReconciledTotal} live={liveRemaining} gapFill={gapFillDetected}");
             }
 
             // Build 951.1 Bug-D: Hold created orders in locals; write to dicts ONLY after Submit() succeeds.
@@ -1977,7 +1944,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Build 951.1 Bug-D: null guard -- CreateOrder returns null on broker rejection
                 if (newStop == null)
                 {
-                    Print(string.Format("[MOVE-SYNC] ERROR SubmitBracketReplacement {0}: CreateOrder null (stop)", spec.EntryName));
+                    Print($"[MOVE-SYNC] ERROR SubmitBracketReplacement {spec.EntryName}: CreateOrder null (stop)");
                     EmergencyProtectFollowerAccount(spec.ExecutingAccount, spec.EntryName, null);  // Build 951.5
                     _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
                     return;
@@ -1999,7 +1966,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // Build 951.1 Bug-D: null guard -- CreateOrder returns null on broker rejection
                     if (newTarget == null)
                     {
-                        Print(string.Format("[MOVE-SYNC] ERROR SubmitBracketReplacement {0}: CreateOrder null (T{1})", spec.EntryName, t + 1));
+                        Print($"[MOVE-SYNC] ERROR SubmitBracketReplacement {spec.EntryName}: CreateOrder null (T{t + 1})");
                         EmergencyProtectFollowerAccount(spec.ExecutingAccount, spec.EntryName, toSubmit);  // Build 951.5
                         _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
                         return;
@@ -2011,7 +1978,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (toSubmit.Count == 0)
             {
-                Print(string.Format("[MOVE-SYNC] FSM: No legs to resubmit for Bracket_{0} -- skip", spec.EntryName));
+                Print($"[MOVE-SYNC] FSM: No legs to resubmit for Bracket_{spec.EntryName} -- skip");
                 // Build 951.1 Bug-A: Remove FSM entry so REAPER suppression does not linger.
                 _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
                 return;
@@ -2040,8 +2007,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Build 951.1 Bug-A: TryRemove HERE -- REAPER suppression window ends after successful submit.
                 _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
 
-                Print(string.Format("[MOVE-SYNC] FSM: Bracket_{0} resubmitted: {1} legs",
-                    spec.EntryName, toSubmit.Count));
+                Print($"[MOVE-SYNC] FSM: Bracket_{spec.EntryName} resubmitted: {toSubmit.Count} legs");
             }
             catch (Exception ex)
             {
@@ -2049,8 +2015,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 EmergencyProtectFollowerAccount(spec.ExecutingAccount, spec.EntryName, toSubmit);
                 // Build 951.1: TryRemove on exception to prevent orphaned REAPER suppression.
                 _bracketReplaceSpecs.TryRemove(spec.EntryName, out _);
-                Print(string.Format("[MOVE-SYNC] ERROR SubmitBracketReplacement {0}: {1}",
-                    spec.EntryName, ex.Message));
+                Print($"[MOVE-SYNC] ERROR SubmitBracketReplacement {spec.EntryName}: {ex.Message}");
             }
         }
 

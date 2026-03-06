@@ -34,15 +34,9 @@ namespace NinjaTrader.NinjaScript.Strategies
     {
         #region Apex Compliance Hub Logic (V12.1)
 
-        private DateTime GetComplianceNow()
-        {
-            return ConvertToSelectedTimeZone(DateTime.Now);
-        }
+        private DateTime GetComplianceNow() => ConvertToSelectedTimeZone(DateTime.Now);
 
-        private int GetTradingDayKey(DateTime timeInZone)
-        {
-            return timeInZone.Year * 10000 + timeInZone.Month * 100 + timeInZone.Day;
-        }
+        private int GetTradingDayKey(DateTime timeInZone) => timeInZone.Year * 10000 + timeInZone.Month * 100 + timeInZone.Day;
 
         private void EnsureAccountComplianceTracking(string accountName, DateTime nowInZone)
         {
@@ -100,12 +94,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             UpdateEquityDrawdown(acct.Name, balance);
         }
 
-        private int GetUniqueTradingDays(string accountName)
-        {
-            if (accountTradingDays.TryGetValue(accountName, out var days))
-                return days.Count;
-            return 0;
-        }
+        private int GetUniqueTradingDays(string accountName) =>
+            accountTradingDays.TryGetValue(accountName, out var days) ? days.Count : 0;
 
         private void EnsureDailySummaryCsv()
         {
@@ -327,12 +317,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (consistencyViolation)
             {
                 snapshot.ConsistencySeverity = 2;
-                snapshot.ConsistencyText = string.Format("CONSISTENCY: VIOLATION {0:F0}% ({1})", highestConsistencyRatio, consistencyAccount);
+                snapshot.ConsistencyText = $"CONSISTENCY: VIOLATION {highestConsistencyRatio:F0}% ({consistencyAccount})";
             }
             else
             {
                 snapshot.ConsistencySeverity = 0;
-                snapshot.ConsistencyText = string.Format("CONSISTENCY: OK {0:F0}%", highestConsistencyRatio);
+                snapshot.ConsistencyText = $"CONSISTENCY: OK {highestConsistencyRatio:F0}%";
             }
 
             if (payoutEligibleAll)
@@ -343,7 +333,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             else
             {
                 snapshot.PayoutSeverity = 1;
-                snapshot.PayoutText = string.Format("PAYOUT: NEED {0}D / ${1:F0} ({2})", payoutDaysRemaining, payoutProfitRemaining, payoutAccount);
+                snapshot.PayoutText = $"PAYOUT: NEED {payoutDaysRemaining}D / ${payoutProfitRemaining:F0} ({payoutAccount})";
             }
 
             if (TrailingDrawdownLimit <= 0 || double.IsInfinity(minDrawdownBuffer))
@@ -361,8 +351,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     snapshot.DrawdownSeverity = 0;
 
                 string bufferText = minDrawdownBuffer.ToString("F0");
-                string accountTag = snapshot.DrawdownSeverity > 0 ? string.Format(" ({0})", drawdownAccount) : "";
-                snapshot.DrawdownText = string.Format("DD BUFFER: ${0}{1}", bufferText, accountTag);
+                string accountTag = snapshot.DrawdownSeverity > 0 ? $" ({drawdownAccount})" : "";
+                snapshot.DrawdownText = $"DD BUFFER: ${bufferText}{accountTag}";
             }
 
             return snapshot;
@@ -393,7 +383,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 double buffer = balance - (peak - TrailingDrawdownLimit);
                 if (buffer <= 0)
                 {
-                    Print(string.Format("[COMPLIANCE BLOCKED] Entry suppressed for {0}: Trailing drawdown breached. Buffer=${1:F2}", acctName, buffer));
+                    Print($"[COMPLIANCE BLOCKED] Entry suppressed for {acctName}: Trailing drawdown breached. Buffer=${buffer:F2}");
                     return false;
                 }
             }
@@ -403,7 +393,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 if (accountDailyProfit.TryGetValue(acctName, out double dp) && MaxDailyProfitCap > 0 && dp >= MaxDailyProfitCap)
                 {
-                    Print(string.Format("[COMPLIANCE BLOCKED] Entry suppressed for {0}: Daily profit cap hit. DayPL=${1:F2}", acctName, dp));
+                    Print($"[COMPLIANCE BLOCKED] Entry suppressed for {acctName}: Daily profit cap hit. DayPL=${dp:F2}");
                     return false;
                 }
             }
@@ -434,8 +424,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var burstItem = new QueuedAccountExecution { Account = execAccount, EventArgs = e };
                 _accountExecutionQueue.Enqueue(burstItem);
                 _accountExecutionQueue.Enqueue(burstItem);
-                Print(string.Format("[STRESS_BURST] Injected 2 duplicate execution signals for account {0}",
-                    execAccount?.Name ?? "unknown"));
+                Print($"[STRESS_BURST] Injected 2 duplicate execution signals for account {execAccount?.Name ?? "unknown"}");
                 try { TriggerCustomEvent(o => ProcessAccountExecutionQueue(), null); } catch { }
             }
         }
@@ -489,7 +478,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private void ProcessQueuedExecution(QueuedAccountExecution item)
         {
             if (EnableComplianceHub)
-                Print(string.Format("[COMPLIANCE] Execution Update received for account."));
+                Print("[COMPLIANCE] Execution Update received for account.");
 
             if (EnableComplianceHub && item.Account != null)
             {
@@ -510,13 +499,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                             string fleetKey = kvp.Key;
                             if (activePositions.TryGetValue(fleetKey, out var pos) && pos.IsFollower && !pos.EntryFilled)
                             {
-                                double fleetFillPrice = item.EventArgs.Execution != null ? item.EventArgs.Execution.Price : 0;
+                                double fleetFillPrice = item.EventArgs.Execution?.Price ?? 0;
                                 SymmetryGuardOnFollowerFill(fleetKey, pos, fleetFillPrice);
                             }
                             else if (isStressTestEnabled && activePositions.TryGetValue(fleetKey, out var dupPos) && dupPos.IsFollower && dupPos.EntryFilled)
                             {
                                 // [STRESS_BURST] Dedup guard caught a duplicate burst signal -- bracket already submitted.
-                                Print(string.Format("[STRESS_BURST] DedupGuard HIT: {0} already EntryFilled -- duplicate bracket blocked.", fleetKey));
+                                Print($"[STRESS_BURST] DedupGuard HIT: {fleetKey} already EntryFilled -- duplicate bracket blocked.");
                             }
                             break;
                         }
@@ -525,7 +514,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print(string.Format("[SIMA V12.7] Error in fleet bracket submission: {0}", ex.Message));
+                Print($"[SIMA V12.7] Error in fleet bracket submission: {ex.Message}");
             }
 
             // EMERGENCY FIX [H-15]: After any fleet execution, check if the account is now flat.
@@ -544,7 +533,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         (execOrder.OrderAction == OrderAction.Buy || execOrder.OrderAction == OrderAction.SellShort);
                     if (isEntryFill)
                     {
-                        Print(string.Format("[ProcessQueuedExecution] [1102Y-V4] Entry fill for {0} -- Persistence Gate active, flat-check skipped.", fleetAcct.Name));
+                        Print($"[ProcessQueuedExecution] [1102Y-V4] Entry fill for {fleetAcct.Name} -- Persistence Gate active, flat-check skipped.");
                     }
                     else
                     {
@@ -553,8 +542,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         if (nowFlat && !IsDispatchSyncPending(ExpKey(fleetAcct.Name)))
                         {
                             SetExpectedPositionLocked(ExpKey(fleetAcct.Name), 0);
-                            Print(string.Format("[ProcessQueuedExecution] Fleet {0} is Flat -- expectedPositions cleared for {1}",
-                                fleetAcct.Name, Instrument.FullName));
+                            Print($"[ProcessQueuedExecution] Fleet {fleetAcct.Name} is Flat -- expectedPositions cleared for {Instrument.FullName}");
                         }
                     }
                 }
@@ -576,8 +564,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 StringBuilder sbCompliance = new StringBuilder();
                 sbCompliance.AppendLine("{");
-                sbCompliance.AppendLine("  \"Timestamp\": \"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "\",");
-                sbCompliance.AppendLine("  \"Instrument\": \"" + Instrument.FullName + "\",");
+                sbCompliance.AppendLine($"  \"Timestamp\": \"{DateTime.Now:yyyy-MM-dd HH:mm:ss}\",");
+                sbCompliance.AppendLine($"  \"Instrument\": \"{Instrument.FullName}\",");
                 sbCompliance.AppendLine("  \"Accounts\": [");
 
                 List<Account> accounts = GetComplianceAccounts();
@@ -602,24 +590,24 @@ namespace NinjaTrader.NinjaScript.Strategies
                     double maxDrawdown = accountMaxDrawdown.TryGetValue(acct.Name, out var dd) ? dd : 0;
 
                     sbCompliance.AppendLine("    {");
-                    sbCompliance.AppendLine("      \"Name\": \"" + acct.Name + "\",");
-                    
+                    sbCompliance.AppendLine($"      \"Name\": \"{acct.Name}\",");
+
                     var brokerPos = acct.Positions.FirstOrDefault(p => p.Instrument.FullName == Instrument.FullName);
                     int actualQty = (brokerPos != null && brokerPos.MarketPosition != MarketPosition.Flat)
                         ? (brokerPos.MarketPosition == MarketPosition.Long ? brokerPos.Quantity : -brokerPos.Quantity) : 0;
                     int expectedQty = 0;
                     if (expectedPositions != null) expectedPositions.TryGetValue(ExpKey(acct.Name), out expectedQty);
 
-                    sbCompliance.AppendLine("      \"ActualQty\": " + actualQty + ",");
-                    sbCompliance.AppendLine("      \"ExpectedQty\": " + expectedQty + ",");
-                    sbCompliance.AppendLine("      \"Balance\": " + balance.ToString("F2") + ",");
-                    sbCompliance.AppendLine("      \"DailyPL\": " + dailyPL.ToString("F2") + ",");
-                    sbCompliance.AppendLine("      \"TotalProfit\": " + totalProfit.ToString("F2") + ",");
-                    sbCompliance.AppendLine("      \"TradeCount\": " + tradeCount + ",");
-                    sbCompliance.AppendLine("      \"UniqueDays\": " + uniqueDays + ",");
-                    sbCompliance.AppendLine("      \"MaxDrawdown\": " + maxDrawdown.ToString("F2") + ",");
+                    sbCompliance.AppendLine($"      \"ActualQty\": {actualQty},");
+                    sbCompliance.AppendLine($"      \"ExpectedQty\": {expectedQty},");
+                    sbCompliance.AppendLine($"      \"Balance\": {balance:F2},");
+                    sbCompliance.AppendLine($"      \"DailyPL\": {dailyPL:F2},");
+                    sbCompliance.AppendLine($"      \"TotalProfit\": {totalProfit:F2},");
+                    sbCompliance.AppendLine($"      \"TradeCount\": {tradeCount},");
+                    sbCompliance.AppendLine($"      \"UniqueDays\": {uniqueDays},");
+                    sbCompliance.AppendLine($"      \"MaxDrawdown\": {maxDrawdown:F2},");
                     bool isConnected = acct.Connection?.Status == ConnectionStatus.Connected;
-                    sbCompliance.AppendLine("      \"Connection\": \"" + (isConnected ? "Connected" : "Disconnected") + "\"");
+                    sbCompliance.AppendLine($"      \"Connection\": \"{(isConnected ? "Connected" : "Disconnected")}\"");
                     sbCompliance.Append("    }");
                     count++;
                 }
@@ -639,7 +627,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("[COMPLIANCE] ERROR writing log: " + ex.Message);
+                Print($"[COMPLIANCE] ERROR writing log: {ex.Message}");
             }
         }
 

@@ -20,7 +20,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 Print("----------------------------------------------------------------");
                 Print("V12.002 RISK LOGIC AUDIT (The Testing Rig)");
-                Print("Date: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                Print($"Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
                 Print("----------------------------------------------------------------");
 
                 // Audit Case 1: ATR Rounding (Ceiling Point Rule)
@@ -35,7 +35,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     
                     // Only print every 10th sample to avoid flooding, but audit all
                     if (i % 10 == 0)
-                        Print(string.Format("  Sample {0}: ATR {1:F2} -> RoundUp: {2:F0}pt", i, testAtr, ceilingDistance));
+                        Print($"  Sample {i}: ATR {testAtr:F2} -> RoundUp: {ceilingDistance:F0}pt");
                 }
 
                 Print("");
@@ -56,12 +56,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // Verify if Risk is exceeded: Qty * StopDollars > Risk
                     if (finalQty * stopDollars > riskAmount + 0.01 && finalQty > minContracts)
                     {
-                        Print(string.Format("  !!! RISK BREACH DETECTED: Stop {0:F1}pt | Qty {1} | Cost ${2:F2} > Risk ${3:F0}",
-                            stopPoints, finalQty, finalQty * stopDollars, riskAmount));
+                        Print($"  !!! RISK BREACH DETECTED: Stop {stopPoints:F1}pt | Qty {finalQty} | Cost ${finalQty * stopDollars:F2} > Risk ${riskAmount:F0}");
                     }
 
                     if (i % 10 == 0)
-                        Print(string.Format("  Sample {0}: Stop {1:F1}pt -> Qty: {2} (Cost: ${3:F0})", i, stopPoints, finalQty, finalQty * stopDollars));
+                        Print($"  Sample {i}: Stop {stopPoints:F1}pt -> Qty: {finalQty} (Cost: ${finalQty * stopDollars:F0})");
                 }
 
                 Print("");
@@ -75,13 +74,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 int[] auditQtys   = { 1, 2, 3, 5, 10 };
                 foreach (int count in auditCounts)
                 {
-                    Print(string.Format("  --- Count={0} targets ---", count));
+                    Print($"  --- Count={count} targets ---");
                     foreach (int qty in auditQtys)
                     {
                         int t1, t2, t3, t4, t5;
                         GetTargetDistribution(qty, out t1, out t2, out t3, out t4, out t5, count);
-                        Print(string.Format("    {0} contr -> T1:{1} T2:{2} T3:{3} T4:{4} T5:{5}",
-                            qty, t1, t2, t3, t4, t5));
+                        Print($"    {qty} contr -> T1:{t1} T2:{t2} T3:{t3} T4:{t4} T5:{t5}");
                     }
                 }
 
@@ -96,13 +94,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                         TargetMode tnMode = GetTargetMode(tn);
                         if (tnMode == TargetMode.Runner)
                         {
-                            Print(string.Format("  T{0}: Runner -- no limit order", tn));
+                            Print($"  T{tn}: Runner -- no limit order");
                             continue;
                         }
                         double mag = GetConfiguredTargetMagnitude(tn);
                         double tPrice = CalculateTargetPrice(MarketPosition.Long, auditEntry, tn);
-                        Print(string.Format("  T{0}: mode={1} value={2:F4} ATR={3:F4} -> price={4:F4}",
-                            tn, tnMode, mag, currentATR, tPrice));
+                        Print($"  T{tn}: mode={tnMode} value={mag:F4} ATR={currentATR:F4} -> price={tPrice:F4}");
                     }
                 }
 
@@ -121,8 +118,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     double slipTicks = auditTickSize > 0 ? slipPoints / auditTickSize : 0;
                     bool breach = slipTicks > SymmetryMaxSlippageTicks;
                     
-                    Print(string.Format("  Master: {0:F2} | Fleet: {1:F2} | Slip: {2:F1} ticks | Status: {3}",
-                        masterFill, fleetFill, slipTicks, breach ? "!!! BREACH (SKIP) !!!" : "PASS (ANCHORED)"));
+                    Print($"  Master: {masterFill:F2} | Fleet: {fleetFill:F2} | Slip: {slipTicks:F1} ticks | Status: {(breach ? "!!! BREACH (SKIP) !!!" : "PASS (ANCHORED)")}");
                 }
 
                 Print("");
@@ -155,8 +151,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (Instrument != null)
                     trendAnchor = Instrument.MasterInstrument.RoundToTickSize(trendAnchor);
 
-                Print(string.Format("  TrendSplit: Risk=${0:F0} | Stop={1:F0}pt | Qty={2} -> EMA9:{3} EMA15:{4} | Anchor={5:F2}",
-                    riskAmount, trendStopCeil, trendFinalQty, trendQty9, trendQty15, trendAnchor));
+                Print($"  TrendSplit: Risk=${riskAmount:F0} | Stop={trendStopCeil:F0}pt | Qty={trendFinalQty} -> EMA9:{trendQty9} EMA15:{trendQty15} | Anchor={trendAnchor:F2}");
 
                 double[] trendFleetFills = {
                     trendAnchor,
@@ -169,8 +164,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     double slipPoints = Math.Abs(fleetFill - trendAnchor);
                     double slipTicks = auditTickSize > 0 ? slipPoints / auditTickSize : 0;
                     bool breach = slipTicks > SymmetryMaxSlippageTicks;
-                    Print(string.Format("  TREND_RMA Master: {0:F2} | Fleet: {1:F2} | Slip: {2:F1} ticks | Status: {3}",
-                        trendAnchor, fleetFill, slipTicks, breach ? "!!! BREACH (SKIP) !!!" : "PASS (ANCHORED)"));
+                    Print($"  TREND_RMA Master: {trendAnchor:F2} | Fleet: {fleetFill:F2} | Slip: {slipTicks:F1} ticks | Status: {(breach ? "!!! BREACH (SKIP) !!!" : "PASS (ANCHORED)")}");
                 }
 
                 Print("");
@@ -191,8 +185,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     double slipPoints = Math.Abs(fleetFill - orHighAudit);
                     double slipTicks = auditTickSize > 0 ? slipPoints / auditTickSize : 0;
                     bool breach = slipTicks > SymmetryMaxSlippageTicks;
-                    Print(string.Format("  RETEST LONG Master(OR High): {0:F2} | Fleet: {1:F2} | Slip: {2:F1} ticks | Status: {3}",
-                        orHighAudit, fleetFill, slipTicks, breach ? "!!! BREACH (SKIP) !!!" : "PASS (ANCHORED)"));
+                    Print($"  RETEST LONG Master(OR High): {orHighAudit:F2} | Fleet: {fleetFill:F2} | Slip: {slipTicks:F1} ticks | Status: {(breach ? "!!! BREACH (SKIP) !!!" : "PASS (ANCHORED)")}");
                 }
 
                 double[] retestShortFleetFills = {
@@ -206,8 +199,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     double slipPoints = Math.Abs(fleetFill - orLowAudit);
                     double slipTicks = auditTickSize > 0 ? slipPoints / auditTickSize : 0;
                     bool breach = slipTicks > SymmetryMaxSlippageTicks;
-                    Print(string.Format("  RETEST SHORT Master(OR Low): {0:F2} | Fleet: {1:F2} | Slip: {2:F1} ticks | Status: {3}",
-                        orLowAudit, fleetFill, slipTicks, breach ? "!!! BREACH (SKIP) !!!" : "PASS (ANCHORED)"));
+                    Print($"  RETEST SHORT Master(OR Low): {orLowAudit:F2} | Fleet: {fleetFill:F2} | Slip: {slipTicks:F1} ticks | Status: {(breach ? "!!! BREACH (SKIP) !!!" : "PASS (ANCHORED)")}");
                 }
 
                 Print("");
@@ -216,13 +208,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Rule: ProcessAccountExecutionQueue must drain ALL pending fills on a single strategy thread tick.
                 Print("[AUDIT] CASE 7: SIMA BROADCAST COLLISION SIMULATION");
                 int collisionSamples = 20;
-                Print(string.Format("  Simulating {0} simultaneous multi-account fills...", collisionSamples));
+                Print($"  Simulating {collisionSamples} simultaneous multi-account fills...");
                 
                 // We simulate the queue depth here. In live, OnAccountExecutionUpdate enqueues these.
                 for (int i = 1; i <= collisionSamples; i++)
                 {
                     // This is a conceptual check of the queue mechanics
-                   if (i % 5 == 0) Print(string.Format("  Collision Point {0}: Queue Marshaling Verified (TriggerCustomEvent)", i));
+                   if (i % 5 == 0) Print($"  Collision Point {i}: Queue Marshaling Verified (TriggerCustomEvent)");
                 }
                 Print("  Status: PASS (Cross-thread marshaling uses TriggerCustomEvent to ensure Strategy-Thread isolation)");
 
@@ -250,17 +242,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                             
                             if (!qtyMatch || !stateValid)
                             {
-                                Print(string.Format("  !!! SECURITY BREACH: {0} | StopQty:{1} vs PosQty:{2} | State:{3}",
-                                    name, stopOrder.Quantity, pos.RemainingContracts, stopOrder.OrderState));
+                                Print($"  !!! SECURITY BREACH: {name} | StopQty:{stopOrder.Quantity} vs PosQty:{pos.RemainingContracts} | State:{stopOrder.OrderState}");
                             }
                             else
                             {
-                                Print(string.Format("  Coverage OK: {0} | Protected Qty: {1}", name, stopOrder.Quantity));
+                                Print($"  Coverage OK: {name} | Protected Qty: {stopOrder.Quantity}");
                             }
                         }
                         else
                         {
-                            Print(string.Format("  !!! SECURITY BREACH: {0} has NO STOP ORDER working!", name));
+                            Print($"  !!! SECURITY BREACH: {name} has NO STOP ORDER working!");
                         }
                     }
                 }
@@ -289,16 +280,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                         // Introduce artificial drift under stateLock (mirrors real desync scenario)
                         lock (stateLock) { expectedPositions[acctName] = driftedQty; }
-                        Print(string.Format("  [DESYNC]  Account {0}: expectedPositions drifted {1} -> {2}", acctName, realQty, driftedQty));
+                        Print($"  [DESYNC]  Account {acctName}: expectedPositions drifted {realQty} -> {driftedQty}");
 
                         // Restore immediately -- this is a read-only probe, not a live corruption test
                         lock (stateLock) { expectedPositions[acctName] = realQty; }
-                        Print(string.Format("  [RESTORE] Account {0}: expectedPositions restored to {1}", acctName, realQty));
-                        Print(string.Format("  [VERIFY]  Reaper heartbeat = {0}ms -- any unrestored drift would be detected on next AuditApexPositions() cycle.", ReaperIntervalMs));
+                        Print($"  [RESTORE] Account {acctName}: expectedPositions restored to {realQty}");
+                        Print($"  [VERIFY]  Reaper heartbeat = {ReaperIntervalMs}ms -- any unrestored drift would be detected on next AuditApexPositions() cycle.");
                         driftCount++;
                     }
-                    Print(string.Format("  CASE 9 RESULT: {0} account(s) drift-probed and restored. Reaper window = {1}ms.",
-                        driftCount, ReaperIntervalMs));
+                    Print($"  CASE 9 RESULT: {driftCount} account(s) drift-probed and restored. Reaper window = {ReaperIntervalMs}ms.");
                     Print("  Status: PASS (sub-millisecond drift window confirmed; Reaper will catch real desyncs on next heartbeat)");
                 }
 
@@ -308,7 +298,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("AUDIT ERROR: " + ex.Message);
+                Print($"AUDIT ERROR: {ex.Message}");
             }
         }
 

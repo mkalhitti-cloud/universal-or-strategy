@@ -39,7 +39,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "952.4";  // V12.952.4: IPC REJECT log, REAPER master FSM guard, fill gate, trailing TryAdd qty+snapshot
+        public const string BUILD_TAG = "953.0";  // V12.953.0: C# 8.0 simplifier pass
 
         #region Variables
 
@@ -331,37 +331,28 @@ namespace NinjaTrader.NinjaScript.Strategies
             public string OcoGroupId;
         }
 
-        private TargetMode GetTargetMode(int targetNumber)
+        private TargetMode GetTargetMode(int targetNumber) => targetNumber switch
         {
-            switch (targetNumber)
-            {
-                case 1: return T1Type;
-                case 2: return T2Type;
-                case 3: return T3Type;
-                case 4: return T4Type;
-                case 5: return T5Type;
-                default: return TargetMode.ATR;
-            }
-        }
+            1 => T1Type,
+            2 => T2Type,
+            3 => T3Type,
+            4 => T4Type,
+            5 => T5Type,
+            _ => TargetMode.ATR
+        };
 
-        private bool IsRunnerTarget(int targetNumber)
-        {
-            return GetTargetMode(targetNumber) == TargetMode.Runner;
-        }
+        private bool IsRunnerTarget(int targetNumber) => GetTargetMode(targetNumber) == TargetMode.Runner;
 
         // Universal Ladder: single-arg magnitude lookup -- T(n)Value is the sole source of truth.
-        private double GetConfiguredTargetMagnitude(int targetNumber)
+        private double GetConfiguredTargetMagnitude(int targetNumber) => targetNumber switch
         {
-            switch (targetNumber)
-            {
-                case 1: return Target1Value;
-                case 2: return Target2Value;
-                case 3: return Target3Value;
-                case 4: return Target4Value;
-                case 5: return Target5Value;
-                default: return 0.0;
-            }
-        }
+            1 => Target1Value,
+            2 => Target2Value,
+            3 => Target3Value,
+            4 => Target4Value,
+            5 => Target5Value,
+            _ => 0.0
+        };
 
         // Universal Ladder: single pricing oracle -- reads T(n)Type + Target(n)Value, no role branching.
         private double CalculateTargetPrice(MarketPosition direction, double entryPrice, int targetNumber)
@@ -428,9 +419,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 bool inverted = isLong ? (prices[i] < minValid) : (prices[i] > minValid);
                 if (inverted)
                 {
-                    Print(string.Format(
-                        "[LADDER_GUARD] T{0}={1:F4} is inside T{2}={3:F4} for {4}. Pushing T{0} to {5:F4}.",
-                        i + 1, prices[i], i, prices[i - 1], pos.SignalName, minValid));
+                    Print($"[LADDER_GUARD] T{i + 1}={prices[i]:F4} is inside T{i}={prices[i - 1]:F4} for {pos.SignalName}. Pushing T{i + 1} to {minValid:F4}.");
                     prices[i] = Instrument.MasterInstrument.RoundToTickSize(minValid);
                     anyFixed = true;
                 }
@@ -443,54 +432,42 @@ namespace NinjaTrader.NinjaScript.Strategies
             pos.Target5Price = prices[4];
 
             if (anyFixed)
-                Print(string.Format("[LADDER_GUARD] Ladder corrected for {0}: T1={1:F4} T2={2:F4} T3={3:F4} T4={4:F4} T5={5:F4}",
-                    pos.SignalName, pos.Target1Price, pos.Target2Price, pos.Target3Price, pos.Target4Price, pos.Target5Price));
+                Print($"[LADDER_GUARD] Ladder corrected for {pos.SignalName}: T1={pos.Target1Price:F4} T2={pos.Target2Price:F4} T3={pos.Target3Price:F4} T4={pos.Target4Price:F4} T5={pos.Target5Price:F4}");
         }
 
         // Universal Ladder: pure delegation -- T(n)Type dropdown drives all pricing for all trade types.
-        private double CalculateTargetPriceFromPos(MarketPosition direction, double entryPrice, PositionInfo pos, int targetNumber)
-        {
-            return CalculateTargetPrice(direction, entryPrice, targetNumber);
-        }
+        private double CalculateTargetPriceFromPos(MarketPosition direction, double entryPrice, PositionInfo pos, int targetNumber) =>
+            CalculateTargetPrice(direction, entryPrice, targetNumber);
 
-        private int GetTargetContracts(PositionInfo pos, int targetNumber)
+        private int GetTargetContracts(PositionInfo pos, int targetNumber) => targetNumber switch
         {
-            switch (targetNumber)
-            {
-                case 1: return pos.T1Contracts;
-                case 2: return pos.T2Contracts;
-                case 3: return pos.T3Contracts;
-                case 4: return pos.T4Contracts;
-                case 5: return pos.T5Contracts;
-                default: return 0;
-            }
-        }
+            1 => pos.T1Contracts,
+            2 => pos.T2Contracts,
+            3 => pos.T3Contracts,
+            4 => pos.T4Contracts,
+            5 => pos.T5Contracts,
+            _ => 0
+        };
 
-        private double GetTargetPrice(PositionInfo pos, int targetNumber)
+        private double GetTargetPrice(PositionInfo pos, int targetNumber) => targetNumber switch
         {
-            switch (targetNumber)
-            {
-                case 1: return pos.Target1Price;
-                case 2: return pos.Target2Price;
-                case 3: return pos.Target3Price;
-                case 4: return pos.Target4Price;
-                case 5: return pos.Target5Price;
-                default: return 0.0;
-            }
-        }
+            1 => pos.Target1Price,
+            2 => pos.Target2Price,
+            3 => pos.Target3Price,
+            4 => pos.Target4Price,
+            5 => pos.Target5Price,
+            _ => 0.0
+        };
 
-        private bool IsTargetFilled(PositionInfo pos, int targetNumber)
+        private bool IsTargetFilled(PositionInfo pos, int targetNumber) => targetNumber switch
         {
-            switch (targetNumber)
-            {
-                case 1: return pos.T1Filled;
-                case 2: return pos.T2Filled;
-                case 3: return pos.T3Filled;
-                case 4: return pos.T4Filled;
-                case 5: return pos.T5Filled;
-                default: return false;
-            }
-        }
+            1 => pos.T1Filled,
+            2 => pos.T2Filled,
+            3 => pos.T3Filled,
+            4 => pos.T4Filled,
+            5 => pos.T5Filled,
+            _ => false
+        };
 
         private void MarkTargetFilled(PositionInfo pos, int targetNumber)
         {
@@ -504,18 +481,15 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        private int GetTargetFilledQuantity(PositionInfo pos, int targetNumber)
+        private int GetTargetFilledQuantity(PositionInfo pos, int targetNumber) => targetNumber switch
         {
-            switch (targetNumber)
-            {
-                case 1: return pos.T1FilledQuantity;
-                case 2: return pos.T2FilledQuantity;
-                case 3: return pos.T3FilledQuantity;
-                case 4: return pos.T4FilledQuantity;
-                case 5: return pos.T5FilledQuantity;
-                default: return 0;
-            }
-        }
+            1 => pos.T1FilledQuantity,
+            2 => pos.T2FilledQuantity,
+            3 => pos.T3FilledQuantity,
+            4 => pos.T4FilledQuantity,
+            5 => pos.T5FilledQuantity,
+            _ => 0
+        };
 
         private void SetTargetFilledQuantity(PositionInfo pos, int targetNumber, int filledQuantity)
         {
@@ -615,7 +589,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State == State.SetDefaults)
             {
-                Description = "Universal OR Strategy V12.12 - Build " + BUILD_TAG;
+                Description = $"Universal OR Strategy V12.12 - Build {BUILD_TAG}";
                 Name = "V12_002";
                 Calculate = Calculate.OnPriceChange;  // CRITICAL FIX: Updates on every price tick for real-time trailing
                 EntriesPerDirection = 10;
@@ -800,20 +774,17 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ema200 = this.EMA(200);
                 
                 // V8.2 DEBUG: Verify EMA periods are correct
-                Print(string.Format("EMA INIT DEBUG: ema9.Period={0} ema15.Period={1}", ema9.Period, ema15.Period));
+                Print($"EMA INIT DEBUG: ema9.Period={ema9.Period} ema15.Period={ema15.Period}");
 
                 ResetOR();
 
-                Print(string.Format("UniversalORStrategy V12.14 | {0} | Tick: {1} | PV: ${2}", symbol, tickSize, pointValue));
-                Print(string.Format("Session: {0} - {1} {2} | OR: {3} min",
-                    SessionStart.ToString("HH:mm"), SessionEnd.ToString("HH:mm"), SelectedTimeZone, (int)ORTimeframe));
-                Print(string.Format("Targets: T1={0}({1}) T2={2}({3}) T3={4}({5}) T4={6}({7}) T5={8}({9}) | Stop={10}xOR",
-                    Target1Value, T1Type, Target2Value, T2Type, Target3Value, T3Type, Target4Value, T4Type, Target5Value, T5Type, StopMultiplier));
-                Print(string.Format("RMA: Enabled={0} ATR({1}) Stop={2}xATR",
-                    RMAEnabled, RMAATRPeriod, RMAStopATRMultiplier));
+                Print($"UniversalORStrategy V12.14 | {symbol} | Tick: {tickSize} | PV: ${pointValue}");
+                Print($"Session: {SessionStart:HH:mm} - {SessionEnd:HH:mm} {SelectedTimeZone} | OR: {(int)ORTimeframe} min");
+                Print($"Targets: T1={Target1Value}({T1Type}) T2={Target2Value}({T2Type}) T3={Target3Value}({T3Type}) T4={Target4Value}({T4Type}) T5={Target5Value}({T5Type}) | Stop={StopMultiplier}xOR");
+                Print($"RMA: Enabled={RMAEnabled} ATR({RMAATRPeriod}) Stop={RMAStopATRMultiplier}xATR");
                 Print("V12.9 REPAIRED: Definitive Chart-Click Fix + Logic Refresh");
-                Print(string.Format("TREND: Enabled={0} E1Stop={1}xATR E2Trail={2}xATR", TRENDEnabled, TRENDEntry1ATRMultiplier, TRENDEntry2ATRMultiplier));
-                Print(string.Format("V12 SIMA: {0} | AccountPrefix: \"{1}\"", EnableSIMA ? "ENABLED - Fleet mode" : "DISABLED - Single account", AccountPrefix));
+                Print($"TREND: Enabled={TRENDEnabled} E1Stop={TRENDEntry1ATRMultiplier}xATR E2Trail={TRENDEntry2ATRMultiplier}xATR");
+                Print($"V12 SIMA: {(EnableSIMA ? "ENABLED - Fleet mode" : "DISABLED - Single account")} | AccountPrefix: \"{AccountPrefix}\"");
 
                 // Build 935 [Fix-2]: Symbol-specific log paths prevent file-lock collisions
                 // when MES and MCL instances run concurrently on the same machine.
@@ -831,7 +802,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 Print("+--------------------------------------------------------------+");
                 Print("|          [OK] BMad HARDENED DEPLOYMENT PROTOCOL ACTIVE       |");
-                Print(string.Format("|          Build: {0,-10} |  Sync: ONE SOURCE OF TRUTH    |", BUILD_TAG));
+                Print($"|          Build: {BUILD_TAG,-10} |  Sync: ONE SOURCE OF TRUTH    |");
                 Print("+--------------------------------------------------------------+");
 
                 if (EnableSIMA)
@@ -1052,8 +1023,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     ResetOR();
                     lastResetDate = barTimeInZone.Date;
-                    Print(string.Format("Session Reset: {0} at {1} {2}",
-                        barTimeInZone.Date.ToShortDateString(), currentTime, SelectedTimeZone));
+                    Print($"Session Reset: {barTimeInZone.Date.ToShortDateString()} at {currentTime} {SelectedTimeZone}");
                 }
 
                 // Build OR during window
@@ -1061,8 +1031,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     if (orStartDateTime == DateTime.MinValue)
                     {
-                        Print(string.Format("OR WINDOW START: {0} (Bar time in {1})",
-                            barTimeInZone.ToString("MM/dd/yyyy HH:mm:ss"), SelectedTimeZone));
+                        Print($"OR WINDOW START: {barTimeInZone:MM/dd/yyyy HH:mm:ss} (Bar time in {SelectedTimeZone})");
                     }
 
                     sessionHigh = Math.Max(sessionHigh, High[0]);
@@ -1075,7 +1044,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         orStartDateTime = Time[0];
                         sessionStartDateTime = Time[0];
                         orStartBarIndex = CurrentBar;
-                        Print(string.Format("OR Start tracked - Bar {0}", CurrentBar));
+                        Print($"OR Start tracked - Bar {CurrentBar}");
                     }
                 }
 
@@ -1086,10 +1055,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     orEndDateTime = Time[0];
                     orEndBarIndex = CurrentBar;
 
-                    Print(string.Format("OR COMPLETE at {0}: H={1:F2} L={2:F2} M={3:F2} R={4:F2}",
-                        barTimeInZone.ToString("HH:mm:ss"), sessionHigh, sessionLow, sessionMid, sessionRange));
-                    Print(string.Format("OR Complete: T1={0}({1}) T2={2}({3})",
-                        Target1Value, T1Type, Target2Value, T2Type));
+                    Print($"OR COMPLETE at {barTimeInZone:HH:mm:ss}: H={sessionHigh:F2} L={sessionLow:F2} M={sessionMid:F2} R={sessionRange:F2}");
+                    Print($"OR Complete: T1={Target1Value}({T1Type}) T2={Target2Value}({T2Type})");
 
                     // V8.30: Always draw immediately when OR completes (important event)
                     DrawORBox();
@@ -1132,7 +1099,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("ERROR OnBarUpdate: " + ex.Message);
+                Print($"ERROR OnBarUpdate: {ex.Message}");
             }
         }
 
@@ -1220,7 +1187,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("ERROR DrawORBox: " + ex.Message);
+                Print($"ERROR DrawORBox: {ex.Message}");
             }
         }
 
@@ -1275,7 +1242,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("ERROR ConvertToSelectedTimeZone: " + ex.Message);
+                Print($"ERROR ConvertToSelectedTimeZone: {ex.Message}");
                 return localTime;
             }
         }
@@ -1296,6 +1263,17 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (o.Tag == tag) return o;
             }
             return null;
+        }
+
+        // Build 940 [FIX-1]: Stable OCO hash -- MD5 truncated to 8 hex chars, consistent across NT8 restarts.
+        private string GetStableHash(string input)
+        {
+            using (var md5 = System.Security.Cryptography.MD5.Create())
+            {
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(input);
+                byte[] hash  = md5.ComputeHash(bytes);
+                return BitConverter.ToString(hash, 0, 4).Replace("-", string.Empty).ToUpperInvariant();
+            }
         }
 
         #endregion

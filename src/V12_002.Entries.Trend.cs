@@ -64,7 +64,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (contracts <= 0)
             {
-                Print(string.Format("[TREND] ExecuteTRENDEntry received invalid contracts={0}. Aborting entry.", contracts));
+                Print($"[TREND] ExecuteTRENDEntry received invalid contracts={contracts}. Aborting entry.");
                 return;
             }
 
@@ -73,7 +73,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (BarsInProgress != 0)
             {
                 pendingTRENDEntry = true;
-                Print("TREND entry deferred to next primary bar update (BarsInProgress=" + BarsInProgress + ")");
+                Print($"TREND entry deferred to next primary bar update (BarsInProgress={BarsInProgress})");
                 return;
             }
 
@@ -95,7 +95,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // V11: Trend RMA (9/15 Split) Mode
             if (isTrendRmaMode)
             {
-                Print(string.Format("V12.20: TREND Multiplier -> Mode=RMA (9/15 Split) ATR={0:F2}", currentATR));
+                Print($"V12.20: TREND Multiplier -> Mode=RMA (9/15 Split) ATR={currentATR:F2}");
                 ExecuteTrendSplitEntry();
                 return;
             }
@@ -103,7 +103,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // V8.2: Ensure we have enough bars for EMA calculation
             if (CurrentBar < 20)
             {
-                Print("Cannot execute TREND entry - not enough bars (CurrentBar=" + CurrentBar + ")");
+                Print($"Cannot execute TREND entry - not enough bars (CurrentBar={CurrentBar})");
                 return;
             }
             try
@@ -111,7 +111,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // V8.2: Simple check for enough bars
                 if (CurrentBar < 20)
                 {
-                    Print("Cannot execute TREND entry - not enough bars (CurrentBar=" + CurrentBar + ")");
+                    Print($"Cannot execute TREND entry - not enough bars (CurrentBar={CurrentBar})");
                     return;
                 }
 
@@ -130,14 +130,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                 double ema15Value = ema15[0];
 
                 // V8.10 DEBUG
-                Print(string.Format("TREND DEBUG: ema9[0]={0:F2} ema15[0]={1:F2} Price={2:F2}", ema9Value, ema15Value, currentPrice));
-                Print(string.Format("TREND DEBUG: Close[0]={0:F2} CurrentBar={1} BarsInProgress={2}",
-                    Close[0], CurrentBar, BarsInProgress));
+                Print($"TREND DEBUG: ema9[0]={ema9Value:F2} ema15[0]={ema15Value:F2} Price={currentPrice:F2}");
+                Print($"TREND DEBUG: Close[0]={Close[0]:F2} CurrentBar={CurrentBar} BarsInProgress={BarsInProgress}");
 
                 // Sanity check: EMAs should be different
                 if (Math.Abs(ema9Value - ema15Value) < tickSize * 2)
                 {
-                    Print(string.Format("WARNING: EMAs very close ({0:F2} vs {1:F2})", ema9Value, ema15Value));
+                    Print($"WARNING: EMAs very close ({ema9Value:F2} vs {ema15Value:F2})");
                 }
 
                 // Direction: EMA below price = LONG (buying pullback), EMA above = SHORT
@@ -145,19 +144,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (ema9Value < currentPrice)
                 {
                     direction = MarketPosition.Long;
-                    Print(string.Format("TREND: EMA9 below price ({0:F2} < {1:F2}) = LONG setup", ema9Value, currentPrice));
+                    Print($"TREND: EMA9 below price ({ema9Value:F2} < {currentPrice:F2}) = LONG setup");
                 }
                 else
                 {
                     direction = MarketPosition.Short;
-                    Print(string.Format("TREND: EMA9 above price ({0:F2} > {1:F2}) = SHORT setup", ema9Value, currentPrice));
+                    Print($"TREND: EMA9 above price ({ema9Value:F2} > {currentPrice:F2}) = SHORT setup");
                 }
 
                 // V8.31: Both E1 and E2 now use ATR-based stops from live EMAs
                 double e1MultTrend = isTrendRmaMode ? RMAStopATRMultiplier : TRENDEntry1ATRMultiplier;
                 double e2MultTrend = isTrendRmaMode ? RMAStopATRMultiplier : TRENDEntry2ATRMultiplier;
-                Print(string.Format("V12.20: TREND Multiplier -> Mode={0} E1={1:F2}x E2={2:F2}x",
-                    isTrendRmaMode ? "RMA" : "STD", e1MultTrend, e2MultTrend));
+                Print($"V12.20: TREND Multiplier -> Mode={(isTrendRmaMode ? "RMA" : "STD")} E1={e1MultTrend:F2}x E2={e2MultTrend:F2}x");
 
                 double e1StopDist = CalculateATRStopDistance(e1MultTrend); // V12.30: Ceiling-rounded
                 double e2StopDist = CalculateATRStopDistance(e2MultTrend); // V12.30: Ceiling-rounded
@@ -175,14 +173,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Final validation: totalContracts = sum of entries
                 totalContracts = entry1Qty + entry2Qty;
 
-                Print(string.Format("TREND RISK: Risk=${0} | E1Stop={1:F2} | E2Stop={2:F2} | WeightedDist={3:F2} | TotalQty={4}",
-                    MaxRiskAmount, e1StopDist, e2StopDist, weightedStopDist, totalContracts));
-                Print(string.Format("TREND SPLIT: E1Qty={0} (1/3) | E2Qty={1} (2/3)", entry1Qty, entry2Qty));
+                Print($"TREND RISK: Risk=${MaxRiskAmount} | E1Stop={e1StopDist:F2} | E2Stop={e2StopDist:F2} | WeightedDist={weightedStopDist:F2} | TotalQty={totalContracts}");
+                Print($"TREND SPLIT: E1Qty={entry1Qty} (1/3) | E2Qty={entry2Qty} (2/3)");
 
-                string timestamp = DateTime.Now.ToString("HHmmssffff");
-                string trendGroupId = "TREND_" + timestamp;
-                string entry1Name = trendGroupId + "_E1";
-                string entry2Name = trendGroupId + "_E2";
+                string trendGroupId = $"TREND_{DateTime.Now:HHmmssffff}";
+                string entry1Name = $"{trendGroupId}_E1";
+                string entry2Name = $"{trendGroupId}_E2";
 
                 // V8.31: ENTRY 1: 1/3 at 9 EMA with ATR-based stop from live EMA9
                 // V12.Phase6 [TICK-01]: Round EMA to valid tick increment before broker submission
@@ -229,7 +225,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (entryOrder1 == null)
                 {
                     AddExpectedPositionDeltaLocked(ExpKey(Account.Name), -masterDeltaE1);
-                    Print("[ERROR][1102Y-V3] TREND E1 SubmitOrderUnmanaged NULL for " + entry1Name + " -- rolled back.");
+                    Print($"[ERROR][1102Y-V3] TREND E1 SubmitOrderUnmanaged NULL for {entry1Name} -- rolled back.");
                 }
                 entryOrders[entry1Name] = entryOrder1;
 
@@ -245,16 +241,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (entryOrder2 == null)
                 {
                     AddExpectedPositionDeltaLocked(ExpKey(Account.Name), -masterDeltaE2);
-                    Print("[ERROR][1102Y-V3] TREND E2 SubmitOrderUnmanaged NULL for " + entry2Name + " -- rolled back.");
+                    Print($"[ERROR][1102Y-V3] TREND E2 SubmitOrderUnmanaged NULL for {entry2Name} -- rolled back.");
                 }
                 entryOrders[entry2Name] = entryOrder2;
 
-                Print(string.Format("TREND ORDERS PLACED: {0} Total={1} contracts",
-                    direction == MarketPosition.Long ? "LONG" : "SHORT", totalContracts));
-                Print(string.Format("  E1: {0}@{1:F2} (EMA9) | Stop: {2:F2} ({3}xATR from EMA9)",
-                    entry1Qty, ema9Value, stop1Price, TRENDEntry1ATRMultiplier));
-                Print(string.Format("  E2: {0}@{1:F2} (EMA15) | Stop: {2:F2} ({3}xATR trail)",
-                    entry2Qty, ema15Value, stop2Price, TRENDEntry2ATRMultiplier));
+                Print($"TREND ORDERS PLACED: {(direction == MarketPosition.Long ? "LONG" : "SHORT")} Total={totalContracts} contracts");
+                Print($"  E1: {entry1Qty}@{ema9Value:F2} (EMA9) | Stop: {stop1Price:F2} ({TRENDEntry1ATRMultiplier}xATR from EMA9)");
+                Print($"  E2: {entry2Qty}@{ema15Value:F2} (EMA15) | Stop: {stop2Price:F2} ({TRENDEntry2ATRMultiplier}xATR trail)");
 
                 // V12.1: Smart Dispatch to SIMA Fleet
                 if (EnableSIMA)
@@ -275,7 +268,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("ERROR ExecuteTRENDEntry: " + ex.Message);
+                Print($"ERROR ExecuteTRENDEntry: {ex.Message}");
             }
         }
 
@@ -292,8 +285,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             int t1Qty, t2Qty, t3Qty, t4Qty, t5Qty;
             GetTargetDistribution(contracts, out t1Qty, out t2Qty, out t3Qty, out t4Qty, out t5Qty);
 
-            Print(string.Format("TREND POSITION: {0} contracts -> T1:{1} T2:{2} T3:{3} T4:{4} T5:{5}",
-                contracts, t1Qty, t2Qty, t3Qty, t4Qty, t5Qty));
+            Print($"TREND POSITION: {contracts} contracts -> T1:{t1Qty} T2:{t2Qty} T3:{t3Qty} T4:{t4Qty} T5:{t5Qty}");
 
             var tPos = new PositionInfo
             {
@@ -330,20 +322,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 IsTRENDEntry2 = !isEntry1,
                 LinkedTRENDGroup = groupId,
                 // Build 936 [FIX-2]: Deterministic OCO group ID for broker-native bracket protection.
-                OcoGroupId = "V12_" + entryName.GetHashCode().ToString("X8")
+                OcoGroupId = $"V12_{entryName.GetHashCode():X8}"
             };
             return tPos;
         }
 
-        private void ActivateTRENDMode()
-        {
-            isTRENDModeActive = true;
-        }
+        private void ActivateTRENDMode() => isTRENDModeActive = true;
 
-        private void DeactivateTRENDMode()
-        {
-            isTRENDModeActive = false;
-        }
+        private void DeactivateTRENDMode() => isTRENDModeActive = false;
 
         #endregion
 
@@ -363,7 +349,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (contracts <= 0)
             {
-                Print(string.Format("[TREND] ExecuteTRENDManualEntry received invalid contracts={0}. Aborting entry.", contracts));
+                Print($"[TREND] ExecuteTRENDManualEntry received invalid contracts={contracts}. Aborting entry.");
                 return;
             }
 
@@ -390,7 +376,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 GetTargetDistribution(contracts, out t1Qty, out t2Qty, out t3Qty, out t4Qty, out t5Qty);
 
                 string signalName = direction == MarketPosition.Long ? "TrendMnlLong" : "TrendMnlShort";
-                string entryName = signalName + "_" + DateTime.Now.ToString("HHmmssffff");
+                string entryName = $"{signalName}_{DateTime.Now:HHmmssffff}";
 
                 PositionInfo pos = CreateTRENDPosition(entryName, direction, entryPrice, stopPrice,
                     contracts, true, "TMNL_" + DateTime.Now.Ticks, true);
@@ -411,14 +397,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (entryOrder == null)
                 {
                     AddExpectedPositionDeltaLocked(ExpKey(Account.Name), -masterDeltaTMNL);
-                    Print("[ERROR][1102Y-V3] TRENDManual SubmitOrderUnmanaged NULL for " + entryName + " -- rolled back.");
+                    Print($"[ERROR][1102Y-V3] TRENDManual SubmitOrderUnmanaged NULL for {entryName} -- rolled back.");
                 }
                 entryOrders[entryName] = entryOrder;
 
-                Print(string.Format("V12.27 TREND_MANUAL: {0} {1}@{2:F2} LIMIT | Stop: {3:F2} | 100% Risk",
-                    direction, contracts, entryPrice, stopPrice));
-                Print(string.Format("V12.27 TREND_MANUAL TARGETS: T1:{0}@{1:F2} | T2:{2}@{3:F2} | T3:{4}@{5:F2} | T4:{6}@{7:F2} | T5:{8}@{9:F2}",
-                    t1Qty, pos.Target1Price, t2Qty, pos.Target2Price, t3Qty, pos.Target3Price, t4Qty, pos.Target4Price, t5Qty, pos.Target5Price));
+                Print($"V12.27 TREND_MANUAL: {direction} {contracts}@{entryPrice:F2} LIMIT | Stop: {stopPrice:F2} | 100% Risk");
+                Print($"V12.27 TREND_MANUAL TARGETS: T1:{t1Qty}@{pos.Target1Price:F2} | T2:{t2Qty}@{pos.Target2Price:F2} | T3:{t3Qty}@{pos.Target3Price:F2} | T4:{t4Qty}@{pos.Target4Price:F2} | T5:{t5Qty}@{pos.Target5Price:F2}");
 
                 if (EnableSIMA)
                 {
@@ -434,7 +418,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex)
             {
-                Print("ERROR ExecuteTRENDManualEntry: " + ex.Message);
+                Print($"ERROR ExecuteTRENDManualEntry: {ex.Message}");
             }
         }
 
