@@ -205,38 +205,17 @@ namespace NinjaTrader.NinjaScript.Strategies
             string message = line.Trim();
             if (string.IsNullOrEmpty(message)) return;
 
-            // Handle GET_LAYOUT (Synchronous Response to THIS client only)
-            if (message.StartsWith("GET_LAYOUT"))
+            // Handle GET_LAYOUT (client-scoped response via actor snapshot)
+            if (message.StartsWith("GET_LAYOUT", StringComparison.OrdinalIgnoreCase))
             {
-                // Build 935 [R-04]: Snapshot scalar state under lock; format string outside
-                // to minimize critical section duration (removes string allocation from lock).
-                string snapMode; double snapStop; int snapCount;
-                double snapT1, snapT2, snapT3, snapT4, snapT5;
-                TargetMode snapT1Type, snapT2Type, snapT3Type, snapT4Type, snapT5Type;
-                string snapCit; bool snapTrma, snapRrma;
-                snapMode   = isRMAModeActive ? "RMA" : "OR";
-                snapStop   = isRMAModeActive ? RMAStopATRMultiplier : StopMultiplier;
-                snapCount  = activeTargetCount;
-                snapT1     = Target1Value; snapT1Type = T1Type;
-                snapT2     = Target2Value; snapT2Type = T2Type;
-                snapT3     = Target3Value; snapT3Type = T3Type;
-                snapT4     = Target4Value; snapT4Type = T4Type;
-                snapT5     = Target5Value; snapT5Type = T5Type;
-                snapCit    = ChaseIfTouchPoints ?? "0";
-                snapTrma   = isTrendRmaMode;
-                snapRrma   = isRetestRmaMode;
-                string configResponse = string.Format(
-                    "CONFIG|{0}|COUNT:{1};T1:{2};T1TYPE:{3};T2:{4};T2TYPE:{5};T3:{6};T3TYPE:{7};T4:{8};T4TYPE:{9};T5:{10};T5TYPE:{11};STR:{12};STRTYPE:ATR;MAX:{13};CIT:{14};OT:Limit;TRMA:{15};RRMA:{16};\n",
-                    snapMode, snapCount, snapT1, ToIpcTargetMode(snapT1Type),
-                    snapT2, ToIpcTargetMode(snapT2Type),
-                    snapT3, ToIpcTargetMode(snapT3Type),
-                    snapT4, ToIpcTargetMode(snapT4Type),
-                    snapT5, ToIpcTargetMode(snapT5Type),
-                    snapStop, MaxRiskAmount, snapCit,
-                    snapTrma ? "1" : "0", snapRrma ? "1" : "0");
-                byte[] responseBytes = Encoding.UTF8.GetBytes(configResponse);
-                stream.Write(responseBytes, 0, responseBytes.Length);
-                stream.Flush();
+                try
+                {
+                    TriggerCustomEvent(o => Enqueue(ctx => ctx.SendLayoutResponseToClient(clientId, stream)), null);
+                }
+                catch (Exception ex)
+                {
+                    Print(string.Format("V12 IPC REJECT [client={0}] GET_LAYOUT scheduling failed: {1}", clientId, ex.Message));
+                }
                 return;
             }
 
@@ -254,6 +233,60 @@ namespace NinjaTrader.NinjaScript.Strategies
                 TriggerCustomEvent(o => ProcessIpcCommands(), null);
             }
             catch { }
+        }
+
+        private void SendLayoutResponseToClient(int clientId, NetworkStream stream)
+        {
+            string snapMode = isRMAModeActive ? "RMA" : "OR";
+            double snapStop = isRMAModeActive ? RMAStopATRMultiplier : StopMultiplier;
+            int snapCount = activeTargetCount;
+            double snapT1 = Target1Value;
+            double snapT2 = Target2Value;
+            double snapT3 = Target3Value;
+            double snapT4 = Target4Value;
+            double snapT5 = Target5Value;
+            TargetMode snapT1Type = T1Type;
+            TargetMode snapT2Type = T2Type;
+            TargetMode snapT3Type = T3Type;
+            TargetMode snapT4Type = T4Type;
+            TargetMode snapT5Type = T5Type;
+            string snapCit = ChaseIfTouchPoints ?? "0";
+            bool snapTrma = isTrendRmaMode;
+            bool snapRrma = isRetestRmaMode;
+
+            string configResponse = string.Format(
+                "CONFIG|{0}|COUNT:{1};T1:{2};T1TYPE:{3};T2:{4};T2TYPE:{5};T3:{6};T3TYPE:{7};T4:{8};T4TYPE:{9};T5:{10};T5TYPE:{11};STR:{12};STRTYPE:ATR;MAX:{13};CIT:{14};OT:Limit;TRMA:{15};RRMA:{16};\n",
+                snapMode, snapCount, snapT1, ToIpcTargetMode(snapT1Type),
+                snapT2, ToIpcTargetMode(snapT2Type),
+                snapT3, ToIpcTargetMode(snapT3Type),
+                snapT4, ToIpcTargetMode(snapT4Type),
+                snapT5, ToIpcTargetMode(snapT5Type),
+                snapStop, MaxRiskAmount, snapCit,
+                snapTrma ? "1" : "0", snapRrma ? "1" : "0");
+
+            SendIpcResponseToClient(clientId, stream, configResponse);
+        }
+
+        private void SendIpcResponseToClient(int clientId, NetworkStream stream, string response)
+        {
+            if (stream == null || string.IsNullOrEmpty(response)) return;
+
+            try
+            {
+                if (!stream.CanWrite) return;
+
+                byte[] responseBytes = Encoding.UTF8.GetBytes(response);
+                stream.Write(responseBytes, 0, responseBytes.Length);
+                stream.Flush();
+            }
+            catch (Exception ex)
+            {
+                Print(string.Format("V12 IPC: Failed to send client response [client={0}]: {1}", clientId, ex.Message));
+                if (connectedClients != null && connectedClients.TryRemove(clientId, out var staleClient))
+                {
+                    try { staleClient.Close(); } catch { }
+                }
+            }
         }
 
         private void StopIpcServer()

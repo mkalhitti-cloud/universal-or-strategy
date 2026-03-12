@@ -246,7 +246,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         ChangeOrder(entryOrder, newQty, entryOrder.LimitPrice, entryOrder.StopPrice);
                         // [M8.2 SIZING-SYNC]: Update expectedPositions only after ChangeOrder succeeds.
                         // A failed ChangeOrder (caught below) will not leave a stale expectedPositions delta.
-                        AddExpectedPositionDeltaLocked(ExpKey(acctName), expectedDelta);
+                        AddExpectedPositionDelta(ExpKey(acctName), expectedDelta);
                         // V12.Phantom-Fix [FIX-3]: Log only when a ChangeOrder is actually sent.
                         // Unconditional Print on every bar created hundreds of no-op log lines
                         // while a Limit order sat pending fill on tick/renko charts.

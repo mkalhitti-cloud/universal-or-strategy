@@ -1,6 +1,6 @@
 // V12.17 THREADING FIX: Reaper (Safety Hub) Module
 // REAPER Module (Extracted)
-// FIX: acct.Flatten() calls moved from background thread -> strategy thread via TriggerCustomEvent
+// FIX: audit work is actor-enqueued so REAPER state reads run on the strategy thread
 using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
@@ -49,7 +49,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <summary>Build 946: Track consecutive failed repair attempts per account where PositionInfo is missing.</summary>
         private readonly ConcurrentDictionary<string, int> _reaperOrphanRepairCount = new ConcurrentDictionary<string, int>();
 
-        // Stamps per-account fill grace. Call from SetExpectedPositionLocked when applying a non-zero delta.
+        // Stamps per-account fill grace. Call from SetExpectedPosition when applying a non-zero delta.
         private void StampAccountFillGrace(string expKey)
         {
             _accountFillGraceTicks[expKey] = DateTime.UtcNow.Ticks;
@@ -154,7 +154,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // V12.Hardening: Only audit in live/realtime -- skip historical replay
                     if (State != State.Realtime) continue;
 
-                    AuditApexPositions();
+                    Enqueue(ctx => ctx.AuditApexPositions());
                 }
                 catch (ThreadAbortException)
                 {

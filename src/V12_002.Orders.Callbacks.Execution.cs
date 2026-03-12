@@ -102,7 +102,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else
                 {
-                    SetExpectedPositionLocked(flatExpKey, 0);
+                    SetExpectedPosition(flatExpKey, 0);
                     Print($"[OnPositionUpdate] expectedPositions cleared for {flatExpKey} (position flat)");
                 }
             }

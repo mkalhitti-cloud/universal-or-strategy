@@ -69,78 +69,65 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
 
-        // V12.1101E [F-06]: Serialize expectedPositions mutations so Reaper never observes partial state.
-        private void AddExpectedPositionDeltaLocked(string accountName, int delta)
+        // V12.1101E [F-06]: REAPER audit is actor-enqueued, so expectedPositions helpers run lock-free on the strategy thread.
+        private void AddExpectedPositionDelta(string accountName, int delta)
         {
-            // B966: No internal Enqueue. Called from strategy-thread (Enqueue at call site) AND reaperThread
-            // (ConcurrentDictionary single-write is safe; double-wrap avoided per $PLAN_AUDIT guard).
+            // B966: No internal Enqueue. Callers already execute on the strategy thread.
             if (string.IsNullOrEmpty(accountName) || expectedPositions == null) return;
-            lock (stateLock)
+            int oldVal = 0;
+            expectedPositions.TryGetValue(accountName, out oldVal);
+            int newVal = oldVal + delta;
+            expectedPositions[accountName] = newVal;
+            // [Phase 8.2 Part 3 - ACCOUNT_SYNC] Trace every mutation for desync audits.
+            Print(string.Format("[ACCOUNT_SYNC] {0} expected: {1} -> {2}", accountName, oldVal, newVal));
+            if (delta != 0)
             {
-                int oldVal = 0;
-                expectedPositions.TryGetValue(accountName, out oldVal);
-                int newVal = oldVal + delta;
-                expectedPositions[accountName] = newVal;
-                // [Phase 8.2 Part 3 - ACCOUNT_SYNC] Trace every mutation for desync audits.
-                Print(string.Format("[ACCOUNT_SYNC] {0} expected: {1} -> {2}", accountName, oldVal, newVal));
-                if (delta != 0)
-                {
-                    Interlocked.Exchange(ref _lastExpectedPositionSetTicks, DateTime.UtcNow.Ticks);
-                    if (newVal != 0)
-                        StampAccountFillGrace(accountName);
-                }
-            }
-        }
-
-        // V12.1101E [F-06]: Shared AddOrUpdate wrapper with stateLock serialization.
-        private void AddOrUpdateExpectedPositionLocked(string accountName, int addValue, Func<int, int> updateExisting)
-        {
-            // B966: No internal Enqueue. Thread-safe via ConcurrentDictionary.AddOrUpdate atomic semantics.
-            if (string.IsNullOrEmpty(accountName) || expectedPositions == null || updateExisting == null) return;
-            lock (stateLock)
-            {
-                expectedPositions.AddOrUpdate(accountName, addValue, (k, v) => updateExisting(v));
-            }
-        }
-
-        // V12.1101E [F-06]: Serialized set for expectedPositions.
-        private void SetExpectedPositionLocked(string accountName, int value)
-        {
-            // B966: No internal Enqueue. Called from both Enqueue-wrapped call sites and reaperThread.
-            if (string.IsNullOrEmpty(accountName) || expectedPositions == null) return;
-            lock (stateLock)
-            {
-                expectedPositions[accountName] = value;
-                if (value == 0)
-                    _dispatchSyncPendingExpKeys.TryRemove(accountName, out _); // [B967-FIX-02]
-                // REAP-01: Stamp timestamp when a position is reserved so REAPER can apply
-                // a grace window and avoid false "Critical Desync" during the broker-confirm lag.
-                // Build 935 [REAPER-B935-002]: Also stamp per-account dictionary for scoped grace.
-                if (value != 0)
-                {
-                    Interlocked.Exchange(ref _lastExpectedPositionSetTicks, DateTime.UtcNow.Ticks);
+                Interlocked.Exchange(ref _lastExpectedPositionSetTicks, DateTime.UtcNow.Ticks);
+                if (newVal != 0)
                     StampAccountFillGrace(accountName);
-                }
+            }
+        }
+
+        // V12.1101E [F-06]: Shared AddOrUpdate wrapper. Callers already execute on the strategy thread.
+        private void AddOrUpdateExpectedPosition(string accountName, int addValue, Func<int, int> updateExisting)
+        {
+            // B966: No internal Enqueue. Callers already execute on the strategy thread.
+            if (string.IsNullOrEmpty(accountName) || expectedPositions == null || updateExisting == null) return;
+            expectedPositions.AddOrUpdate(accountName, addValue, (k, v) => updateExisting(v));
+        }
+
+        // V12.1101E [F-06]: Strategy-thread set for expectedPositions.
+        private void SetExpectedPosition(string accountName, int value)
+        {
+            // B966: No internal Enqueue. Callers already execute on the strategy thread.
+            if (string.IsNullOrEmpty(accountName) || expectedPositions == null) return;
+            expectedPositions[accountName] = value;
+            if (value == 0)
+                _dispatchSyncPendingExpKeys.TryRemove(accountName, out _); // [B967-FIX-02]
+            // REAP-01: Stamp timestamp when a position is reserved so REAPER can apply
+            // a grace window and avoid false "Critical Desync" during the broker-confirm lag.
+            // Build 935 [REAPER-B935-002]: Also stamp per-account dictionary for scoped grace.
+            if (value != 0)
+            {
+                Interlocked.Exchange(ref _lastExpectedPositionSetTicks, DateTime.UtcNow.Ticks);
+                StampAccountFillGrace(accountName);
             }
         }
 
         // Build 930.1 [P1]: Delta rollback for cascade cancellations.
         // Subtracts or adds the cancelled entry's quantity to the signed total.
         // Preserves expected position for other active entries on the same account.
-        private void DeltaExpectedPositionLocked(string accountName, int delta)
+        private void DeltaExpectedPosition(string accountName, int delta)
         {
-            // B966: No internal Enqueue. All call sites already inside Enqueue (via ProcessOnOrderUpdate).
+            // B966: No internal Enqueue. Callers already execute on the strategy thread.
             if (string.IsNullOrEmpty(accountName) || expectedPositions == null) return;
-            lock (stateLock)
-            {
-                int current;
-                expectedPositions.TryGetValue(accountName, out current);
-                int updated = current + delta;
-                expectedPositions[accountName] = updated;
-                Print(string.Format("[ACCOUNT_SYNC] {0} expected delta: {1} + ({2}) = {3}", accountName, current, delta, updated));
-                if (delta != 0)
-                    Interlocked.Exchange(ref _lastExpectedPositionSetTicks, DateTime.UtcNow.Ticks);
-            }
+            int current;
+            expectedPositions.TryGetValue(accountName, out current);
+            int updated = current + delta;
+            expectedPositions[accountName] = updated;
+            Print(string.Format("[ACCOUNT_SYNC] {0} expected delta: {1} + ({2}) = {3}", accountName, current, delta, updated));
+            if (delta != 0)
+                Interlocked.Exchange(ref _lastExpectedPositionSetTicks, DateTime.UtcNow.Ticks);
         }
 
         private void MarkDispatchSyncPending(string expectedKey)

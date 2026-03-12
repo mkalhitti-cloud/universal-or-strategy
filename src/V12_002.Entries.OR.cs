@@ -208,7 +208,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // Build 1102Y-V3 [MS-03]: Register Master's expected position BEFORE StopMarket entry.
                 int masterDeltaOR = (direction == MarketPosition.Long) ? contracts : -contracts;
-                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaOR); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaOR); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
 
                 // Submit entry order as stop market (breakout entry)
                 Order entryOrder = direction == MarketPosition.Long
@@ -219,7 +219,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (entryOrder == null)
                 {
                     // Build 1102Y-V3 [MS-03 ROLLBACK]: Submit failed -- undo Order Ledger reservation.
-                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaOR); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaOR); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
                     Print("[ENTRY_ABORT] OR SubmitOrderUnmanaged returned NULL for " + entryName + " -- Master expected rolled back. Fleet dispatch aborted.");
                     return;
                 }

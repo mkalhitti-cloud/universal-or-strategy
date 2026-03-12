@@ -101,7 +101,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             }
 
                             // Reset expected position
-                            { var _acct966flat = ExpKey(acct.Name); Enqueue(ctx => ctx.SetExpectedPositionLocked(_acct966flat, 0)); }
+                            { var _acct966flat = ExpKey(acct.Name); Enqueue(ctx => ctx.SetExpectedPosition(_acct966flat, 0)); }
                         }
                         catch (Exception ex)
                         {
@@ -159,7 +159,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             Print($"[SIMA] V12.12 Master flatten: {masterClosedCount} position(s) on {Account.Name} (outside prefix filter)");
                         }
 
-                        { var _acct966mflat = ExpKey(Account.Name); Enqueue(ctx => ctx.SetExpectedPositionLocked(_acct966mflat, 0)); }
+                        { var _acct966mflat = ExpKey(Account.Name); Enqueue(ctx => ctx.SetExpectedPosition(_acct966mflat, 0)); }
                     }
                     catch (Exception ex)
                     {
@@ -241,7 +241,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
 
                 // Step 3: Clear ghost memory so REAPER does not trigger a second flatten.
-                { var _acct966emg = ExpKey(acct.Name); Enqueue(ctx => ctx.SetExpectedPositionLocked(_acct966emg, 0)); }
+                { var _acct966emg = ExpKey(acct.Name); Enqueue(ctx => ctx.SetExpectedPosition(_acct966emg, 0)); }
             }
             catch (Exception ex)
             {
@@ -315,7 +315,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             Print($"[SIMA] [OK] Graceful Close: {qty} {position.MarketPosition} on {acct.Name}");
                         }
 
-                        { var _acct966cpo = ExpKey(acct.Name); Enqueue(ctx => ctx.SetExpectedPositionLocked(_acct966cpo, 0)); }
+                        { var _acct966cpo = ExpKey(acct.Name); Enqueue(ctx => ctx.SetExpectedPosition(_acct966cpo, 0)); }
                     }
                     catch (Exception ex)
                     {
@@ -367,7 +367,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             Print($"[SIMA] ??-- Graceful Close FAILED: Master {qty} {position.MarketPosition} (SubmitOrderUnmanaged returned null)");
                         }
                     }
-                    { var _acct966cpm = ExpKey(Account.Name); Enqueue(ctx => ctx.SetExpectedPositionLocked(_acct966cpm, 0)); }
+                    { var _acct966cpm = ExpKey(Account.Name); Enqueue(ctx => ctx.SetExpectedPosition(_acct966cpm, 0)); }
                 }
 
                 Print($"[SIMA] ====== GLOBAL POSITIONS CLOSE COMPLETE: {closeCount} positions closed ======");

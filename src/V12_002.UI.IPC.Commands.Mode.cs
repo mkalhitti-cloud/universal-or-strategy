@@ -230,7 +230,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 if (parts.Length > 1 && int.TryParse(parts[1], out int targetCount))
                 {
-                    // FIX-B [Build 1102Z]: Clamp + lock to prevent IPC race with SIMA dispatch loop.
+                    // FIX-B [Build 1102Z]: Clamp inside the actor to prevent IPC race with SIMA dispatch loop.
                     int clamped = Math.Max(1, Math.Min(5, targetCount));
                     activeTargetCount = clamped;
                     Print(string.Format("V12.Phase8.3: SET_TARGETS = {0} targets (clamped from {1}; minContracts preserved at {2})", clamped, targetCount, minContracts));

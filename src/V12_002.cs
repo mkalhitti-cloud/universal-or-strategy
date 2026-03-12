@@ -41,7 +41,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "972";  // V12.972: Critical repair and audit follow-up
+        public const string BUILD_TAG = "976";  // V12.976: UI & IPC Actorization (Phase 4 Complete)
 
         #region Variables
 
@@ -276,6 +276,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private string dailySummaryCsvPath;
         private DateTime lastDailySummaryCheck = DateTime.MinValue;
         private readonly object dailySummaryLock = new object();
+        private readonly object stateLock = new object();
 
         // [BUILD 924 - Fix C] CIT suppression flag: set true during PropagateMasterPriceMove,
         // cleared in finally block. Prevents CIT from market-firing freshly resubmitted follower

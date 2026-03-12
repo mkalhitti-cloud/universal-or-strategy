@@ -174,7 +174,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // Build 1102Y-V3 [MS-07]: Register Master expected BEFORE Limit entry.
                 int masterDeltaRetest = (direction == MarketPosition.Long) ? contracts : -contracts;
-                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaRetest); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaRetest); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
 
                 // Submit LIMIT order at OR High/Low (NO buffer)
                 Order entryOrder = direction == MarketPosition.Long
@@ -183,7 +183,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (entryOrder == null)
                 {
-                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaRetest); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaRetest); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
                     activePositions.TryRemove(entryName, out _); // [Build 956]: Clean pre-registered state on null submit.
                     Print("[ERROR][1102Y-V3] RETEST SubmitOrderUnmanaged NULL for " + entryName + " -- rolled back.");
                     return; // [Build 954]: Do not latch session or dispatch SIMA for a failed order.
@@ -311,7 +311,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // Build 1102Y-V3 [MS-08]: Register Master expected BEFORE Limit entry.
                 int masterDeltaRetestMnl = (direction == MarketPosition.Long) ? contracts : -contracts;
-                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaRetestMnl); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaRetestMnl); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
 
                 // Submit LIMIT order at manual price
                 Order entryOrder = direction == MarketPosition.Long
@@ -320,7 +320,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (entryOrder == null)
                 {
-                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaRetestMnl); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaRetestMnl); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
                     activePositions.TryRemove(entryName, out _); // [Build 956]: Clean pre-registered state on null submit.
                     Print("[ERROR][1102Y-V3] RETEST_MANUAL SubmitOrderUnmanaged NULL for " + entryName + " -- rolled back.");
                     return; // [Build 956]: Do not assign null entryOrder or dispatch SIMA for a failed order.

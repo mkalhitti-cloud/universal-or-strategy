@@ -52,7 +52,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 while (_pendingFleetDispatches.TryDequeue(out stale))
                 {
                     if (stale.ReservedDelta != 0)
-                        AddExpectedPositionDeltaLocked(stale.ExpectedKey, -stale.ReservedDelta);
+                        AddExpectedPositionDelta(stale.ExpectedKey, -stale.ReservedDelta);
                     ClearDispatchSyncPending(stale.ExpectedKey);
                 }
                 Print("[PUMP] Abort: SIMA inactive or flatten running. Queue drained with delta rollback.");
@@ -78,7 +78,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (!syncCleared)
                     ClearDispatchSyncPending(req.ExpectedKey);
                 if (req.ReservedDelta != 0)
-                    AddExpectedPositionDeltaLocked(req.ExpectedKey, -req.ReservedDelta);
+                    AddExpectedPositionDelta(req.ExpectedKey, -req.ReservedDelta);
                 // Full tracking-dict cleanup -- mirrors ExecuteSmartDispatchEntry [F-01] catch block.
                 activePositions.TryRemove(req.FleetEntryName, out _);
                 entryOrders.TryRemove(req.FleetEntryName, out _);
@@ -151,7 +151,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             acct.Name, isMasterWaiting ? "Master working" : (hasPendingRepairOrder ? "repair in-flight" : "activePos present")));
                     else
                     {
-                        { var _acct966h13 = ExpKey(acct.Name); Enqueue(ctx => ctx.SetExpectedPositionLocked(_acct966h13, 0)); }
+                        { var _acct966h13 = ExpKey(acct.Name); Enqueue(ctx => ctx.SetExpectedPosition(_acct966h13, 0)); }
                         dispatchLog.AppendLine(string.Format("[DISPATCH] H-13: Stale expectedPos cleared for {0} (broker Flat)", acct.Name));
                     }
                 }

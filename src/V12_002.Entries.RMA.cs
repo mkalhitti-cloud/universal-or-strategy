@@ -96,7 +96,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 List<string> masterEntryNames = new List<string> { entry1Name };
 
                 int masterDeltaE1 = (direction == MarketPosition.Long) ? qty9 : -qty9;
-                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaE1); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaE1); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
 
                 Order entryOrder1 = direction == MarketPosition.Long
                     ? SubmitOrderUnmanaged(0, OrderAction.Buy, OrderType.Limit, qty9, e9, 0, "", entry1Name)
@@ -105,7 +105,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // A1-1/A2-1: Null-abort + stateLock wrap for E1 (Build 960 audit fix)
                 if (entryOrder1 == null)
                 {
-                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaE1); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaE1); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
                     Print("[ENTRY_ABORT] TrendSplit E1 SubmitOrderUnmanaged returned null for " + entry1Name + ". Rolling back.");
                     return;
                 }
@@ -122,7 +122,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     linkedTRENDEntries[entry2Name] = entry1Name;
 
                     int masterDeltaE2 = (direction == MarketPosition.Long) ? qty15 : -qty15;
-                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaE2); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaE2); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
 
                     Order entryOrder2 = direction == MarketPosition.Long
                         ? SubmitOrderUnmanaged(0, OrderAction.Buy, OrderType.Limit, qty15, e15, 0, "", entry2Name)
@@ -131,7 +131,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // A1-1/A2-1: Null-abort + stateLock wrap for E2 (Build 960 audit fix)
                     if (entryOrder2 == null)
                     {
-                        { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaE2); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                        { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaE2); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
                         // Remove partnership references; HandleOrderCancelled will teardown E1 state naturally.
                         string removedPartner;
                         linkedTRENDEntries.TryRemove(entry1Name, out removedPartner);

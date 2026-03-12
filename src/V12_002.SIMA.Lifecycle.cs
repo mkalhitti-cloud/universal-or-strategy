@@ -35,13 +35,7 @@ namespace NinjaTrader.NinjaScript.Strategies
     {
         #region V12 SIMA Lifecycle
 
-        /// <summary>
-        /// V12.Phase6 [LIFECYCLE]: Centralized SIMA state transition. Handles full lifecycle:
-        /// enable ??' enumerate accounts + subscribe handlers + hydrate positions + start Reaper
-        /// disable ??' stop Reaper + unsubscribe handlers + clear fleet state
-        /// Replaces raw EnableSIMA flag toggles to prevent handler leaks and Reaper state mismatches.
-        /// </summary>
-        private void ApplySimaState(bool enabled)
+        private void ProcessApplySimaState(bool enabled)
         {
             // V12.Audit [H-10]: If a previous toggle timed out, attempt retry now.
             // We re-enter with the same `enabled` argument that was pending.
@@ -61,33 +55,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             try
             {
                 if (enabled)
-                {
-                    EnumerateApexAccounts(); // Unsubs first (idempotent), then re-subscribes + hydrates
-                    if (ReaperAuditEnabled)
-                        StartReaperAudit();
-                    Print("[SIMA LIFECYCLE] SIMA ENABLED -- fleet enumerated, Reaper started");
-                }
+                    ProcessInitializeSIMA();
                 else
-                {
-                    CancelAllV12GtcOrders(false); // [BUILD 948] GTC sweep before teardown -- skip accounts with open positions
-                    StopReaperAudit();
-                    UnsubscribeFromFleetAccounts();
-                    // A3-1: Drain ghost dispatch queue on SIMA disable (Build 960 audit fix)
-                    // B957/F2: Rollback ReservedDelta and clear dispatch-sync barrier for each discarded request.
-                    {
-                        FleetDispatchRequest ignored;
-                        while (_pendingFleetDispatches.TryDequeue(out ignored))
-                        {
-                            if (ignored.ReservedDelta != 0)
-                                AddExpectedPositionDeltaLocked(ignored.ExpectedKey, -ignored.ReservedDelta);
-                            ClearDispatchSyncPending(ignored.ExpectedKey);
-                        }
-                        Print("[SIMA] Dispatch queue cleared on shutdown with delta rollback.");
-                    }
-                    Print("[SIMA LIFECYCLE] SIMA DISABLED -- Reaper stopped, handlers unsubscribed");
-                }
+                    ProcessShutdownSIMA();
+
                 EnableSIMA = enabled;
-                // V12.Audit [H-10]: Toggle completed successfully ??" clear any pending-retry flag.
+                // V12.Audit [H-10]: Toggle completed successfully ?? clear any pending-retry flag.
                 _simaTogglePending = false;
             }
             finally
@@ -96,9 +69,37 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        private void ProcessInitializeSIMA()
+        {
+            EnumerateApexAccounts(); // Unsubs first (idempotent), then re-subscribes + hydrates
+            if (ReaperAuditEnabled)
+                StartReaperAudit();
+            Print("[SIMA LIFECYCLE] SIMA ENABLED -- fleet enumerated, Reaper started");
+        }
+
+        private void ProcessShutdownSIMA()
+        {
+            CancelAllV12GtcOrders(false); // [BUILD 948] GTC sweep before teardown -- skip accounts with open positions
+            StopReaperAudit();
+            UnsubscribeFromFleetAccounts();
+            // A3-1: Drain ghost dispatch queue on SIMA disable (Build 960 audit fix)
+            // B957/F2: Rollback ReservedDelta and clear dispatch-sync barrier for each discarded request.
+            {
+                FleetDispatchRequest ignored;
+                while (_pendingFleetDispatches.TryDequeue(out ignored))
+                {
+                    if (ignored.ReservedDelta != 0)
+                        AddExpectedPositionDelta(ignored.ExpectedKey, -ignored.ReservedDelta);
+                    ClearDispatchSyncPending(ignored.ExpectedKey);
+                }
+                Print("[SIMA] Dispatch queue cleared on shutdown with delta rollback.");
+            }
+            Print("[SIMA LIFECYCLE] SIMA DISABLED -- Reaper stopped, handlers unsubscribed");
+        }
+
         private void EnumerateApexAccounts()
         {
-            UnsubscribeFromFleetAccounts(); // V12.1101E [A-4]: Always unsub first ??" idempotent guard against handler accumulation
+            UnsubscribeFromFleetAccounts(); // V12.1101E [A-4]: Always unsub first ?? idempotent guard against handler accumulation
             simaAccountCount = 0;
             Print("[SIMA] ===================================================");
             Print("[SIMA] V12.12 - Fleet Symmetry & Safety Hardening Initializing");
@@ -110,10 +111,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (IsFleetAccount(acct))
                 {
                     simaAccountCount++;
-                    { var _acct966init = ExpKey(acct.Name); Enqueue(ctx => ctx.SetExpectedPositionLocked(_acct966init, 0)); } // Initialize expected position as flat
+                    { var _acct966init = ExpKey(acct.Name); SetExpectedPosition(_acct966init, 0); } // Initialize expected position as flat
                     accountDailyProfit[acct.Name] = 0; // Initialize daily profit
                     EnsureAccountComplianceTracking(acct.Name, GetComplianceNow());
-                    activeFleetAccounts[acct.Name] = false; // V12.8 SIMA: Default to INACTIVE ??" wait for Fleet Manager / IPC to enable
+                    activeFleetAccounts[acct.Name] = false; // V12.8 SIMA: Default to INACTIVE ?? wait for Fleet Manager / IPC to enable
 
                     // V12.7: Always subscribe to execution updates for fleet bracket management
                     // (Also used by ComplianceHub for P/L tracking)
@@ -167,7 +168,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             int qty = pos.MarketPosition == MarketPosition.Long ? pos.Quantity : -pos.Quantity;
                             // V12.Phase7 [M-10]: Use AddOrUpdate instead of direct assignment to prevent
                             // overwriting if called multiple times or during concurrent access.
-                            AddOrUpdateExpectedPositionLocked(ExpKey(acct.Name), qty, v => qty);
+                            AddOrUpdateExpectedPosition(ExpKey(acct.Name), qty, v => qty);
                             Print($"[SIMA HYDRATE] {acct.Name}: Seeded expected={qty} from broker ({pos.MarketPosition} {pos.Quantity})");
                             hydratedCount++;
                             break;
@@ -188,7 +189,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Derives the original entry key by stripping the well-known order-name prefix (e.g. "Stop_" -> stopOrders).
         /// Sets _orderAdoptionComplete = true when done so REAPER can resume auditing.
         /// MUST be called on the strategy thread (via TriggerCustomEvent when initiated from a callback).
-        /// All dict writes are guarded by stateLock per the StateLock Rule.
+        /// Actor-serialized lifecycle and reconnect paths update tracking dicts without stateLock.
         /// </summary>
         private void HydrateWorkingOrdersFromBroker()
         {

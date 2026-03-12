@@ -291,18 +291,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                         continue;
                     }
 
-                    Print(string.Format("{0:HH:mm:ss} | IPC Executing {1} for {2}", DateTime.UtcNow, action, Instrument.MasterInstrument.Name));
-
-                    // Build 942 [FIX-2]: Diag commands handled here; removes 2 branches from chain below (CS-R1140)
-                    if (TryHandleDiagCommand(action, parts)) continue;
-
-                    // Build 943: Sub-handler routing -- CS-R1140 complexity reduction
-                    if (TryHandleModeCommand(action, parts))       continue;
-                    if (TryHandleRiskCommand(action, parts))       continue;
-                    if (TryHandleFleetCommand(action, parts))      continue;
-                    if (TryHandleConfigCommand(action, parts))     continue;
-                    if (TryHandleComplianceCommand(action, parts)) continue;
-                    Print(string.Format("[IPC] WARNING: Unhandled IPC action '{0}' -- parts: {1}", action, parts != null ? string.Join("|", parts) : "<none>"));
+                    string queuedAction = action;
+                    string[] queuedParts = parts;
+                    Enqueue(ctx => ctx.ProcessIpcCommandCore(queuedAction, queuedParts));
                 }
                 catch (Exception ex)
                 {
@@ -313,6 +304,29 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (!ipcCommandQueue.IsEmpty)
             {
                 try { TriggerCustomEvent(o => ProcessIpcCommands(), null); } catch { }
+            }
+        }
+
+        private void ProcessIpcCommandCore(string action, string[] parts)
+        {
+            try
+            {
+                Print(string.Format("{0:HH:mm:ss} | IPC Executing {1} for {2}", DateTime.UtcNow, action, Instrument.MasterInstrument.Name));
+
+                // Build 942 [FIX-2]: Diag commands handled here; removes 2 branches from chain below (CS-R1140)
+                if (TryHandleDiagCommand(action, parts)) return;
+
+                // Build 943: Sub-handler routing -- CS-R1140 complexity reduction
+                if (TryHandleModeCommand(action, parts))       return;
+                if (TryHandleRiskCommand(action, parts))       return;
+                if (TryHandleFleetCommand(action, parts))      return;
+                if (TryHandleConfigCommand(action, parts))     return;
+                if (TryHandleComplianceCommand(action, parts)) return;
+                Print(string.Format("[IPC] WARNING: Unhandled IPC action '{0}' -- parts: {1}", action, parts != null ? string.Join("|", parts) : "<none>"));
+            }
+            catch (Exception ex)
+            {
+                Print("Error ProcessIpcCommandCore: " + ex.Message);
             }
         }
 

@@ -80,7 +80,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             // V12.Phase7 [C-02/H-07]: Reserve expectedPositions BEFORE Submit to eliminate
                             // Reaper false-desync race. Rolled back in catch block on failure.
                             reservedDelta = (action == OrderAction.Buy || action == OrderAction.BuyToCover) ? quantity : -quantity;
-                            AddExpectedPositionDeltaLocked(ExpKey(acct.Name), reservedDelta);
+                            AddExpectedPositionDelta(ExpKey(acct.Name), reservedDelta);
                             acct.Submit(new[] { order });
                         }
 
@@ -92,7 +92,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         // Delta may or may not have been applied (depends on where exception occurred),
                         // so rollback is conditional on whether reserve completed.
                         if (reservedDelta != 0)
-                            AddExpectedPositionDeltaLocked(ExpKey(acct.Name), -reservedDelta);
+                            AddExpectedPositionDelta(ExpKey(acct.Name), -reservedDelta);
                         failCount++;
                         Print($"[SIMA] ??-- FAILED on {acct.Name}: {ex.Message}");
                     }
@@ -154,7 +154,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         // V12.Phase7 [C-02/GAP-2]: Reserve expectedPositions BEFORE Submit to eliminate
                         // Reaper race window. Rolled back in catch block on failure.
                         reservedDelta = (action == OrderAction.Buy) ? quantity : -quantity;
-                        AddExpectedPositionDeltaLocked(ExpKey(acct.Name), reservedDelta);
+                        AddExpectedPositionDelta(ExpKey(acct.Name), reservedDelta);
 
                         // 3. Submit as Atomic Group (Broker OCO)
                         acct.Submit(new[] { entry, stop, target });
@@ -164,7 +164,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         // V12.Phase7 [C-02/GAP-2]: Undo expectedPositions reservation if submission failed.
                         if (reservedDelta != 0)
-                            AddExpectedPositionDeltaLocked(ExpKey(acct.Name), -reservedDelta);
+                            AddExpectedPositionDelta(ExpKey(acct.Name), -reservedDelta);
                         Print($"[SIMA] ??-- BRACKET FAILED on {acct.Name}: {ex.Message}");
                     }
                 }
@@ -274,7 +274,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     // V12.12: Register Master account in expectedPositions (was missing ??" caused false Reaper desyncs)
                     int localDelta = (direction == MarketPosition.Long) ? qty : -qty;
-                    AddExpectedPositionDeltaLocked(ExpKey(Account.Name), localDelta);
+                    AddExpectedPositionDelta(ExpKey(Account.Name), localDelta);
                     Print($"[SIMA] Master expectedPositions updated: {Account.Name} delta={localDelta}");
 
                     // V12.7: Do NOT submit stop/target here ??" they will be submitted by
@@ -400,7 +400,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         syncPending = true;
 
                         reservedDelta = (direction == MarketPosition.Long) ? qty : -qty;
-                        AddExpectedPositionDeltaLocked(expectedKey, reservedDelta); // SECOND: expectedPositions
+                        AddExpectedPositionDelta(expectedKey, reservedDelta); // SECOND: expectedPositions
 
                         acct.Submit(new[] { fEntry }); // LAST ??" stateLock not held here
                         ClearDispatchSyncPending(expectedKey);
@@ -420,7 +420,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         // [923B-FIX-B]: Full rollback ??" dicts were registered before expectedPositions,
                         // so both must be cleaned up on Submit failure (mirrors ExecuteSmartDispatchEntry catch).
                         if (reservedDelta != 0)
-                            AddExpectedPositionDeltaLocked(expectedKey, -reservedDelta);
+                            AddExpectedPositionDelta(expectedKey, -reservedDelta);
                         activePositions.TryRemove(fleetKey, out _);
                         entryOrders.TryRemove(fleetKey, out _);
                         Print($"[SIMA RMA V2] FAIL {acct.Name}: {ex.Message}");

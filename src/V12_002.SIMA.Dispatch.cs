@@ -300,7 +300,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             // Build 935: Register local dictionaries before reserve/submit so REAPER never
                             // observes Expected!=0 without entry/stop/targets tracking state.
                             // B966: Enqueue NOT applied here -- ordering invariant requires dict registration
-                            // to happen BEFORE AddExpectedPositionDeltaLocked (L495). Deferring via Enqueue
+                            // to happen BEFORE AddExpectedPositionDelta (L495). Deferring via Enqueue
                             // from within an existing drain would break this ordering. ConcurrentDictionary
                             // single-writes are thread-safe; PumpFleetDispatch runs on strategy thread via
                             // TriggerCustomEvent so no reaperThread access occurs at this point.
@@ -319,7 +319,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                             // Build 935: Reserve follower-sized expected quantity only.
                             reservedDelta = (action == OrderAction.Buy) ? followerQty : -followerQty;
-                            AddExpectedPositionDeltaLocked(expectedKey, reservedDelta);
+                            AddExpectedPositionDelta(expectedKey, reservedDelta);
 
                             // [Build 936 FIX-1]: Enqueue for async TriggerCustomEvent pump instead of blocking Submit.
                             // Pump handler (PumpFleetDispatch) owns: Submit, ClearDispatchSyncPending, delta rollback, dict cleanup.
@@ -358,7 +358,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             syncPending = true;
 
                             reservedDelta = (action == OrderAction.Buy) ? followerQty : -followerQty;
-                            AddExpectedPositionDeltaLocked(expectedKey, reservedDelta);
+                            AddExpectedPositionDelta(expectedKey, reservedDelta);
 
                             // [Build 936 FIX-1]: Enqueue for async TriggerCustomEvent pump instead of blocking Submit.
                             Interlocked.Increment(ref _pendingFleetDispatchCount);
@@ -389,7 +389,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         }
 
                         if (reservedDelta != 0)
-                            AddExpectedPositionDeltaLocked(expectedKey, -reservedDelta);
+                            AddExpectedPositionDelta(expectedKey, -reservedDelta);
 
                         if (registeredForCleanup)
                         {

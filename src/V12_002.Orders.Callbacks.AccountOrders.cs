@@ -80,7 +80,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     return;
                 }
                 drainedCount++;
-                ProcessQueuedAccountOrder(item);
+                var queuedItem = item;
+                Enqueue(ctx => ctx.ProcessQueuedAccountOrderCore(queuedItem));
             }
             // If items remain after budget exhausted, reschedule for next strategy-thread slice.
             if (!_accountOrderQueue.IsEmpty)
@@ -232,33 +233,25 @@ namespace NinjaTrader.NinjaScript.Strategies
                     PositionInfo masterPos = null;
                     bool masterFilled = false;
 
-                    // A1-3: Snapshot qty/price and transition state atomically under stateLock to close TOCTOU window.
-                    // PropagateFollowerEntryReplace can update PendingQty/PendingPrice inside
-                    // while OnAccountOrderUpdate (background thread) reads them here. Without the lock,
-                    // the snapshot and state transition can observe torn state. (Build 960 audit fix)
-                    int qty = 0;
-                    double price = 0;
+                    // Build 975: This method now runs inside the actor-owned account-order core,
+                    // so the spec snapshot and state transition stay serialized with propagation
+                    // and no longer need stateLock.
                     string acctNameCapture = acctName;
                     string sigName = fsm.SignalName;
                     FollowerReplaceSpec fsmCapture = fsm;
-                    lock (stateLock)
-                    {
-                        masterFilled = !string.IsNullOrEmpty(fsm.MasterSignalName)
-                            && activePositions.TryGetValue(fsm.MasterSignalName, out masterPos)
-                            && masterPos != null
-                            && masterPos.EntryFilled
-                            && masterPos.RemainingContracts > 0;
 
-                        if (!masterFilled)
-                        {
-                            // V12.962 ACTOR: Direct field reads remain serialized by stateLock in this branch.
-                            qty             = fsm.PendingQty;
-                            price           = fsm.PendingPrice;
-                            acctNameCapture = fsm.AccountName;
-                            sigName         = fsm.SignalName;
-                            fsmCapture      = fsm;
-                            fsm.State       = FollowerReplaceState.Submitting;
-                        }
+                    masterFilled = !string.IsNullOrEmpty(fsm.MasterSignalName)
+                        && activePositions.TryGetValue(fsm.MasterSignalName, out masterPos)
+                        && masterPos != null
+                        && masterPos.EntryFilled
+                        && masterPos.RemainingContracts > 0;
+
+                    if (!masterFilled)
+                    {
+                        acctNameCapture = fsm.AccountName;
+                        sigName         = fsm.SignalName;
+                        fsmCapture      = fsm;
+                        fsm.State       = FollowerReplaceState.Submitting;
                     }
 
                     if (masterFilled)
@@ -334,7 +327,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         ? cancelledFollowerPos.ExecutingAccount.Name : Account.Name;
                     int cancelDelta = (cancelledFollowerPos.Direction == MarketPosition.Long)
                         ? -cancelledFollowerPos.TotalContracts : cancelledFollowerPos.TotalContracts;
-                    DeltaExpectedPositionLocked(ExpKey(cancelAcctKey), cancelDelta);
+                    DeltaExpectedPosition(ExpKey(cancelAcctKey), cancelDelta);
                     // B957/D2: Release the SIMA dispatch-sync barrier for this account. Without this, the barrier
                     // remains permanently blocked after a follower cancel, starving future dispatches.
                     _dispatchSyncPendingExpKeys.TryRemove(ExpKey(cancelAcctKey), out _); // [B967-FIX-02]
@@ -482,7 +475,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             }
                             else
                             {
-                                DeltaExpectedPositionLocked(ExpKey(cascadeAcctName), rollbackDelta);
+                                DeltaExpectedPosition(ExpKey(cascadeAcctName), rollbackDelta);
                             }
                             ClearDispatchSyncPending(ExpKey(cascadeAcctName));
                             try { RemoveDrawObject("SIMA_DESYNC_" + cascadeAcctName); } catch { }
@@ -503,8 +496,16 @@ namespace NinjaTrader.NinjaScript.Strategies
             RemoveGhostOrderRef(order, reason);
         }
 
-        private void ProcessQueuedAccountOrder(QueuedAccountOrderUpdate item)
+        private void ProcessQueuedAccountOrderCore(QueuedAccountOrderUpdate item)
         {
+
+            if (isFlattenRunning)
+            {
+                _accountOrderQueue.Enqueue(item);
+                try { TriggerCustomEvent(o => ProcessAccountOrderQueue(), null); } catch { }
+                return;
+            }
+
             if (item.EventArgs == null || item.EventArgs.Order == null) return;
             Order order = item.EventArgs.Order;
             if (order.Instrument != null && order.Instrument.FullName != Instrument.FullName) return;

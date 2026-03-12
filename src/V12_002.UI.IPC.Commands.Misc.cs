@@ -88,7 +88,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (parts.Length > 1)
                 {
                     bool enable = parts[1].Trim().ToUpperInvariant() == "ON";
-                    ApplySimaState(enable);
+                    ProcessApplySimaState(enable);
                     Print($"V12.Phase6: SET_SIMA = {enable} (lifecycle applied)");
                 }
             }
@@ -107,7 +107,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         bool isActive = false;
                         activeFleetAccounts.TryGetValue(acct.Name, out isActive);
                         if (isActive) active++;
-                        Print($"[DIAG]   {acct.Name} -> {(isActive ? "? ACTIVE" : "[X] INACTIVE")}");
+                        Print($"[DIAG]   {acct.Name} -> {(isActive ? "[OK] ACTIVE" : "[X] INACTIVE")}");
                     }
                 }
                 Print($"[DIAG] TOTAL: {total} accounts | {active} ACTIVE");
@@ -147,7 +147,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        // ?????????????????????????????????????????????????????????????????????????????
+        // -------------------------------------------------------------------------
 
         private void SendResponseToRemote(string response)
         {
@@ -303,25 +303,25 @@ namespace NinjaTrader.NinjaScript.Strategies
                  Print("IPC: RETEST Standard Mode Enabled");
              }
 
-             // Execution calls stay outside lock (they do their own order management)
+             // IPC commands already run inside the actor, so execute directly here.
              if (action == "EXEC_TREND" || action == "EXEC_TREND_RMA")
              {
                  double trendDist   = CalculateTRENDStopDistance();
                  int trendContracts = CalculatePositionSize(trendDist);
-                 Enqueue(ctx => ctx.ExecuteTRENDEntry(trendContracts));
+                 ExecuteTRENDEntry(trendContracts);
              }
              else if (action == "EXEC_RETEST" || action == "EXEC_RETEST_PLUS" || action == "EXEC_RETEST_MINUS")
              {
                  double retestDist   = CalculateRetestStopDistance();
                  int retestContracts = CalculatePositionSize(retestDist);
-                 Enqueue(ctx => ctx.ExecuteRetestEntry(retestContracts));
+                 ExecuteRetestEntry(retestContracts);
              }
              else if (action == "EXEC_MOMO")
             {
                 double momoStopDist = Math.Min(MOMOStopPoints, MaximumStop);
                 int momoContracts   = CalculatePositionSize(momoStopDist);
                 double capturedMomoPrice = lastKnownPrice;
-                Enqueue(ctx => ctx.ExecuteMOMOEntry(capturedMomoPrice, momoContracts));
+                ExecuteMOMOEntry(capturedMomoPrice, momoContracts);
             }
              else if (action == "MODE_M")
              {
@@ -334,7 +334,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                  double ffmaStopDist = Math.Min(Math.Abs(currentPrice - stopPrice), MaximumStop);
                  if (ffmaStopDist < tickSize * 2) ffmaStopDist = tickSize * 2;
                  int ffmaContracts = CalculatePositionSize(ffmaStopDist);
-                 Enqueue(ctx => ctx.ExecuteFFMAEntry(direction, ffmaContracts));
+                 ExecuteFFMAEntry(direction, ffmaContracts);
              }
 
              Print(string.Format("IPC Mode Toggle: {0} | RMA={1} MOMO={2} TrendRMA={3} RetestRMA={4} FFMA={5}",

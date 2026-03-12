@@ -371,7 +371,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             string acctName = (pos.IsFollower && pos.ExecutingAccount != null) ? pos.ExecutingAccount.Name : Account.Name;
             int delta = (pos.Direction == MarketPosition.Long) ? -pos.TotalContracts : pos.TotalContracts;
-            DeltaExpectedPositionLocked(ExpKey(acctName), delta);
+            DeltaExpectedPosition(ExpKey(acctName), delta);
             ClearDispatchSyncPending(ExpKey(acctName));
         }
 
@@ -473,7 +473,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             string fixAcct = (kvp.Value.IsFollower && kvp.Value.ExecutingAccount != null)
                                 ? kvp.Value.ExecutingAccount.Name : Account.Name;
                             int expDelta = (kvp.Value.Direction == MarketPosition.Long) ? qtyDiff : -qtyDiff;
-                            DeltaExpectedPositionLocked(ExpKey(fixAcct), expDelta);
+                            DeltaExpectedPosition(ExpKey(fixAcct), expDelta);
                             Print(string.Format("[937-FIX] expectedPositions adjusted on qty change: {0} delta={1}", fixAcct, expDelta));
                             kvp.Value.TotalContracts = quantity;
                             kvp.Value.RemainingContracts = quantity;

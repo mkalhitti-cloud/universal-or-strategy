@@ -35,7 +35,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void OnStateChange()
         {
-            if (State == State.SetDefaults)
+            State state = State;
+            Enqueue(ctx => ctx.ProcessOnStateChange(state));
+        }
+
+        private void ProcessOnStateChange(State state)
+        {
+            if (state == State.SetDefaults)
             {
                 Description = "Universal OR Strategy V12.12 - Build " + BUILD_TAG;
                 Name = "V12_002";
@@ -152,7 +158,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 RmaProximityTicks = 2;
                 RmaCancellationTicks = 4;
             }
-            else if (State == State.Configure)
+            else if (state == State.Configure)
             {
                 // V8.30: Initialize thread-safe collections
                 // ConcurrentDictionary(concurrencyLevel, initialCapacity)
@@ -192,7 +198,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 AddDataSeries(BarsPeriodType.Minute, 15); // Index 3
 
             }
-            else if (State == State.DataLoaded)
+            else if (state == State.DataLoaded)
             {
                 tickSize = Instrument.MasterInstrument.TickSize;
                 pointValue = Instrument.MasterInstrument.PointValue;
@@ -271,7 +277,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ExecuteRiskLogicAudit();
 
             }
-            else if (State == State.Realtime)
+            else if (state == State.Realtime)
             {
                 Print("+--------------------------------------------------------------+");
                 Print("|          [OK] BMad HARDENED DEPLOYMENT PROTOCOL ACTIVE       |");
@@ -298,7 +304,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     });
                 }
             }
-            else if (State == State.Terminated)
+            else if (state == State.Terminated)
             {
                 if (ChartControl != null)
                 {
@@ -363,9 +369,15 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             base.OnConnectionStatusUpdate(connectionStatusUpdate);
 
-            if (!EnableSIMA || State != State.Realtime) return;
-
             ConnectionStatus status = connectionStatusUpdate.Status;
+            bool enableSima = EnableSIMA;
+            State strategyState = State;
+            Enqueue(ctx => ctx.ProcessOnConnectionStatusUpdate(status, enableSima, strategyState));
+        }
+
+        private void ProcessOnConnectionStatusUpdate(ConnectionStatus status, bool enableSima, State strategyState)
+        {
+            if (!enableSima || strategyState != State.Realtime) return;
 
             if (status == ConnectionStatus.Disconnecting || status == ConnectionStatus.ConnectionLost)
             {

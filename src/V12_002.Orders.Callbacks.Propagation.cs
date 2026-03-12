@@ -36,6 +36,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private void PropagateMasterPriceMove(Order masterOrder, double newLimit, double newStop, int newMasterQty = 0)
         {
+            // Build 975: Caller is already ProcessOnOrderUpdate inside Enqueue.
+            // Keep this synchronous so the full propagation pass stays ordered with the
+            // rest of the current OnOrderUpdate actor drain.
             if (!EnableSIMA || masterOrder == null || masterOrder.Account != this.Account) return;
 
             // [BUILD 924 -- Fix C] Raise propagation flag before dispatch; finally block clears it.
@@ -441,7 +444,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             // Build 948 [FIX-C]: Defensive expectedPositions re-assertion.
             // If ExecuteFollowerCascadeCleanup ran concurrently before Fix A sealed the gap,
-            // DeltaExpectedPositionLocked may have zeroed expectedPositions for this account.
+            // DeltaExpectedPosition may have zeroed expectedPositions for this account.
             // Without re-asserting, the replacement fill triggers REAPER Critical Desync:
             //   actualQty != 0, expectedQty == 0 -> Emergency Flatten.
             string _b948ExpKey = ExpKey(accountName);
@@ -451,7 +454,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (_b948ZeroStartReasserted)
             {
                 int _b948Delta = spec.EntryAction == OrderAction.Buy ? qty : -qty;
-                AddExpectedPositionDeltaLocked(_b948ExpKey, _b948Delta);
+                AddExpectedPositionDelta(_b948ExpKey, _b948Delta);
                 MarkDispatchSyncPending(_b948ExpKey);
                 Print(string.Format("[FSM-GUARD] Re-asserted expectedPositions for {0}: {1} (cascade decrement detected before replacement submit).",
                     accountName, _b948Delta));
@@ -480,7 +483,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (!_b948ZeroStartReasserted && expectedDelta != 0)
             {
-                AddExpectedPositionDeltaLocked(expectedKey, expectedDelta);
+                AddExpectedPositionDelta(expectedKey, expectedDelta);
                 Print("[FSM] Replacement expected sync: "
                     + fleetSignalName + " delta=" + expectedDelta);
             }
@@ -492,7 +495,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             catch (Exception submitEx)
             {
                 if (!_b948ZeroStartReasserted && expectedDelta != 0)
-                    AddExpectedPositionDeltaLocked(expectedKey, -expectedDelta);
+                    AddExpectedPositionDelta(expectedKey, -expectedDelta);
 
                 Print("[FSM] SUBMIT FAIL: replacement submit threw for " + fleetSignalName + ": " + submitEx.Message);
                 return;

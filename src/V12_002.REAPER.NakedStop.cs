@@ -15,7 +15,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         /// <summary>
         /// Build 1102R: Processes queued naked-position emergency stop requests on the strategy thread.
-        /// Called via TriggerCustomEvent from the Reaper background thread.
+        /// Called directly from the actor-enqueued REAPER audit flow.
         /// Submits a StopMarket order at MaximumStop ticks from current close to protect the naked position.
         /// </summary>
         private void ProcessReaperNakedStopQueue()
@@ -33,8 +33,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
 
                     // Compute emergency stop price: MaximumStop ticks from current close.
-                    // Close[0] is safe here -- ProcessReaperNakedStopQueue runs on strategy thread
-                    // via TriggerCustomEvent.
+                    // Close[0] is safe here -- ProcessReaperNakedStopQueue runs on the strategy thread.
                     double emergencyStopDist = MaximumStop;
                     double atrBound = CalculateATRStopDistance(RMAStopATRMultiplier);
                     if (atrBound > 0)

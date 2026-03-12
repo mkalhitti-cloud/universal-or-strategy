@@ -168,7 +168,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (key == "T5TYPE") { if (TryParseTargetMode(val, out var parsed)) T5Type = parsed; return true; }
             if (key == "COUNT") {
                 if (int.TryParse(val, out int v)) {
-                    // FIX-B [Build 1102Z]: Clamp + lock to prevent IPC race with SIMA dispatch loop.
+                    // FIX-B [Build 1102Z]: Clamp inside the actor to prevent IPC race with SIMA dispatch loop.
                     int clamped = Math.Max(1, Math.Min(5, v));
                     activeTargetCount = clamped;
                 }
@@ -231,8 +231,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             bool active = parts[2] == "1";
-            // V12.1101E [A-2]: Lock IPC writes to activeFleetAccounts -- this dict is also
-            // read by the strategy thread (ExecuteMultiAccountMarket) without a lock.
+            // V12.1101E [A-2]: Actor-owned write to activeFleetAccounts keeps fleet state serialized.
             activeFleetAccounts[resolvedName] = active;
             Print($"[V12.2] TOGGLE_ACCOUNT: {resolvedName} (resolved from '{parts[1]}') | Active={active}");
         }

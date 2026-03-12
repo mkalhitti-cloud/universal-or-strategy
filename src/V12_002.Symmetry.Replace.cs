@@ -30,6 +30,23 @@ namespace NinjaTrader.NinjaScript.Strategies
             int targetNumber,
             ConcurrentDictionary<string, Order> dict)
         {
+            var capturedFleetEntryName = fleetEntryName;
+            var capturedPos = pos;
+            var capturedTargetNumber = targetNumber;
+            var capturedDict = dict;
+            Enqueue(ctx => ctx.SymmetryGuardReplaceExistingFollowerTargetCore(
+                capturedFleetEntryName,
+                capturedPos,
+                capturedTargetNumber,
+                capturedDict));
+        }
+
+        private void SymmetryGuardReplaceExistingFollowerTargetCore(
+            string fleetEntryName,
+            PositionInfo pos,
+            int targetNumber,
+            ConcurrentDictionary<string, Order> dict)
+        {
             if (pos.ExecutingAccount == null) return;
             string targetTag = "T" + targetNumber;
             bool isRunner = IsRunnerTarget(targetNumber);
@@ -71,26 +88,46 @@ namespace NinjaTrader.NinjaScript.Strategies
             OrderAction exitAction = pos.Direction == MarketPosition.Long ? OrderAction.Sell : OrderAction.BuyToCover;
             string signalName = SymmetryTrim(targetTag + "_" + fleetEntryName, 40);
 
-            lock (stateLock)
-            {
-                Order replacement = pos.ExecutingAccount.CreateOrder(
-                    Instrument,
-                    exitAction,
-                    OrderType.Limit,
-                    TimeInForce.Gtc,
-                    qty,
-                    Instrument.MasterInstrument.RoundToTickSize(newPrice),
-                    0,
-                    "SGT_" + DateTime.UtcNow.Ticks.ToString(),
-                    signalName,
-                    null);
+            Order replacement = pos.ExecutingAccount.CreateOrder(
+                Instrument,
+                exitAction,
+                OrderType.Limit,
+                TimeInForce.Gtc,
+                qty,
+                Instrument.MasterInstrument.RoundToTickSize(newPrice),
+                0,
+                "SGT_" + DateTime.UtcNow.Ticks.ToString(),
+                signalName,
+                null);
 
-                pos.ExecutingAccount.Submit(new[] { replacement });
-                dict[fleetEntryName] = replacement;
-            }
+            pos.ExecutingAccount.Submit(new[] { replacement });
+            dict[fleetEntryName] = replacement;
         }
 
         private void SymmetryGuardSkipFollower(
+            string fleetEntryName,
+            PositionInfo pos,
+            double fleetFillPrice,
+            double slippageTicks,
+            double slippageUsdPerContract,
+            string reason)
+        {
+            var capturedFleetEntryName = fleetEntryName;
+            var capturedPos = pos;
+            var capturedFleetFillPrice = fleetFillPrice;
+            var capturedSlippageTicks = slippageTicks;
+            var capturedSlippageUsdPerContract = slippageUsdPerContract;
+            var capturedReason = reason;
+            Enqueue(ctx => ctx.SymmetryGuardSkipFollowerCore(
+                capturedFleetEntryName,
+                capturedPos,
+                capturedFleetFillPrice,
+                capturedSlippageTicks,
+                capturedSlippageUsdPerContract,
+                capturedReason));
+        }
+
+        private void SymmetryGuardSkipFollowerCore(
             string fleetEntryName,
             PositionInfo pos,
             double fleetFillPrice,
@@ -102,13 +139,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 "[SYMMETRY_GUARD] SKIP | {0} | {1} | FleetFill={2:F2} | Slip={3:F1} ticks (${4:F2}/ct)",
                 fleetEntryName, reason, fleetFillPrice, slippageTicks, slippageUsdPerContract));
 
-            // A1-1: pos.EntryFilled must be inside stateLock to prevent torn read by REAPER (Build 960 audit fix)
-            lock (stateLock)
-            {
-                pos.EntryFilled = true;
-                if (pos.RemainingContracts <= 0)
-                    pos.RemainingContracts = Math.Max(1, pos.TotalContracts);
-            }
+            // Build 975: actor serialization replaces the old stateLock guard here.
+            pos.EntryFilled = true;
+            if (pos.RemainingContracts <= 0)
+                pos.RemainingContracts = Math.Max(1, pos.TotalContracts);
 
             FlattenPositionByName(fleetEntryName);
             CleanupPosition(fleetEntryName);
@@ -205,7 +239,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         pos.ExecutingAccount.Cancel(new[] { order });
                     else
                         CancelOrder(order);
-                    // A2-3: DeltaExpectedPositionLocked deferred to OnAccountOrderUpdate confirmed-cancel
+                    // A2-3: DeltaExpectedPosition deferred to OnAccountOrderUpdate confirmed-cancel
                     // to prevent REAPER desync if the follower was microseconds from filling (Build 960 audit fix).
                 }
             }

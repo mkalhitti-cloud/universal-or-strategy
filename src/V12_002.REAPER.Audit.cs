@@ -124,15 +124,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                         if (!hasWorkingEntry)
                         {
                             if (shouldLog) Print($"[REAPER] * REPAIR CANDIDATE: {acct.Name} is Flat, expected={expectedQty}. Enqueuing repair.");
-                            // A3-2: Mark in-flight BEFORE TriggerCustomEvent to block double-enqueue in next audit cycle (Build 960 audit fix)
+                            // A3-2: Mark in-flight BEFORE immediate queue processing to block double-enqueue in the next audit cycle (Build 960 audit fix)
                             _repairInFlight.TryAdd(repairKey, 0); // [Build 968]
                             _reaperRepairQueue.Enqueue(acct.Name);
-                            // B957/E1: Clear in-flight guard if TriggerCustomEvent fails, preventing permanent lockout.
-                            try { TriggerCustomEvent(o => ProcessReaperRepairQueue(), null); }
+                            // B957/E1: Clear in-flight guard if queue processing fails, preventing permanent lockout.
+                            try { ProcessReaperRepairQueue(); }
                             catch (Exception repairTriggerEx)
                             {
                                 _repairInFlight.TryRemove(repairKey, out _); // [Build 968]
-                                Print("[REAPER] TriggerCustomEvent failed for " + repairKey + ": " + repairTriggerEx.Message + " -- in-flight cleared.");
+                                Print("[REAPER] ProcessReaperRepairQueue failed for " + repairKey + ": " + repairTriggerEx.Message + " -- in-flight cleared.");
                             }
                         }
                         else
@@ -164,7 +164,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         if (shouldLog) Print($"[REAPER] * QUEUING FLATTEN for {acct.Name} - Emergency Re-sync!");
                         _reaperFlattenQueue.Enqueue(acct.Name);
-                        try { TriggerCustomEvent(o => ProcessReaperFlattenQueue(), null); } catch { }
+                        try { ProcessReaperFlattenQueue(); } catch { }
                     }
                 }
                 else if (shouldLog)
@@ -200,11 +200,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                             Print(string.Format("[REAPER][NAKED_POSITION] {0}: {1}ct CONFIRMED naked after {2:F1}s grace. Queuing emergency hard stop.",
                                 acct.Name, actualQty, (DateTime.UtcNow - firstSeen).TotalSeconds));
                             _reaperNakedStopQueue.Enqueue((acct.Name, pos.MarketPosition, Math.Abs(actualQty)));
-                            try { TriggerCustomEvent(e => ProcessReaperNakedStopQueue(), null); }
+                            try { ProcessReaperNakedStopQueue(); }
                             catch (Exception tcEx)
                             {
                                 _reaperNakedStopInFlight.TryRemove(ExpKey(acct.Name), out _); // [Build 969]
-                                Print(string.Format("[REAPER][NAKED_STOP] TriggerCustomEvent failed for {0}: {1} -- in-flight cleared.", acct.Name, tcEx.Message));
+                                Print(string.Format("[REAPER][NAKED_STOP] ProcessReaperNakedStopQueue failed for {0}: {1} -- in-flight cleared.", acct.Name, tcEx.Message));
                             }
                         }
                     }
@@ -261,7 +261,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         {
                             if (shouldLog) Print($"[REAPER] QUEUING FLATTEN for {Account.Name} (Master) - Emergency Re-sync!");
                             _reaperFlattenQueue.Enqueue(Account.Name);
-                            try { TriggerCustomEvent(o => ProcessReaperFlattenQueue(), null); } catch { }
+                            try { ProcessReaperFlattenQueue(); } catch { }
                         }
                     }
                     else if (shouldLog)
@@ -274,7 +274,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         /// <summary>
         /// V12.17 FIX: Processes queued flatten requests on the strategy thread.
-        /// Called via TriggerCustomEvent from the Reaper background thread.
+        /// Called directly from the actor-enqueued REAPER audit flow.
         /// This is the SAFE way to call Account.Flatten() -- same pattern as IPC.
         /// </summary>
         private void ProcessReaperFlattenQueue()
@@ -345,9 +345,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                             Print($"[REAPER] ? Emergency Market Close: {qty} contracts on {accountName}");
                         }
 
-                        // V12.1101E [F-06]: Serialize expectedPositions mutation under stateLock.
+                        // V12.1101E [F-06]: REAPER audit already runs on the strategy thread.
                         // Build 1102U [BUG-1]: Composite key for instrument-scoped clear.
-                        SetExpectedPositionLocked(ExpKey(accountName), 0);
+                        SetExpectedPosition(ExpKey(accountName), 0);
                         Print($"[REAPER] ? MARSHAL-FLATTEN (Unmanaged) executed on strategy thread for {accountName}");
                     }
                     else

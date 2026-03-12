@@ -26,7 +26,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         // Build 935 [REAPER-B935-005]: Single-repair body extracted from ProcessReaperRepairQueue.
-        // Threading: runs on strategy thread (via TriggerCustomEvent). All stateLock usages unchanged.
+        // Threading: runs on the strategy thread from the actor-enqueued REAPER audit flow.
         private void ExecuteReaperRepair(string accountName)
         {
             string repairKey = accountName + "_" + Instrument.FullName;
@@ -64,8 +64,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         Print(string.Format("[REAPER] SELF-HEAL: {0} has no PositionInfo after 3 attempts. Force-zeroing expectedPositions to unblock repair loop.",
                             accountName));
-                        // SetExpectedPositionLocked(..., 0) already removes from _dispatchSyncPendingExpKeys internally.
-                        SetExpectedPositionLocked(ExpKey(accountName), 0);
+                        // SetExpectedPosition(..., 0) already removes from _dispatchSyncPendingExpKeys internally.
+                        SetExpectedPosition(ExpKey(accountName), 0);
                         _reaperOrphanRepairCount.TryRemove(accountName, out _);
                     }
                     return;

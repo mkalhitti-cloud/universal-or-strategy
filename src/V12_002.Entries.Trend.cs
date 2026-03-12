@@ -213,7 +213,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // Build 1102Y-V3 [MS-04a]: Register Master expected for E1 BEFORE submit.
                 int masterDeltaE1 = (direction == MarketPosition.Long) ? entry1Qty : -entry1Qty;
-                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaE1); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaE1); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
 
                 // Submit Entry 1 limit order
                 Order entryOrder1 = direction == MarketPosition.Long
@@ -223,7 +223,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // A1-1/A2-1: Null-abort rollback + stateLock wrap for E1 (Build 960 audit fix)
                 if (entryOrder1 == null)
                 {
-                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaE1); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaE1); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
                     Print("[ENTRY_ABORT] TREND E1 SubmitOrderUnmanaged NULL for " + entry1Name + " -- rolled back.");
                     return;
                 }
@@ -236,7 +236,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // Build 1102Y-V3 [MS-04b]: Register Master expected for E2 BEFORE submit.
                 int masterDeltaE2 = (direction == MarketPosition.Long) ? entry2Qty : -entry2Qty;
-                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaE2); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaE2); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
 
                 // Submit Entry 2 limit order
                 Order entryOrder2 = direction == MarketPosition.Long
@@ -246,7 +246,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // A1-1/A2-1: Null-abort rollback + stateLock wrap for E2 (Build 960 audit fix)
                 if (entryOrder2 == null)
                 {
-                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaE2); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaE2); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
                     // Remove partnership references; HandleOrderCancelled will teardown E1 state naturally.
                     string removedPartner;
                     linkedTRENDEntries.TryRemove(entry1Name, out removedPartner);
@@ -404,7 +404,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // Build 1102Y-V3 [MS-05]: Register Master expected BEFORE submit.
                 int masterDeltaTMNL = (direction == MarketPosition.Long) ? contracts : -contracts;
-                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaTMNL); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaTMNL); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
 
                 // Submit LIMIT order at manual price
                 Order entryOrder = direction == MarketPosition.Long
@@ -414,7 +414,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // A1-1/A2-1: Null-abort rollback + stateLock wrap (Build 960 audit fix)
                 if (entryOrder == null)
                 {
-                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaTMNL); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaTMNL); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
                     Print("[ENTRY_ABORT] TRENDManual SubmitOrderUnmanaged NULL for " + entryName + " -- rolled back.");
                     return;
                 }

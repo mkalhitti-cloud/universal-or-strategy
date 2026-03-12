@@ -144,7 +144,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // Build 1102Y-V3 [MS-06]: Register Master expected BEFORE StopMarket entry.
                 int masterDeltaMOMO = (direction == MarketPosition.Long) ? contracts : -contracts;
-                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaMOMO); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                { var _aek966 = ExpKey(Account.Name); var _aed966 = (masterDeltaMOMO); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
 
                 // V12.Hardening: Use StopMarket (was StopLimit with limitPrice==stopPrice -- never fills on fast breakouts)
                 Order entryOrder = direction == MarketPosition.Long
@@ -154,7 +154,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // A1-1/A2-1: Null-abort rollback + stateLock wrap (Build 960 audit fix)
                 if (entryOrder == null)
                 {
-                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaMOMO); Enqueue(ctx => ctx.AddExpectedPositionDeltaLocked(_aek966, _aed966)); }
+                    { var _aek966 = ExpKey(Account.Name); var _aed966 = (-masterDeltaMOMO); Enqueue(ctx => ctx.AddExpectedPositionDelta(_aek966, _aed966)); }
                     Print("[ENTRY_ABORT] MOMO SubmitOrderUnmanaged returned null for " + entryName + ". Rolling back.");
                     return;
                 }
