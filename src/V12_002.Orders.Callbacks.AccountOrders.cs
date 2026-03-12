@@ -53,22 +53,61 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Account = sender as Account,
                 EventArgs = e
             });
-            try { TriggerCustomEvent(o => ProcessAccountOrderQueue(), null); } catch { }
+            ScheduleAccountOrderQueuePump();
         }
 
         // Build 935 [R-02]: Cap per-drain budget to prevent strategy-thread starvation
         // under high-velocity broker event bursts. Mirrors IpcMaxCommandsPerDrain pattern.
         private const int MaxAccountOrdersPerDrain = 8;
 
+        private void HoldAccountOrderQueueUntilFlattenEnds()
+        {
+            Interlocked.Exchange(ref _accountOrderPumpDeferredWhileFlatten, 1);
+            Interlocked.Exchange(ref _accountOrderPumpScheduled, 1);
+        }
+
+        private void ScheduleAccountOrderQueuePump()
+        {
+            if (isFlattenRunning)
+            {
+                HoldAccountOrderQueueUntilFlattenEnds();
+                return;
+            }
+
+            if (Interlocked.CompareExchange(ref _accountOrderPumpScheduled, 1, 0) != 0)
+                return;
+
+            try { TriggerCustomEvent(o => ProcessAccountOrderQueue(), null); }
+            catch (Exception ex)
+            {
+                Interlocked.Exchange(ref _accountOrderPumpScheduled, 0);
+                Print("[ACCOUNT_ORDER_PUMP] schedule failed: " + ex.Message);
+            }
+        }
+
+        private void ResumeAccountOrderQueuePump()
+        {
+            if (isFlattenRunning)
+                return;
+
+            bool deferred = Interlocked.Exchange(ref _accountOrderPumpDeferredWhileFlatten, 0) != 0;
+            if (!deferred && _accountOrderQueue.IsEmpty)
+                return;
+
+            Interlocked.Exchange(ref _accountOrderPumpScheduled, 0);
+            ScheduleAccountOrderQueuePump();
+        }
+
         private void ProcessAccountOrderQueue()
         {
             // V12.Phase7 [THREAD-01a]: Buffer-and-wait during flatten (symmetric with ProcessAccountExecutionQueue).
             if (isFlattenRunning)
             {
-                try { TriggerCustomEvent(o => ProcessAccountOrderQueue(), null); } catch { }
+                HoldAccountOrderQueueUntilFlattenEnds();
                 return;
             }
 
+            Interlocked.Exchange(ref _accountOrderPumpScheduled, 0);
             int drainedCount = 0;
             QueuedAccountOrderUpdate item;
             while (drainedCount < MaxAccountOrdersPerDrain && _accountOrderQueue.TryDequeue(out item))
@@ -76,7 +115,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (isFlattenRunning)
                 {
                     _accountOrderQueue.Enqueue(item);
-                    try { TriggerCustomEvent(o => ProcessAccountOrderQueue(), null); } catch { }
+                    HoldAccountOrderQueueUntilFlattenEnds();
                     return;
                 }
                 drainedCount++;
@@ -85,7 +124,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             // If items remain after budget exhausted, reschedule for next strategy-thread slice.
             if (!_accountOrderQueue.IsEmpty)
-                try { TriggerCustomEvent(o => ProcessAccountOrderQueue(), null); } catch { }
+                ScheduleAccountOrderQueuePump();
         }
 
         // Build 935 [R-01]: Returns true if 'order' belongs to 'entryKey' position.
@@ -272,15 +311,19 @@ namespace NinjaTrader.NinjaScript.Strategies
                             // [P2 FSM CONSISTENCY]: Re-read price/qty from spec at execution time.
                             // ATR tick absorption may have updated PendingPrice/PendingQty after the
                             // lambda was scheduled -- using stale captures would submit wrong values.
-                            SubmitFollowerReplacement(sigName, acctNameCapture, fsmCapture.PendingPrice, fsmCapture.PendingQty, fsmCapture);
-                            _followerReplaceSpecs.TryRemove(sigName, out _);
+                            bool submitOk = SubmitFollowerReplacement(sigName, acctNameCapture, fsmCapture.PendingPrice, fsmCapture.PendingQty, fsmCapture);
+                            if (submitOk)
+                                _followerReplaceSpecs.TryRemove(sigName, out _);
                         }, null);
                         replacementScheduled = true;
                     }
                     catch (Exception ex)
                     {
                         Print("[FSM] TriggerCustomEvent failed for " + sigName + ": " + ex.Message);
-                        _followerReplaceSpecs.TryRemove(sigName, out _);
+                        fsm.State = FollowerReplaceState.SubmitFailed;
+                        fsm.LastSubmitError = ex.Message;
+                        _reaperRepairQueue.Enqueue(acctNameCapture);
+                        ProcessReaperRepairQueue();
                     }
                     if (replacementScheduled)
                         return; // FSM-controlled replace cancel -- reservation stays live until resubmit completes.
@@ -303,12 +346,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     if (tSpec != null && tFsmMatchKey != null)
                     {
-                        _followerTargetReplaceSpecs.TryRemove(tFsmMatchKey, out _);
                         FollowerTargetReplaceSpec captured = tSpec;
                         string capturedKey = tFsmMatchKey;
                         try
                         {
-                            TriggerCustomEvent(o => SubmitFollowerTargetReplacement(capturedKey, captured), null);
+                            TriggerCustomEvent(o =>
+                            {
+                                if (SubmitFollowerTargetReplacement(capturedKey, captured))
+                                    _followerTargetReplaceSpecs.TryRemove(capturedKey, out _);
+                            }, null);
                         }
                         catch (Exception tFsmEx)
                         {
@@ -502,7 +548,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (isFlattenRunning)
             {
                 _accountOrderQueue.Enqueue(item);
-                try { TriggerCustomEvent(o => ProcessAccountOrderQueue(), null); } catch { }
+                HoldAccountOrderQueueUntilFlattenEnds();
                 return;
             }
 

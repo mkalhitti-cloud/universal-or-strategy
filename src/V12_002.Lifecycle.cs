@@ -36,6 +36,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void OnStateChange()
         {
             State state = State;
+            Interlocked.CompareExchange(ref _actorOwnerThreadId, Thread.CurrentThread.ManagedThreadId, 0);
             Enqueue(ctx => ctx.ProcessOnStateChange(state));
         }
 

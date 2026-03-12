@@ -187,6 +187,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         // V12.962 INLINE ACTOR (Serializing Executor) -- replaces stateLock
         // All state mutations run inside Enqueue closures; _drainToken ensures serial execution.
+        // Actor work must stay on the strategy thread even when enqueued from UI/broker/reaper threads.
         // Zero locks: no monitor is ever held across a broker call (CancelOrder/SubmitOrder).
         private abstract class StrategyCommand { public abstract void Execute(V12_002 ctx); }
         private sealed class DelegateCommand : StrategyCommand {
@@ -196,10 +197,32 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
         private readonly ConcurrentQueue<StrategyCommand> _cmdQueue = new ConcurrentQueue<StrategyCommand>();
         private volatile int _drainToken = 0;
+        private volatile int _actorOwnerThreadId = 0;
+        private volatile int _actorWakeScheduled = 0;
         protected void Enqueue(Action<V12_002> action) {
             if (action == null) return;
             _cmdQueue.Enqueue(new DelegateCommand(action));
-            TryDrain();
+            if (IsActorThread())
+                TryDrain();
+            else
+                ScheduleActorDrain();
+        }
+        private bool IsActorThread() {
+            int actorThreadId = Volatile.Read(ref _actorOwnerThreadId);
+            return actorThreadId != 0 && Thread.CurrentThread.ManagedThreadId == actorThreadId;
+        }
+        private void ScheduleActorDrain() {
+            if (Interlocked.CompareExchange(ref _actorWakeScheduled, 1, 0) != 0) return;
+            try {
+                TriggerCustomEvent(o => {
+                    Interlocked.Exchange(ref _actorWakeScheduled, 0);
+                    TryDrain();
+                }, null);
+            }
+            catch (Exception ex) {
+                Interlocked.Exchange(ref _actorWakeScheduled, 0);
+                Print("[V12_INLINE_ACTOR] schedule failed: " + ex.Message);
+            }
         }
         private void TryDrain() {
             if (Interlocked.CompareExchange(ref _drainToken, 1, 0) != 0) return;
@@ -209,6 +232,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         // (SubmitOrder/CancelOrder can re-trigger OnExecutionUpdate -> Enqueue -> TryDrain on same stack).
         // Instead of recursing, schedule a new drain cycle via TriggerCustomEvent.
         private void DrainActor() {
+            Interlocked.Exchange(ref _actorOwnerThreadId, Thread.CurrentThread.ManagedThreadId);
             try {
                 StrategyCommand cmd;
                 while (_cmdQueue.TryDequeue(out cmd)) {
@@ -219,7 +243,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             finally {
                 Interlocked.Exchange(ref _drainToken, 0);
                 if (!_cmdQueue.IsEmpty)
-                    TriggerCustomEvent(o => { if (Interlocked.CompareExchange(ref _drainToken, 1, 0) == 0) DrainActor(); }, null);
+                    ScheduleActorDrain();
             }
         }
         private ConcurrentQueue<string> ipcCommandQueue;
@@ -230,6 +254,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private Thread reaperThread;
         private volatile bool isReaperRunning;
         private volatile bool isFlattenRunning; // V12.8: Guard to pause Reaper during flatten
+        private volatile int _flattenScopeDepth = 0;
         private ConcurrentDictionary<string, int> expectedPositions; // Build 1102U: Key = ExpKey(AccountName) = "AccountName_Instrument.FullName" -> Expected Quantity (+ long, - short)
         private int simaAccountCount = 0; // Cached count of detected Apex accounts
         private DateTime lastReaperLog = DateTime.MinValue;
@@ -243,9 +268,36 @@ namespace NinjaTrader.NinjaScript.Strategies
         // V12.Audit [H-10]: Tracks a toggle that could not complete due to semaphore timeout.
         // ApplySimaState retries the pending toggle at the top of its next invocation.
         private volatile bool _simaTogglePending = false;
+        private volatile int _accountOrderPumpScheduled = 0;
+        private volatile int _accountOrderPumpDeferredWhileFlatten = 0;
+        private volatile int _accountExecutionPumpScheduled = 0;
+        private volatile int _accountExecutionPumpDeferredWhileFlatten = 0;
         // Build 935: Tracks accounts with reserved expectedPositions whose follower dispatch is still syncing.
         // Key = ExpKey(accountName). Used to suppress false REAPER repairs and flat-clears during submit windows.
         private readonly ConcurrentDictionary<string, byte> _dispatchSyncPendingExpKeys = new ConcurrentDictionary<string, byte>(); // [B967-FIX-02]
+
+        private void EnterFlattenScope()
+        {
+            Interlocked.Increment(ref _flattenScopeDepth);
+            isFlattenRunning = true;
+        }
+
+        private void ExitFlattenScope()
+        {
+            int depth = Interlocked.Decrement(ref _flattenScopeDepth);
+            if (depth > 0)
+                return;
+
+            Interlocked.Exchange(ref _flattenScopeDepth, 0);
+            isFlattenRunning = false;
+            ResumeBufferedAccountCallbackPumps();
+        }
+
+        private void ResumeBufferedAccountCallbackPumps()
+        {
+            ResumeAccountOrderQueuePump();
+            ResumeAccountExecutionQueuePump();
+        }
 
         // Build 936 [FIX-1]: Async fleet dispatch -- defers acct.Submit() to TriggerCustomEvent pump cycles.
         // Each enqueued request is one account's Submit payload. PumpFleetDispatch() consumes one per cycle,
@@ -284,7 +336,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private volatile bool _propagationActive = false;
 
         // Build 947: Two-phase FSM for follower entry replace (ghost-order prevention)
-        private enum FollowerReplaceState { Idle, PendingCancel, Submitting }
+        private enum FollowerReplaceState { Idle, PendingCancel, Submitting, SubmitFailed }
 
         private class FollowerReplaceSpec
         {
@@ -298,6 +350,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             public OrderAction EntryAction;    // captured from pos.Direction at spec creation
             public OrderType   EntryOrderType; // captured from fEntry.OrderType at spec creation
             public bool        IsStopType;     // true when EntryOrderType is StopMarket or StopLimit
+            public string LastSubmitError;
         }
 
         private readonly ConcurrentDictionary<string, FollowerReplaceSpec>

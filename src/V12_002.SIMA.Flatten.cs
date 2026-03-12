@@ -44,7 +44,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
-            isFlattenRunning = true; // V12.8: Guard for Reaper + OnAccountExecutionUpdate
+            EnterFlattenScope(); // V12.8: Guard for Reaper + OnAccountExecutionUpdate
             try
             {
                 Print("[SIMA] ====== GLOBAL FLATTEN START ======");
@@ -172,7 +172,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             finally
             {
                 // V12.962 ACTOR: stateLock removed; no monitor to check. Always release guard.
-                isFlattenRunning = false; // V12.8: Always release guard, even on exception
+                ExitFlattenScope(); // V12.8: Always release guard, even on exception
             }
         }
 
@@ -258,7 +258,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // REAPER.cs L97: `if (isFlattenRunning) continue;` ??" guard already exists; we activate it here.
             // Previously this method did NOT set isFlattenRunning (V12.21 comment). Now it must, because
             // the zombie sweep below creates a transient naked-position window the REAPER would self-heal.
-            isFlattenRunning = true;
+            EnterFlattenScope();
             try
             {
                 Print("[SIMA] ====== GLOBAL POSITIONS CLOSE START (System Protection Orders Swept; Limit/Stop Brackets Preserved) ======");
@@ -376,7 +376,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 // V12.Phase10 [ZOMBIE-STOP-FIX]: Always release REAPER suppression, even on exception.
                 // Mirrors FlattenAllApexAccounts() finally pattern (SIMA.cs L1274).
-                isFlattenRunning = false;
+                ExitFlattenScope();
             }
         }
 

@@ -277,12 +277,50 @@ namespace NinjaTrader.NinjaScript.Strategies
             // V12.1101E [TM-02]: Broker-thread callback only enqueues work; state mutation stays on strategy thread.
             Account execAccount = sender as Account;
             _accountExecutionQueue.Enqueue(new QueuedAccountExecution { Account = execAccount, EventArgs = e });
-            try { TriggerCustomEvent(o => ProcessAccountExecutionQueue(), null); } catch { }
+            ScheduleAccountExecutionQueuePump();
 
         }
 
         // [BUILD 948] Cap per-invocation drain to prevent strategy-thread starvation during broker replay bursts.
         private const int MaxAccountExecutionsPerDrain = 16;
+
+        private void HoldAccountExecutionQueueUntilFlattenEnds()
+        {
+            Interlocked.Exchange(ref _accountExecutionPumpDeferredWhileFlatten, 1);
+            Interlocked.Exchange(ref _accountExecutionPumpScheduled, 1);
+        }
+
+        private void ScheduleAccountExecutionQueuePump()
+        {
+            if (isFlattenRunning)
+            {
+                HoldAccountExecutionQueueUntilFlattenEnds();
+                return;
+            }
+
+            if (Interlocked.CompareExchange(ref _accountExecutionPumpScheduled, 1, 0) != 0)
+                return;
+
+            try { TriggerCustomEvent(o => ProcessAccountExecutionQueue(), null); }
+            catch (Exception ex)
+            {
+                Interlocked.Exchange(ref _accountExecutionPumpScheduled, 0);
+                Print("[ACCOUNT_EXEC_PUMP] schedule failed: " + ex.Message);
+            }
+        }
+
+        private void ResumeAccountExecutionQueuePump()
+        {
+            if (isFlattenRunning)
+                return;
+
+            bool deferred = Interlocked.Exchange(ref _accountExecutionPumpDeferredWhileFlatten, 0) != 0;
+            if (!deferred && _accountExecutionQueue.IsEmpty)
+                return;
+
+            Interlocked.Exchange(ref _accountExecutionPumpScheduled, 0);
+            ScheduleAccountExecutionQueuePump();
+        }
 
         /// <summary>
         /// V12.Phase6 [CONCURRENCY-01]: Processes queued account execution events on the STRATEGY THREAD.
@@ -295,10 +333,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Keep queued executions intact and retry when flatten releases.
             if (isFlattenRunning)
             {
-                try { TriggerCustomEvent(o => ProcessAccountExecutionQueue(), null); } catch { }
+                HoldAccountExecutionQueueUntilFlattenEnds();
                 return;
             }
 
+            Interlocked.Exchange(ref _accountExecutionPumpScheduled, 0);
             int drained = 0;
             QueuedAccountExecution item;
             while (drained < MaxAccountExecutionsPerDrain && _accountExecutionQueue.TryDequeue(out item))
@@ -307,7 +346,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (isFlattenRunning)
                 {
                     _accountExecutionQueue.Enqueue(item);
-                    try { TriggerCustomEvent(o => ProcessAccountExecutionQueue(), null); } catch { }
+                    HoldAccountExecutionQueueUntilFlattenEnds();
                     return;
                 }
                 ProcessQueuedExecution(item);
@@ -315,7 +354,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             // [BUILD 948] Reschedule if items remain after hitting the drain cap
             if (!_accountExecutionQueue.IsEmpty)
-                try { TriggerCustomEvent(o => ProcessAccountExecutionQueue(), null); } catch { }
+                ScheduleAccountExecutionQueuePump();
 
             // Update the compliance log once after draining all queued events
             if (EnableComplianceHub && !isFlattenRunning)

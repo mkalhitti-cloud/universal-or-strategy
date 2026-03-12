@@ -385,12 +385,21 @@ namespace NinjaTrader.NinjaScript.Strategies
             FollowerReplaceSpec existing;
             if (_followerReplaceSpecs.TryGetValue(fleetEntryName, out existing))
             {
-                // Already in PendingCancel or Submitting -- absorb ATR tick into latest spec.
-                existing.PendingQty   = newQty;
-                existing.PendingPrice = newPrice;
-                Print("[FSM] Replace spec updated (in-flight): "
-                    + fleetEntryName + " qty=" + newQty + " price=" + newPrice);
-                return;
+                if (existing.State == FollowerReplaceState.SubmitFailed)
+                {
+                    Print("[FSM] Replacing failed spec with fresh cycle: "
+                        + fleetEntryName + " lastError=" + (existing.LastSubmitError ?? "<none>"));
+                    _followerReplaceSpecs.TryRemove(fleetEntryName, out _);
+                }
+                else
+                {
+                    // Already in PendingCancel or Submitting -- absorb ATR tick into latest spec.
+                    existing.PendingQty   = newQty;
+                    existing.PendingPrice = newPrice;
+                    Print("[FSM] Replace spec updated (in-flight): "
+                        + fleetEntryName + " qty=" + newQty + " price=" + newPrice);
+                    return;
+                }
             }
 
             if (!entryOrders.TryGetValue(fleetEntryName, out currentEntry) || currentEntry == null)
@@ -430,7 +439,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         // Build 947: SubmitFollowerReplacement -- called on strategy thread via TriggerCustomEvent
         // after broker confirms the PendingCancel. Uses spec fields to preserve direction + order type.
-        private void SubmitFollowerReplacement(
+        private bool SubmitFollowerReplacement(
             string fleetSignalName, string accountName,
             double price, int qty, FollowerReplaceSpec spec)
         {
@@ -438,8 +447,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                 a => string.Equals(a.Name, accountName, StringComparison.OrdinalIgnoreCase));
             if (acct == null)
             {
-                Print("[FSM] SUBMIT FAIL: account not found: " + accountName);
-                return;
+                spec.State = FollowerReplaceState.SubmitFailed;
+                spec.LastSubmitError = "account not found";
+                Print("[FSM] SUBMIT FAIL: account not found: " + accountName
+                    + " | Signal=" + fleetSignalName + " | CancelId=" + spec.CancellingOrderId);
+                _reaperRepairQueue.Enqueue(accountName);
+                ProcessReaperRepairQueue();
+                return false;
             }
 
             // Build 948 [FIX-C]: Defensive expectedPositions re-assertion.
@@ -497,8 +511,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (!_b948ZeroStartReasserted && expectedDelta != 0)
                     AddExpectedPositionDelta(expectedKey, -expectedDelta);
 
-                Print("[FSM] SUBMIT FAIL: replacement submit threw for " + fleetSignalName + ": " + submitEx.Message);
-                return;
+                spec.State = FollowerReplaceState.SubmitFailed;
+                spec.LastSubmitError = submitEx.Message;
+                Print("[FSM] SUBMIT FAIL: replacement submit threw for " + fleetSignalName
+                    + " | CancelId=" + spec.CancellingOrderId
+                    + " | Qty=" + qty
+                    + " | Price=" + price
+                    + " | Error=" + submitEx.Message);
+                _reaperRepairQueue.Enqueue(accountName);
+                ProcessReaperRepairQueue();
+                return false;
             }
 
             // B966: wrap dict write + pos mutation in Enqueue so it flows through actor pipeline.
@@ -522,13 +544,17 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }); }
 
+            spec.LastSubmitError = null;
             Print("[FSM] Replacement submitted: " + fleetSignalName
-                + " @ " + price + " x" + qty);
+                + " | CancelId=" + spec.CancellingOrderId
+                + " | Qty=" + qty
+                + " | Price=" + price);
+            return true;
         }
 
         // B957/C1: SubmitFollowerTargetReplacement -- called on strategy thread via TriggerCustomEvent
         // after broker confirms the PendingCancel of a follower target order (two-phase FSM for targets).
-        private void SubmitFollowerTargetReplacement(string tFsmKey, FollowerTargetReplaceSpec spec)
+        private bool SubmitFollowerTargetReplacement(string tFsmKey, FollowerTargetReplaceSpec spec)
         {
             var tDict = GetTargetOrdersDictionary(spec.TargetNum);
             Order newTargetOrder = null;
@@ -542,21 +568,22 @@ namespace NinjaTrader.NinjaScript.Strategies
             catch (Exception createEx)
             {
                 Print("[FSM_TGT] CreateOrder threw for " + tFsmKey + ": " + createEx.Message);
-                return;
+                return false;
             }
             if (newTargetOrder == null)
             {
                 Print("[FSM_TGT] CreateOrder returned null for " + tFsmKey + " -- position may be unprotected.");
-                return;
+                return false;
             }
             try { spec.TargetAccount.Submit(new[] { newTargetOrder }); }
             catch (Exception submitEx)
             {
                 Print("[FSM_TGT] Submit threw for " + tFsmKey + ": " + submitEx.Message);
-                return;
+                return false;
             }
             if (tDict != null) tDict[spec.EntryName] = newTargetOrder;
             Print("[FSM_TGT] Target replacement submitted: T" + spec.TargetNum + " for " + spec.EntryName + " -> " + spec.NewTargetPrice);
+            return true;
         }
 
 

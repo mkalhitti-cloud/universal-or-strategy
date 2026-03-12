@@ -154,7 +154,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private void FlattenAll()
         {
             // V1101E HOT-PATCH: Serialize entire flatten pipeline to prevent overlap with Reaper/order callbacks.
-            isFlattenRunning = true; // V12.13b: Suppress stop re-submit during flatten
+            EnterFlattenScope(); // V12.13b: Suppress stop re-submit during flatten
             try
             {
                 // V10 GHOST FIX: Scan for actual live position even if activePositions is empty
@@ -183,10 +183,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // Still run SIMA flatten just in case of desync
                     if (EnableSIMA)
                     {
-                        // V1101E HOT-PATCH: Keep flatten guard asserted across nested SIMA flatten call.
-                        isFlattenRunning = true;
                         FlattenAllApexAccounts();
-                        isFlattenRunning = true;
                     }
                     return;
                 }
@@ -206,10 +203,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // 3. Flatten SIMA Fleet
                 if (EnableSIMA)
                 {
-                    // V1101E HOT-PATCH: Keep flatten guard asserted across nested SIMA flatten call.
-                    isFlattenRunning = true;
                     FlattenAllApexAccounts();
-                    isFlattenRunning = true;
                 }
 
                 // V12.2: Reset Sync State
@@ -328,7 +322,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             finally
             {
                 // V1101E HOT-PATCH: Release flatten guard only after serialized flatten pipeline exits.
-                isFlattenRunning = false; // V12.13b: Always release guard
+                ExitFlattenScope(); // V12.13b: Always release guard
             }
         }
 

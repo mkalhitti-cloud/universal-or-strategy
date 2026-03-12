@@ -72,36 +72,44 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (!dict.TryGetValue(fleetEntryName, out var oldTarget) || oldTarget == null)
                 return;
 
-            if (oldTarget.OrderState == OrderState.Working ||
-                oldTarget.OrderState == OrderState.Accepted ||
-                oldTarget.OrderState == OrderState.Submitted ||
-                oldTarget.OrderState == OrderState.ChangePending)
-            {
-                // A1-2: Stamp REAPER grace window before cancel to suppress false desync during replace gap (Build 960 audit fix)
-                StampReaperMoveGrace();
-                pos.ExecutingAccount.Cancel(new[] { oldTarget });
-            }
+            bool requiresCancel = oldTarget.OrderState == OrderState.Working ||
+                                  oldTarget.OrderState == OrderState.Accepted ||
+                                  oldTarget.OrderState == OrderState.Submitted ||
+                                  oldTarget.OrderState == OrderState.ChangePending ||
+                                  oldTarget.OrderState == OrderState.ChangeSubmitted ||
+                                  oldTarget.OrderState == OrderState.CancelPending ||
+                                  oldTarget.OrderState == OrderState.CancelSubmitted;
 
             double newPrice = GetTargetPrice(pos, targetNumber);
             if (newPrice <= 0) return;
 
             OrderAction exitAction = pos.Direction == MarketPosition.Long ? OrderAction.Sell : OrderAction.BuyToCover;
-            string signalName = SymmetryTrim(targetTag + "_" + fleetEntryName, 40);
+            string tFsmKey = targetTag + "_" + fleetEntryName;
+            double roundedPrice = Instrument.MasterInstrument.RoundToTickSize(newPrice);
 
-            Order replacement = pos.ExecutingAccount.CreateOrder(
-                Instrument,
-                exitAction,
-                OrderType.Limit,
-                TimeInForce.Gtc,
-                qty,
-                Instrument.MasterInstrument.RoundToTickSize(newPrice),
-                0,
-                "SGT_" + DateTime.UtcNow.Ticks.ToString(),
-                signalName,
-                null);
+            var tSpec = new FollowerTargetReplaceSpec
+            {
+                EntryName         = fleetEntryName,
+                TargetNum         = targetNumber,
+                NewTargetPrice    = roundedPrice,
+                Quantity          = qty,
+                ExitAction        = exitAction,
+                TargetAccount     = pos.ExecutingAccount,
+                CancellingOrderId = oldTarget.OrderId
+            };
+            _followerTargetReplaceSpecs[tFsmKey] = tSpec;
 
-            pos.ExecutingAccount.Submit(new[] { replacement });
-            dict[fleetEntryName] = replacement;
+            if (!requiresCancel)
+            {
+                if (SubmitFollowerTargetReplacement(tFsmKey, tSpec))
+                    _followerTargetReplaceSpecs.TryRemove(tFsmKey, out _);
+                return;
+            }
+
+            StampReaperMoveGrace();
+            pos.ExecutingAccount.Cancel(new[] { oldTarget });
+            Print(string.Format("[FSM_TGT] Symmetry target replace pending: {0} T{1} | CancelId={2} -> {3:F2}",
+                fleetEntryName, targetNumber, oldTarget.OrderId, roundedPrice));
         }
 
         private void SymmetryGuardSkipFollower(
