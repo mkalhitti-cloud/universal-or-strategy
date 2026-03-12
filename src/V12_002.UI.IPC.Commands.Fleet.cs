@@ -111,7 +111,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                             string oName = order.Name;
                             if (oName.StartsWith("Stop_") || oName.StartsWith("S_") ||
                                 oName.StartsWith("T1_") || oName.StartsWith("T2_") ||
-                                oName.StartsWith("T3_") || oName.StartsWith("T4_") || oName.StartsWith("T5_"))
+                                oName.StartsWith("T3_") || oName.StartsWith("T4_") || oName.StartsWith("T5_") ||
+                                oName.Contains("_RMA_") || oName.StartsWith("RMA_") ||
+                                oName.Contains("_CIT_") || oName.StartsWith("CIT_"))
                                 continue;
 
                             CancelOrder(order);
@@ -138,7 +140,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                                     string oName = order.Name;
                                     if (oName.StartsWith("Stop_") || oName.StartsWith("S_") ||
                                         oName.StartsWith("T1_") || oName.StartsWith("T2_") ||
-                                        oName.StartsWith("T3_") || oName.StartsWith("T4_") || oName.StartsWith("T5_"))
+                                        oName.StartsWith("T3_") || oName.StartsWith("T4_") || oName.StartsWith("T5_") ||
+                                        oName.Contains("_RMA_") || oName.StartsWith("RMA_") ||
+                                        oName.Contains("_CIT_") || oName.StartsWith("CIT_"))
                                         continue;
 
                                     acct.Cancel(new[] { order });
@@ -165,7 +169,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                             string oName = order.Name;
                             if (oName.StartsWith("Stop_") || oName.StartsWith("S_") ||
                                 oName.StartsWith("T1_") || oName.StartsWith("T2_") ||
-                                oName.StartsWith("T3_") || oName.StartsWith("T4_") || oName.StartsWith("T5_"))
+                                oName.StartsWith("T3_") || oName.StartsWith("T4_") || oName.StartsWith("T5_") ||
+                                oName.Contains("_RMA_") || oName.StartsWith("RMA_") ||
+                                oName.Contains("_CIT_") || oName.StartsWith("CIT_"))
                                 continue;
 
                             CancelOrder(order);
