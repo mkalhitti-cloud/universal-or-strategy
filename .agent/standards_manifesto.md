@@ -8,11 +8,11 @@ This document provides the immutable technical standards for all AI agents (Anth
 - **Terminal Removal:** Only remove order references from dictionaries (`stopOrders`, `target1Orders`, and so on) after a broker-confirmed terminal state (`Filled`, `Cancelled`, `Rejected`, `Unknown`).
 - **Lifecycle Guards:** Any manual flatten or entry must check `isFlattenRunning` to prevent ordering loops.
 
-## 2. Concurrency and Locking
+## 2. Concurrency and Blocking (The "Actor" Law)
 
-- **StateLock Rule:** Every mutation of `activePositions`, `entryOrders`, `stopOrders`, or `expectedPositions` MUST occur inside a `lock(stateLock)`.
-- **Volatile Optimization:** If a variable is marked `volatile` and is being used for a simple read-only check (for example, `if (pos.RemainingContracts > 0)`), remove unnecessary locks to minimize thread contention.
-- **Semaphore Guards:** All `_simaToggleSem.Wait()` calls must be paired with a `Release()` inside a `finally` block.
+- **Inline Actor Mandatory:** Every mutation of `activePositions`, `entryOrders`, `stopOrders`, or `expectedPositions` MUST be wrapped in the `Enqueue(ctx => ...)` model. Legacy `lock(stateLock)` is **BANNED** for internal logic.
+- **Single-Threaded State:** Assume all code inside an `Enqueue` closure is single-threaded. Never take a lock inside an actor closure unless interfacing with NinjaTrader's internal collections (e.g., `acct.Positions`).
+- **Semaphore Guards:** All `_simaToggleSem.Wait()` calls must be paired with a `Release()` inside a `finally` block to prevent deadlock.
 
 ## 3. Coding Style and Modularity
 
@@ -20,12 +20,12 @@ This document provides the immutable technical standards for all AI agents (Anth
 - **Naming:** Use `PascalCase` for Methods/Properties and `camelCase` for fields/locals.
 - **Metabolic Elegance:** Prioritize readable, surgical logic over dense one-liners.
 
-- **Project Director (Antigravity):** The **"General Manager."** Handles high-level brainstorming, mission briefs, and final plan gating.
-- **Lead Software Architect (Grok):** The **"Architectural Authority."** Provides elite concurrency audits, "Deadlock Immunity" verification, and low-level blueprinting. Grok has persistent memory in `.agent/agents/grok/MEMORY.md`.
-- **Lead Engineer (Sonnet):** The **"Execution Specialist."** Handles functional implementation, branch management, and autonomous PR creation.
-- **Forensic Specialist (Codex):** The **"Data Analyst."** Provides surgical code-trace forensics and root cause identification without code modification.
-- **The Loop:** Repair Mission -> Forensic Trace (Codex) -> Architectural Blueprint (Grok/Opus) -> Sonnet Handoff -> **Plan Audit (Antigravity)** -> Branch/Code/Push -> PR Multi-Model Audit (Grok/Opus/Gemini) -> Merge.
-- **The Bridge:** Handoffs are managed via `implementation_plan.md`, `session_handoff.md`, and **Mission Brief** artifacts.
+- **ORCHESTRATOR (Antigravity):** The **"Central Switchboard."** Handles intake (P1), context management, and non-coding tools. BANNED from manual coding.
+- **FORENSICS (Codex):** The **"Logic Auditor."** Provides diagnosis (P2) and "Logical Proof of Failure" (P5).
+- **ARCHITECT (Claude Code):** The **"Strategic Planner."** Authority for Design (P3), Peer Review, and Sign-off (P5).
+- **ENGINEER (Gemini / Jules):** The **"Implementation Specialist."** Authority for surgical edits (P4) and cloud missions.
+- **The Workflow:** Forensic Trace (Codex) -> Architectural Brief (Claude) -> Implementation Plan -> User Approval -> Engineer Execution (Gemini/Jules) -> **Engineer Self-Audit (P4)** -> Architectural Audit (Claude) -> Final Handoff.
+- **The Bridge:** Handoffs are managed via `implementation_plan.md` and **Mission Brief** artifacts.
 
 ## 5. Multi-Agent Parity and Sync Protocol
 
@@ -41,7 +41,7 @@ This document provides the immutable technical standards for all AI agents (Anth
 
 - **Zero-Delta Mandate**: Every new Mission (initialized via `$MISSION`) MUST start with a 0-delta `main` branch. If "Big Numbers" (large uncommitted/unmerged diffs > 100 lines) exist, the agent MUST recommend a cleanup/merge before starting new work.
 - **Autonomous Pull Request Handover (The Fresh PR Rule)**: When submitting code for bot audit or human review, agents MUST NEVER push to an existing open Pull Request (for example, updating a dirty branch). Instead, agents MUST:
-  1. Checkout a completely new semantic branch (for example, `build/955-audit-remediation`).
+  1. Checkout a completely new semantic branch (for example, `fix/logic-repair`).
   2. Push the new branch and open a BRAND NEW Pull Request targeting `main`.
   3. Close any superseded or legacy PRs via the GitHub CLI, explicitly leaving a comment referencing the new clean PR.
      _Why? Incrementally updating existing PRs can cause automated audit bots (Codex, Greptile, DeepSource) to miss context. A fresh PR triggers a 100% clean, full-file audit sweep._
@@ -51,7 +51,7 @@ This document provides the immutable technical standards for all AI agents (Anth
 
 ## 7. ASCII-Only Encoding Protocol (BUILD SAFETY -- MANDATORY)
 
-**Why this rule exists:** In Build 936, AI agents added Unicode decorators to C# log messages (emoji, em-dashes, curly quotes). A cleanup script converted curly closing-quote `"` (U+201D) to straight `"`, which TERMINATED C# string literals early. One broken quote in `SIMA.cs` caused 300+ cascading compile errors across all partial-class files and cost 2 days of trading time.
+**Why this rule exists:** In the Build 936 incident, AI agents added Unicode decorators to C# log messages (emoji, em-dashes, curly quotes). A cleanup script converted curly closing-quote `"` (U+201D) to straight `"`, which TERMINATED C# string literals early. One broken quote in `SIMA.cs` caused 300+ cascading compile errors across all partial-class files and cost 2 days of trading time.
 
 **HARD RULE: All C# string literals must use ASCII-only characters.**
 
@@ -74,9 +74,9 @@ This document provides the immutable technical standards for all AI agents (Anth
 
 ---
 
-## 8. MOVE-SYNC / Follower Order Replace Pattern (Build 947+)
+## 8. MOVE-SYNC / Follower Order Replace Pattern (Permanent Standard)
 
-**Why this rule exists:** Before Build 947, `PropagateMasterEntryMove` cancelled the follower order and immediately submitted a replacement with no broker confirmation gate. If the cancel was slow or ATR oscillated at a stop-ceiling boundary, the old order and new order were both live simultaneously at the broker -- producing ghost orders, false-flat states, and fill-during-gap desyncs.
+**Why this rule exists:** Previously, `PropagateMasterEntryMove` cancelled the follower order and immediately submitted a replacement with no broker confirmation gate. If the cancel was slow or ATR oscillated at a stop-ceiling boundary, the old order and new order were both live simultaneously at the broker -- producing ghost orders, false-flat states, and fill-during-gap desyncs.
 
 **HARD RULE: All follower order cancel+resubmit operations MUST use the two-phase FSM.**
 
@@ -182,6 +182,25 @@ To ensure the "Ultimate Architecture" is maintained across all environments, age
 - **Zero-Friction Bundling:** Handoff prompts MUST be "self-contained." They must include the forensic timeline, specific code locations, and failure hypotheses in the text block to prevent context-loss during handoffs.
 - **Persistent Agent Memory:** Grok's persistent architect memory is stored in the repository at `.agent/agents/grok/MEMORY.md`. All architectural sign-offs must be logged there.
 - **Autonomous Feedback Loop:** Always ask the USER for the other agent's output before proceeding with architectural implementation.
+
+---
+
+## 14. Agent2Agent (A2A) Protocol (Experimental)
+
+**Why this exists:** To enable seamless collaboration between local CLI agents and cloud-based sentinels (e.g., Gemini Enterprise Agent Designer).
+
+- **Enablement:** The `enableAgents: true` flag must be active in `settings.json`.
+- **Mission Sentinels:** Cloud agents act as high-level "Orchestrators" that monitor codebase health and delegate specific repair missions to the local Antigravity/Gemini instance via A2A links.
+- **Self-Documenting Instructions:** Store complex agent instructions in `.agent/agents/<agent_name>/INSTRUCTIONS.md` to ensure cross-platform persistence.
+- **A2A Handoffs:** When delegating to another agent, always provide the full absolute path of the target file and the exact line numbers targeted.
+
+## 15. Engineer Self-Audit (P4) mandatory
+
+Before an Engineer (Gemini/Jules) hands off a mission for architectural audit, they MUST:
+1.  **Grep Audit:** Confirm no accidental `lock(stateLock)` usage or guard deletions.
+2.  **Actor Check:** Verify all new state mutations are wrapped in `Enqueue`.
+3.  **ASCII Scan:** Run a character-level scan to ensure no curly quotes or Unicode arrows.
+4.  **Dry Run:** Perform a mental regression check against the original Mission Brief.
 
 ---
 

@@ -12,8 +12,8 @@
 
 ## 🦍 Logic Integrity (FLEET SAFETY)
 
-1. **SIMA Synchronicity**: All fleet dispatches must use the `_dispatchSyncPendingExpKeys` barrier.
-2. **Ghost-Order Prevention**: Use **Signed Delta Rollbacks** for expected position cleanup; never use blanket zeroing.
+1. **Actor Mandatory**: ALL state mutations MUST be wrapped in the `Enqueue(ctx => ...)` closure. Legacy `lock(stateLock)` is BANNED for internal execution.
+2. **Ghost-Order Prevention**: Use Signed Delta Rollbacks for expected position cleanup; never use blanket zeroing.
 3. **REAPER Bounds**: Repairs must be capped by both ATR-volatility and hard tick fences.
 4. **Symmetry Gating**: Follower brackets must wait for the master "Anchor" price before submission.
 
@@ -25,11 +25,11 @@
 ## CRITICAL: ASCII-Only in All C# String Literals
 
 - NEVER use emoji, curly quotes, em-dashes, Unicode arrows, or box-drawing in Print() or any string literal.
-- Non-ASCII inside C# strings breaks the NinjaTrader compiler with 300+ cascading errors (Build 936 incident).
+- Non-ASCII inside C# strings breaks the NinjaTrader compiler with 300+ cascading errors (Historical Precedent).
 - Allowed substitutions: (!) not emoji, -- not em-dash, -> not arrow, straight " not curly " "
 - See .agent/standards_manifesto.md Section 7 for the full rule table and emergency fix sequence.
 
-## MOVE-SYNC / Follower Order Replace Pattern (Build 947+)
+## MOVE-SYNC / Follower Order Replace Pattern (Permanent DNA)
 
 - **FSM Required**: Any follower order cancel+resubmit MUST use the two-phase Replace FSM (`_followerReplaceSpecs` dict).
 - **Never cancel+submit directly**: Raw `Cancel()` followed immediately by `Submit()` creates ghost orders. BANNED.
@@ -38,9 +38,16 @@
 - **Fill-during-gap guard**: Check if master filled before submitting replacement. If yes, route to REAPER repair.
 - **ChangeOrder banned for fleet accounts**: `Account.Change` silently no-ops on Apex/Tradovate.
 
-## Live Bug Triage Protocol
+## Live Bug Triage Protocol (A2A Ready)
 
-- **Codex first**: For any live trading anomaly, run `/live-bug-triage` workflow before writing any mission brief.
-- **Codex = diagnosis, Sonnet = implementation**: Do not ask Codex for patches.
-- **Plan audit required**: Paste Sonnet's plan to Antigravity for audit before approving. Sonnet may catch brief errors.
-- **Workflow file**: `.agent/workflows/live-bug-triage.md`
+- **Codex first**: For any live trading anomaly, run `/live-bug-triage` workflow.
+- **Codex = diagnosis, Claude = architecture, Gemini/Jules = engineer**.
+- **A2A Delegation**: Use Agent2Agent protocol to delegate surgical repair missions to local CLI agents.
+- **Plan audit required**: Paste implementation plans to Antigravity for audit before approving.
+
+## 🕹️ Engineer Self-Audit (P4) mandatory
+
+Every code change must be validated by the Engineer (Gemini/Jules) before architectural sign-off:
+1. **Grep Scan**: No `lock(stateLock)` in internal logic.
+2. **Modular Audit**: Verification of partial-class destination accuracy.
+3. **ASCII Gate**: Straight quotes only; no emoji or Unicode arrows.

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>V12.Harness.Cli</AssemblyName>
+    <RootNamespace>V12.Harness.Cli</RootNamespace>
+    <LangVersion>8.0</LangVersion>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.runner.reporters" Version="2.6.6" />
+    <PackageReference Include="xunit.runner.utility" Version="2.6.6" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\V12.Tests\V12.Tests.csproj" />
+    <ProjectReference Include="..\V12.Harness.Shim\V12.Harness.Shim.csproj" />
+  </ItemGroup>
+</Project>

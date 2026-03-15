@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>V12.Harness.Shim</AssemblyName>
+    <RootNamespace>V12.Harness.Shim</RootNamespace>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <LangVersion>8.0</LangVersion>
+    <!-- Suppress WPF/Windows designer warnings in headless context -->
+    <DisableXbfGeneration>true</DisableXbfGeneration>
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+</Project>

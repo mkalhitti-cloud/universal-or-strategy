@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>V12.Tests</AssemblyName>
+    <RootNamespace>V12.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <LangVersion>8.0</LangVersion>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <!-- Section 7: FsmHarness.Extracted.cs is an audit reference only; exclude from build -->
+  <ItemGroup>
+    <Compile Remove="FsmHarness.Extracted.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit" Version="2.6.6" />
+    <PackageReference Include="xunit.runner.console" Version="2.6.6" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.8">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\V12.Harness.Shim\V12.Harness.Shim.csproj" />
+  </ItemGroup>
+</Project>
