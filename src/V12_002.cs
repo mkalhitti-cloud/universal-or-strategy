@@ -41,9 +41,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "976";  // V12.976: UI & IPC Actorization (Phase 4 Complete)
+        public const string BUILD_TAG = "981";  // V12.981: Remediation - Termination Race Condition
 
         #region Variables
+        private volatile bool _isTerminating = false;
 
         // OR tracking
         private double sessionHigh;
@@ -70,7 +71,13 @@ namespace NinjaTrader.NinjaScript.Strategies
         // ATR Indicator for RMA
         private ATR atrIndicator;
         private double currentATR;
-        private double lastKnownPrice;  // Track current price for UI events
+        // Cross-thread price cache. Strategy callbacks write it; UI/WPF readers access it atomically.
+        private long _lastKnownPriceBits = BitConverter.DoubleToInt64Bits(0.0);
+        private double lastKnownPrice
+        {
+            get { return BitConverter.Int64BitsToDouble(Interlocked.Read(ref _lastKnownPriceBits)); }
+            set { Interlocked.Exchange(ref _lastKnownPriceBits, BitConverter.DoubleToInt64Bits(value)); }
+        }
 
         // V8.2: EMA indicators for TREND trades
         private EMA ema9;
@@ -81,7 +88,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private EMA ema200;
 
         // V11: Thread-safe Value Cache for UI Telemetry
-        private double _ema9Val;
+        private volatile float _ema9Val;
 
         // V8.7: RSI indicator for FFMA trades
         private RSI rsiIndicator;
@@ -110,7 +117,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         // V12.1101E [F-08]: Secondary dedup cache when broker omits executionId.
         private readonly HashSet<string> processedExecutionFallbackKeys = new HashSet<string>();
         private readonly Queue<string> processedExecutionFallbackQueue = new Queue<string>(); // For bounded pruning
-        // V12.Phase7 [GAP-4]: executionDeduplicateLock removed -- C-01 unified all dedup under stateLock
+        // V12.Phase7 [GAP-4]: executionDeduplicateLock removed -- C-01 unified all dedup on the serialized strategy path
         private const int MaxProcessedExecutionIds = 500;
 
         // V12.Phase6 [CONCURRENCY-01]: Marshal broker-thread account execution events to strategy thread
@@ -185,7 +192,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private Thread ipcThread;
         private volatile bool isIpcRunning;
 
-        // V12.962 INLINE ACTOR (Serializing Executor) -- replaces stateLock
+        // V12.962 INLINE ACTOR (Ordered Actor Thread)
         // All state mutations run inside Enqueue closures; _drainToken ensures serial execution.
         // Actor work must stay on the strategy thread even when enqueued from UI/broker/reaper threads.
         // Zero locks: no monitor is ever held across a broker call (CancelOrder/SubmitOrder).
@@ -199,6 +206,18 @@ namespace NinjaTrader.NinjaScript.Strategies
         private volatile int _drainToken = 0;
         private volatile int _actorOwnerThreadId = 0;
         private volatile int _actorWakeScheduled = 0;
+        private const int MaxBrokerCallsPerCycle = 5;
+        private const int MaxActorDurationMs = 10;
+        private int _actorCycleSequence = 0;
+        private int _activeActorCycleId = 0;
+        private int _actorBrokerCallsThisCycle = 0;
+        private volatile int _actorYieldRequested = 0;
+        private string _actorYieldReason = string.Empty;
+        private string _actorYieldDetail = string.Empty;
+        private readonly System.Diagnostics.Stopwatch _actorCycleStopwatch = new System.Diagnostics.Stopwatch();
+        private volatile bool _configureComplete = false;
+        private volatile bool _dataLoadedComplete = false;
+        private int _startupReadinessLogEmitted = 0;
         protected void Enqueue(Action<V12_002> action) {
             if (action == null) return;
             _cmdQueue.Enqueue(new DelegateCommand(action));
@@ -210,6 +229,33 @@ namespace NinjaTrader.NinjaScript.Strategies
         private bool IsActorThread() {
             int actorThreadId = Volatile.Read(ref _actorOwnerThreadId);
             return actorThreadId != 0 && Thread.CurrentThread.ManagedThreadId == actorThreadId;
+        }
+        private void RefreshActorOwnerThread() {
+            Interlocked.Exchange(ref _actorOwnerThreadId, Thread.CurrentThread.ManagedThreadId);
+        }
+        private bool EnsureStartupReady(string callbackName) {
+            if (_configureComplete && _dataLoadedComplete)
+                return true;
+
+            if (Interlocked.CompareExchange(ref _startupReadinessLogEmitted, 1, 0) == 0) {
+                StringBuilder missingPhases = new StringBuilder();
+                if (!_configureComplete)
+                    missingPhases.Append("Configure");
+                if (!_dataLoadedComplete) {
+                    if (missingPhases.Length > 0)
+                        missingPhases.Append(", ");
+                    missingPhases.Append("DataLoaded");
+                }
+
+                Print(string.Format(
+                    "[BUILD 976 STARTUP GUARD] {0} skipped until initialization completes. State={1} Thread={2} Missing={3}",
+                    callbackName,
+                    State,
+                    Thread.CurrentThread.ManagedThreadId,
+                    missingPhases.ToString()));
+            }
+
+            return false;
         }
         private void ScheduleActorDrain() {
             if (Interlocked.CompareExchange(ref _actorWakeScheduled, 1, 0) != 0) return;
@@ -228,27 +274,121 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (Interlocked.CompareExchange(ref _drainToken, 1, 0) != 0) return;
             DrainActor();
         }
+        private void BeginActorCycle()
+        {
+            _activeActorCycleId = Interlocked.Increment(ref _actorCycleSequence);
+            _actorBrokerCallsThisCycle = 0;
+            Interlocked.Exchange(ref _actorYieldRequested, 0);
+            _actorYieldReason = string.Empty;
+            _actorYieldDetail = string.Empty;
+            _actorCycleStopwatch.Restart();
+        }
+        private string GetActorBudgetQueueState()
+        {
+            return string.Format(
+                "actorQueue={0} repairQueue={1} flattenQueue={2} nakedStopQueue={3}",
+                _cmdQueue.Count,
+                _reaperRepairQueue.Count,
+                _reaperFlattenQueue.Count,
+                _reaperNakedStopQueue.Count);
+        }
+        private void RequestActorYield(string reason, string detail = null)
+        {
+            if (Interlocked.CompareExchange(ref _actorYieldRequested, 1, 0) != 0)
+                return;
+
+            _actorYieldReason = reason ?? string.Empty;
+            _actorYieldDetail = detail ?? string.Empty;
+            Print(string.Format(
+                "[ACTOR_BUDGET] cycle={0} reason={1} elapsedMs={2} brokerCalls={3} remainingActorQueue={4} detail={5} state={6}",
+                _activeActorCycleId,
+                _actorYieldReason,
+                _actorCycleStopwatch.ElapsedMilliseconds,
+                _actorBrokerCallsThisCycle,
+                _cmdQueue.Count,
+                _actorYieldDetail,
+                GetActorBudgetQueueState()));
+        }
+        private bool TryYieldActorForTime(string scope, string detail)
+        {
+            if (Volatile.Read(ref _actorYieldRequested) != 0)
+                return true;
+
+            if (_actorCycleStopwatch.ElapsedMilliseconds < MaxActorDurationMs)
+                return false;
+
+            RequestActorYield("time", string.Format("{0}:{1}", scope, detail));
+            return true;
+        }
+        private bool TryConsumeActorBrokerCall(string scope, string detail)
+        {
+            int nextCall = _actorBrokerCallsThisCycle + 1;
+            if (nextCall > MaxBrokerCallsPerCycle)
+            {
+                RequestActorYield("broker", string.Format("{0}:{1}", scope, detail));
+                return false;
+            }
+
+            _actorBrokerCallsThisCycle = nextCall;
+            return true;
+        }
         // V12.963: Non-recursive drain -- prevents stack growth from immediate broker callbacks
         // (SubmitOrder/CancelOrder can re-trigger OnExecutionUpdate -> Enqueue -> TryDrain on same stack).
         // Instead of recursing, schedule a new drain cycle via TriggerCustomEvent.
         private void DrainActor() {
-            Interlocked.Exchange(ref _actorOwnerThreadId, Thread.CurrentThread.ManagedThreadId);
+            RefreshActorOwnerThread();
+            BeginActorCycle();
             try {
                 StrategyCommand cmd;
                 while (_cmdQueue.TryDequeue(out cmd)) {
                     try { cmd.Execute(this); }
                     catch (Exception ex) { Print("[V12_INLINE_ACTOR] " + ex); }
+                    if (Volatile.Read(ref _actorYieldRequested) != 0)
+                        break;
+                    if (_actorCycleStopwatch.ElapsedMilliseconds >= MaxActorDurationMs)
+                    {
+                        RequestActorYield("time", "post-command");
+                        break;
+                    }
                 }
             }
             finally {
+                _actorCycleStopwatch.Stop();
                 Interlocked.Exchange(ref _drainToken, 0);
                 if (!_cmdQueue.IsEmpty)
                     ScheduleActorDrain();
             }
         }
+        private sealed class IpcClientSession
+        {
+            public readonly int ClientId;
+            public readonly TcpClient Client;
+            public readonly NetworkStream Stream;
+            public readonly ConcurrentQueue<byte[]> OutboundQueue = new ConcurrentQueue<byte[]>();
+            public readonly SemaphoreSlim OutboundSignal = new SemaphoreSlim(0);
+            public readonly CancellationTokenSource CancelSource = new CancellationTokenSource();
+            public Task WriterTask;
+            public int QueuedMessageCount;
+            private int _closed;
+
+            public IpcClientSession(int clientId, TcpClient client)
+            {
+                ClientId = clientId;
+                Client = client;
+                Stream = client.GetStream();
+            }
+
+            public bool IsClosed => Volatile.Read(ref _closed) != 0;
+
+            public bool TryMarkClosed()
+            {
+                return Interlocked.CompareExchange(ref _closed, 1, 0) == 0;
+            }
+        }
+
         private ConcurrentQueue<string> ipcCommandQueue;
         // V12.2: Multi-Client Support
-        private ConcurrentDictionary<int, TcpClient> connectedClients;
+        private ConcurrentDictionary<int, IpcClientSession> connectedClients;
 
         // V12 SIMA: Multi-Account Execution Engine
         private Thread reaperThread;
@@ -327,9 +467,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private ConcurrentDictionary<string, DateTime> accountLastSummaryDate = new ConcurrentDictionary<string, DateTime>();
         private string dailySummaryCsvPath;
         private DateTime lastDailySummaryCheck = DateTime.MinValue;
-        private readonly object dailySummaryLock = new object();
-        private readonly object stateLock = new object();
-
+        
         // [BUILD 924 - Fix C] CIT suppression flag: set true during PropagateMasterPriceMove,
         // cleared in finally block. Prevents CIT from market-firing freshly resubmitted follower
         // limit entries before the propagation sync cycle completes.

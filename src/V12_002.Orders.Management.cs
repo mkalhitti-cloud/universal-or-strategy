@@ -75,10 +75,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // We must flatten immediately to prevent a naked position.
                     try
                     {
+                        stopOrders[entryName] = sOrd; // BUILD 981: Pre-register for sweep visibility
                         pos.ExecutingAccount.Submit(new[] { sOrd });
                     }
                     catch (Exception submitEx)
                     {
+                        Order _junk; stopOrders.TryRemove(entryName, out _junk);
                         Print(string.Format("[BRACKET_FATAL] Follower stop Submit THREW for {0}: {1}. Emergency flattening.", entryName, submitEx.Message));
                         EmergencyFlattenSingleFleetAccount(pos.ExecutingAccount);
                         return;
@@ -100,8 +102,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     FlattenPositionByName(entryName);
                     return;
                 }
-                // A1-1: B966 -- Enqueue actor pipeline (was naked stateLock write)
-                { var _en966 = entryName; var _so966 = stopOrder; Enqueue(ctx => { ctx.stopOrders[_en966] = _so966; }); }
+                stopOrders[entryName] = stopOrder;
 
                 int nonRunnerLimitQty = 0;
                 int runnerQty = 0;
@@ -191,8 +192,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // V12.Audit [S-003]: BracketSubmitted is set AFTER the stop quantity audit so that
                 // a mismatch detected above does not leave the position flagged as fully protected.
-                pos.BracketSubmitted = true;
-
+                // [Task 5 Fix]: pos.BracketSubmitted = true moved to top of method
+                
                 // [938-BRACKET] Confirm full bracket submitted for follower accounts.
                 if (isFollowerSubmit)
                     Print(string.Format("[938-BRACKET] Follower bracket submitted: {0} T1={1:F2} Stop={2:F2}",

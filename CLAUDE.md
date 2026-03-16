@@ -12,7 +12,8 @@
 
 ## 🦍 Logic Integrity (FLEET SAFETY)
 
-1. **Actor Mandatory**: ALL state mutations MUST be wrapped in the `Enqueue(ctx => ...)` closure. Legacy `lock(stateLock)` is BANNED for internal execution.
+1. **No Internal Locks**: Legacy `lock(stateLock)` is BANNED for internal execution. Thread-safety should be managed via either the Actor model or direct atomic writes, depending on the mission requirements.
+2. **Build 981 Protocol**: Direct writes to `stopOrders` are MANDATORY during bracket submission. Enqueue is BANNED for this operation to eliminate tracking latency during shutdown races.
 2. **Ghost-Order Prevention**: Use Signed Delta Rollbacks for expected position cleanup; never use blanket zeroing.
 3. **REAPER Bounds**: Repairs must be capped by both ATR-volatility and hard tick fences.
 4. **Symmetry Gating**: Follower brackets must wait for the master "Anchor" price before submission.

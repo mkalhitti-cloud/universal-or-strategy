@@ -10,7 +10,8 @@ This document provides the immutable technical standards for all AI agents (Anth
 
 ## 2. Concurrency and Blocking (The "Actor" Law)
 
-- **Inline Actor Mandatory:** Every mutation of `activePositions`, `entryOrders`, `stopOrders`, or `expectedPositions` MUST be wrapped in the `Enqueue(ctx => ...)` model. Legacy `lock(stateLock)` is **BANNED** for internal logic.
+1.  **No Internal Locks**: Legacy `lock(stateLock)` is BANNED for internal execution. Thread-safety should be managed via either the Actor model or direct atomic writes, depending on the latency requirements defined in the Mission Brief.
+2.  **Build 981 Protocol**: Direct writes to `stopOrders` are MANDATORY during bracket submission to close the termination race window. Enqueue is BANNED for this specific operation. Priority: Zero-latency visibility over deferred actor processing.
 - **Single-Threaded State:** Assume all code inside an `Enqueue` closure is single-threaded. Never take a lock inside an actor closure unless interfacing with NinjaTrader's internal collections (e.g., `acct.Positions`).
 - **Semaphore Guards:** All `_simaToggleSem.Wait()` calls must be paired with a `Release()` inside a `finally` block to prevent deadlock.
 

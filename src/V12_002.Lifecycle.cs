@@ -36,14 +36,18 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void OnStateChange()
         {
             State state = State;
-            Interlocked.CompareExchange(ref _actorOwnerThreadId, Thread.CurrentThread.ManagedThreadId, 0);
-            Enqueue(ctx => ctx.ProcessOnStateChange(state));
+            if (state != State.SetDefaults)
+                RefreshActorOwnerThread();
+            ProcessOnStateChange(state);
         }
 
         private void ProcessOnStateChange(State state)
         {
             if (state == State.SetDefaults)
             {
+                _configureComplete = false;
+                _dataLoadedComplete = false;
+                Interlocked.Exchange(ref _startupReadinessLogEmitted, 0);
                 Description = "Universal OR Strategy V12.12 - Build " + BUILD_TAG;
                 Name = "V12_002";
                 Calculate = Calculate.OnPriceChange;  // CRITICAL FIX: Updates on every price tick for real-time trailing
@@ -88,6 +92,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Target3Value = 1.0;
                 Target4Value = 1.5;
                 Target5Value = 2.0;
+                ConfiguredTargetCount = 5;
                 T1Type = TargetMode.Points;
                 T2Type = TargetMode.ATR;
                 T3Type = TargetMode.ATR;
@@ -161,6 +166,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (state == State.Configure)
             {
+                _configureComplete = false;
+                _dataLoadedComplete = false;
+
                 // V8.30: Initialize thread-safe collections
                 // ConcurrentDictionary(concurrencyLevel, initialCapacity)
                 activePositions = new ConcurrentDictionary<string, PositionInfo>(2, 4);
@@ -183,7 +191,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // IPC Queue
                 ipcCommandQueue = new ConcurrentQueue<string>();
-                connectedClients = new ConcurrentDictionary<int, TcpClient>(); // Build 935 [Fix-1]: prevent NullReferenceException in StopIpcServer
+                connectedClients = new ConcurrentDictionary<int, IpcClientSession>(); // Build 935 [Fix-1]: prevent NullReferenceException in StopIpcServer
 
                 // V12 SIMA: Initialize expected positions tracking
                 expectedPositions = new ConcurrentDictionary<string, int>(2, 20); // Up to 20 accounts
@@ -198,9 +206,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 AddDataSeries(BarsPeriodType.Minute, 10); // Index 2
                 AddDataSeries(BarsPeriodType.Minute, 15); // Index 3
 
+                _configureComplete = true;
             }
             else if (state == State.DataLoaded)
             {
+                _dataLoadedComplete = false;
+
                 tickSize = Instrument.MasterInstrument.TickSize;
                 pointValue = Instrument.MasterInstrument.PointValue;
                 lastKnownPrice = 0; // V11 FIX: Reset price on load to prevent stale data (e.g. MES->MGC switch)
@@ -222,13 +233,22 @@ namespace NinjaTrader.NinjaScript.Strategies
                     maxContracts = 20; // V12.1101E [B-9]: Conservative default for unknown instruments
                 }
 
-                // Universal Ladder: derive activeTargetCount from non-zero Target values at load time.
-                int loadedTargetCount = (Target1Value > 0 ? 1 : 0)
-                                      + (Target2Value > 0 ? 1 : 0)
-                                      + (Target3Value > 0 ? 1 : 0)
-                                      + (Target4Value > 0 ? 1 : 0)
-                                      + (Target5Value > 0 ? 1 : 0);
-                activeTargetCount = Math.Max(1, Math.Min(5, loadedTargetCount));
+                int persistedTargetCount = Math.Max(0, Math.Min(5, ConfiguredTargetCount));
+                if (persistedTargetCount >= 1)
+                {
+                    activeTargetCount = persistedTargetCount;
+                }
+                else
+                {
+                    // Backward compatibility for templates saved before ConfiguredTargetCount existed.
+                    int loadedTargetCount = (Target1Value > 0 ? 1 : 0)
+                                          + (Target2Value > 0 ? 1 : 0)
+                                          + (Target3Value > 0 ? 1 : 0)
+                                          + (Target4Value > 0 ? 1 : 0)
+                                          + (Target5Value > 0 ? 1 : 0);
+                    activeTargetCount = Math.Max(1, Math.Min(5, loadedTargetCount));
+                    ConfiguredTargetCount = activeTargetCount;
+                }
 
                 // Initialize ATR indicator on 5-min bars (BarsArray[1])
                 atrIndicator = this.ATR(BarsArray[1], RMAATRPeriod);
@@ -249,10 +269,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Print(string.Format("EMA INIT DEBUG: ema9.Period={0} ema15.Period={1}", ema9.Period, ema15.Period));
 
                 ResetOR();
-
-                // V12.2 HEADLESS SAFETY: Start core services even if ChartControl is null (for background execution)
-                // [Build 932]: Start IPC in DataLoaded so Control Surface connects even if market is closed/offline.
-                StartIpcServer();
 
                 Print(string.Format("UniversalORStrategy V12.14 | {0} | Tick: {1} | PV: ${2}", symbol, tickSize, pointValue));
                 Print(string.Format("Session: {0} - {1} {2} | OR: {3} min",
@@ -277,6 +293,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // (tickSize, pointValue, minContracts, maxContracts) are populated before audit runs.
                 ExecuteRiskLogicAudit();
 
+                _dataLoadedComplete = true;
+
+                // V12.2 HEADLESS SAFETY: Start core services even if ChartControl is null (for background execution)
+                // [Build 932]: Start IPC in DataLoaded so Control Surface connects even if market is closed/offline.
+                StartIpcServer();
             }
             else if (state == State.Realtime)
             {
@@ -287,9 +308,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (EnableSIMA)
                 {
-                    EnumerateApexAccounts();
-                    if (ReaperAuditEnabled)
-                        StartReaperAudit();
+                    // Route realtime SIMA startup through the actor queue so lifecycle state
+                    // mutation and optional REAPER start stay ordered on the strategy thread.
+                    Enqueue(ctx =>
+                    {
+                        ctx.EnumerateApexAccounts();
+                        if (ctx.ReaperAuditEnabled)
+                            ctx.StartReaperAudit();
+                    });
                 }
 
                 // V10.3: Subscribe to external signals for multi-chart sync
@@ -307,6 +333,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (state == State.Terminated)
             {
+                _isTerminating = true;
+
+                _configureComplete = false;
+                _dataLoadedComplete = false;
+                Interlocked.Exchange(ref _startupReadinessLogEmitted, 0);
+
                 if (ChartControl != null)
                 {
                     ChartControl.Dispatcher.InvokeAsync(() =>
@@ -320,6 +352,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Must run while dicts are still populated and accounts still subscribed.
                 // force=true: hard terminate, cancel regardless of open positions.
                 CancelAllV12GtcOrders(true);
+
+                DrainQueuesForShutdown();
 
                 // Stop IPC Server
                 StopIpcServer();
@@ -362,6 +396,31 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        private void DrainQueuesForShutdown()
+        {
+            try
+            {
+                Print("[SHUTDOWN] Draining queues...");
+                int ipcDrained = 0;
+                if (ipcCommandQueue != null)
+                {
+                    while (ipcDrained < 100 && ipcCommandQueue.TryDequeue(out string _))
+                    {
+                        ipcDrained++;
+                    }
+                }
+
+                int actorDrained = 0;
+                while (actorDrained < 50 && _cmdQueue.TryDequeue(out StrategyCommand cmd))
+                {
+                    try { cmd.Execute(this); } catch { }
+                    actorDrained++;
+                }
+                Print(string.Format("[SHUTDOWN] Drained {0} IPC cmds and {1} Actor cmds.", ipcDrained, actorDrained));
+            }
+            catch { }
+        }
+
         #endregion
 
         #region OnConnectionStatusUpdate - Build 948: Mid-session re-adoption on Rithmic reconnect
@@ -369,6 +428,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void OnConnectionStatusUpdate(ConnectionStatusEventArgs connectionStatusUpdate)
         {
             base.OnConnectionStatusUpdate(connectionStatusUpdate);
+            RefreshActorOwnerThread();
 
             ConnectionStatus status = connectionStatusUpdate.Status;
             bool enableSima = EnableSIMA;
@@ -390,7 +450,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 // Re-adopt working orders after reconnect; runs on strategy thread via TriggerCustomEvent
                 Print("[BUILD 948] Reconnected -- scheduling working order re-adoption.");
-                try { TriggerCustomEvent(o => HydrateWorkingOrdersFromBroker(), null); } catch { }
+                try { Enqueue(ctx => ctx.HydrateWorkingOrdersFromBroker()); } catch { }
             }
         }
 
@@ -400,9 +460,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
+            RefreshActorOwnerThread();
+
             // Only process on primary instrument
             if (marketDataUpdate.MarketDataType == MarketDataType.Last)
             {
+                if (!EnsureStartupReady(nameof(OnMarketData))) return;
+
                 // Update last known price for real-time tracking
                 lastKnownPrice = marketDataUpdate.Price;
                 

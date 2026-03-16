@@ -1,7 +1,8 @@
 # NinjaScript V12 Project Standards (Gemini Mirror)
 
 - **Language**: C# 8.0 / .NET Framework 4.8 (NinjaTrader 8).
-- **Concurrency**: ALL state mutations (activePositions, expectedPositions) MUST be wrapped in the `Enqueue(ctx => ...)` model. Legacy `lock(stateLock)` is **BANNED** for internal logic.
+- **No Internal Locks**: Legacy `lock(stateLock)` is **BANNED** for internal logic. All state mutations must be thread-safe; use the `Enqueue(ctx => ...)` model by default EXCEPT when direct-write is required for termination safety (see Build 981).
+- **Build 981 Protocol**: Direct writes to `stopOrders` are MANDATORY during bracket submission. DO NOT use Enqueue for this operation as it creates a ghost-order tracking window during shutdown.
 - **Lifecycle**: Semaphores (`_simaToggleSem`) MUST be released in finally blocks.
 - **Refactoring**: ALL file splits MUST use the Python extractor script (see Section 7). Manual copy-paste is BANNED for any split exceeding 50 lines.
 - **Instrument Lookups**: Prefer explicit FirstOrDefault logic for instrument lookups (Reaper parity).

@@ -39,6 +39,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private const int IpcMaxCommandLength = 512;
         private const int IpcMaxQueueDepth = 2000;
         private const int IpcMaxCommandsPerDrain = 500;
+        private const int IpcMaxOutboundMessagesPerClient = 128;
         private int ipcQueuedCommandCount    = 0;
         private int _ipcClientIdSeed          = 0;
         private int _ipcInvalidUtf8Count      = 0;
@@ -219,6 +220,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private void ProcessIpcCommands()
         {
+            if (_isTerminating)
+            {
+                if (ipcCommandQueue != null)
+                {
+                    while (ipcCommandQueue.TryDequeue(out string _)) { }
+                }
+                return;
+            }
             if (ipcCommandQueue == null || ipcCommandQueue.IsEmpty) return;
 
             int drainedCount = 0;
