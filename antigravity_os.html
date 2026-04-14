@@ -375,7 +375,12 @@
             const el = document.createElement('div');
             el.className = 'label';
             el.style.color = colorHex;
-            el.innerHTML = `${text}<div class="subtitle" style="color: #ffffff">${subtitle}</div>`;
+            el.textContent = text;
+            const subEl = document.createElement('div');
+            subEl.className = 'subtitle';
+            subEl.style.color = '#ffffff';
+            subEl.textContent = subtitle;
+            el.appendChild(subEl);
             document.body.appendChild(el);
             labels.push({ element: el, target: object3D, offset: offset });
         }
@@ -391,7 +396,7 @@
         alphaFeeEl.className = 'label';
         alphaFeeEl.style.color = '#00f2ff';
         alphaFeeEl.style.fontSize = '10px';
-        alphaFeeEl.innerHTML = '5% FEE REVENUE STREAM';
+        alphaFeeEl.textContent = '5% FEE REVENUE STREAM';
         document.body.appendChild(alphaFeeEl);
 
 
