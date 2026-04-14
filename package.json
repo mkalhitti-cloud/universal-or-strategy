@@ -1,0 +1,31 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "Welcome, Director. This repository contains the hardened **Universal OR Strategy V12 (Modular)** codebase and its supporting infrastructure.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mkalhitti-cloud/universal-or-strategy.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mkalhitti-cloud/universal-or-strategy/issues"
+  },
+  "homepage": "https://github.com/mkalhitti-cloud/universal-or-strategy#readme",
+  "dependencies": {
+    "htmlhint": "^1.9.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-plugin-html": "^8.0.0"
+  }
+}
