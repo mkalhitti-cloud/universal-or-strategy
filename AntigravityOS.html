@@ -117,7 +117,7 @@
         const coreMaterial = new THREE.MeshStandardMaterial({
             color: 0xbc13fe,
             emissive: 0xbc13fe,
-            emissiveIntensity: 2.0,
+            emissiveIntensity: 2,
             metalness: 0.8,
             roughness: 0.2,
             wireframe: true
@@ -131,7 +131,7 @@
         scene.add(core);
 
         const coreInnerGeo = new THREE.OctahedronGeometry(3, 0);
-        const coreInnerMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 1.0 });
+        const coreInnerMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 1 });
         const coreInner = new THREE.Mesh(coreInnerGeo, coreInnerMat);
         core.add(coreInner);
 
@@ -175,7 +175,7 @@
             metalness: 0.5,
             roughness: 0.1,
             transmission: 0.8,
-            thickness: 1.0
+            thickness: 1
         });
 
         for(let i=0; i<3; i++) {
@@ -202,8 +202,8 @@
             color: 0x00f2ff,
             emissive: 0x00f2ff,
             emissiveIntensity: 0.8,
-            metalness: 1.0,
-            roughness: 0.0
+            metalness: 1,
+            roughness: 0
         });
 
         for(let i=0; i<15; i++) {
@@ -227,9 +227,9 @@
         const poolGeo = new THREE.CylinderGeometry(20, 15, 2, 32);
         const poolMat = new THREE.MeshPhysicalMaterial({
             color: 0x000000,
-            metalness: 1.0,
-            roughness: 0.0,
-            clearcoat: 1.0,
+            metalness: 1,
+            roughness: 0,
+            clearcoat: 1,
             clearcoatRoughness: 0.1
         });
         const pool = new THREE.Mesh(poolGeo, poolMat);
@@ -309,7 +309,7 @@
         const spiralMat = new THREE.MeshStandardMaterial({
             color: 0x00f2ff,
             emissive: 0x00f2ff,
-            emissiveIntensity: 1.0,
+            emissiveIntensity: 1,
             transparent: true,
             opacity: 0.6,
             wireframe: true
@@ -352,9 +352,9 @@
 
             // Upper sphere orbiting
             upperGroup.rotation.y += 0.005;
-            for(let i=0; i<computeNodes.length; i++) {
-                computeNodes[i].mesh.rotation.x += 0.02;
-                computeNodes[i].mesh.rotation.y += 0.02;
+            for(const node of computeNodes) {
+                node.mesh.rotation.x += 0.02;
+                node.mesh.rotation.y += 0.02;
             }
 
             // Left cluster
