@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity OS - 3D Business Model</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: radial-gradient(circle at center, #0a0a12 0%, #000000 100%);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        .label {
+            position: absolute;
+            top: 0;
+            left: 0;
+            font-size: 11px;
+            font-weight: 700;
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-align: center;
+            transform: translate(-50%, -50%);
+            text-shadow: 0 0 10px rgba(0,0,0,0.9), 0 0 20px currentColor;
+            transition: opacity 0.2s ease-out;
+            white-space: nowrap;
+            z-index: 10;
+        }
+        .subtitle {
+            font-size: 9px;
+            font-weight: 400;
+            letter-spacing: 1px;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+        #ui-overlay {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            letter-spacing: 1px;
+            pointer-events: none;
+            z-index: 20;
+        }
+        .key {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+    </style>
+    <!-- Import maps polyfill -->
+    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div id="ui-overlay">
+        <div><span class="key" style="background: #bc13fe; box-shadow: 0 0 8px #bc13fe;"></span> Raw Data / Compute</div>
+        <div style="margin-top: 8px;"><span class="key" style="background: #ff8c00; box-shadow: 0 0 8px #ff8c00;"></span> Infrastructure / Intel</div>
+        <div style="margin-top: 8px;"><span class="key" style="background: #00f2ff; box-shadow: 0 0 8px #00f2ff;"></span> Revenue / Re-investment</div>
+        <div style="margin-top: 16px; font-size: 10px; opacity: 0.5;">DRAG TO ROTATE • SCROLL TO ZOOM</div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        // --- Core Setup ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x05050a, 0.015);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 10, 50);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // optimize performance
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 150;
+        controls.minDistance = 10;
+        controls.target.set(0, -2, 0);
+
+        // --- Post-Processing (Selective Bloom) ---
+        const renderScene = new RenderPass(scene, camera);
+        // High threshold ensures only HDR-multiplied colors bloom
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 2.5, 0.8, 1.0);
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        // --- Palettes & Materials ---
+        const colors = {
+            purple: new THREE.Color(0xbc13fe),
+            orange: new THREE.Color(0xff8c00),
+            cyan: new THREE.Color(0x00f2ff),
+            glass: new THREE.Color(0xffffff)
+        };
+
+        // Bloom colors (multiplied > 1.0 to trigger UnrealBloomPass threshold)
+        const bloomPurple = colors.purple.clone().multiplyScalar(4);
+        const bloomOrange = colors.orange.clone().multiplyScalar(4);
+        const bloomCyan = colors.cyan.clone().multiplyScalar(4);
+
+        // Premium Glass Material
+        const glassMaterial = new THREE.MeshPhysicalMaterial({
+            color: colors.glass,
+            metalness: 0.2,
+            roughness: 0.1,
+            transmission: 0.95, // Glass effect
+            ior: 1.6,
+            thickness: 2.0,
+            side: THREE.DoubleSide
+        });
+
+        // Glowing Core Materials
+        const glowMatPurple = new THREE.MeshBasicMaterial({ color: bloomPurple });
+        const glowMatOrange = new THREE.MeshBasicMaterial({ color: bloomOrange });
+        const glowMatCyan = new THREE.MeshBasicMaterial({ color: bloomCyan });
+
+        // Base reflective pool material
+        const poolMaterial = new THREE.MeshStandardMaterial({
+            color: 0x051015,
+            metalness: 1.0,
+            roughness: 0.15,
+            emissive: colors.cyan.clone().multiplyScalar(0.2)
+        });
+
+        // --- Background Cosmos ---
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1, transparent: true, opacity: 0.8 });
+        const starsVertices = [];
+        for (let i = 0; i < 2000; i++) {
+            const x = THREE.MathUtils.randFloatSpread(300);
+            const y = THREE.MathUtils.randFloatSpread(300);
+            const z = THREE.MathUtils.randFloatSpread(300);
+            starsVertices.push(x, y, z);
+        }
+        starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+        const starField = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(starField);
+
+        // --- Architecture Groups ---
+        const rootNodes = new THREE.Group();
+        scene.add(rootNodes);
+
+        const upperSphere = new THREE.Group();    // Compute Sources
+        upperSphere.position.set(0, 16, 0);
+        const leftCluster = new THREE.Group();    // Infrastructure
+        leftCluster.position.set(-16, 0, 0);
+        const rightCluster = new THREE.Group();   // Alpha Dividends
+        rightCluster.position.set(16, 0, 0);
+        const centralKernel = new THREE.Group();  // Distillation Kernel
+        centralKernel.position.set(0, 0, 0);
+        const lowerPool = new THREE.Group();      // Revenue Pool
+        lowerPool.position.set(0, -16, 0);
+
+        rootNodes.add(upperSphere, leftCluster, rightCluster, centralKernel, lowerPool);
+
+        // --- Geometry Construction ---
+
+        // 1. Central Distillation Kernel
+        const kernelGeo = new THREE.IcosahedronGeometry(3.5, 0);
+        const kernelGlass = new THREE.Mesh(kernelGeo, glassMaterial);
+        const kernelInnerGeo = new THREE.IcosahedronGeometry(2.0, 1);
+        const kernelInner = new THREE.Mesh(kernelInnerGeo, glowMatPurple);
+
+        // Add wireframe cage
+        const wireMat = new THREE.MeshBasicMaterial({ color: bloomPurple, wireframe: true, transparent: true, opacity: 0.3 });
+        const kernelWire = new THREE.Mesh(kernelGeo, wireMat);
+        kernelWire.scale.set(1.05, 1.05, 1.05);
+
+        centralKernel.add(kernelGlass, kernelInner, kernelWire);
+
+        // 2. Upper Sphere (Compute Sources)
+        const computeNodes = [];
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const nodeGroup = new THREE.Group();
+
+            const outer = new THREE.Mesh(new THREE.OctahedronGeometry(1.2, 0), glassMaterial);
+            const inner = new THREE.Mesh(new THREE.OctahedronGeometry(0.5, 0), glowMatPurple);
+            nodeGroup.add(outer, inner);
+
+            const radius = 6;
+            nodeGroup.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+
+            upperSphere.add(nodeGroup);
+            computeNodes.push({ mesh: nodeGroup, angle: angle });
+        }
+
+        // 3. Left Cluster (Infrastructure Revenue)
+        const infraNodes = [];
+        const infraGeoOuter = new THREE.BoxGeometry(2, 2, 2);
+        const infraGeoInner = new THREE.BoxGeometry(1, 1, 1);
+        for(let i=0; i<4; i++) {
+            const nodeGroup = new THREE.Group();
+            const outer = new THREE.Mesh(infraGeoOuter, glassMaterial);
+            const inner = new THREE.Mesh(infraGeoInner, glowMatOrange);
+            nodeGroup.add(outer, inner);
+
+            nodeGroup.position.set(
+                Math.cos((i/4)*Math.PI*2)*3,
+                Math.sin((i/4)*Math.PI*2)*3,
+                (Math.random()-0.5)*4
+            );
+            leftCluster.add(nodeGroup);
+            infraNodes.push(nodeGroup);
+        }
+
+        // 4. Right Cluster (Alpha Dividends / Droids)
+        const droids = [];
+        const droidGeo = new THREE.TetrahedronGeometry(0.8, 0);
+        for(let i=0; i<15; i++) {
+            const dGroup = new THREE.Group();
+            const outer = new THREE.Mesh(droidGeo, glassMaterial);
+            const inner = new THREE.Mesh(new THREE.TetrahedronGeometry(0.3, 0), glowMatCyan);
+            dGroup.add(outer, inner);
+
+            // Random initial placement
+            dGroup.position.set(
+                (Math.random()-0.5)*8,
+                (Math.random()-0.5)*8,
+                (Math.random()-0.5)*8
+            );
+            rightCluster.add(dGroup);
+            droids.push({
+                mesh: dGroup,
+                seed: Math.random() * 100,
+                basePos: dGroup.position.clone()
+            });
+        }
+
+        // 5. Network Revenue Pool
+        const poolGeo = new THREE.CylinderGeometry(18, 20, 1.5, 64);
+        const poolMesh = new THREE.Mesh(poolGeo, poolMaterial);
+
+        // Inner glowing ring of the pool
+        const poolRingGeo = new THREE.TorusGeometry(15, 0.4, 16, 64);
+        const poolRing = new THREE.Mesh(poolRingGeo, glowMatCyan);
+        poolRing.rotation.x = Math.PI / 2;
+        poolRing.position.y = 0.8;
+
+        lowerPool.add(poolMesh, poolRing);
+
+        // --- Data Flows (Kinetic Light Trails) ---
+        const pulses = [];
+        const tubeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.05, depthWrite: false });
+
+        function createDataFlow(points, pulseColorStr, glowMat, pulseCount, speedMod) {
+            const curve = new THREE.CatmullRomCurve3(points);
+            const tubeGeo = new THREE.TubeGeometry(curve, 64, 0.15, 8, false);
+            const tube = new THREE.Mesh(tubeGeo, tubeMaterial);
+            scene.add(tube);
+
+            for (let i = 0; i < pulseCount; i++) {
+                // Glow Pulse
+                const pulseMesh = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), glowMat);
+
+                // Attach a PointLight to the pulse to cast colored reflections on glass
+                const light = new THREE.PointLight(pulseColorStr, 5.0, 15);
+                pulseMesh.add(light);
+
+                scene.add(pulseMesh);
+
+                pulses.push({
+                    mesh: pulseMesh,
+                    curve: curve,
+                    progress: i / pulseCount,
+                    speed: 0.001 * speedMod + Math.random() * 0.001
+                });
+            }
+            return curve;
+        }
+
+        // Compute to Kernel (Purple)
+        createDataFlow([
+            new THREE.Vector3(0, 16, 0),
+            new THREE.Vector3(-2, 8, 2),
+            new THREE.Vector3(0, 3.5, 0)
+        ], colors.purple, glowMatPurple, 5, 2.0);
+
+        createDataFlow([
+            new THREE.Vector3(0, 16, 0),
+            new THREE.Vector3(2, 8, -2),
+            new THREE.Vector3(0, 3.5, 0)
+        ], colors.purple, glowMatPurple, 5, 2.2);
+
+        // Kernel to Infrastructure (Orange)
+        createDataFlow([
+            new THREE.Vector3(-3.5, 0, 0),
+            new THREE.Vector3(-9, 2, 2),
+            new THREE.Vector3(-14, 0, 0)
+        ], colors.orange, glowMatOrange, 4, 1.8);
+
+        // Kernel to Alpha Droids (Purple/Sovereign Intel)
+        createDataFlow([
+            new THREE.Vector3(3.5, 0, 0),
+            new THREE.Vector3(9, -2, -2),
+            new THREE.Vector3(14, 0, 0)
+        ], colors.purple, glowMatPurple, 4, 1.8);
+
+        // Infrastructure to Revenue Pool (Cyan)
+        createDataFlow([
+            new THREE.Vector3(-16, -2, 0),
+            new THREE.Vector3(-12, -9, 4),
+            new THREE.Vector3(-6, -15, 0)
+        ], colors.cyan, glowMatCyan, 6, 2.5);
+
+        // Alpha Droids to Revenue Pool (Cyan - 5% Fee stream)
+        const alphaStreamCurve = createDataFlow([
+            new THREE.Vector3(16, -2, 0),
+            new THREE.Vector3(12, -9, -4),
+            new THREE.Vector3(6, -15, 0)
+        ], colors.cyan, glowMatCyan, 6, 2.5);
+
+        // --- Re-Investment Loop (Massive Spiral) ---
+        // From Pool up to Compute Sources
+        const spiralPoints = [];
+        const spiralTurns = 2.5;
+        for (let i = 0; i <= 100; i++) {
+            const t = i / 100;
+            const angle = t * Math.PI * 2 * spiralTurns;
+            const radius = 22 * Math.sin(t * Math.PI); // Widest in the middle
+            const y = -16 + (t * 34); // from -16 up to 18
+            spiralPoints.push(new THREE.Vector3(Math.cos(angle)*radius, y, Math.sin(angle)*radius));
+        }
+        createDataFlow(spiralPoints, colors.cyan, glowMatCyan, 12, 1.0);
+
+
+        // --- Lighting ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+        scene.add(ambientLight);
+
+        // Core light
+        const coreLight = new THREE.PointLight(colors.purple, 20.0, 30);
+        centralKernel.add(coreLight);
+
+        // Pool light
+        const poolLight = new THREE.PointLight(colors.cyan, 15.0, 40);
+        poolLight.position.set(0, 5, 0);
+        lowerPool.add(poolLight);
+
+
+        // --- HTML Overlays (Labels) ---
+        const labels = [];
+        function addLabel(text, subtitle, object3D, colorHex, offset = new THREE.Vector3(0,0,0)) {
+            const el = document.createElement('div');
+            el.className = 'label';
+            el.style.color = colorHex;
+            el.innerHTML = `${text}<div class="subtitle" style="color: #ffffff">${subtitle}</div>`;
+            document.body.appendChild(el);
+            labels.push({ element: el, target: object3D, offset: offset });
+        }
+
+        addLabel('Compute Sources', 'INTELLIGENCE AGGREGATION', upperSphere, '#bc13fe', new THREE.Vector3(0, 5, 0));
+        addLabel('Distillation Kernel', 'SOVEREIGN INTELLIGENCE CORE', centralKernel, '#bc13fe', new THREE.Vector3(0, -6, 0));
+        addLabel('Protocol & A2A', 'INFRASTRUCTURE REVENUE', leftCluster, '#ff8c00', new THREE.Vector3(0, 6, 0));
+        addLabel('Autonomous Droids', 'ALPHA DIVIDENDS', rightCluster, '#00f2ff', new THREE.Vector3(0, 6, 0));
+        addLabel('Network Pool', 'GLOBAL REVENUE HUB', lowerPool, '#00f2ff', new THREE.Vector3(0, -4, 20));
+
+        // Create a fixed floating label for the Alpha Stream
+        const alphaFeeEl = document.createElement('div');
+        alphaFeeEl.className = 'label';
+        alphaFeeEl.style.color = '#00f2ff';
+        alphaFeeEl.style.fontSize = '10px';
+        alphaFeeEl.innerHTML = '5% FEE REVENUE STREAM';
+        document.body.appendChild(alphaFeeEl);
+
+
+        // --- Resize Handler ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- Animation Loop ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = clock.getElapsedTime();
+            const delta = clock.getDelta();
+
+            controls.update();
+
+            // 1. Animate Compute Sphere
+            upperSphere.rotation.y = time * 0.2;
+            computeNodes.forEach((node) => {
+                node.mesh.rotation.x = time * 0.8;
+                node.mesh.rotation.y = time * 0.6;
+                node.mesh.position.y = Math.sin(time * 2 + node.angle) * 1.5;
+            });
+
+            // 2. Animate Central Kernel Pulse
+            const kernelScale = 1 + 0.08 * Math.sin(time * 4);
+            centralKernel.scale.set(kernelScale, kernelScale, kernelScale);
+            kernelGlass.rotation.y = time * 0.1;
+            kernelInner.rotation.x = time * -0.2;
+            kernelInner.rotation.y = time * -0.3;
+
+            // 3. Animate Infra Nodes
+            leftCluster.rotation.y = Math.sin(time * 0.5) * 0.2;
+            infraNodes.forEach((node, i) => {
+                node.rotation.x = time * (0.5 + i*0.1);
+                node.rotation.y = time * (0.4 + i*0.1);
+            });
+
+            // 4. Animate Alpha Droids (Noise/Autonomous movement simulated via sin/cos)
+            rightCluster.rotation.y = time * 0.1;
+            droids.forEach((d) => {
+                const s = d.seed;
+                d.mesh.position.x = d.basePos.x + Math.sin(time * 1.2 + s) * 2;
+                d.mesh.position.y = d.basePos.y + Math.cos(time * 1.5 + s) * 2;
+                d.mesh.position.z = d.basePos.z + Math.sin(time * 0.8 + s) * 2;
+                d.mesh.rotation.x += 0.02;
+                d.mesh.rotation.y += 0.03;
+
+                // Make them randomly dart
+                if(Math.sin(time * 5 + s) > 0.98) {
+                    d.mesh.scale.setScalar(1.5);
+                } else {
+                    d.mesh.scale.lerp(new THREE.Vector3(1,1,1), 0.1);
+                }
+            });
+
+            // 5. Animate Revenue Pool Pulse
+            const poolScale = 1 + 0.02 * Math.sin(time * 2);
+            lowerPool.scale.set(poolScale, 1, poolScale);
+            poolRing.scale.setScalar(1 + 0.05 * Math.sin(time * 6));
+            lowerPool.rotation.y = time * 0.05;
+
+            // 6. Animate Kinetic Data Trails
+            pulses.forEach(p => {
+                p.progress += p.speed;
+                if (p.progress > 1) p.progress = 0;
+
+                // Get point and tangent on curve
+                const point = p.curve.getPointAt(p.progress);
+                p.mesh.position.copy(point);
+            });
+
+            // 7. Update Labels to track 3D positions
+            labels.forEach(l => {
+                // Get world position of the target group
+                const worldPos = new THREE.Vector3();
+                l.target.getWorldPosition(worldPos);
+                worldPos.add(l.offset);
+
+                // Project 3D position to 2D screen space
+                worldPos.project(camera);
+
+                // Check if behind camera
+                if (worldPos.z > 1) {
+                    l.element.style.opacity = 0;
+                    return;
+                }
+
+                // Map to CSS coordinates
+                const x = (worldPos.x * 0.5 + 0.5) * window.innerWidth;
+                const y = (worldPos.y * -0.5 + 0.5) * window.innerHeight;
+
+                l.element.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+
+                // Fade based on distance (closer to center of depth is clearer)
+                const dist = camera.position.distanceTo(l.target.position);
+                l.element.style.opacity = dist > 120 ? 0.2 : 1.0;
+            });
+
+            // Update Alpha Fee Special Label (lock to middle of its curve)
+            const alphaMidPoint = alphaStreamCurve.getPointAt(0.5);
+            alphaMidPoint.project(camera);
+            if(alphaMidPoint.z <= 1) {
+                const ax = (alphaMidPoint.x * 0.5 + 0.5) * window.innerWidth;
+                const ay = (alphaMidPoint.y * -0.5 + 0.5) * window.innerHeight;
+                alphaFeeEl.style.transform = `translate(-50%, -50%) translate(${ax}px, ${ay}px)`;
+                alphaFeeEl.style.opacity = 1;
+            } else {
+                alphaFeeEl.style.opacity = 0;
+            }
+
+            // Render scene via composer for bloom
+            composer.render();
+        }
+
+        // Start Loop
+        animate();
+    </script>
+</body>
+</html>
