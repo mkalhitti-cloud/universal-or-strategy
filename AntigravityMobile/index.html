@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sovereign OS - Arena Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;900&amp;family=Lora:wght@400;500&amp;family=Inter:wght@600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "error-container": "#93000a",
+                        "outline": "#a38c85",
+                        "on-tertiary-container": "#1f300a",
+                        "on-tertiary": "#25350f",
+                        "surface-dim": "#131312",
+                        "on-primary": "#5c1902",
+                        "secondary-fixed-dim": "#9acbfe",
+                        "on-primary-fixed-variant": "#7a2f15",
+                        "surface-bright": "#3a3938",
+                        "surface-tint": "#ffb59e",
+                        "on-surface": "#e5e2e0",
+                        "on-tertiary-fixed": "#102000",
+                        "on-error": "#690005",
+                        "inverse-surface": "#e5e2e0",
+                        "background": "#131312",
+                        "surface-container-low": "#1c1c1a",
+                        "primary-fixed": "#ffdbd0",
+                        "error": "#ffb4ab",
+                        "on-background": "#e5e2e0",
+                        "secondary-fixed": "#cfe5ff",
+                        "surface-container-highest": "#353533",
+                        "on-primary-container": "#541400",
+                        "surface-variant": "#353533",
+                        "on-secondary-container": "#8cbdf0",
+                        "on-secondary-fixed": "#001d34",
+                        "on-primary-fixed": "#390b00",
+                        "on-surface-variant": "#dbc1b9",
+                        "inverse-primary": "#99462a",
+                        "surface": "#131312",
+                        "primary": "#ffb59e",
+                        "on-secondary-fixed-variant": "#094a76",
+                        "surface-container-lowest": "#0e0e0d",
+                        "tertiary-container": "#859969",
+                        "primary-container": "#d97757",
+                        "tertiary-fixed-dim": "#b8ce99",
+                        "on-tertiary-fixed-variant": "#3b4c24",
+                        "tertiary-fixed": "#d4eab4",
+                        "secondary-container": "#0e4c79",
+                        "on-secondary": "#003355",
+                        "tertiary": "#b8ce99",
+                        "outline-variant": "#55433d",
+                        "surface-container": "#20201e",
+                        "surface-container-high": "#2a2a29",
+                        "inverse-on-surface": "#31302f",
+                        "primary-fixed-dim": "#ffb59e",
+                        "secondary": "#9acbfe",
+                        "on-error-container": "#ffdad6"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0px",
+                        "lg": "4px",
+                        "xl": "4px",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Poppins", "sans-serif"],
+                        "body": ["Lora", "serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.background'); color: theme('colors.on-background'); }
+        h1, h2, h3, h4, h5, h6 { font-family: theme('fontFamily.headline'); letter-spacing: -0.02em; }
+        p, li { font-family: theme('fontFamily.body'); line-height: 1.6; }
+        .label-text { font-family: theme('fontFamily.label'); text-transform: uppercase; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row bg-background text-on-background selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar (Mobile & Hidden Web) -->
+<nav class="fixed top-0 w-full z-50 flex items-center justify-between px-6 h-16 bg-[#141413] mb-px md:hidden" style="border-bottom: 1px solid theme('colors.surface-container-low')">
+<div class="text-2xl font-black text-[#FAF9F5] tracking-widest font-['Poppins']">COMPOUND_INTEL_OS</div>
+<div class="flex items-center gap-4 text-[#D97757]">
+<span class="material-symbols-outlined hover:text-[#FAF9F5] transition-colors duration-150 active:opacity-80 cursor-pointer">terminal</span>
+<span class="material-symbols-outlined hover:text-[#FAF9F5] transition-colors duration-150 active:opacity-80 cursor-pointer">security</span>
+<span class="material-symbols-outlined hover:text-[#FAF9F5] transition-colors duration-150 active:opacity-80 cursor-pointer">settings</span>
+</div>
+</nav>
+<!-- SideNavBar (Web) -->
+<nav class="fixed left-0 top-0 h-screen w-64 flex flex-col z-40 bg-[#1C1C1A] mr-px hidden md:flex" style="border-right: 1px solid theme('colors.surface-container-lowest')">
+<div class="p-6">
+<div class="text-lg font-bold text-[#FAF9F5] uppercase font-['Poppins'] mb-8">SOVEREIGN_01</div>
+<div class="flex items-center gap-3 mb-8">
+<img alt="COMMANDER_AVATAR" class="w-10 h-10 rounded-none object-cover grayscale border border-outline-variant/15" data-alt="High contrast black and white portrait of a commander, severe lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBges67gDRFuISkMi-1qJpE9UAOJYERsyKt39aBFWo2LCP0RJAvGW_NVMDebiCTBY63ao80CCAWtN2Mt4H4XAi56QWhhRZqDf1GHWL3NdGTqugrpmnmEup-dYXm-irUx37vQo7VNzbTFGn9RSwpue-AAsJPGBHSOeBIc9-FL6tdfr_2y86TwZU4qoTV4JMdtKBLbTQI_7-HrlzVz2Q35U2j0-HNWEwEntgWAVbdhwjyyuwpOxNUg7P-_9snOa3yzSDQlQYeNQ1NeQSE"/>
+<div>
+<div class="label-text text-on-surface text-xs">SOVEREIGN_01</div>
+<div class="label-text text-outline text-[10px]">S_LEVEL_ACCESS</div>
+</div>
+</div>
+<div class="space-y-1">
+<a class="bg-[#D97757] text-[#141413] font-bold p-4 flex items-center gap-3 font-['Lora'] text-sm tracking-normal scale-100 active:scale-98 transition-transform" href="#">
+<span class="material-symbols-outlined text-[1.2rem]">account_tree</span>
+                    Architecture
+                </a>
+<a class="text-[#B0AEA5] p-4 flex items-center gap-3 hover:bg-[#353533] hover:text-[#FAF9F5] font-['Lora'] text-sm tracking-normal scale-100 active:scale-98 transition-transform" href="#">
+<span class="material-symbols-outlined text-[1.2rem]">account_tree</span>
+                    Workflow
+                </a>
+<a class="text-[#B0AEA5] p-4 flex items-center gap-3 hover:bg-[#353533] hover:text-[#FAF9F5] font-['Lora'] text-sm tracking-normal scale-100 active:scale-98 transition-transform" href="#">
+<span class="material-symbols-outlined text-[1.2rem]">security</span>
+                    Audit
+                </a>
+<a class="text-[#B0AEA5] p-4 flex items-center gap-3 hover:bg-[#353533] hover:text-[#FAF9F5] font-['Lora'] text-sm tracking-normal scale-100 active:scale-98 transition-transform" href="#">
+<span class="material-symbols-outlined text-[1.2rem]">hub</span>
+                    Topology
+                </a>
+<a class="text-[#B0AEA5] p-4 flex items-center gap-3 hover:bg-[#353533] hover:text-[#FAF9F5] font-['Lora'] text-sm tracking-normal scale-100 active:scale-98 transition-transform" href="#">
+<span class="material-symbols-outlined text-[1.2rem]">analytics</span>
+                    Intelligence
+                </a>
+</div>
+</div>
+<div class="mt-auto p-6 space-y-4">
+<button class="w-full bg-[#D97757] text-[#541400] font-headline font-bold py-3 uppercase text-xs tracking-wider active:scale-95 transition-transform">
+                DECODE_STREAM
+            </button>
+<a class="text-[#B0AEA5] p-4 flex items-center gap-3 hover:bg-[#353533] hover:text-[#FAF9F5] font-['Lora'] text-sm tracking-normal scale-100 active:scale-98 transition-transform" href="#">
+<span class="material-symbols-outlined text-[1.2rem]">logout</span>
+                LOGOUT
+            </a>
+</div>
+</nav>
+<!-- Main Canvas -->
+<main class="flex-1 md:ml-64 pt-16 md:pt-0 min-h-screen bg-surface p-6 md:p-12">
+<header class="mb-12">
+<h1 class="text-4xl md:text-5xl font-bold text-on-surface mb-2">Arena Dashboard</h1>
+<p class="text-outline text-lg max-w-2xl">Global intelligence synthesis and real-time operational status.</p>
+</header>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8 auto-rows-[minmax(180px,auto)]">
+<!-- Primary Status Slabs -->
+<div class="md:col-span-8 bg-surface-container-low p-6 md:p-8 flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-2 mb-4">
+<span class="w-2 h-2 rounded-full bg-[#788C5D]"></span>
+<span class="label-text text-outline text-xs tracking-widest">NETWORK FLUX: OPTIMAL</span>
+</div>
+<h2 class="text-3xl text-on-surface mb-2">Global Topology Overview</h2>
+<p class="text-outline mb-6">Real-time mapping of sovereign nodes across designated sectors.</p>
+</div>
+<div class="h-64 bg-surface-container-lowest relative overflow-hidden border border-outline-variant/15">
+<div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&amp;fit=crop&amp;w=800&amp;q=80')] bg-cover bg-center opacity-30 mix-blend-luminosity" data-alt="Abstract rendering of global network connections, dots and lines in dark space"></div>
+<!-- Simulated Nodes -->
+<div class="absolute top-1/4 left-1/4 w-3 h-3 bg-[#D97757] rounded-none animate-pulse"></div>
+<div class="absolute top-1/2 left-2/3 w-3 h-3 bg-[#6A9BCC] rounded-none"></div>
+<div class="absolute bottom-1/3 left-1/2 w-3 h-3 bg-[#788C5D] rounded-none"></div>
+</div>
+</div>
+<!-- Threat Intel -->
+<div class="md:col-span-4 bg-surface-container-low p-6 flex flex-col">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-xl text-on-surface">Threat Vectors</h3>
+<span class="material-symbols-outlined text-[#D97757]">warning</span>
+</div>
+<div class="space-y-4 flex-1">
+<div class="bg-surface-container-lowest p-4 border border-outline-variant/15 hover:bg-surface-container-highest transition-colors">
+<div class="flex justify-between items-center mb-1">
+<span class="label-text text-[#D97757] text-[10px]">SECTOR ALPHA</span>
+<span class="label-text text-outline text-[10px]">RGB(217,119,87)</span>
+</div>
+<p class="text-sm">Anomalous data spike detected at node 0x7F.</p>
+</div>
+<div class="bg-surface-container-lowest p-4 border border-outline-variant/15 hover:bg-surface-container-highest transition-colors">
+<div class="flex justify-between items-center mb-1">
+<span class="label-text text-[#6A9BCC] text-[10px]">SECTOR BETA</span>
+<span class="label-text text-outline text-[10px]">RGB(106,155,204)</span>
+</div>
+<p class="text-sm">Routine synchronization complete. Latency 12ms.</p>
+</div>
+<div class="bg-surface-container-lowest p-4 border border-outline-variant/15 hover:bg-surface-container-highest transition-colors">
+<div class="flex justify-between items-center mb-1">
+<span class="label-text text-[#788C5D] text-[10px]">SECTOR GAMMA</span>
+<span class="label-text text-outline text-[10px]">RGB(120,140,93)</span>
+</div>
+<p class="text-sm">Stream execution stable. Bandwidth nominal.</p>
+</div>
+</div>
+</div>
+<!-- Terminal Log -->
+<div class="md:col-span-12 bg-surface-container-low p-6">
+<h3 class="text-xl text-on-surface mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-outline">terminal</span>
+                    System Diagnostics Log
+                </h3>
+<div class="bg-surface-container-lowest p-4 font-mono text-sm space-y-2 h-48 overflow-y-auto border border-outline-variant/15 text-outline">
+<div class="flex items-start gap-3">
+<span class="text-[#788C5D] shrink-0">[10:42:01]</span>
+<span>Initializing matrix protocol sequence... SUCCESS</span>
+</div>
+<div class="flex items-start gap-3">
+<span class="text-[#6A9BCC] shrink-0">[10:42:05]</span>
+<span>Establishing handshake with SOVEREIGN_01... ESTABLISHED</span>
+</div>
+<div class="flex items-start gap-3">
+<span class="text-[#D97757] shrink-0">[10:42:12]</span>
+<span>WARNING: Unauthorized access attempt blocked at gateway 4.</span>
+</div>
+<div class="flex items-start gap-3">
+<span class="text-[#788C5D] shrink-0">[10:42:15]</span>
+<span>Rerouting telemetry data to secure shard...</span>
+</div>
+<div class="flex items-start gap-3">
+<span class="text-outline shrink-0 animate-pulse">_</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
