@@ -30,31 +30,31 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="NinjaTrader.Core">
+    <Reference Include="NinjaTrader.Core" Condition="Exists('C:\Program Files\NinjaTrader 8\bin\NinjaTrader.Core.dll')">
       <HintPath>C:\Program Files\NinjaTrader 8\bin\NinjaTrader.Core.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="NinjaTrader.Custom">
+    <Reference Include="NinjaTrader.Custom" Condition="Exists('C:\Users\Mohammed Khalid\Documents\NinjaTrader 8\bin\Custom\NinjaTrader.Custom.dll')">
       <HintPath>C:\Users\Mohammed Khalid\Documents\NinjaTrader 8\bin\Custom\NinjaTrader.Custom.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="NinjaTrader.Gui">
+    <Reference Include="NinjaTrader.Gui" Condition="Exists('C:\Program Files\NinjaTrader 8\bin\NinjaTrader.Gui.dll')">
       <HintPath>C:\Program Files\NinjaTrader 8\bin\NinjaTrader.Gui.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="SharpDX">
+    <Reference Include="SharpDX" Condition="Exists('C:\Program Files\NinjaTrader 8\bin\SharpDX.dll')">
       <HintPath>C:\Program Files\NinjaTrader 8\bin\SharpDX.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="SharpDX.Direct2D1">
+    <Reference Include="SharpDX.Direct2D1" Condition="Exists('C:\Program Files\NinjaTrader 8\bin\SharpDX.Direct2D1.dll')">
       <HintPath>C:\Program Files\NinjaTrader 8\bin\SharpDX.Direct2D1.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="SharpDX.Direct3D10">
+    <Reference Include="SharpDX.Direct3D10" Condition="Exists('C:\Program Files\NinjaTrader 8\bin\SharpDX.Direct3D10.dll')">
       <HintPath>C:\Program Files\NinjaTrader 8\bin\SharpDX.Direct3D10.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="SharpDX.DXGI">
+    <Reference Include="SharpDX.DXGI" Condition="Exists('C:\Program Files\NinjaTrader 8\bin\SharpDX.DXGI.dll')">
       <HintPath>C:\Program Files\NinjaTrader 8\bin\SharpDX.DXGI.dll</HintPath>
       <Private>False</Private>
     </Reference>
