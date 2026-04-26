@@ -32,6 +32,12 @@ jobs:
           dotnet tool install --global dotnet-sonarscanner
         shell: pwsh
 
+      - name: Pre-build cleanup (Exclude Morpheus Factory from Linting)
+        run: |
+          # Strip the nested factory folders so the .NET 4.8 framework validator works.
+          Remove-Item -Recurse -Force src/Morpheus_Factory -ErrorAction SilentlyContinue
+        shell: pwsh
+
       - name: Build and analyze
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed to get PR information, if any

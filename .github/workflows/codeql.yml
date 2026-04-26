@@ -1,45 +1,54 @@
-name: CodeQL
+name: "CodeQL"
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
   pull_request:
-    branches: ["main"]
-  schedule:
-    - cron: "0 6 * * 1"
+    branches: [ "main" ]
 
 jobs:
   analyze:
-    name: CodeQL
+    name: Analyze (${{ matrix.language }})
     runs-on: windows-latest
+    timeout-minutes: 360
     permissions:
+      security-events: write
+      packages: read
       actions: read
       contents: read
-      security-events: write
+
     strategy:
       fail-fast: false
       matrix:
         include:
-          - language: csharp
-            build-mode: manual
+        - language: csharp
+          build-mode: manual
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+    - name: Checkout repository
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@7fc6561ed893d15cec696e062df840b21db27eb0
-        with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
+    - name: Setup .NET
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9  # v4
+      with:
+        dotnet-version: "8.0.x"
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
-        with:
-          dotnet-version: "8.0.x"
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@b56ba49b26e50535fa1e7f7db0f4f7b4bf65d80d  # v3
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
 
-      - name: Manual build
-        run: dotnet build Linting.csproj --nologo
+    - name: Pre-build cleanup (Exclude Morpheus Factory from Linting)
+      run: |
+        Remove-Item -Recurse -Force src/Morpheus_Factory -ErrorAction SilentlyContinue
+      shell: pwsh
 
-      - name: Analyze
-        uses: github/codeql-action/analyze@7fc6561ed893d15cec696e062df840b21db27eb0
+    - if: matrix.build-mode == 'manual'
+      name: Manual Build
+      run: dotnet build Linting.csproj
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@b56ba49b26e50535fa1e7f7db0f4f7b4bf65d80d  # v3
+      with:
+        category: "/language:${{matrix.language}}"

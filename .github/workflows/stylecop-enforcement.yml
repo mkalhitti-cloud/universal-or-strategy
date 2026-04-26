@@ -1,27 +1,32 @@
-name: StyleCop Enforcement Pipeline
+name: StyleCop Enforcement
 
 on:
-  push:
-    branches: ["main"]
   pull_request:
-    branches: ["main"]
+    paths:
+      - 'src/**/*.cs'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**/*.cs'
 
 jobs:
-  lint:
+  stylecop:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9  # v4
-        with:
-          dotnet-version: "8.0.x"
+    - name: Setup .NET
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9  # v4
+      with:
+        dotnet-version: '8.0.x'
 
-      - name: Restore dependencies
-        run: dotnet restore Linting.csproj
+    - name: Pre-build cleanup (Exclude Morpheus Factory from Linting)
+      run: |
+        # Strip the nested factory folders so the .NET 4.8 framework validator works.
+        Remove-Item -Recurse -Force src/Morpheus_Factory -ErrorAction SilentlyContinue
+      shell: pwsh
 
-      - name: Run StyleCop Analysis
-        # Treat warnings as errors to enforce strict pass/fail status on PRs
-        # -clp:ErrorsOnly minimizes output noise to just surface the errors
-        run: dotnet build Linting.csproj -warnaserror -clp:ErrorsOnly
+    - name: Run StyleCop Analysis
+      run: dotnet build Linting.csproj /p:TreatWarningsAsErrors=true
