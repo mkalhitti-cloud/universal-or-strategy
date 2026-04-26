@@ -18,7 +18,7 @@
 
   <ItemGroup>
     <!-- Include all Strategy source files for analysis -->
-    <Compile Include="src\*.cs" />
+    <Compile Include="src\**/*.cs" Exclude="src\Morpheus_Factory\**/*.cs" />
   </ItemGroup>
 
   <ItemGroup>
