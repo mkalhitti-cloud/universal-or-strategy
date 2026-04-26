@@ -32,7 +32,7 @@ jobs:
       - name: Restore dependencies (if .csproj present)
         run: |
           if (Test-Path "*.csproj") {
-            dotnet restore --nologo
+            dotnet restore universal-or-strategy.sln --nologo
           } else {
             Write-Host "No .csproj found -- skipping restore (NinjaScript partial-class project)."
           }
