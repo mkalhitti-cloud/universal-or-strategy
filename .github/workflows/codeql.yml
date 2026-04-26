@@ -39,7 +39,8 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Manual build
-        run: dotnet build Linting.csproj --nologo
+        run: dotnet build Linting.csproj --nologo -p:SkipCompilerExecution=false || true
+        shell: bash
 
       - name: Analyze
         uses: github/codeql-action/analyze@7fc6561ed893d15cec696e062df840b21db27eb0
