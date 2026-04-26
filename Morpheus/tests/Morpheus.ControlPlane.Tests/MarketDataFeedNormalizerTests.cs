@@ -22,6 +22,22 @@ namespace Morpheus.ControlPlane.Tests
         }
 
         [Fact]
+        public void FeedNormalizerShouldMapESInstrumentToCanonicalSymbol()
+        {
+            var normalizer = new RithmicFeedNormalizer();
+            string canonical = normalizer.NormalizeSymbol("ESM5", "CME");
+            canonical.Should().Be("ES");
+        }
+
+        [Fact]
+        public void FeedNormalizerShouldReturnOriginalSymbolIfNoMappingMatches()
+        {
+            var normalizer = new RithmicFeedNormalizer();
+            string canonical = normalizer.NormalizeSymbol("GCZ4", "COMEX");
+            canonical.Should().Be("GCZ4");
+        }
+
+        [Fact]
         public void FeedNormalizerShouldThrowArgumentExceptionOnNullOrEmptySymbol()
         {
             var normalizer = new RithmicFeedNormalizer();
