@@ -1,12 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <NoWarn>$(NoWarn);CS0246;CS0234;CS0103;CS0115</NoWarn>
     <TargetFramework>net48</TargetFramework>
     <LangVersion>8.0</LangVersion>
     <!-- Hosted CI does not have the proprietary NinjaTrader assemblies; keep this evaluation-only. -->
     <OutputType>Library</OutputType>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <SkipCompilerExecution>false</SkipCompilerExecution>
+    <SkipCompilerExecution>true</SkipCompilerExecution>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
