@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Morpheus.ControlPlane/Morpheus.ControlPlane.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Morpheus.ControlPlane.Tests/Morpheus.ControlPlane.Tests.csproj" />
+  </Folder>
+</Solution>
