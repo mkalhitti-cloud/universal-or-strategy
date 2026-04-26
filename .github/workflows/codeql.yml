@@ -38,8 +38,10 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
-      - name: Manual build
-        run: dotnet build Linting.csproj --nologo -p:SkipCompilerExecution=false || true
+      - name: Manual build (Compilable Subsets Only)
+        run: |
+          dotnet build Testing.csproj --nologo
+          dotnet build Morpheus/Morpheus.slnx --nologo
         shell: bash
 
       - name: Analyze

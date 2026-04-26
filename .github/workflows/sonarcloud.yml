@@ -38,13 +38,18 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           dotnet-sonarscanner begin /k:"mkalhitti-cloud_universal-or-strategy" /o:"mkalhitti-cloud" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vstest.reportsPaths="**/*.trx" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
-          dotnet build Linting.csproj -p:SkipCompilerExecution=false
-          if ($LASTEXITCODE -ne 0) { Write-Host "Continuing despite missing proprietary assemblies" }
+          dotnet build Testing.csproj
+          dotnet build Morpheus/Morpheus.slnx
         shell: pwsh
 
-      - name: Run tests with OpenCover coverage
+      - name: Run tests with OpenCover coverage (Legacy)
         run: |
-          dotnet test Testing.csproj /p:CollectCoverage=true /p:IncludeTestAssembly=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=./TestResults/coverage.opencover.xml --logger "trx;LogFileName=test-results.trx" --results-directory ./TestResults
+          dotnet test Testing.csproj /p:CollectCoverage=true /p:IncludeTestAssembly=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=./TestResults/coverage.opencover.xml --logger "trx;LogFileName=test-results-legacy.trx" --results-directory ./TestResults
+        shell: pwsh
+
+      - name: Run tests with OpenCover coverage (Morpheus)
+        run: |
+          dotnet test Morpheus/Morpheus.slnx /p:CollectCoverage=true /p:IncludeTestAssembly=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=../../TestResults/coverage.morpheus.opencover.xml --logger "trx;LogFileName=test-results-morpheus.trx" --results-directory ./TestResults
         shell: pwsh
 
       - name: Finish SonarCloud analysis
