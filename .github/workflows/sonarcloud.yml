@@ -49,7 +49,7 @@ jobs:
 
       - name: Run tests with OpenCover coverage (Morpheus)
         run: |
-          dotnet test Morpheus/Morpheus.slnx /p:CollectCoverage=true /p:IncludeTestAssembly=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=../../TestResults/coverage.morpheus.opencover.xml --logger "trx;LogFileName=test-results-morpheus.trx" --results-directory ./TestResults
+          dotnet test Morpheus/Morpheus.slnx /p:CollectCoverage=true /p:IncludeTestAssembly=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=TestResults/coverage.opencover.xml --logger "trx;LogFileName=test-results-morpheus.trx" --results-directory ./TestResults
         shell: pwsh
 
       - name: Finish SonarCloud analysis
