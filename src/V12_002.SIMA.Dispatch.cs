@@ -625,6 +625,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // [Phase 7.2 LATENCY] T_Final: Fleet loop complete (setup+enqueue only; no blocking Submit) -- stop clock, flush forensic report.
                 sw.Stop();
                 long tFinalTicks = sw.ElapsedTicks;
+                // M7 (Build 1112.001-v29.0): publish per-cycle sample for Photon telemetry.
+                // Single Volatile.Write -- zero allocation, no LINQ, no closure.
+                Volatile.Write(ref _lastDispatchTicks, tFinalTicks);
                 Interlocked.Add(ref _dispatchTotalElapsedTicks, tFinalTicks);
                 long peakTicks = Volatile.Read(ref _dispatchPeakElapsedTicks);
                 while (tFinalTicks > peakTicks

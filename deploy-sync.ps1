@@ -53,6 +53,10 @@ $Mappings = @(
     @{ src = "V12_002.Photon.Pool.cs"; dst = Join-Path $NtStrategyDir "V12_002.Photon.Pool.cs" },
     @{ src = "V12_002.Photon.Ring.cs"; dst = Join-Path $NtStrategyDir "V12_002.Photon.Ring.cs" },
     @{ src = "V12_002.Photon.Substrate.cs"; dst = Join-Path $NtStrategyDir "V12_002.Photon.Substrate.cs" },
+    # M5-M7 (Build 1112.001-v29.0) Performance Integration
+    @{ src = "V12_002.Photon.Affinity.cs"; dst = Join-Path $NtStrategyDir "V12_002.Photon.Affinity.cs" },
+    @{ src = "V12_002.Photon.JitWarmup.cs"; dst = Join-Path $NtStrategyDir "V12_002.Photon.JitWarmup.cs" },
+    @{ src = "V12_002.Photon.Telemetry.cs"; dst = Join-Path $NtStrategyDir "V12_002.Photon.Telemetry.cs" },
     @{ src = "V12_002.Safety.Watchdog.cs"; dst = Join-Path $NtStrategyDir "V12_002.Safety.Watchdog.cs" },
     @{ src = "V12_002.SIMA.Shadow.cs"; dst = Join-Path $NtStrategyDir "V12_002.SIMA.Shadow.cs" },
     @{ src = "V12_002.StickyState.cs"; dst = Join-Path $NtStrategyDir "V12_002.StickyState.cs" },

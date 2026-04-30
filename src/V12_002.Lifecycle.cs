@@ -370,6 +370,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 TouchStrategyHeartbeat();
                 PublishUiSnapshot();
                 FreezeManagementMembrane();
+                BindCpuAffinity();
+                WarmupJit();
             }
             else if (state == State.Realtime)
             {
@@ -445,6 +447,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 DrainQueuesForShutdown();
                 EmitMetricsSummary();
+                // M7 (Build 1112.001-v29.0): emit Photon dispatch telemetry AFTER
+                // the legacy FSM metrics summary so the two reports do not interleave.
+                PrintPhotonTelemetryReport();
 
                 // Stop IPC Server
                 StopIpcServer();
