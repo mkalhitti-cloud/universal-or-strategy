@@ -222,6 +222,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     int reservedDelta = 0;
                     bool registeredForCleanup = false;
                     bool syncPending = false;
+                    int positionPoolSlot = -1;
                     try
                     {
                         SymmetryGuardRegisterFollower(symmetryDispatchId, fleetEntryName);
@@ -242,39 +243,40 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                         // V12.1: Track follower position for active trailing/target management
                         // V12.1101E: Full 5-target distribution mirrors Master
-                        PositionInfo fleetPos = new PositionInfo
-                        {
-                            SignalName = fleetEntryName,
-                            Direction = action == OrderAction.Buy ? MarketPosition.Long : MarketPosition.Short,
-                            TotalContracts = followerQty,
-                            RemainingContracts = followerQty,
-                            EntryPrice = entryPrice,
-                            InitialStopPrice = stopPrice,
-                            CurrentStopPrice = stopPrice,
-                            Target1Price = t1TargetPrice,
-                            Target2Price = t2TargetPrice,
-                            Target3Price = t3TargetPrice,
-                            Target4Price = t4TargetPrice,
-                            Target5Price = t5TargetPrice,
-                            T1Contracts = ft1,
-                            T2Contracts = ft2,
-                            T3Contracts = ft3,
-                            T4Contracts = ft4,
-                            T5Contracts = ft5,
-                            ExecutingAccount = acct,
-                            IsFollower = true,
-                            IsRMATrade = true,          // Enforce Point-Based Trailing for all followers
-                            IsTRENDTrade = (tradeType == "TREND"),
-                            IsRetestTrade = (tradeType == "RETEST"),
-                            EntryOrderType = entryOrderType,
-                            EntryFilled = isMarketEntry, // V12.3: Only true for Market entries; Limit waits for fill
-                            BracketSubmitted = isMarketEntry, // V12.7: Brackets deferred for Limit entries
-                            TicksSinceEntry = 0,
-                            ExtremePriceSinceEntry = entryPrice,
-                            CurrentTrailLevel = 0,
-                            // Build 936 [FIX-2]: Deterministic bracket OCO group ID for broker-native stop+target linking.
-                            OcoGroupId = "V12_" + GetStableHash(fleetEntryName),
-                        };
+                        var claimedPosition = _positionInfoPool != null ? _positionInfoPool.Claim() : new PositionInfoClaimResult { Position = null, SlotIndex = -1 };
+                        PositionInfo fleetPos = claimedPosition.Position;
+                        positionPoolSlot = claimedPosition.SlotIndex;
+                        if (fleetPos == null)
+                            fleetPos = new PositionInfo();
+                        fleetPos.SignalName = fleetEntryName;
+                        fleetPos.Direction = action == OrderAction.Buy ? MarketPosition.Long : MarketPosition.Short;
+                        fleetPos.TotalContracts = followerQty;
+                        fleetPos.RemainingContracts = followerQty;
+                        fleetPos.EntryPrice = entryPrice;
+                        fleetPos.InitialStopPrice = stopPrice;
+                        fleetPos.CurrentStopPrice = stopPrice;
+                        fleetPos.Target1Price = t1TargetPrice;
+                        fleetPos.Target2Price = t2TargetPrice;
+                        fleetPos.Target3Price = t3TargetPrice;
+                        fleetPos.Target4Price = t4TargetPrice;
+                        fleetPos.Target5Price = t5TargetPrice;
+                        fleetPos.T1Contracts = ft1;
+                        fleetPos.T2Contracts = ft2;
+                        fleetPos.T3Contracts = ft3;
+                        fleetPos.T4Contracts = ft4;
+                        fleetPos.T5Contracts = ft5;
+                        fleetPos.ExecutingAccount = acct;
+                        fleetPos.IsFollower = true;
+                        fleetPos.IsRMATrade = true;
+                        fleetPos.IsTRENDTrade = (tradeType == "TREND");
+                        fleetPos.IsRetestTrade = (tradeType == "RETEST");
+                        fleetPos.EntryOrderType = entryOrderType;
+                        fleetPos.EntryFilled = isMarketEntry;
+                        fleetPos.BracketSubmitted = isMarketEntry;
+                        fleetPos.TicksSinceEntry = 0;
+                        fleetPos.ExtremePriceSinceEntry = entryPrice;
+                        fleetPos.CurrentTrailLevel = 0;
+                        fleetPos.OcoGroupId = "V12_" + GetStableHash(fleetEntryName);
 
                         // V12.7: Submit only entry for Limit; market entries include stop + non-runner targets.
                         if (isMarketEntry)
@@ -609,6 +611,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 if (targetDict != null)
                                     targetDict.TryRemove(fleetEntryName, out _);
                             }
+                            if (positionPoolSlot >= 0 && _positionInfoPool != null)
+                                _positionInfoPool.ReleaseByIndex(positionPoolSlot);
                         }
                         // Phase 6: Clean up proactive FSM on dispatch failure (no-op if not yet created)
                         _followerBrackets.TryRemove(fleetEntryName, out _);

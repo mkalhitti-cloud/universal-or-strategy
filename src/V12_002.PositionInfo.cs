@@ -315,6 +315,84 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        private struct PositionInfoClaimResult
+        {
+            public PositionInfo Position;
+            public int SlotIndex;
+        }
+
+        private sealed class PositionInfoPool
+        {
+            private readonly PositionInfo[] _items;
+            private readonly int[] _freeStack;
+            private volatile int _freeTop;
+            private readonly int _capacity;
+
+            public PositionInfoPool(int capacity)
+            {
+                _capacity = capacity;
+                _items = new PositionInfo[capacity];
+                _freeStack = new int[capacity];
+                for (int i = 0; i < capacity; i++)
+                {
+                    _items[i] = new PositionInfo();
+                    _freeStack[i] = capacity - 1 - i;
+                }
+                _freeTop = capacity;
+            }
+
+            public PositionInfoClaimResult Claim()
+            {
+                int top = Interlocked.Decrement(ref _freeTop);
+                if (top < 0)
+                {
+                    Interlocked.Increment(ref _freeTop);
+                    return new PositionInfoClaimResult { Position = null, SlotIndex = -1 };
+                }
+
+                int slotIndex = _freeStack[top];
+                PositionInfo p = _items[slotIndex];
+                Reset(p);
+                return new PositionInfoClaimResult { Position = p, SlotIndex = slotIndex };
+            }
+
+            public void ReleaseByIndex(int slotIndex)
+            {
+                if (slotIndex < 0 || slotIndex >= _capacity) return;
+                Reset(_items[slotIndex]);
+                int top = Interlocked.Increment(ref _freeTop) - 1;
+                if (top < _capacity)
+                    _freeStack[top] = slotIndex;
+            }
+
+            private static void Reset(PositionInfo p)
+            {
+                if (p == null) return;
+                p.SignalName = null;
+                p.LinkedTRENDGroup = null;
+                p.ExecutingAccount = null;
+                p.OcoGroupId = null;
+                p.Direction = MarketPosition.Flat;
+                p.TotalContracts = 0;
+                p.RemainingContracts = 0;
+                p.EntryPrice = 0;
+                p.InitialStopPrice = 0;
+                p.CurrentStopPrice = 0;
+                p.Target1Price = 0; p.Target2Price = 0; p.Target3Price = 0; p.Target4Price = 0; p.Target5Price = 0;
+                p.T1Contracts = 0; p.T2Contracts = 0; p.T3Contracts = 0; p.T4Contracts = 0; p.T5Contracts = 0;
+                p.T1Filled = p.T2Filled = p.T3Filled = p.T4Filled = p.T5Filled = false;
+                p.T1FilledQuantity = p.T2FilledQuantity = p.T3FilledQuantity = p.T4FilledQuantity = p.T5FilledQuantity = 0;
+                p.EntryFilled = false;
+                p.BracketSubmitted = false;
+                p.IsFollower = false;
+                p.IsRMATrade = false;
+                p.IsTRENDTrade = false;
+                p.IsRetestTrade = false;
+                p.PendingCleanup = false;
+                p.FlattenAttemptCount = 0;
+            }
+        }
+
         // V8.11: Class to track pending stop replacements
         // V8.30: Added CreatedTime for timeout support
         private class PendingStopReplacement

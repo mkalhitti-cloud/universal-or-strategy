@@ -194,6 +194,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         // V8.11: Track pending stop replacements to fix duplicate stop bug
         // V8.30: Replaced Dictionary with ConcurrentDictionary for thread-safe access
         private ConcurrentDictionary<string, PendingStopReplacement> pendingStopReplacements;
+        private PositionInfoPool _positionInfoPool;
 
         // V14.2 Sovereign Photon [ADR-011]: Lock-free execution ID dedup rings
         // Zero string allocation. FNV-1a 64-bit hash with O(1) open-addressing lookup.

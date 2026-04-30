@@ -202,6 +202,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // v29.0 Hybrid Arena [ADR-012 + ADR-016 + ADR-019]: pool + ring + salt + substrate handle + MMIO mirror v2
                 // Capacity 64: 5 concurrent signals x 12 accounts = 60 < 64
                 _photonPool = new PhotonOrderPool(PhotonPoolCapacity);
+                _positionInfoPool = new PositionInfoPool(PhotonPoolCapacity);
                 _photonDispatchRing = new SPSCRing<FleetDispatchSlot>(PhotonPoolCapacity);
                 _photonShadowSalt = unchecked((ulong)Guid.NewGuid().GetHashCode() * 0x9E3779B97F4A7C15UL);
 
