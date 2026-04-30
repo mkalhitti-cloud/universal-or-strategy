@@ -16,8 +16,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern UIntPtr SetThreadAffinityMask(IntPtr hThread, UIntPtr dwThreadAffinityMask);
 
         private const int ACCT_ACTIVE             = 1 << 0;
         private const int ACCT_CONSISTENCY_LOCKED = 1 << 1;
@@ -79,24 +77,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             return h;
         }
 
-        private void SetThreadAffinity(int cpuMask)
-        {
-            if (cpuMask <= 0)
-                return;
 
-            Thread.BeginThreadAffinity();
-
-            UIntPtr previousMask = SetThreadAffinityMask(new IntPtr(-2), new UIntPtr((uint)cpuMask));
-            if (previousMask == UIntPtr.Zero)
-            {
-                int error = Marshal.GetLastWin32Error();
-                Thread.EndThreadAffinity();
-                Print(string.Format("[WARN] CPU affinity set failed (Win32 error {0}, mask={1}) -- thread runs unbound.", error, cpuMask));
-                return;
-            }
-
-            Print(string.Format("[MORPHEUS] CPU affinity set: mask=0x{0:X} prevMask=0x{1:X}", cpuMask, previousMask.ToUInt64()));
-        }
 
         private void FreezeManagementMembrane()
         {
