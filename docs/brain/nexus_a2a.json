@@ -3,9 +3,14 @@
   "build_tag": "1112.001-v29.0",
   "phase": "P4_COMPLETE",
   "last_updated": "2026-04-30T22:47:34Z",
+  "p1_forensics": {
+    "status": "VALIDATED",
+    "findings_path": "artifacts/m8_phase1_forensic_validation.md",
+    "blockers_confirmed": true
+  },
   "p3_handoff": {
-    "ready_for_p4": false,
-    "target_hotspot": "ExecuteSmartDispatchEntry",
-    "complexity_before": 106
+    "ready_for_p4": true,
+    "plan_path": "docs/brain/implementation_plan_m8_phase1_repair.md",
+    "target_hotspot": "ExecuteSmartDispatchEntry"
   }
 }

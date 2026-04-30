@@ -33,6 +33,30 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
+        #region V12 SIMA Phase 1 Repair (M-08)
+        private IDispatchGate        _gate;
+        private IFleetResolver       _fleetResolver;
+        private IMembraneResolver    _membraneResolver;
+        private IAccountIndexResolver _accountIndexResolver;
+
+        private void SetupPhase1SIMA()
+        {
+            _membraneResolver     = new MembraneResolver(() => Volatile.Read(ref _membrane), FreezeManagementMembrane, Print);
+            _fleetResolver        = new FleetResolver(() => activeFleetAccounts, () => GetSortedAccountFleet(), () => activeTargetCount, Print);
+            _accountIndexResolver = new AccountIndexResolver(Print);
+            _gate                 = new DispatchGate(
+                _simaToggleSem,
+                () => EnableSIMA,
+                () => isFlattenRunning,
+                MetadataGuardDuplicate,
+                Print,
+                cmd => TriggerCustomEvent(o => ExecuteSmartDispatchEntry(
+                    cmd.TradeType, cmd.Action, cmd.Quantity, cmd.EntryPrice,
+                    cmd.EntryOrderType, cmd.MasterEntryNames), null)
+            );
+        }
+        #endregion
+
         #region V12 SIMA Dispatch
 
         /// <summary>
