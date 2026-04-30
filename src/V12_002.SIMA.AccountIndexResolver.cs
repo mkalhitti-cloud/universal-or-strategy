@@ -2,7 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace UniversalORStrategy.SIMA.Dispatch
+namespace NinjaTrader.NinjaScript.Strategies
 {
     /// <summary>
     /// Concrete IAccountIndexResolver. Reads AccountIndexByName from the

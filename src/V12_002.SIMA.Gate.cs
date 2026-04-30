@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Runtime.CompilerServices;
 
-namespace UniversalORStrategy.SIMA.Dispatch
+namespace NinjaTrader.NinjaScript.Strategies
 {
     /// <summary>
     /// Concrete IDispatchGate. Owns the non-blocking semaphore protocol

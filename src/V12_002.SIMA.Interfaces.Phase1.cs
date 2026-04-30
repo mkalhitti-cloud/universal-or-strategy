@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace UniversalORStrategy.SIMA.Dispatch
+namespace NinjaTrader.NinjaScript.Strategies
 {
     /// <summary>
     /// Immutable value-type snapshot of all gate conditions evaluated before
