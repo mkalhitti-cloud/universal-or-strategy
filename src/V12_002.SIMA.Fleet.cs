@@ -40,21 +40,31 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Called by both Photon ring consumer and legacy ConcurrentQueue consumer.
         /// Guarantees identical invariants on both paths.
         /// </summary>
-        /// <param name="poolSlotIndex">Index into PhotonOrderPool. -1 for legacy path (no pool release).</param>
+        /// <param name="poolRecordId">Index into PhotonOrderPool. -1 for legacy path (no pool release).</param>
         private void ProcessFleetSlot(Account acct, Order[] orders, int orderCount,
             string fleetEntryName, string expectedKey, int reservedDelta, long signalTicks,
-            int poolSlotIndex)
+            int poolRecordId)
         {
             bool syncCleared = false;
+            FlattenedSubstrateState membrane = Volatile.Read(ref _membrane);
+            int membraneIndex = -1;
+            if (membrane != null && acct != null && membrane.AccountIndexByName != null)
+                membrane.AccountIndexByName.TryGetValue(acct.Name, out membraneIndex);
             try
             {
                 // Phase 6 [MG-T1]: Reject stale queued dispatch (enqueued > 5s ago)
                 if (signalTicks > 0 && !MetadataGuardTimestamp(signalTicks, "Pump:" + fleetEntryName))
                 {
                     ClearDispatchSyncPending(expectedKey);
+                    if (membrane != null && membraneIndex >= 0 && membraneIndex < membrane.DispatchSyncPendingByIndex.Length)
+                        Volatile.Write(ref membrane.DispatchSyncPendingByIndex[membraneIndex], 0);
                     syncCleared = true;
                     if (reservedDelta != 0)
+                    {
                         AddExpectedPositionDeltaLocked(expectedKey, -reservedDelta);
+                        if (membrane != null && membraneIndex >= 0 && membraneIndex < membrane.ExpectedPositionByIndex.Length)
+                            Interlocked.Add(ref membrane.ExpectedPositionByIndex[membraneIndex], -reservedDelta);
+                    }
                     activePositions.TryRemove(fleetEntryName, out _);
                     entryOrders.TryRemove(fleetEntryName, out _);
                     stopOrders.TryRemove(fleetEntryName, out _);
@@ -116,6 +126,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 acct.Submit(orders);
                 ClearDispatchSyncPending(expectedKey);
+                if (membrane != null && membraneIndex >= 0 && membraneIndex < membrane.DispatchSyncPendingByIndex.Length)
+                    Volatile.Write(ref membrane.DispatchSyncPendingByIndex[membraneIndex], 0);
                 syncCleared = true;
 
                 // Phase 6 [FSM-P2]: Promote from PendingSubmit to Submitted
@@ -148,9 +160,17 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Print(string.Format("[PUMP] Submit FAILED for {0} ({1}): {2}",
                     fleetEntryName, acct.Name, ex.Message));
                 if (!syncCleared)
+                {
                     ClearDispatchSyncPending(expectedKey);
+                    if (membrane != null && membraneIndex >= 0 && membraneIndex < membrane.DispatchSyncPendingByIndex.Length)
+                        Volatile.Write(ref membrane.DispatchSyncPendingByIndex[membraneIndex], 0);
+                }
                 if (reservedDelta != 0)
+                {
                     AddExpectedPositionDeltaLocked(expectedKey, -reservedDelta);
+                    if (membrane != null && membraneIndex >= 0 && membraneIndex < membrane.ExpectedPositionByIndex.Length)
+                        Interlocked.Add(ref membrane.ExpectedPositionByIndex[membraneIndex], -reservedDelta);
+                }
                 activePositions.TryRemove(fleetEntryName, out _);
                 entryOrders.TryRemove(fleetEntryName, out _);
                 stopOrders.TryRemove(fleetEntryName, out _);
@@ -164,11 +184,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             finally
             {
-                // V14.2 FIX-D1: Release pool slot if from Photon pool
-                if (poolSlotIndex >= 0)
-                    _photonPool.ReleaseByIndex(poolSlotIndex);
+                if (poolRecordId >= 0)
+                    _photonPool.ReleaseByIndex(poolRecordId);
                 Interlocked.Decrement(ref _pendingFleetDispatchCount);
-                // Chain next pump -- check BOTH ring and queue (FIX-F7)
                 if ((_photonDispatchRing != null && !_photonDispatchRing.IsEmpty)
                     || !_pendingFleetDispatches.IsEmpty)
                     try { TriggerCustomEvent(o => PumpFleetDispatch(), null); } catch { }
@@ -177,30 +195,37 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private void PumpFleetDispatch()
         {
-            // A3-1: Abort and drain if SIMA disabled or flatten running
+            // A3-1: Abort and drain if SIMA disabled or flatten running.
             if (isFlattenRunning || !EnableSIMA)
             {
-                // v28.0: drain Photon ring FIRST with sideband-aware delta rollback + pool release
+                FlattenedSubstrateState mDrain = Volatile.Read(ref _membrane);
                 FleetDispatchSlot abortSlot;
                 while (_photonDispatchRing != null && _photonDispatchRing.TryDequeue(out abortSlot))
                 {
-                    int _sbIdx = abortSlot.PoolSlotIndex;
-                    string _expectedKey = (_sbIdx >= 0 && _sbIdx < _photonSideband.Length)
-                        ? _photonSideband[_sbIdx].ExpectedKey
+                    int accountIndex = abortSlot.AccountIndex;
+                    Account accountRef = (mDrain != null && accountIndex >= 0 && accountIndex < mDrain.AccountByIndex.Length)
+                        ? mDrain.AccountByIndex[accountIndex]
                         : null;
-                    if (abortSlot.ReservedDelta != 0 && _expectedKey != null)
-                        AddExpectedPositionDeltaLocked(_expectedKey, -abortSlot.ReservedDelta);
-                    if (_expectedKey != null)
-                        ClearDispatchSyncPending(_expectedKey);
-                    if (_sbIdx >= 0)
+                    string expectedKey = accountRef != null ? ExpKey(accountRef.Name) : null;
+
+                    if (abortSlot.ReservedDelta != 0 && expectedKey != null)
                     {
-                        _photonPool.ReleaseByIndex(_sbIdx);
-                        if (_sbIdx < _photonSideband.Length)
-                            _photonSideband[_sbIdx] = default(FleetDispatchSideband);
+                        AddExpectedPositionDeltaLocked(expectedKey, -abortSlot.ReservedDelta);
+                        if (mDrain != null && accountIndex >= 0 && accountIndex < mDrain.ExpectedPositionByIndex.Length)
+                            Interlocked.Add(ref mDrain.ExpectedPositionByIndex[accountIndex], -abortSlot.ReservedDelta);
                     }
+                    if (expectedKey != null)
+                    {
+                        ClearDispatchSyncPending(expectedKey);
+                        if (mDrain != null && accountIndex >= 0 && accountIndex < mDrain.DispatchSyncPendingByIndex.Length)
+                            Volatile.Write(ref mDrain.DispatchSyncPendingByIndex[accountIndex], 0);
+                    }
+
+                    if (abortSlot.PoolRecordId >= 0)
+                        _photonPool.ReleaseByIndex(abortSlot.PoolRecordId);
+
                     Interlocked.Decrement(ref _pendingFleetDispatchCount);
                 }
-                // Then drain legacy ConcurrentQueue
                 FleetDispatchRequest stale;
                 while (_pendingFleetDispatches.TryDequeue(out stale))
                 {
@@ -213,75 +238,104 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
-            // v28.0 [ADR-012 + ADR-016]: Photon ring, XorShadow integrity, sideband refs
-            FleetDispatchSlot _ringSlot;
-            if (_photonDispatchRing != null && _photonDispatchRing.TryDequeue(out _ringSlot))
+            FleetDispatchSlot ringSlot;
+            if (_photonDispatchRing != null && _photonDispatchRing.TryDequeue(out ringSlot))
             {
-                int _sbIdx = _ringSlot.PoolSlotIndex;
+                FlattenedSubstrateState m = Volatile.Read(ref _membrane);
+                int accountIndex = ringSlot.AccountIndex;
+                int poolRecordId = ringSlot.PoolRecordId;
+                Account accountRef = (m != null && accountIndex >= 0 && accountIndex < m.AccountByIndex.Length)
+                    ? m.AccountByIndex[accountIndex]
+                    : null;
+                string expectedKey = accountRef != null ? ExpKey(accountRef.Name) : null;
 
-                // Sideband read (BEFORE shadow verify -- sideband is required for rollback logs)
-                FleetDispatchSideband _sb = (_sbIdx >= 0 && _sbIdx < _photonSideband.Length)
-                    ? _photonSideband[_sbIdx]
-                    : default(FleetDispatchSideband);
-
-                // XorShadow integrity verification (defense-in-depth, structurally stronger than CRC16)
-                ulong _stored   = _ringSlot.Shadow;
-                _ringSlot.Shadow = 0UL;                             // zero before recompute (compute excludes Shadow by construction, but this is belt-and-braces)
-                ulong _recomputed = ComputeFleetDispatchShadow(ref _ringSlot, _photonShadowSalt);
-                _ringSlot.Shadow = _stored;                         // restore for downstream logging
-                if (_recomputed != _stored)
+                ulong stored = ringSlot.Shadow;
+                ringSlot.Shadow = 0UL;
+                ulong recomputed = ComputeFleetDispatchShadow(ref ringSlot, _photonShadowSalt);
+                ringSlot.Shadow = stored;
+                if (recomputed != stored)
                 {
                     Interlocked.Increment(ref _photonCrcFailures);
                     Print(string.Format(
-                        "[PHOTON_SHADOW] INTEGRITY FAILURE: expected=0x{0:X16} got=0x{1:X16} entry={2} -- SKIPPING",
-                        _stored, _recomputed, _sb.FleetEntryName));
-                    if (_ringSlot.ReservedDelta != 0 && _sb.ExpectedKey != null)
-                        AddExpectedPositionDeltaLocked(_sb.ExpectedKey, -_ringSlot.ReservedDelta);
-                    if (_sb.ExpectedKey != null)
-                        ClearDispatchSyncPending(_sb.ExpectedKey);
-                    if (_sb.FleetEntryName != null)
+                        "[PHOTON_SHADOW] INTEGRITY FAILURE: expected=0x{0:X16} got=0x{1:X16} acctIdx={2} signalHash=0x{3:X16} -- SKIPPING",
+                        stored, recomputed, accountIndex, ringSlot.SignalHash));
+                    if (ringSlot.ReservedDelta != 0 && expectedKey != null)
                     {
-                        activePositions.TryRemove(_sb.FleetEntryName, out _);
-                        entryOrders.TryRemove(_sb.FleetEntryName, out _);
-                        stopOrders.TryRemove(_sb.FleetEntryName, out _);
-                        for (int tNum = 1; tNum <= 5; tNum++)
-                        {
-                            var td = GetTargetOrdersDictionary(tNum);
-                            if (td != null) td.TryRemove(_sb.FleetEntryName, out _);
-                        }
-                        _followerBrackets.TryRemove(_sb.FleetEntryName, out _);
+                        AddExpectedPositionDeltaLocked(expectedKey, -ringSlot.ReservedDelta);
+                        if (m != null && accountIndex >= 0 && accountIndex < m.ExpectedPositionByIndex.Length)
+                            Interlocked.Add(ref m.ExpectedPositionByIndex[accountIndex], -ringSlot.ReservedDelta);
                     }
-                    if (_sbIdx >= 0)
+                    if (expectedKey != null)
                     {
-                        _photonPool.ReleaseByIndex(_sbIdx);
-                        if (_sbIdx < _photonSideband.Length)
-                            _photonSideband[_sbIdx] = default(FleetDispatchSideband);
+                        ClearDispatchSyncPending(expectedKey);
+                        if (m != null && accountIndex >= 0 && accountIndex < m.DispatchSyncPendingByIndex.Length)
+                            Volatile.Write(ref m.DispatchSyncPendingByIndex[accountIndex], 0);
                     }
+                    if (poolRecordId >= 0)
+                        _photonPool.ReleaseByIndex(poolRecordId);
                     Interlocked.Decrement(ref _pendingFleetDispatchCount);
                     if (!_photonDispatchRing.IsEmpty || !_pendingFleetDispatches.IsEmpty)
                         try { TriggerCustomEvent(o => PumpFleetDispatch(), null); } catch { }
                     return;
                 }
 
-                // Valid slot -- retrieve Order[] from pool via PoolSlotIndex
-                Order[] ringOrders = _photonPool.GetByIndex(_sbIdx);
-                ProcessFleetSlot(_sb.Account, ringOrders, _ringSlot.OrderCount,
-                    _sb.FleetEntryName, _sb.ExpectedKey, _ringSlot.ReservedDelta,
-                    _ringSlot.SignalTicks, _sbIdx);
+                if (accountRef == null)
+                {
+                    Interlocked.Increment(ref _photonCrcFailures);
+                    Print(string.Format("[PUMP] Stale AccountIndex {0} (membrane drift) -- skipping", accountIndex));
+                    if (poolRecordId >= 0)
+                        _photonPool.ReleaseByIndex(poolRecordId);
+                    Interlocked.Decrement(ref _pendingFleetDispatchCount);
+                    return;
+                }
 
-                // Clear sideband to release refs (avoid stale retention across ring wraps)
-                if (_sbIdx >= 0 && _sbIdx < _photonSideband.Length)
-                    _photonSideband[_sbIdx] = default(FleetDispatchSideband);
+                Order[] ringOrders = _photonPool.GetByIndex(poolRecordId);
+                int orderCount = 0;
+                if (ringOrders != null)
+                {
+                    for (int i = 0; i < ringOrders.Length; i++)
+                    {
+                        if (ringOrders[i] == null)
+                            break;
+                        orderCount++;
+                    }
+                }
+                if (ringOrders == null || orderCount == 0)
+                {
+                    Print(string.Format("[PUMP] Pool payload missing for acctIdx={0} poolRecordId={1} -- skipping", accountIndex, poolRecordId));
+                    if (expectedKey != null)
+                    {
+                        ClearDispatchSyncPending(expectedKey);
+                        if (m != null && accountIndex >= 0 && accountIndex < m.DispatchSyncPendingByIndex.Length)
+                            Volatile.Write(ref m.DispatchSyncPendingByIndex[accountIndex], 0);
+                    }
+                    if (ringSlot.ReservedDelta != 0 && expectedKey != null)
+                    {
+                        AddExpectedPositionDeltaLocked(expectedKey, -ringSlot.ReservedDelta);
+                        if (m != null && accountIndex >= 0 && accountIndex < m.ExpectedPositionByIndex.Length)
+                            Interlocked.Add(ref m.ExpectedPositionByIndex[accountIndex], -ringSlot.ReservedDelta);
+                    }
+                    if (poolRecordId >= 0)
+                        _photonPool.ReleaseByIndex(poolRecordId);
+                    Interlocked.Decrement(ref _pendingFleetDispatchCount);
+                    return;
+                }
+
+                string fleetEntryName = !string.IsNullOrEmpty(ringOrders[0].Name)
+                    ? ringOrders[0].Name
+                    : "Fleet_" + accountRef.Name + "_idx" + accountIndex + "_h" + ringSlot.SignalHash.ToString("X8");
+                ProcessFleetSlot(accountRef, ringOrders, orderCount,
+                    fleetEntryName, expectedKey, ringSlot.ReservedDelta,
+                    ringSlot.SignalTicks, poolRecordId);
                 return;
             }
 
-            // Fallback: drain legacy ConcurrentQueue
             FleetDispatchRequest req;
             if (!_pendingFleetDispatches.TryDequeue(out req))
                 return;
             ProcessFleetSlot(req.Account, req.Orders, req.Orders.Length,
                 req.FleetEntryName, req.ExpectedKey, req.ReservedDelta,
-                req.SignalTicks, -1);  // -1 = no pool release
+                req.SignalTicks, -1);
         }
 
         // Build 935 [SIMA-B935-001]: Skip-logic extracted from ExecuteSmartDispatchEntry fleet loop.

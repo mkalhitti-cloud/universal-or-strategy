@@ -91,26 +91,31 @@ namespace NinjaTrader.NinjaScript.Strategies
             CancelAllV12GtcOrders(false); // [BUILD 948] GTC sweep before teardown -- skip accounts with open positions
             StopReaperAudit();
             UnsubscribeFromFleetAccounts();
-            // v28.0 shutdown drain: sideband-aware, XorShadow-free (we do not verify on shutdown;
-            // we just need to release pool + roll back delta). Sideband entries are zeroed after.
+            // v29.0 shutdown drain: membrane-indexed rollback + pool release.
             {
+                FlattenedSubstrateState membrane = Volatile.Read(ref _membrane);
                 FleetDispatchSlot ringSlot;
                 while (_photonDispatchRing != null && _photonDispatchRing.TryDequeue(out ringSlot))
                 {
-                    int _sbIdx = ringSlot.PoolSlotIndex;
-                    string _expectedKey = (_sbIdx >= 0 && _sbIdx < _photonSideband.Length)
-                        ? _photonSideband[_sbIdx].ExpectedKey
+                    int accountIndex = ringSlot.AccountIndex;
+                    Account accountRef = (membrane != null && accountIndex >= 0 && accountIndex < membrane.AccountByIndex.Length)
+                        ? membrane.AccountByIndex[accountIndex]
                         : null;
-                    if (ringSlot.ReservedDelta != 0 && _expectedKey != null)
-                        AddExpectedPositionDelta(_expectedKey, -ringSlot.ReservedDelta);
-                    if (_expectedKey != null)
-                        ClearDispatchSyncPending(_expectedKey);
-                    if (_sbIdx >= 0)
+                    string expectedKey = accountRef != null ? ExpKey(accountRef.Name) : null;
+                    if (ringSlot.ReservedDelta != 0 && expectedKey != null)
                     {
-                        _photonPool.ReleaseByIndex(_sbIdx);
-                        if (_sbIdx < _photonSideband.Length)
-                            _photonSideband[_sbIdx] = default(FleetDispatchSideband);
+                        AddExpectedPositionDeltaLocked(expectedKey, -ringSlot.ReservedDelta);
+                        if (membrane != null && accountIndex >= 0 && accountIndex < membrane.ExpectedPositionByIndex.Length)
+                            Interlocked.Add(ref membrane.ExpectedPositionByIndex[accountIndex], -ringSlot.ReservedDelta);
                     }
+                    if (expectedKey != null)
+                    {
+                        ClearDispatchSyncPending(expectedKey);
+                        if (membrane != null && accountIndex >= 0 && accountIndex < membrane.DispatchSyncPendingByIndex.Length)
+                            Volatile.Write(ref membrane.DispatchSyncPendingByIndex[accountIndex], 0);
+                    }
+                    if (ringSlot.PoolRecordId >= 0)
+                        _photonPool.ReleaseByIndex(ringSlot.PoolRecordId);
                 }
                 Print("[SIMA] Photon ring cleared on shutdown with delta rollback.");
             }

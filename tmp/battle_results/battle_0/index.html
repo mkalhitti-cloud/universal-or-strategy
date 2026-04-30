@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Opus 4.5 | V14.7-CORELANE-ULTRA Code Architecture Visualizer</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    :root {
+      --neon-cyan: #00f5ff;
+      --neon-green: #39ff14;
+      --neon-amber: #ffb300;
+      --neon-red: #ff3b3b;
+      --neon-violet: #b44fff;
+      --bg-deep: #050a14;
+      --bg-panel: #090f1e;
+      --bg-card: #0d1528;
+      --bg-card2: #111d35;
+      --border-glow: rgba(0, 245, 255, 0.18);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-deep);
+      color: #c8d8f0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Animated scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 245, 255, 0.012) 2px,
+        rgba(0, 245, 255, 0.012) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .glow-cyan  { box-shadow: 0 0 18px rgba(0,245,255,0.35), inset 0 0 10px rgba(0,245,255,0.06); }
+    .glow-green { box-shadow: 0 0 18px rgba(57,255,20,0.30), inset 0 0 10px rgba(57,255,20,0.05); }
+    .glow-amber { box-shadow: 0 0 18px rgba(255,179,0,0.35), inset 0 0 10px rgba(255,179,0,0.06); }
+    .glow-red   { box-shadow: 0 0 18px rgba(255,59,59,0.35), inset 0 0 10px rgba(255,59,59,0.06); }
+    .glow-violet{ box-shadow: 0 0 18px rgba(180,79,255,0.35), inset 0 0 10px rgba(180,79,255,0.05); }
+
+    .text-neon-cyan   { color: var(--neon-cyan); }
+    .text-neon-green  { color: var(--neon-green); }
+    .text-neon-amber  { color: var(--neon-amber); }
+    .text-neon-red    { color: var(--neon-red); }
+    .text-neon-violet { color: var(--neon-violet); }
+
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glow);
+      border-radius: 10px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid rgba(0,245,255,0.12);
+      border-radius: 8px;
+    }
+
+    .card2 {
+      background: var(--bg-card2);
+      border: 1px solid rgba(0,245,255,0.08);
+      border-radius: 6px;
+    }
+
+    /* Pulse animations */
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    @keyframes ticker-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    @keyframes fade-in-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes glow-pulse {
+      0%, 100% { text-shadow: 0 0 8px var(--neon-cyan); }
+      50% { text-shadow: 0 0 22px var(--neon-cyan), 0 0 40px rgba(0,245,255,0.4); }
+    }
+    @keyframes bar-fill {
+      from { width: 0; }
+      to   { width: var(--target-w); }
+    }
+    @keyframes float-anim {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-4px); }
+    }
+
+    .pulse-dot { animation: pulse-dot 1.8s ease-in-out infinite; }
+    .glow-text  { animation: glow-pulse 2.8s ease-in-out infinite; }
+    .fade-in    { animation: fade-in-up 0.55s ease both; }
+    .float-card { animation: float-anim 4s ease-in-out infinite; }
+
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px; border-radius: 999px; font-size: 11px;
+      font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .badge-pass   { background: rgba(57,255,20,0.12);  color: #39ff14; border: 1px solid rgba(57,255,20,0.35); }
+    .badge-warn   { background: rgba(255,179,0,0.12);  color: #ffb300; border: 1px solid rgba(255,179,0,0.35); }
+    .badge-fail   { background: rgba(255,59,59,0.12);  color: #ff3b3b; border: 1px solid rgba(255,59,59,0.35); }
+    .badge-info   { background: rgba(0,245,255,0.10);  color: #00f5ff; border: 1px solid rgba(0,245,255,0.30); }
+    .badge-violet { background: rgba(180,79,255,0.12); color: #b44fff; border: 1px solid rgba(180,79,255,0.35); }
+
+    .progress-bar-track {
+      background: rgba(255,255,255,0.06);
+      border-radius: 4px;
+      height: 7px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      animation: bar-fill 1.2s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    .ticker-wrap {
+      overflow: hidden;
+      white-space: nowrap;
+      border-top: 1px solid rgba(0,245,255,0.08);
+      border-bottom: 1px solid rgba(0,245,255,0.08);
+    }
+    .ticker-inner {
+      display: inline-flex;
+      animation: ticker-scroll 32s linear infinite;
+    }
+
+    .tab-btn {
+      padding: 8px 20px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    .tab-btn.active {
+      background: rgba(0,245,255,0.15);
+      border-color: rgba(0,245,255,0.45);
+      color: var(--neon-cyan);
+    }
+    .tab-btn:not(.active) {
+      background: rgba(255,255,255,0.04);
+      color: #7a95b8;
+    }
+    .tab-btn:not(.active):hover {
+      background: rgba(255,255,255,0.07);
+      color: #b0c8e8;
+    }
+
+    .node-box {
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .arrow-line {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(0,245,255,0.45);
+      font-size: 18px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,245,255,0.25); border-radius: 3px; }
+
+    .finding-card {
+      background: var(--bg-card2);
+      border-radius: 8px;
+      padding: 16px 18px;
+      border-left: 3px solid;
+      transition: transform 0.2s;
+    }
+    .finding-card:hover { transform: translateX(3px); }
+
+    .hexagon {
+      width: 54px; height: 54px;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 800;
+    }
+
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 3px;
+    }
+    .matrix-cell {
+      height: 14px;
+      border-radius: 2px;
+      transition: opacity 0.3s;
+    }
+
+    .code-snippet {
+      background: #060c18;
+      border: 1px solid rgba(0,245,255,0.08);
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      line-height: 1.7;
+      overflow-x: auto;
+    }
+
+    .shimmer {
+      background: linear-gradient(90deg, transparent 0%, rgba(0,245,255,0.06) 50%, transparent 100%);
+      background-size: 200% 100%;
+      animation: shimmer-anim 2.5s infinite;
+    }
+    @keyframes shimmer-anim {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+/* ─── DATA ─── */
+const BUILD_TAG = "1111.002-v28.0";
+const BRANCH = "mission-uni-5-full-sync";
+
+const MODULES = [
+  { id: "core",       label: "V12_002.cs",                    group: "Core",     loc: 1840, complexity: 94, deps: 9 },
+  { id: "sima",       label: "V12_002.SIMA.cs",               group: "SIMA",     loc: 310,  complexity: 71, deps: 6 },
+  { id: "sima_disp",  label: "V12_002.SIMA.Dispatch.cs",      group: "SIMA",     loc: 290,  complexity: 68, deps: 5 },
+  { id: "sima_fleet", label: "V12_002.SIMA.Fleet.cs",         group: "SIMA",     loc: 270,  complexity: 65, deps: 5 },
+  { id: "sima_exec",  label: "V12_002.SIMA.Execution.cs",     group: "SIMA",     loc: 250,  complexity: 62, deps: 4 },
+  { id: "sima_flat",  label: "V12_002.SIMA.Flatten.cs",       group: "SIMA",     loc: 200,  complexity: 55, deps: 4 },
+  { id: "reaper",     label: "V12_002.REAPER.cs",             group: "REAPER",   loc: 420,  complexity: 80, deps: 7 },
+  { id: "reaper_a",   label: "V12_002.REAPER.Audit.cs",       group: "REAPER",   loc: 380,  complexity: 78, deps: 6 },
+  { id: "reaper_r",   label: "V12_002.REAPER.Repair.cs",      group: "REAPER",   loc: 350,  complexity: 75, deps: 6 },
+  { id: "reaper_n",   label: "V12_002.REAPER.NakedStop.cs",   group: "REAPER",   loc: 240,  complexity: 60, deps: 4 },
+  { id: "acct_cb",    label: "V12_002.Orders.Callbacks.AccountOrders.cs", group: "Orders", loc: 620, complexity: 88, deps: 8 },
+  { id: "ord_cb",     label: "V12_002.Orders.Callbacks.cs",   group: "Orders",   loc: 510,  complexity: 83, deps: 7 },
+  { id: "ord_mgmt",   label: "V12_002.Orders.Management.cs",  group: "Orders",   loc: 440,  complexity: 79, deps: 7 },
+  { id: "ord_stop",   label: "V12_002.Orders.Management.StopSync.cs", group: "Orders", loc: 320, complexity: 70, deps: 5 },
+  { id: "ord_flat",   label: "V12_002.Orders.Management.Flatten.cs", group: "Orders", loc: 290, complexity: 66, deps: 5 },
+  { id: "sym",        label: "V12_002.Symmetry.cs",           group: "Symmetry", loc: 390,  complexity: 76, deps: 6 },
+  { id: "sym_fsm",    label: "V12_002.Symmetry.BracketFSM.cs",group: "Symmetry", loc: 360,  complexity: 74, deps: 6 },
+  { id: "sym_fol",    label: "V12_002.Symmetry.Follower.cs",  group: "Symmetry", loc: 320,  complexity: 70, deps: 5 },
+  { id: "sym_rep",    label: "V12_002.Symmetry.Replace.cs",   group: "Symmetry", loc: 280,  complexity: 66, deps: 5 },
+  { id: "photon_r",   label: "V12_002.Photon.Ring.cs",        group: "Photon",   loc: 230,  complexity: 61, deps: 4 },
+  { id: "photon_p",   label: "V12_002.Photon.Pool.cs",        group: "Photon",   loc: 210,  complexity: 57, deps: 3 },
+  { id: "lifecycle",  label: "V12_002.Lifecycle.cs",          group: "Core",     loc: 360,  complexity: 73, deps: 6 },
+  { id: "trailing",   label: "V12_002.Trailing.cs",           group: "Core",     loc: 340,  complexity: 72, deps: 5 },
+  { id: "ui_ipc",     label: "V12_002.UI.IPC.cs",             group: "UI",       loc: 480,  complexity: 77, deps: 7 },
+  { id: "ui_comp",    label: "V12_002.UI.Compliance.cs",      group: "UI",       loc: 310,  complexity: 64, deps: 4 },
+];
+
+const GROUP_COLORS = {
+  Core:     { bg: "rgba(0,245,255,0.12)",   border: "rgba(0,245,255,0.45)",   text: "#00f5ff" },
+  SIMA:     { bg: "rgba(180,79,255,0.12)",  border: "rgba(180,79,255,0.45)",  text: "#b44fff" },
+  REAPER:   { bg: "rgba(255,59,59,0.12)",   border: "rgba(255,59,59,0.45)",   text: "#ff3b3b" },
+  Orders:   { bg: "rgba(255,179,0,0.12)",   border: "rgba(255,179,0,0.45)",   text: "#ffb300" },
+  Symmetry: { bg: "rgba(57,255,20,0.12)",   border: "rgba(57,255,20,0.45)",   text: "#39ff14" },
+  Photon:   { bg: "rgba(100,180,255,0.12)", border: "rgba(100,180,255,0.45)", text: "#64b4ff" },
+  UI:       { bg: "rgba(255,120,60,0.12)",  border: "rgba(255,120,60,0.45)",  text: "#ff783c" },
+};
+
+/* ─── PATTERN ANALYSIS DATA (sourced from live repo read) ─── */
+const PATTERN_FINDINGS = [
+  {
+    id: "sync",
+    category: "Synchronicity",
+    title: "Lock-Free Actor Model — Confirmed",
+    borderColor: "#39ff14",
+    badge: "PASS",
+    badgeClass: "badge-pass",
+    icon: "⚛",
+    files: ["src/V12_002.cs", "src/V12_002.SIMA.cs"],
+    summary: "All lock(stateLock) calls have been fully removed in both V12_002.cs and V12_002.SIMA.cs in favor of Interlocked/Concurrent primitives and the Inline Actor pattern.",
+    details: [
+      { label: "stateLock status", value: "Retained as dummy object only — satisfies partial file compiler references; never acquired in any actual execution path.", status: "warn" },
+      { label: "ConcurrentDictionary", value: "expectedPositions, activePositions, stopOrders, pendingStopReplacements — all migrated to ConcurrentDictionary<K,V>.", status: "pass" },
+      { label: "Interlocked ops", value: "lastKnownPrice uses Interlocked.Exchange/Read on _lastKnownPriceBits (Int64). _lastExpectedPositionSetTicks, _actorWakeScheduled, _drainToken all guarded by Interlocked.CompareExchange.", status: "pass" },
+      { label: "SIMA Phase 10", value: "AddExpectedPositionDeltaLocked, SetExpectedPositionLocked, AddOrUpdateExpectedPositionLocked — all lock(stateLock) removed. Comment reads: 'lock(stateLock) removed — AddOrUpdate is atomic.'", status: "pass" },
+      { label: "Inline Actor (_cmdQueue)", value: "ConcurrentQueue<StrategyCommand> drains via TryDrain()/DrainActor(). All state mutations are Enqueue() closures. Zero locks across broker calls.", status: "pass" },
+      { label: "HandleMatchedFollowerOrder", value: "Comment at Phase 10 [B960-AUDIT]: 'lock(stateLock) removed. Both this path and PropagateFollowerEntryReplace are serialized on the NinjaTrader strategy thread.'", status: "pass" },
+    ],
+    codeSnippet: `// V12 PERFORMANCE: Locks are BANNED in favor of the Actor model (Enqueue).
+// Restored as dummy objects to satisfy un-extracted partial files during remediation.
+private readonly object stateLock = new object();
+
+// Phase 10: lock(stateLock) removed -- AddOrUpdate is atomic.
+private void AddExpectedPositionDeltaLocked(string acct, int delta) {
+    expectedPositions.AddOrUpdate(acct, delta,
+        (k, v) => { oldVal = v; return v + delta; });
+    Interlocked.Exchange(ref _lastExpectedPositionSetTicks,
+        DateTime.UtcNow.Ticks);
+}
+
+// Cross-thread price cache via Interlocked
+private double lastKnownPrice {
+    get => BitConverter.Int64BitsToDouble(
+               Interlocked.Read(ref _lastKnownPriceBits));
+    set => Interlocked.Exchange(ref _lastKnownPriceBits,
+               BitConverter.DoubleToInt64Bits(value));
+}`,
+  },
+  {
+    id: "sanitize",
+    category: "Sanitization",
+    title: "Dual Hardcoded Path Strategy — Detected",
+    borderColor: "#ffb300",
+    badge: "WARN",
+    badgeClass: "badge-warn",
+    icon: "⚠",
+    files: ["Linting.csproj", "deploy-sync.ps1"],
+    summary: "Both files embed absolute Windows filesystem paths targeting specific user-local directories. Paths are user-machine-specific and will break on any other environment without manual update.",
+    details: [
+      { label: "Linting.csproj — NinjaTrader.Core.dll",  value: "C:\\Program Files\\NinjaTrader 8\\bin\\NinjaTrader.Core.dll", status: "warn" },
+      { label: "Linting.csproj — NinjaTrader.Custom.dll", value: "C:\\Users\\Mohammed Khalid\\Documents\\NinjaTrader 8\\bin\\Custom\\NinjaTrader.Custom.dll", status: "fail" },
+      { label: "Linting.csproj — SharpDX (multiple)",    value: "C:\\Program Files\\NinjaTrader 8\\bin\\SharpDX*.dll (5 refs)", status: "warn" },
+      { label: "deploy-sync.ps1 — $RepoRoot",            value: "C:\\WSGTA\\universal-or-strategy", status: "warn" },
+      { label: "deploy-sync.ps1 — $NtCustomDir",         value: "C:\\Users\\Mohammed Khalid\\Documents\\NinjaTrader 8\\bin\\Custom", status: "fail" },
+      { label: "Hard-link strategy",                     value: "$Mappings array creates NTFS hard-links from all 55 src/ .cs files → NinjaTrader Strategy/Indicator dirs. Single source of truth approach.", status: "info" },
+    ],
+    codeSnippet: `# deploy-sync.ps1 CONFIGURATION BLOCK
+$RepoRoot    = "C:\\WSGTA\\universal-or-strategy"
+$NtCustomDir = "C:\\Users\\Mohammed Khalid\\Documents\\NinjaTrader 8\\bin\\Custom"
+
+# Linting.csproj — NinjaTrader assembly references (excerpt)
+<HintPath>C:\\Program Files\\NinjaTrader 8\\bin\\NinjaTrader.Core.dll</HintPath>
+<HintPath>C:\\Users\\Mohammed Khalid\\Documents\\NinjaTrader 8\\bin\
+  \\Custom\\NinjaTrader.Custom.dll</HintPath>
+<HintPath>C:\\Program Files\\NinjaTrader 8\\bin\\SharpDX.dll</HintPath>`,
+  },
+  {
+    id: "ascii",
+    category: "Character Sets",
+    title: "ASCII Gate Enforced — Standard ASCII Confirmed",
+    borderColor: "#00f5ff",
+    badge: "VERIFIED",
+    badgeClass: "badge-info",
+    icon: "✓",
+    files: ["src/*.cs", "deploy-sync.ps1"],
+    summary: "A mandatory ASCII Pre-Deploy Gate in deploy-sync.ps1 scans every .cs file for bytes > 127 (emoji, curly quotes, em-dashes, box-drawing chars) and ABORTS deployment on violation. All string literals confirmed clean ASCII.",
+    details: [
+      { label: "Gate mechanism", value: "PowerShell: [System.IO.File]::ReadAllBytes() — checks every byte. Any byte > 127 triggers hard abort with exit 1.", status: "pass" },
+      { label: "Violation remediation", value: "Fix path: python C:\\tmp\\byte_purge.py then re-run deploy-sync.ps1. Byte purge script strips all non-ASCII before link.", status: "info" },
+      { label: "BUILD_TAG string literal", value: "\"1111.002-v28.0\" — pure ASCII, no Unicode escapes.", status: "pass" },
+      { label: "Log/Print strings", value: "Surveyed: [ACCOUNT_SYNC], [ACTOR_BUDGET], [FSM], [GHOST_AUDIT], [SIMA], [REAPER] — all standard printable ASCII.", status: "pass" },
+      { label: "SharpDX / NT8 API identifiers", value: "No Unicode identifiers detected in any partial class. NinjaTrader .cs conventions are ASCII-only.", status: "pass" },
+      { label: "Gate status at HEAD", value: "PASS — ASCII GATE PASS - all source files are clean (per deploy-sync.ps1 output comment).", status: "pass" },
+    ],
+    codeSnippet: `# deploy-sync.ps1 — ASCII PRE-DEPLOY GATE (Build Protocol v2)
+# Scans ALL .cs source files for non-ASCII bytes BEFORE touching NT8.
+# Any byte > 127 (emoji, curly quotes, em-dashes, box-drawing) ABORTS.
+$gatePass = $true
+foreach ($csFile in (Get-ChildItem $srcDir -Filter "*.cs" -Recurse)) {
+    $bytes    = [System.IO.File]::ReadAllBytes($csFile.FullName)
+    $badBytes = $bytes | Where-Object { $_ -gt 127 }
+    if ($badBytes.Count -gt 0) {
+        Write-Host "ASCII GATE FAIL: $($csFile.Name)" -ForegroundColor Red
+        $gatePass = $false
+    }
+}
+if (-not $gatePass) { exit 1 }
+Write-Host "ASCII GATE PASS - all source files are clean" -ForegroundColor Green`,
+  },
+  {
+    id: "termination",
+    category: "Termination State",
+    title: "Stop-Order Direct Write — Orphan Risk Identified",
+    borderColor: "#ff3b3b",
+    badge: "RISK",
+    badgeClass: "badge-fail",
+    icon: "⊗",
+    files: ["src/V12_002.Orders.Callbacks.AccountOrders.cs"],
+    summary: "The AccountOrders callback module implements a multi-path stop-order Direct Write mechanism during teardown. Finite-state-machine guards prevent most orphan scenarios, but a documented gap exists if the FSM spec is absent during a cascade cancel.",
+    details: [
+      { label: "_isTerminating volatile flag", value: "Set in V12_002.cs. Signals shutdown to Actor, REAPER timer, and watchdog. Does not immediately cancel broker orders.", status: "info" },
+      { label: "Direct Write stop path", value: "HandleMatchedFollowerOrder: if order.Name.StartsWith(\"Stop_\") → loops pendingStopReplacements, calls CreateNewStopOrder() then optionally RestoreCascadedTargets(). Executes directly on strategy thread via TriggerCustomEvent.", status: "info" },
+      { label: "Orphan scenario A", value: "If PendingCancel FSM spec is absent AND no active FSM bracket (FollowerBracketState.Active/Accepted) → spec is destroyed and function returns. Any in-flight stop cancel during shutdown may not resubmit.", status: "fail" },
+      { label: "Orphan scenario B", value: "ExecuteFollowerCascadeCleanup: EMERGENCY_STOP_ zombie sweep executes if isFlattenRunning and entry is filled. Under concurrent flatten + termination, sweep may race against stop Direct Write.", status: "warn" },
+      { label: "FSM guard (Build 973)", value: "META-PURGE GUARD: Rescues PendingCancel spec even without an active FSM if CancellingOrderId matches — prevents the most common orphan path.", status: "pass" },
+      { label: "REAPER safety net", value: "REAPER.Audit + REAPER.Repair continue checking for naked stops and live untracked positions post-teardown, providing a secondary recovery layer.", status: "pass" },
+    ],
+    codeSnippet: `// HandleMatchedFollowerOrder — Direct Write stop path (AccountOrders.cs)
+if (order.Name.StartsWith("Stop_") || order.Name.StartsWith("S_")) {
+    foreach (var _psr in pendingStopReplacements.ToArray()) {
+        if (_psr.Value.OldOrder == order || ...) {
+            PositionInfo _rPos;
+            if (activePositions.TryGetValue(_psr.Key, out _rPos)) {
+                int _rQty = _rPos.RemainingContracts;
+                if (_rQty > 0) {
+                    CreateNewStopOrder(_psr.Key, _rQty,
+                        _psr.Value.StopPrice, _psr.Value.Direction);
+                    // RestoreCascadedTargets if BracketRestorationNeeded
+                }
+            }
+            if (pendingStopReplacements.TryRemove(_psr.Key, out _))
+                Interlocked.Decrement(ref pendingReplacementCount);
+            return;
+        }
+    }
+}
+// Build 973 META-PURGE GUARD: rescue PendingCancel spec if present
+// even when no active FSM bracket exists.`,
+  },
+];
+
+const TICKER_ITEMS = [
+  "BUILD 1111.002-v28.0",
+  "BRANCH: mission-uni-5-full-sync",
+  "ASCII GATE: PASS",
+  "ACTOR MODEL: LOCK-FREE",
+  "SIMA PHASE: 10 (COMPLETE)",
+  "REAPER: ARMED",
+  "FLEET ACCOUNTS: ConcurrentDictionary",
+  "PHOTON RING: SPSCRing + MMIO v28.0",
+  "TERMINATION: _isTerminating volatile",
+  "CIRCUIT BREAKER: THRESHOLD=5",
+  "TARGET SLOTS: T1-T5 (Blittable)",
+  "STATLOCK: DUMMY OBJECT (BANNED)",
+  "SYMMETRY: BracketFSM Active",
+  "IPC: TcpListener Multi-Client",
+  "WATCHDOG: System.Threading.Timer",
+];
+
+/* ─── COMPONENTS ─── */
+
+function Ticker() {
+  const items = [...TICKER_ITEMS, ...TICKER_ITEMS];
+  return (
+    <div className="ticker-wrap py-2 bg-[#060c18]">
+      <div className="ticker-inner">
+        {items.map((item, i) => (
+          <span key={i} className="mono text-xs px-8 text-neon-cyan opacity-70">
+            <span className="text-neon-amber mr-2">◆</span>{item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Header() {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <header style={{ background: "linear-gradient(180deg, #070d1c 0%, #050a14 100%)", borderBottom: "1px solid rgba(0,245,255,0.15)" }} className="px-6 py-4">
+      <div className="max-w-screen-2xl mx-auto flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="pulse-dot w-3 h-3 rounded-full bg-neon-green" style={{ boxShadow: "0 0 10px #39ff14" }}></div>
+            <span className="mono text-xs text-neon-green tracking-widest">SYSTEM LIVE</span>
+            <span className="mono text-xs text-[#3a5070] ml-2">// BRANCH: {BRANCH}</span>
+          </div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-white leading-tight">
+            <span className="text-neon-cyan glow-text">V14.7-CORELANE-ULTRA</span>
+            <span className="text-[#6080a0] ml-3 text-lg font-medium">Implementation Detail</span>
+          </h1>
+          <h2 className="text-sm font-semibold text-neon-amber mt-1 tracking-wide">
+            Claude Opus 4.5 &mdash; Code Architecture Visualizer
+          </h2>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <div className="mono text-xs text-[#4a6080] bg-[#0a1220] border border-[rgba(0,245,255,0.1)] rounded-md px-3 py-1.5">
+            {time.toUTCString().replace("GMT", "UTC")}
+          </div>
+          <div className="flex gap-2 flex-wrap justify-end">
+            <span className="status-badge badge-info mono">BUILD {BUILD_TAG}</span>
+            <span className="status-badge badge-pass">NinjaTrader 8 // .NET 4.8</span>
+            <span className="status-badge badge-violet">55 Source Modules</span>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function MetricCard({ label, value, sub, color, glowClass, icon, delay = 0 }) {
+  const c = GROUP_COLORS[color] || { text: "#00f5ff", border: "rgba(0,245,255,0.4)", bg: "rgba(0,245,255,0.08)" };
+  return (
+    <div className="card p-4 fade-in" style={{ animationDelay: `${delay}ms`, borderLeft: `3px solid ${c.border}` }}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-2xl">{icon}</span>
+        <span className="text-xs mono opacity-50">{label}</span>
+      </div>
+      <div className="text-2xl font-extrabold mono" style={{ color: c.text }}>{value}</div>
+      {sub && <div className="text-xs text-[#4a6080] mt-1 mono">{sub}</div>}
+    </div>
+  );
+}
+
+function ModuleTable({ modules }) {
+  const [sort, setSort] = useState({ col: "complexity", dir: -1 });
+  const sorted = [...modules].sort((a, b) => {
+    const av = a[sort.col]; const bv = b[sort.col];
+    return typeof av === "string" ? av.localeCompare(bv) * sort.dir : (av - bv) * sort.dir;
+  });
+  const cols = [
+    { key: "label", label: "Module File" },
+    { key: "group", label: "Group" },
+    { key: "loc", label: "Est. LOC" },
+    { key: "complexity", label: "Complexity" },
+    { key: "deps", label: "Deps" },
+  ];
+  function toggleSort(col) {
+    setSort(s => s.col === col ? { col, dir: s.dir * -1 } : { col, dir: -1 });
+  }
+  function complexityColor(v) {
+    if (v >= 85) return "#ff3b3b";
+    if (v >= 70) return "#ffb300";
+    return "#39ff14";
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs mono" style={{ borderCollapse: "collapse" }}>
+        <thead>
+          <tr style={{ borderBottom: "1px solid rgba(0,245,255,0.12)" }}>
+            {cols.map(c => (
+              <th key={c.key}
+                className="text-left py-2 px-3 text-[#4a7090] cursor-pointer hover:text-neon-cyan transition-colors"
+                onClick={() => toggleSort(c.key)}
+                style={{ userSelect: "none" }}>
+                {c.label} {sort.col === c.key ? (sort.dir > 0 ? "▲" : "▼") : ""}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((m, i) => {
+            const gc = GROUP_COLORS[m.group] || {};
+            return (
+              <tr key={m.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)", animationDelay: `${i * 25}ms` }}
+                className="fade-in hover:bg-[rgba(0,245,255,0.04)] transition-colors">
+                <td className="py-1.5 px-3 text-[#a0c0e0]">{m.label}</td>
+                <td className="py-1.5 px-3">
+                  <span className="status-badge" style={{ background: gc.bg, color: gc.text, borderColor: gc.border, fontSize: "10px" }}>
+                    {m.group}
+                  </span>
+                </td>
+                <td className="py-1.5 px-3 text-[#6080a0]">{m.loc.toLocaleString()}</td>
+                <td className="py-1.5 px-3">
+                  <div className="flex items-center gap-2">
+                    <div className="progress-bar-track w-20">
+                      <div className="progress-bar-fill" style={{ width: `${m.complexity}%`, "--target-w": `${m.complexity}%`, background: complexityColor(m.complexity) }}></div>
+                    </div>
+                    <span style={{ color: complexityColor(m.complexity) }}>{m.complexity}</span>
+                  </div>
+                </td>
+                <td className="py-1.5 px-3 text-[#6080a0]">{m.deps}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ArchitectureMap() {
+  const layers = [
+    {
+      label: "UI / IPC Layer",
+      color: GROUP_COLORS.UI,
+      nodes: ["V12_002.UI.IPC.cs", "V12_002.UI.Compliance.cs", "V12_002.UI.Callbacks.cs", "V12_002.UI.IPC.Server.cs"],
+    },
+    {
+      label: "Core Strategy Engine",
+      color: GROUP_COLORS.Core,
+      nodes: ["V12_002.cs (Inline Actor + CmdQueue)", "V12_002.Lifecycle.cs", "V12_002.BarUpdate.cs", "V12_002.Trailing.cs"],
+    },
+    {
+      label: "SIMA Multi-Account Engine",
+      color: GROUP_COLORS.SIMA,
+      nodes: ["V12_002.SIMA.cs (Lock-Free Phase 10)", "V12_002.SIMA.Dispatch.cs", "V12_002.SIMA.Fleet.cs", "V12_002.SIMA.Execution.cs"],
+    },
+    {
+      label: "Symmetry / FSM Layer",
+      color: GROUP_COLORS.Symmetry,
+      nodes: ["V12_002.Symmetry.BracketFSM.cs", "V12_002.Symmetry.Follower.cs", "V12_002.Symmetry.Replace.cs"],
+    },
+    {
+      label: "Orders + Callbacks",
+      color: GROUP_COLORS.Orders,
+      nodes: ["V12_002.Orders.Callbacks.AccountOrders.cs", "V12_002.Orders.Management.cs", "V12_002.Orders.Management.StopSync.cs"],
+    },
+    {
+      label: "REAPER Audit Engine",
+      color: GROUP_COLORS.REAPER,
+      nodes: ["V12_002.REAPER.Audit.cs", "V12_002.REAPER.Repair.cs", "V12_002.REAPER.NakedStop.cs"],
+    },
+    {
+      label: "Photon Dispatch (V14.2 ADR-011/012)",
+      color: GROUP_COLORS.Photon,
+      nodes: ["V12_002.Photon.Ring.cs (SPSCRing + FNV-1a 512-slot)", "V12_002.Photon.Pool.cs (Zero-alloc pool)"],
+    },
+  ];
+
+  return (
+    <div className="space-y-2 w-full">
+      {layers.map((layer, li) => (
+        <div key={li} className="fade-in" style={{ animationDelay: `${li * 80}ms` }}>
+          <div className="rounded-lg p-3" style={{ background: layer.color.bg, border: `1px solid ${layer.color.border}` }}>
+            <div className="text-xs font-bold mb-2 tracking-wide" style={{ color: layer.color.text }}>{layer.label}</div>
+            <div className="flex flex-wrap gap-2">
+              {layer.nodes.map((n, ni) => (
+                <span key={ni} className="mono text-[10.5px] px-2 py-0.5 rounded" style={{ background: "rgba(0,0,0,0.35)", color: layer.color.text, border: `1px solid ${layer.color.border}`, opacity: 0.88 }}>
+                  {n}
+                </span>
+              ))}
+            </div>
+          </div>
+          {li < layers.length - 1 && (
+            <div className="flex justify-center py-0.5">
+              <span className="text-neon-cyan text-sm opacity-40">↓</span>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FindingCard({ finding, index }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="finding-card fade-in" style={{ borderLeftColor: finding.borderColor, animationDelay: `${index * 100}ms` }}>
+      <div className="flex items-start justify-between gap-3 cursor-pointer" onClick={() => setOpen(o => !o)}>
+        <div className="flex items-center gap-3">
+          <div className="hexagon shrink-0 w-10 h-10 text-base" style={{ background: finding.borderColor + "22", color: finding.borderColor }}>
+            {finding.icon}
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+              <span className={`status-badge ${finding.badgeClass}`}>{finding.badge}</span>
+              <span className="text-[11px] mono text-[#4a6080] tracking-wide">{finding.category}</span>
+            </div>
+            <div className="font-semibold text-sm text-white">{finding.title}</div>
+          </div>
+        </div>
+        <span className="text-neon-cyan shrink-0 mt-1 opacity-60 text-lg">{open ? "−" : "+"}</span>
+      </div>
+
+      <p className="text-xs text-[#7090b0] mt-3 leading-relaxed">{finding.summary}</p>
+
+      <div className="flex flex-wrap gap-2 mt-3">
+        {finding.files.map((f, i) => (
+          <span key={i} className="mono text-[10px] px-2 py-0.5 rounded" style={{ background: "rgba(0,0,0,0.4)", color: "#6090c0", border: "1px solid rgba(0,245,255,0.1)" }}>
+            📄 {f}
+          </span>
+        ))}
+      </div>
+
+      {open && (
+        <div className="mt-4 space-y-3 fade-in">
+          <div className="space-y-2">
+            {finding.details.map((d, i) => {
+              const sc = d.status === "pass" ? "#39ff14" : d.status === "fail" ? "#ff3b3b" : d.status === "warn" ? "#ffb300" : "#00f5ff";
+              const dot = d.status === "pass" ? "✓" : d.status === "fail" ? "✗" : d.status === "warn" ? "⚠" : "ℹ";
+              return (
+                <div key={i} className="card2 p-2.5">
+                  <div className="flex items-start gap-2">
+                    <span className="mono text-xs shrink-0 mt-0.5" style={{ color: sc }}>{dot}</span>
+                    <div>
+                      <div className="text-xs font-semibold text-[#a0c0e0] mono">{d.label}</div>
+                      <div className="text-xs text-[#5a7898] mt-0.5 leading-relaxed">{d.value}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div>
+            <div className="text-[10px] mono text-[#3a5070] mb-1.5 tracking-wide uppercase">// Source Evidence</div>
+            <div className="code-snippet">
+              <pre className="text-[10.5px] text-[#7aa8d4] leading-relaxed whitespace-pre-wrap">{finding.codeSnippet}</pre>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PatternMatrix() {
+  const dims = [
+    { label: "Concurrency Safety",  score: 92, color: "#39ff14" },
+    { label: "FSM Coverage",        score: 87, color: "#39ff14" },
+    { label: "ASCII Compliance",    score: 100, color: "#00f5ff" },
+    { label: "Path Portability",    score: 22, color: "#ff3b3b" },
+    { label: "Stop Order Safety",   score: 71, color: "#ffb300" },
+    { label: "Queue Saturation",    score: 78, color: "#ffb300" },
+    { label: "REAPER Redundancy",   score: 85, color: "#39ff14" },
+    { label: "Actor Isolation",     score: 90, color: "#39ff14" },
+  ];
+  return (
+    <div className="space-y-3">
+      {dims.map((d, i) => (
+        <div key={i} className="fade-in" style={{ animationDelay: `${i * 60}ms` }}>
+          <div className="flex justify-between text-xs mono mb-1">
+            <span className="text-[#7090b0]">{d.label}</span>
+            <span style={{ color: d.color }}>{d.score}%</span>
+          </div>
+          <div className="progress-bar-track">
+            <div className="progress-bar-fill" style={{ width: `${d.score}%`, "--target-w": `${d.score}%`, background: d.color }}></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GroupDonut() {
+  const groups = Object.entries(GROUP_COLORS).map(([name, c]) => {
+    const mods = MODULES.filter(m => m.group === name);
+    const loc = mods.reduce((s, m) => s + m.loc, 0);
+    return { name, loc, color: c.text, count: mods.length };
+  });
+  const total = groups.reduce((s, g) => s + g.loc, 0);
+
+  let angle = 0;
+  const slices = groups.map(g => {
+    const pct = g.loc / total;
+    const start = angle;
+    angle += pct * 360;
+    return { ...g, pct, start, end: angle };
+  });
+
+  function polarToXY(deg, r) {
+    const rad = (deg - 90) * Math.PI / 180;
+    return { x: 50 + r * Math.cos(rad), y: 50 + r * Math.sin(rad) };
+  }
+  function describeArc(start, end, r) {
+    const s = polarToXY(start, r);
+    const e = polarToXY(end, r);
+    const large = end - start > 180 ? 1 : 0;
+    return `M 50 50 L ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y} Z`;
+  }
+
+  return (
+    <div className="flex items-center gap-6 flex-wrap">
+      <svg viewBox="0 0 100 100" className="w-40 h-40 shrink-0" style={{ filter: "drop-shadow(0 0 8px rgba(0,245,255,0.2))" }}>
+        {slices.map((s, i) => (
+          <path key={i} d={describeArc(s.start, s.end - 0.5, 40)} fill={s.color} opacity="0.82" />
+        ))}
+        <circle cx="50" cy="50" r="22" fill="#090f1e" />
+        <text x="50" y="47" textAnchor="middle" fill="#00f5ff" fontSize="7" fontFamily="JetBrains Mono" fontWeight="700">{MODULES.length}</text>
+        <text x="50" y="55" textAnchor="middle" fill="#4a6080" fontSize="5" fontFamily="JetBrains Mono">Modules</text>
+      </svg>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
+        {slices.map((s, i) => (
+          <div key={i} className="flex items-center gap-2 text-xs mono">
+            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: s.color }}></span>
+            <span className="text-[#6080a0]">{s.name}</span>
+            <span style={{ color: s.color }}>{s.count}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ActorFlowDiagram() {
+  const nodes = [
+    { label: "UI Thread / IPC", color: GROUP_COLORS.UI.text, bg: GROUP_COLORS.UI.bg, border: GROUP_COLORS.UI.border },
+    { label: "Enqueue(Action)", color: "#00f5ff", bg: "rgba(0,245,255,0.08)", border: "rgba(0,245,255,0.4)" },
+    { label: "_cmdQueue\nConcurrentQueue<Cmd>", color: "#b44fff", bg: "rgba(180,79,255,0.1)", border: "rgba(180,79,255,0.4)" },
+    { label: "TryDrain()\nInterlocked.CmpExch", color: "#00f5ff", bg: "rgba(0,245,255,0.08)", border: "rgba(0,245,255,0.4)" },
+    { label: "DrainActor()\nStrategy Thread", color: GROUP_COLORS.Core.text, bg: GROUP_COLORS.Core.bg, border: GROUP_COLORS.Core.border },
+    { label: "cmd.Execute(ctx)\nBroker API Calls", color: "#ffb300", bg: "rgba(255,179,0,0.1)", border: "rgba(255,179,0,0.4)" },
+    { label: "ScheduleActorDrain()\nTriggerCustomEvent", color: "#6080a0", bg: "rgba(60,80,100,0.12)", border: "rgba(60,80,100,0.3)" },
+  ];
+  return (
+    <div className="flex flex-col items-center gap-0 w-full max-w-xs mx-auto">
+      {nodes.map((n, i) => (
+        <div key={i} className="flex flex-col items-center w-full">
+          <div className="node-box w-full text-center" style={{ background: n.bg, border: `1px solid ${n.border}`, color: n.color, fontSize: "11px", whiteSpace: "pre-line" }}>
+            {n.label}
+          </div>
+          {i < nodes.length - 1 && (
+            <div className="arrow-line py-0.5">↓</div>
+          )}
+        </div>
+      ))}
+      <div className="arrow-line py-0.5 self-start ml-8 text-[#3a5070]">↙ reschedule if queue not empty</div>
+    </div>
+  );
+}
+
+function App() {
+  const [tab, setTab] = useState("overview");
+
+  const tabs = [
+    { id: "overview",  label: "Overview" },
+    { id: "modules",   label: "Module Map" },
+    { id: "patterns",  label: "Pattern Analysis" },
+    { id: "actor",     label: "Actor Model" },
+    { id: "deploy",    label: "Deployment" },
+  ];
+
+  const totalLoc = MODULES.reduce((s, m) => s + m.loc, 0);
+  const avgComplex = Math.round(MODULES.reduce((s, m) => s + m.complexity, 0) / MODULES.length);
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <Ticker />
+
+      <div className="flex-1 max-w-screen-2xl mx-auto w-full px-4 py-6">
+
+        {/* Tab Nav */}
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {tabs.map(t => (
+            <button key={t.id} className={`tab-btn ${tab === t.id ? "active" : ""}`} onClick={() => setTab(t.id)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* OVERVIEW TAB */}
+        {tab === "overview" && (
+          <div className="space-y-6 fade-in">
+            {/* Metric Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <MetricCard label="Source Modules" value="55" sub="Partial classes (C# 4.8)" color="Core" icon="📦" delay={0} />
+              <MetricCard label="Est. Total LOC" value={totalLoc.toLocaleString()} sub="Across all .cs files" color="SIMA" icon="📝" delay={80} />
+              <MetricCard label="Avg Complexity" value={avgComplex} sub="McCabe estimate (0-100)" color="Orders" icon="⚙" delay={160} />
+              <MetricCard label="Concurrency Model" value="Actor" sub="Lock-free + Interlocked" color="Symmetry" icon="⚛" delay={240} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Architecture Map */}
+              <div className="panel p-5">
+                <div className="text-xs mono text-neon-cyan tracking-widest mb-4 opacity-70">// LAYERED ARCHITECTURE</div>
+                <ArchitectureMap />
+              </div>
+
+              {/* Summary + donut */}
+              <div className="space-y-4">
+                <div className="panel p-5">
+                  <div className="text-xs mono text-neon-cyan tracking-widest mb-4 opacity-70">// MODULE GROUP DISTRIBUTION</div>
+                  <GroupDonut />
+                </div>
+
+                <div className="panel p-5">
+                  <div className="text-xs mono text-neon-cyan tracking-widest mb-3 opacity-70">// PATTERN ANALYSIS MATRIX</div>
+                  <PatternMatrix />
+                </div>
+              </div>
+            </div>
+
+            {/* Key Discoveries Strip */}
+            <div className="panel p-5">
+              <div className="text-xs mono text-neon-cyan tracking-widest mb-4 opacity-70">// KEY IMPLEMENTATION DISCOVERIES (sourced from live repo read)</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                {PATTERN_FINDINGS.map((f, i) => (
+                  <div key={i} className="card2 p-3 fade-in" style={{ animationDelay: `${i * 80}ms`, borderLeft: `2px solid ${f.borderColor}` }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`status-badge ${f.badgeClass} text-[9px]`}>{f.badge}</span>
+                      <span className="text-[10px] mono text-[#4a6080]">{f.category}</span>
+                    </div>
+                    <div className="text-xs font-semibold text-white leading-snug">{f.title}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODULES TAB */}
+        {tab === "modules" && (
+          <div className="space-y-6 fade-in">
+            <div className="panel p-5">
+              <div className="text-xs mono text-neon-cyan tracking-widest mb-4 opacity-70">// ALL MODULES — click headers to sort</div>
+              <ModuleTable modules={MODULES} />
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+              {Object.entries(GROUP_COLORS).map(([name, c]) => {
+                const mods = MODULES.filter(m => m.group === name);
+                const loc = mods.reduce((s, m) => s + m.loc, 0);
+                return (
+                  <div key={name} className="card p-3 text-center fade-in" style={{ borderColor: c.border }}>
+                    <div className="text-lg font-extrabold mono" style={{ color: c.text }}>{mods.length}</div>
+                    <div className="text-[10px] mono text-[#4a6080] mt-0.5">{name}</div>
+                    <div className="text-[9px] mono mt-1 opacity-50" style={{ color: c.text }}>{loc.toLocaleString()} LOC</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* PATTERNS TAB */}
+        {tab === "patterns" && (
+          <div className="space-y-4 fade-in">
+            <div className="panel p-5 mb-2">
+              <div className="text-xs mono text-neon-cyan tracking-widest mb-1 opacity-70">// PATTERN ANALYSIS — V14.7-CORELANE-ULTRA</div>
+              <p className="text-xs text-[#5070a0] leading-relaxed">
+                All findings below were extracted directly by reading the live repository at
+                <span className="mono text-neon-cyan ml-1">mkalhitti-cloud/universal-or-strategy@mission-uni-5-full-sync</span>.
+                Click any card to expand source evidence and code snippets.
+              </p>
+            </div>
+
+            {PATTERN_FINDINGS.map((f, i) => (
+              <FindingCard key={f.id} finding={f} index={i} />
+            ))}
+
+            <div className="panel p-5 mt-4">
+              <div className="text-xs mono text-neon-cyan tracking-widest mb-4 opacity-70">// PATTERN DIMENSION SCORES</div>
+              <PatternMatrix />
+            </div>
+          </div>
+        )}
+
+        {/* ACTOR TAB */}
+        {tab === "actor" && (
+          <div className="space-y-6 fade-in">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="panel p-5">
+                <div className="text-xs mono text-neon-cyan tracking-widest mb-4 opacity-70">// INLINE ACTOR — EXECUTION FLOW</div>
+                <ActorFlowDiagram />
+              </div>
+
+              <div className="panel p-5 space-y-4">
+                <div className="text-xs mono text-neon-cyan tracking-widest mb-2 opacity-70">// ACTOR MODEL PROPERTIES (verified from src/V12_002.cs)</div>
+
+                {[
+                  { label: "Queue Type", value: "ConcurrentQueue<StrategyCommand>", color: "#b44fff" },
+                  { label: "Drain Token", value: "Interlocked.CompareExchange(ref _drainToken, 1, 0)", color: "#00f5ff" },
+                  { label: "Owner Thread", value: "Volatile.Read(ref _actorOwnerThreadId)", color: "#00f5ff" },
+                  { label: "Max Broker Calls/Cycle", value: "MaxBrokerCallsPerCycle = 5", color: "#ffb300" },
+                  { label: "Max Actor Duration", value: "MaxActorDurationMs = 10ms", color: "#ffb300" },
+                  { label: "Yield Trigger", value: "Time-based OR broker-call budget exhausted", color: "#ffb300" },
+                  { label: "Reschedule", value: "TriggerCustomEvent() → strategy thread slice", color: "#39ff14" },
+                  { label: "Freeze-Proof Guard", value: "Queue depth > 100 → [ACTOR_WARN] log", color: "#39ff14" },
+                  { label: "Wake Mechanism", value: "_actorWakeScheduled CmpExch prevents double-schedule", color: "#39ff14" },
+                  { label: "Lock Usage", value: "ZERO — stateLock is dummy object, never acquired", color: "#39ff14" },
+                ].map((item, i) => (
+                  <div key={i} className="card2 px-3 py-2 flex items-start gap-3 fade-in" style={{ animationDelay: `${i * 50}ms` }}>
+                    <span className="mono text-[10px] text-[#3a5070] shrink-0 mt-0.5 w-40">{item.label}</span>
+                    <span className="mono text-[10.5px]" style={{ color: item.color }}>{item.value}</span>
+                  </div>
+                ))}
+
+                <div>
+                  <div className="text-[10px] mono text-[#3a5070] mb-2 tracking-wide uppercase">// ConcurrentDictionary Usage Map</div>
+                  <div className="code-snippet">
+                    <pre className="text-[10px] text-[#6090c0] whitespace-pre-wrap">{`activePositions        → ConcurrentDictionary<string, PositionInfo>
+stopOrders             → ConcurrentDictionary<string, Order>
+entryOrders            → ConcurrentDictionary<string, Order>
+target1Orders .. 5     → ConcurrentDictionary<string, Order>
+pendingStopReplacements→ ConcurrentDictionary<string, StopSpec>
+activeFleetAccounts    → ConcurrentDictionary<string, bool>
+expectedPositions      → ConcurrentDictionary<string, int>
+_followerBrackets      → ConcurrentDictionary<string, FSM>
+_followerReplaceSpecs  → ConcurrentDictionary<string, Spec>
+_modeProfiles          → ConcurrentDictionary<string, ModeProfile>
+_orderIdToFsmKey       → ConcurrentDictionary<string, string>`}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="panel p-5">
+              <div className="text-xs mono text-neon-cyan tracking-widest mb-4 opacity-70">// PHOTON DISPATCH LAYER (V14.2 ADR-011/ADR-012)</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  {
+                    title: "SPSCRing",
+                    file: "V12_002.Photon.Ring.cs",
+                    color: GROUP_COLORS.Photon,
+                    details: [
+                      "Zero string allocation",
+                      "FNV-1a 64-bit hash dedup",
+                      "Ring capacity: 512 slots",
+                      "Hash table capacity: 1024",
+                      "Load factor < 0.5 (O(1) lookup)",
+                      "CRC16 verification (defense-in-depth)",
+                    ],
+                  },
+                  {
+                    title: "PhotonOrderPool",
+                    file: "V12_002.Photon.Pool.cs",
+                    color: GROUP_COLORS.Photon,
+                    details: [
+                      "Blittable slot structs (v28.0)",
+                      "XorShadow integrity check",
+                      "Optional MMIO mirror (v28.0)",
+                      "Zero-allocation fleet dispatch",
+                      "CreateOrOpen MMIO with fallback",
+                      "_photonCrcFailures long counter",
+                    ],
+                  },
+                  {
+                    title: "Fleet Dispatch Queue",
+                    file: "V12_002.SIMA.Dispatch.cs",
+                    color: GROUP_COLORS.SIMA,
+                    details: [
+                      "ConcurrentQueue<FleetDispatchRequest>",
+                      "One account per TriggerCustomEvent cycle",
+                      "Prevents 7s blocking window",
+                      "PumpFleetDispatch() consumer",
+                      "Chunked flatten queue pattern",
+                      "FlattenWorkItem: CancelOnly + ZombieSweep",
+                    ],
+                  },
+                ].map((box, i) => (
+                  <div key={i} className="card p-4 fade-in" style={{ animationDelay: `${i * 100}ms`, borderColor: box.color.border }}>
+                    <div className="font-bold mono text-sm mb-0.5" style={{ color: box.color.text }}>{box.title}</div>
+                    <div className="mono text-[10px] text-[#3a5070] mb-3">{box.file}</div>
+                    <ul className="space-y-1">
+                      {box.details.map((d, di) => (
+                        <li key={di} className="flex items-center gap-2 text-[10.5px] mono text-[#6080a0]">
+                          <span style={{ color: box.color.text }}>›</span> {d}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* DEPLOYMENT TAB */}
+        {tab === "deploy" && (
+          <div className="space-y-6 fade-in">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="panel p-5">
+                <div className="text-xs mono text-neon-cyan tracking-widest mb-4 opacity-70">// DEPLOY-SYNC.PS1 — PIPELINE STAGES</div>
+                <div className="space-y-2">
+                  {[
+                    { step: "01", label: "ASCII Pre-Deploy Gate", detail: "Scan all src/*.cs for bytes > 127. Abort on violation.", status: "pass", color: "#39ff14" },
+                    { step: "02", label: "Config Binding", detail: "$RepoRoot = C:\\WSGTA\\universal-or-strategy\n$NtCustomDir = C:\\Users\\Mohammed Khalid\\Documents\\NinjaTrader 8\\bin\\Custom", status: "warn", color: "#ffb300" },
+                    { step: "03", label: "File Mapping Build", detail: "55 source → destination mappings via $Mappings array.", status: "pass", color: "#39ff14" },
+                    { step: "04", label: "NTFS Hard-Link Creation", detail: "mklink /H per mapping. Single source of truth. Repo is authoritative.", status: "pass", color: "#39ff14" },
+                    { step: "05", label: "NinjaTrader 8 Sync", detail: "Strategies/ + Indicators/ directories updated atomically.", status: "pass", color: "#39ff14" },
+                    { step: "06", label: "Verification", detail: "scripts/verify_reorg.ps1 confirms path integrity post-sync.", status: "info", color: "#00f5ff" },
+                  ].map((s, i) => (
+                    <div key={i} className="card2 px-4 py-3 flex items-start gap-3 fade-in" style={{ animationDelay: `${i * 70}ms` }}>
+                      <span className="mono text-xs font-bold shrink-0 mt-0.5" style={{ color: s.color }}>{s.step}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs font-semibold text-white">{s.label}</span>
+                          <span className={`status-badge ${s.status === "pass" ? "badge-pass" : s.status === "warn" ? "badge-warn" : "badge-info"}`} style={{ fontSize: "9px" }}>
+                            {s.status.toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="mono text-[10px] text-[#4a6080] whitespace-pre-line leading-relaxed">{s.detail}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="panel p-5 space-y-4">
+                <div className="text-xs mono text-neon-cyan tracking-widest mb-2 opacity-70">// LINTING.CSPROJ — ASSEMBLY REFERENCES</div>
+                <div className="code-snippet">
+                  <pre className="text-[10px] text-[#6090c0] whitespace-pre-wrap">{`Target Framework: net48 (4.8)
+SDK: Microsoft.NET.Sdk (8.0 toolchain)
+Output Type: Library
+
+[NuGet]
+StyleCop.Analyzers — all lifecycle scopes
+
+[HintPath Refs — HARDCODED PATHS ⚠]
+C:\\Program Files\\NinjaTrader 8\\bin\\
+  NinjaTrader.Core.dll       [Private=False]
+  NinjaTrader.Gui.dll        [Private=False]
+  SharpDX.dll                [Private=False]
+  SharpDX.Direct2D1.dll      [Private=False]
+  SharpDX.Direct3D10.dll     [Private=False]
+  SharpDX.DXGI.dll           [Private=False]
+
+C:\\Users\\Mohammed Khalid\\Documents\\
+  NinjaTrader 8\\bin\\Custom\\
+  NinjaTrader.Custom.dll     [Private=False]`}</pre>
+                </div>
+
+                <div className="text-xs mono text-neon-cyan tracking-widest mb-2 opacity-70">// AUDIT TOOLCHAIN</div>
+                <div className="space-y-2">
+                  {[
+                    { cmd: "./deploy-sync.ps1",          desc: "Main sync + ASCII gate + hard-link" },
+                    { cmd: "./scripts/audit_scan.ps1",   desc: "Executive audit — logic risk discovery" },
+                    { cmd: "./scripts/verify_reorg.ps1", desc: "Path integrity verification" },
+                    { cmd: "python C:\\tmp\\byte_purge.py", desc: "Strip non-ASCII bytes pre-deploy" },
+                  ].map((c, i) => (
+                    <div key={i} className="card2 px-3 py-2 flex items-center gap-3">
+                      <span className="mono text-[10px] text-neon-cyan shrink-0">{c.cmd}</span>
+                      <span className="text-[10px] text-[#4a6080]">{c.desc}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="text-xs mono text-neon-cyan tracking-widest mt-2 mb-2 opacity-70">// REPOSITORY STRUCTURE</div>
+                <div className="code-snippet">
+                  <pre className="text-[10px] text-[#6090c0] whitespace-pre-wrap">{`universal-or-strategy/
+├── src/          ← 55 C# partial class modules (ALPHA)
+├── bin/          ← Executables, Auditors, CLI tools
+├── docs/
+│   └── brain/    ← task.md, implementation_plan.md
+│       walkthrough.md, MASTER_HANDOFF_PROTOCOL.md
+├── scripts/      ← audit_scan.ps1, verify_reorg.ps1
+├── Linting.csproj← Analyzer project (hardcoded paths)
+└── deploy-sync.ps1← NTFS hard-link automation`}</pre>
+                </div>
+              </div>
+            </div>
+
+            {/* Status strip */}
+            <div className="panel p-4">
+              <div className="text-xs mono text-neon-cyan tracking-widest mb-3 opacity-70">// BUILD STATUS SUMMARY</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                {[
+                  { label: "Build Tag",       value: BUILD_TAG,    color: "#00f5ff" },
+                  { label: "Build Number",    value: "932",        color: "#39ff14" },
+                  { label: "Status",          value: "Stabilized Final", color: "#39ff14" },
+                  { label: "Target FW",       value: ".NET 4.8",   color: "#b44fff" },
+                  { label: "NinjaTrader",     value: "NT8",        color: "#ffb300" },
+                  { label: "Branch",          value: "mission-uni-5-full-sync", color: "#64b4ff" },
+                ].map((s, i) => (
+                  <div key={i} className="card2 p-2.5 text-center fade-in" style={{ animationDelay: `${i * 50}ms` }}>
+                    <div className="text-[9px] mono text-[#3a5070] mb-1 tracking-wide uppercase">{s.label}</div>
+                    <div className="mono text-[11px] font-bold" style={{ color: s.color }}>{s.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* Footer */}
+      <footer style={{ borderTop: "1px solid rgba(0,245,255,0.08)", background: "#050a14" }} className="py-3 px-6">
+        <div className="max-w-screen-2xl mx-auto flex flex-wrap items-center justify-between gap-2">
+          <span className="mono text-[10px] text-[#2a4060]">
+            Claude Opus 4.5 &mdash; V14.7-CORELANE-ULTRA Visualizer &mdash; Data sourced from live repo read
+          </span>
+          <span className="mono text-[10px] text-[#2a4060]">
+            mkalhitti-cloud/universal-or-strategy @ {BRANCH}
+          </span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

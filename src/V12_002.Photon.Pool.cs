@@ -3,8 +3,8 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using NinjaTrader.Cbi;
 
-// v28.0 Sovereign Photon Kernel: blittable slot + parallel sideband + XorShadow integrity
-// ADR-012 + ADR-016: zero-allocation fleet dispatch, lock-free SPSC, MMIO-ready payload
+// v29.0 Hybrid Arena Photon Kernel: sovereign slot + XorShadow integrity
+// ADR-012 + ADR-016 + ADR-019: zero-allocation fleet dispatch, lock-free SPSC, MMIO-ready payload
 
 namespace NinjaTrader.NinjaScript.Strategies
 {
@@ -13,48 +13,40 @@ namespace NinjaTrader.NinjaScript.Strategies
         private const int PhotonPoolCapacity = 64; // 5 signals x 12 accounts = 60 < 64
         private const int MaxOrdersPerSlot   = 7;  // 1 entry + 1 stop + 5 targets
 
-        // FleetDispatchSlot (v28.0, blittable, 64 bytes, cache-line sized)
+        // FleetDispatchSlot (v29.0 Sovereign, blittable, 64 bytes, cache-line sized).
         //
-        // Layout contract (ADR-016):
+        // Layout contract (ADR-016 + ADR-019 Hybrid Arena):
         //   - Explicit layout so Marshal.OffsetOf is deterministic across framework versions.
         //   - Size = 64 B = exactly one cache line.
-        //   - Shadow is the LAST 8 bytes (FieldOffset 56). XorShadow computes over [0..48);
-        //     bytes [48..56) are implicit padding (Size attribute auto-zeros them).
-        //   - All managed reference fields (Account, FleetEntryName, ExpectedKey) moved to
-        //     FleetDispatchSideband below, indexed by PoolSlotIndex (same index the pool uses).
+        //   - Shadow is the LAST 8 bytes (FieldOffset 56). XorShadow computes over [0..56)
+        //     with Shadow zeroed during compute and restored before publish.
+        //   - AccountIndex (0..AccountCount-1) and PoolRecordId (0..PoolCapacity-1) are
+        //     first-class fields. The hot consumer resolves the managed account via
+        //     _membrane.AccountByIndex and orders via _photonPool.GetByIndex(PoolRecordId).
+        //   - SignalHash is a stable 64-bit hash of the fleet entry name used only for
+        //     diagnostics and dedup logging.
         //
-        // Blittable verification: the struct contains only int, long, double, ulong primitives.
-        // MemoryMappedViewAccessor.Write<FleetDispatchSlot> will accept it.
+        // Blittable verification: only int, long, double, ulong primitives.
+        // MemoryMappedViewAccessor.Write<FleetDispatchSlot> accepts this struct.
         [StructLayout(LayoutKind.Explicit, Size = 64)]
         private struct FleetDispatchSlot
         {
             [FieldOffset(0)]  public double EntryPrice;
             [FieldOffset(8)]  public double StopPrice;
             [FieldOffset(16)] public long   SignalTicks;
-            [FieldOffset(24)] public int    PoolSlotIndex;   // also the SidebandIndex (same index)
-            [FieldOffset(28)] public int    OrderCount;
+            [FieldOffset(24)] public int    AccountIndex;
+            [FieldOffset(28)] public int    PoolRecordId;
             [FieldOffset(32)] public int    Quantity;
             [FieldOffset(36)] public int    TargetCount;
-            [FieldOffset(40)] public int    Action;          // (int)OrderAction, cast at boundary
+            [FieldOffset(40)] public int    Action;
             [FieldOffset(44)] public int    ReservedDelta;
-            // bytes 48..56 reserved padding (Size=64 auto-zeros)
-            [FieldOffset(56)] public ulong  Shadow;          // XorShadow integrity (last 8 bytes)
+            [FieldOffset(48)] public ulong  SignalHash;
+            [FieldOffset(56)] public ulong  Shadow;
         }
 
-        // Parallel sideband: managed refs indexed by PoolSlotIndex.
-        // Producer writes sideband[i] BEFORE publishing slot to the ring; consumer reads
-        // sideband[i] AFTER dequeue and clears it when slot processing completes. No GC
-        // pressure: the array is allocated once at State.Configure and reused for the
-        // lifetime of the strategy.
-        private struct FleetDispatchSideband
-        {
-            public Account Account;
-            public string  FleetEntryName;
-            public string  ExpectedKey;
-        }
-
-        private FleetDispatchSideband[] _photonSideband;
-        private ulong                   _photonShadowSalt;
+        // Managed sideband retired in v29.0. The sovereign slot carries AccountIndex and
+        // PoolRecordId, and managed references are resolved through the frozen membrane.
+        private ulong _photonShadowSalt;
 
         // === Pool Claim Result ===
         // V14.2 FIX-D1: Returns both the Order[] and its SlotIndex so the producer
@@ -303,36 +295,22 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         // ComputeFleetDispatchShadow (ADR-016)
         //
-        // 64-bit XorShadow over FleetDispatchSlot value fields, salted per-ring with a
-        // Guid-derived random. Covers every byte of the struct EXCLUDING the trailing
-        // 8-byte Shadow slot itself. The exclusion is by construction: we XOR field-by-field
-        // and deliberately omit `slot.Shadow` from the accumulator.
-        //
-        // Collision resistance: 2^-64 false-pass probability (vs. 2^-16 for the old CRC16).
-        // Determinism: the salt is captured once per strategy instance at State.Configure;
-        // producer and consumer use the same salt field. Cross-process readers (Antigravity
-        // sidecar) read the salt from a published header byte in the MMF mirror (see Step 6).
-        //
-        // Zero allocation: BitConverter.DoubleToInt64Bits is a struct-to-long reinterpret,
-        // not a boxing conversion. No heap allocation on any path.
+        // v29.0 XorShadow: XOR over [0..56) with Shadow zeroed. Salt is mixed at the end.
         private static ulong ComputeFleetDispatchShadow(ref FleetDispatchSlot slot, ulong salt)
         {
-            ulong acc = salt;
-            acc ^= unchecked((ulong)BitConverter.DoubleToInt64Bits(slot.EntryPrice));
-            acc = (acc << 13) | (acc >> 51); // rotate-left 13 to diffuse field positions
-            acc ^= unchecked((ulong)BitConverter.DoubleToInt64Bits(slot.StopPrice));
-            acc = (acc << 7)  | (acc >> 57);
-            acc ^= unchecked((ulong)slot.SignalTicks);
-            acc = (acc << 11) | (acc >> 53);
-            acc ^= ((ulong)(uint)slot.PoolSlotIndex)
-                 | (((ulong)(uint)slot.OrderCount) << 32);
-            acc = (acc << 17) | (acc >> 47);
-            acc ^= ((ulong)(uint)slot.Quantity)
-                 | (((ulong)(uint)slot.TargetCount) << 32);
-            acc = (acc << 19) | (acc >> 45);
-            acc ^= ((ulong)(uint)slot.Action)
-                 | (((ulong)(uint)slot.ReservedDelta) << 32);
-            return acc;
+            unchecked
+            {
+                ulong h = 0UL;
+                h ^= (ulong)BitConverter.DoubleToInt64Bits(slot.EntryPrice);
+                h ^= (ulong)BitConverter.DoubleToInt64Bits(slot.StopPrice);
+                h ^= (ulong)slot.SignalTicks;
+                h ^= ((ulong)(uint)slot.AccountIndex) | ((ulong)(uint)slot.PoolRecordId << 32);
+                h ^= ((ulong)(uint)slot.Quantity) | ((ulong)(uint)slot.TargetCount << 32);
+                h ^= ((ulong)(uint)slot.Action) | ((ulong)(uint)slot.ReservedDelta << 32);
+                h ^= slot.SignalHash;
+                h ^= salt * 0x9E3779B97F4A7C15UL;
+                return h;
+            }
         }
     }
 }

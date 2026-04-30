@@ -1,0 +1,8 @@
+# Historical battle artifacts and standalone UI prototypes
+# Ignored to save tokens and prevent context/search bloat
+docs/arena_battles/
+docs/audits/
+artifacts/battlezips/
+artifacts/battle_results/
+tmp/battlezips/
+tmp/battle_results/

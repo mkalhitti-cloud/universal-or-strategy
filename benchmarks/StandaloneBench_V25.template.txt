@@ -1,0 +1,37 @@
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Threading;
+
+namespace MpmcBench
+{
+    // [[MPMC_CLASS_BODY]]
+
+    class Program {
+        static void Main() {
+            try {
+                var pipeline = new MpmcPipeline(4, 256);
+                const int warmUp = 100_000;
+                const int iterations = 5_000_000;
+
+                // Warm-up
+                for (int i = 0; i < warmUp; i++) {
+                    pipeline.TrySend(0, i);
+                    pipeline.TryReceive(0, out _);
+                }
+
+                var sw = Stopwatch.StartNew();
+                for (int i = 0; i < iterations; i++) {
+                    if (!pipeline.TrySend(0, i)) { i--; continue; }
+                    if (!pipeline.TryReceive(0, out _)) { i--; continue; }
+                }
+                sw.Stop();
+
+                double mean = sw.Elapsed.TotalMilliseconds * 1000000.0 / iterations;
+                Console.WriteLine($"| RoundTrip | {mean:F3} ns | 0 B |");
+            } catch (Exception ex) {
+                Console.WriteLine("ERROR: " + ex.Message);
+            }
+        }
+    }
+}

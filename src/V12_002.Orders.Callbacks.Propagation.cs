@@ -432,8 +432,22 @@ namespace NinjaTrader.NinjaScript.Strategies
             string fleetSignalName, string accountName,
             double price, int qty, FollowerReplaceSpec spec)
         {
-            Account acct = Account.All.FirstOrDefault(
-                a => string.Equals(a.Name, accountName, StringComparison.OrdinalIgnoreCase));
+            Account acct = null;
+            FlattenedSubstrateState m = Volatile.Read(ref _membrane);
+            if (m != null && m.AccountIndexByName != null)
+            {
+                int idx;
+                if (m.AccountIndexByName.TryGetValue(accountName, out idx)
+                    && idx >= 0 && idx < m.AccountByIndex.Length)
+                {
+                    acct = m.AccountByIndex[idx];
+                }
+            }
+            if (acct == null)
+            {
+                acct = Account.All.FirstOrDefault(
+                    a => string.Equals(a.Name, accountName, StringComparison.OrdinalIgnoreCase));
+            }
             if (acct == null)
             {
                 Print("[FSM] SUBMIT FAIL: account not found: " + accountName);

@@ -1,0 +1,17 @@
+{
+  "provider": "codex",
+  "displayName": "Codex",
+  "showInteractionModeToggle": true,
+  "enabled": true,
+  "installed": true,
+  "version": null,
+  "status": "error",
+  "auth": {
+    "status": "unknown"
+  },
+  "checkedAt": "2026-04-26T01:02:23.297Z",
+  "message": "Timed out while checking Codex app-server provider status.",
+  "models": [],
+  "slashCommands": [],
+  "skills": []
+}

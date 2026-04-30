@@ -1,0 +1,88 @@
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
+using System.Threading;
+
+namespace SpscBench
+{
+    public unsafe struct CoreLane {
+        public long Sequence;
+        public double Value;
+    }
+
+    public static unsafe class CoreLaneAllocator {
+        public static unsafe void AllocAligned(int capacity, out CoreLane* ptr, out IntPtr handle) {
+            int size = capacity * sizeof(CoreLane);
+            handle = Marshal.AllocHGlobal(size + 63);
+            long raw = (long)handle;
+            long aligned = (raw + 63) & ~63;
+            ptr = (CoreLane*)aligned;
+        }
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public unsafe sealed class SpscRingV148 : IDisposable {
+        [FieldOffset(64)] private int _producerIndex; 
+        [FieldOffset(128)] private int _consumerIndex;
+        [FieldOffset(136)] private long _cachedConsumer;
+        [FieldOffset(160)] private int _mask;
+        [FieldOffset(164)] private long _slotsRaw;
+        [FieldOffset(172)] private long _handleRaw;
+        [FieldOffset(180)] private int _capacity;
+        [FieldOffset(184)] private int _disposed;
+        [FieldOffset(192)] private long _shadowOffset;
+        private CoreLane* Slots => (CoreLane*)_slotsRaw;
+
+        public SpscRingV148(int capacity) {
+            _capacity = capacity; _mask = capacity - 1;
+            CoreLane* ptr; IntPtr handle;
+            CoreLaneAllocator.AllocAligned(capacity, out ptr, out handle);
+            _slotsRaw = (long)ptr; _handleRaw = (long)handle;
+            for (int i = 0; i < capacity; i++) Slots[i].Sequence = i;
+        }
+
+        public unsafe bool TryEnqueue(double payload) {
+            // [[TRYENQUEUE_BODY]]
+        }
+
+        public unsafe bool TryDequeue(out double payload) {
+            // [[TRYDEQUEUE_BODY]]
+        }
+
+        public void Dispose() {
+            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 0) {
+                if (_handleRaw != 0) Marshal.FreeHGlobal((IntPtr)_handleRaw);
+                _handleRaw = 0; _slotsRaw = 0;
+            }
+        }
+    }
+
+    class Program {
+        static void Main() {
+            try {
+                var ring = new SpscRingV148(1024);
+                const int warmUp = 100_000;
+                const int iterations = 5_000_000;
+                
+                // Warm-up
+                for (int i = 0; i < warmUp; i++) {
+                    ring.TryEnqueue(i);
+                    ring.TryDequeue(out _);
+                }
+
+                var sw = Stopwatch.StartNew();
+                for (int i = 0; i < iterations; i++) {
+                    if (!ring.TryEnqueue(i)) throw new Exception("Enqueue failed");
+                    if (!ring.TryDequeue(out _)) throw new Exception("Dequeue failed");
+                }
+                sw.Stop();
+
+                double mean = sw.Elapsed.TotalMilliseconds * 1000000.0 / iterations;
+                Console.WriteLine($"| RoundTrip | {mean:F3} ns | 0 B |");
+            } catch (Exception ex) {
+                Console.WriteLine("ERROR: " + ex.Message);
+            }
+        }
+    }
+}

@@ -199,37 +199,58 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // V12 SIMA: Initialize expected positions tracking
                 expectedPositions = new ConcurrentDictionary<string, int>(2, 20); // Up to 20 accounts
 
-                // v28.0 Sovereign Photon [ADR-012 + ADR-016]: pool + ring + sideband + salt + MMIO mirror
+                // v29.0 Hybrid Arena [ADR-012 + ADR-016 + ADR-019]: pool + ring + salt + substrate handle + MMIO mirror v2
                 // Capacity 64: 5 concurrent signals x 12 accounts = 60 < 64
                 _photonPool = new PhotonOrderPool(PhotonPoolCapacity);
                 _photonDispatchRing = new SPSCRing<FleetDispatchSlot>(PhotonPoolCapacity);
-                _photonSideband = new FleetDispatchSideband[PhotonPoolCapacity];
                 _photonShadowSalt = unchecked((ulong)Guid.NewGuid().GetHashCode() * 0x9E3779B97F4A7C15UL);
 
-                // Static assert: Shadow must be the last 8 bytes of FleetDispatchSlot (ADR-016)
+                _membrane = new FlattenedSubstrateState
+                {
+                    AccountCount = 0,
+                    AccountByIndex = new Account[0],
+                    AccountState = new int[0],
+                    AccountFleetTier = new int[0],
+                    AccountTickSize = new double[0],
+                    AccountDailyPnLSnap = new double[0],
+                    AccountQtyMultiplier = new int[0],
+                    AccountNameHashByIndex = new ulong[0],
+                    ExpectedPositionByIndex = new int[0],
+                    DispatchSyncPendingByIndex = new int[0],
+                    AccountIndexByName = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase),
+                    AccountIndexByNameHash = new Dictionary<ulong, int>(),
+                    FreezeStamp = 0L
+                };
+
+                // Static assert: Shadow must be the last 8 bytes of FleetDispatchSlot (ADR-016).
+                // AccountIndex@24, PoolRecordId@28, SignalHash@48, Shadow@56 are fixed ABI.
                 {
                     int _slotSize = System.Runtime.InteropServices.Marshal.SizeOf(typeof(FleetDispatchSlot));
                     int _shadowOffset = System.Runtime.InteropServices.Marshal.OffsetOf(typeof(FleetDispatchSlot), "Shadow").ToInt32();
-                    if (_slotSize != 64 || _shadowOffset != 56)
+                    int _accountOffset = System.Runtime.InteropServices.Marshal.OffsetOf(typeof(FleetDispatchSlot), "AccountIndex").ToInt32();
+                    int _poolOffset = System.Runtime.InteropServices.Marshal.OffsetOf(typeof(FleetDispatchSlot), "PoolRecordId").ToInt32();
+                    int _hashOffset = System.Runtime.InteropServices.Marshal.OffsetOf(typeof(FleetDispatchSlot), "SignalHash").ToInt32();
+                    if (_slotSize != 64 || _shadowOffset != 56 || _accountOffset != 24 || _poolOffset != 28 || _hashOffset != 48)
                     {
                         throw new InvalidOperationException(string.Format(
-                            "FleetDispatchSlot layout invariant violated: size={0}, shadowOffset={1}; expected size=64, offset=56",
-                            _slotSize, _shadowOffset));
+                            "[ADR-019] FleetDispatchSlot v29 layout drift: size={0} acct={1} pool={2} hash={3} shadow={4}",
+                            _slotSize, _accountOffset, _poolOffset, _hashOffset, _shadowOffset));
                     }
                 }
 
-                // Optional MMIO mirror. Named per-process so multiple NT instances do not collide.
-                // Failure is non-fatal: hot path runs against the heap ring even if the mirror fails.
-                try
+                if (EnablePhotonMmioMirror)
                 {
-                    string _mmfName = "V12_FleetDispatch_" + System.Diagnostics.Process.GetCurrentProcess().Id.ToString() + "_" + _photonShadowSalt.ToString("X16");
-                    _photonMmioMirror = new MmioDispatchMirror(_mmfName, PhotonPoolCapacity, 64, _photonShadowSalt);
-                    Print(string.Format("[PHOTON MMIO] mirror online: {0}", _mmfName));
-                }
-                catch (Exception _mmioEx)
-                {
-                    _photonMmioMirror = null;
-                    Print("[PHOTON MMIO] mirror unavailable (hot path unaffected): " + _mmioEx.Message);
+                    try
+                    {
+                        string _mmfName = "V12_FleetDispatch_" + System.Diagnostics.Process.GetCurrentProcess().Id.ToString() + "_" + _photonShadowSalt.ToString("X16");
+                        _photonMmioMirror = new MmioDispatchMirror(_mmfName, PhotonPoolCapacity, 64, _photonShadowSalt);
+                        Print(string.Format("[PHOTON MMIO v2] mirror online: {0}", _mmfName));
+                    }
+                    catch (Exception _mmioEx)
+                    {
+                        _photonMmioMirror = null;
+                        Print("[PHOTON MMIO] mirror unavailable (hot path unaffected): " + _mmioEx.Message);
+                    }
                 }
 
                 // V14.2 Sovereign Photon [ADR-011]: Pre-allocate execution ID dedup rings
@@ -348,6 +369,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 StartIpcServer();
                 TouchStrategyHeartbeat();
                 PublishUiSnapshot();
+                FreezeManagementMembrane();
             }
             else if (state == State.Realtime)
             {

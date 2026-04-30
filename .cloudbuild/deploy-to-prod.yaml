@@ -1,0 +1,48 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+steps:
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: install-dependencies
+    entrypoint: /bin/bash
+    args:
+      - "-c"
+      - |
+        curl -LsSf https://astral.sh/uv/0.11.7/install.sh | sh
+        export PATH="$$HOME/.local/bin:$$PATH"
+        uv sync --locked
+
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: trigger-deployment
+    entrypoint: /bin/bash
+    args:
+      - "-c"
+      - |
+        export PATH="$$HOME/.local/bin:$$PATH"
+        uvx google-agents-cli deploy \
+          --project ${_PROD_PROJECT_ID} \
+          --region ${_REGION} \
+          --service-account=${_APP_SERVICE_ACCOUNT_PROD} \
+          --update-env-vars="COMMIT_SHA=${COMMIT_SHA},LOGS_BUCKET_NAME=${_LOGS_BUCKET_NAME_PROD}"
+
+substitutions:
+  _PROD_PROJECT_ID: YOUR_PROD_PROJECT_ID
+  _REGION: us-east1
+
+logsBucket: gs://${PROJECT_ID}-universal-or-strategy-logs/build-logs
+options:
+  env:
+    - 'UV_PYTHON=3.12'
+  substitutionOption: ALLOW_LOOSE
+  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET

@@ -96,6 +96,20 @@ namespace NinjaTrader.NinjaScript.Strategies
                     return;
                 }
 
+                Interlocked.Increment(ref _dispatchInvocationCount);
+
+                FlattenedSubstrateState m = Volatile.Read(ref _membrane);
+                if (m == null || m.FreezeStamp == 0)
+                {
+                    FreezeManagementMembrane();
+                    m = Volatile.Read(ref _membrane);
+                }
+                if (m == null || m.FreezeStamp == 0)
+                {
+                    Print("[DISPATCH] [ERR] Management Membrane unavailable - dispatch aborted");
+                    return;
+                }
+
                 List<AccountRankInfo> fleet = GetSortedAccountFleet();
 
                 // V12.Audit [Q3-002]: Snapshot fleet active state under stateLock to prevent UI race.
@@ -196,6 +210,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                     string ocoId = tradeType + "_" + DateTime.Now.Ticks + "_" + i;
                     string fleetEntryName = "Fleet_" + acct.Name + "_" + tradeType + "_" + i;
                     string expectedKey = ExpKey(acct.Name);
+                    int accountIndex = -1;
+                    if (m.AccountIndexByName != null)
+                        m.AccountIndexByName.TryGetValue(acct.Name, out accountIndex);
+                    if (accountIndex < 0 || accountIndex >= m.AccountByIndex.Length)
+                    {
+                        dispatchLog.AppendLine(string.Format("[DISPATCH] Membrane index missing for {0} -- skipped", acct.Name));
+                        Interlocked.Increment(ref _skippedSlotCount);
+                        continue;
+                    }
                     int reservedDelta = 0;
                     bool registeredForCleanup = false;
                     bool syncPending = false;
@@ -372,22 +395,24 @@ namespace NinjaTrader.NinjaScript.Strategies
                             // Build 935: Reserve follower-sized expected quantity only.
                             reservedDelta = (action == OrderAction.Buy) ? followerQty : -followerQty;
                             AddExpectedPositionDeltaLocked(expectedKey, reservedDelta);
+                            Interlocked.Add(ref m.ExpectedPositionByIndex[accountIndex], reservedDelta);
+                            Volatile.Write(ref m.DispatchSyncPendingByIndex[accountIndex], 1);
 
                             // V14.2 [ADR-012]: Zero-allocation dispatch via PhotonPool + SPSC ring
-                            int _poolSlotIndex = -1;
+                            int _poolRecordId = -1;
                             Order[] _proxyOrders = null;
                             {
                                 var _claimed = _photonPool.Claim();
                                 if (_claimed.Orders != null)
                                 {
                                     _proxyOrders = _claimed.Orders;
-                                    _poolSlotIndex = _claimed.SlotIndex;
+                                    _poolRecordId = _claimed.SlotIndex;
                                 }
                                 else
                                 {
                                     Print("[PHOTON] Pool exhausted -- fallback to heap alloc");
                                     _proxyOrders = new Order[MaxOrdersPerSlot];
-                                    _poolSlotIndex = -1;
+                                    _poolRecordId = -1;
                                 }
                             }
 
@@ -397,35 +422,25 @@ namespace NinjaTrader.NinjaScript.Strategies
                             foreach (var _st in stagedTargets)
                                 _proxyOrders[_orderIdx++] = _st.Order;
 
-                            // v28.0 blittable slot + sideband-first publish
-                            if (_poolSlotIndex >= 0)
-                            {
-                                _photonSideband[_poolSlotIndex].Account        = acct;
-                                _photonSideband[_poolSlotIndex].FleetEntryName = fleetEntryName;
-                                _photonSideband[_poolSlotIndex].ExpectedKey    = expectedKey;
-                                Thread.MemoryBarrier(); // sideband writes visible before ring publish
-                            }
-
                             FleetDispatchSlot _slot = new FleetDispatchSlot
                             {
-                                EntryPrice    = entryPrice,
-                                StopPrice     = stopPrice,
-                                SignalTicks   = DateTime.UtcNow.Ticks,
-                                PoolSlotIndex = _poolSlotIndex,
-                                OrderCount    = _orderIdx,
-                                Quantity      = followerQty,
-                                TargetCount   = dispatchTargetCount,
-                                Action        = (int)action,
-                                ReservedDelta = reservedDelta
+                                EntryPrice = entryPrice,
+                                StopPrice = stopPrice,
+                                SignalTicks = DateTime.UtcNow.Ticks,
+                                AccountIndex = accountIndex,
+                                PoolRecordId = _poolRecordId,
+                                Quantity = followerQty,
+                                TargetCount = dispatchTargetCount,
+                                Action = (int)action,
+                                ReservedDelta = reservedDelta,
+                                SignalHash = XxHash64FleetEntry(fleetEntryName)
                             };
                             _slot.Shadow = ComputeFleetDispatchShadow(ref _slot, _photonShadowSalt);
 
                             Interlocked.Increment(ref _pendingFleetDispatchCount);
 
-                            if (_poolSlotIndex >= 0 && _photonDispatchRing.TryEnqueue(ref _slot))
+                            if (_poolRecordId >= 0 && _photonDispatchRing.TryEnqueue(ref _slot))
                             {
-                                // Success: slot in ring, pool + sideband linked by PoolSlotIndex.
-                                // MMIO mirror is a best-effort write-through -- never blocks or fails hot path.
                                 if (_photonMmioMirror != null)
                                 {
                                     try { _photonMmioMirror.TryPublish(ref _slot); } catch { }
@@ -433,15 +448,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                             }
                             else
                             {
-                                // Ring full or pool exhausted -- fallback to ConcurrentQueue
-                                if (_poolSlotIndex >= 0)
+                                if (_poolRecordId >= 0)
                                 {
-                                    // Pool succeeded but ring full -- release pool, clear sideband, heap-copy
                                     Print("[PHOTON] Ring full -- fallback to ConcurrentQueue");
                                     Order[] legacyOrders = new Order[_orderIdx];
                                     Array.Copy(_proxyOrders, legacyOrders, _orderIdx);
-                                    _photonPool.ReleaseByIndex(_poolSlotIndex);
-                                    _photonSideband[_poolSlotIndex] = default(FleetDispatchSideband);
+                                    _photonPool.ReleaseByIndex(_poolRecordId);
                                     _proxyOrders = legacyOrders;
                                 }
                                 _pendingFleetDispatches.Enqueue(new FleetDispatchRequest
@@ -454,6 +466,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                                     SignalTicks = DateTime.UtcNow.Ticks
                                 });
                             }
+                            Interlocked.Increment(ref _dispatchedSlotCount);
                             syncPending         = false;
                             reservedDelta       = 0;
                             registeredForCleanup = false;
@@ -496,49 +509,44 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                             reservedDelta = (action == OrderAction.Buy) ? followerQty : -followerQty;
                             AddExpectedPositionDeltaLocked(expectedKey, reservedDelta);
+                            Interlocked.Add(ref m.ExpectedPositionByIndex[accountIndex], reservedDelta);
+                            Volatile.Write(ref m.DispatchSyncPendingByIndex[accountIndex], 1);
 
-                            int _poolSlotIndexLmt = -1;
+                            int _poolRecordIdLmt = -1;
                             Order[] _proxyOrdersLmt = null;
                             {
                                 var _claimedLmt = _photonPool.Claim();
                                 if (_claimedLmt.Orders != null)
                                 {
                                     _proxyOrdersLmt = _claimedLmt.Orders;
-                                    _poolSlotIndexLmt = _claimedLmt.SlotIndex;
+                                    _poolRecordIdLmt = _claimedLmt.SlotIndex;
                                 }
                                 else
                                 {
                                     _proxyOrdersLmt = new Order[MaxOrdersPerSlot];
-                                    _poolSlotIndexLmt = -1;
+                                    _poolRecordIdLmt = -1;
                                 }
                             }
                             _proxyOrdersLmt[0] = entry;
 
-                            if (_poolSlotIndexLmt >= 0)
-                            {
-                                _photonSideband[_poolSlotIndexLmt].Account        = acct;
-                                _photonSideband[_poolSlotIndexLmt].FleetEntryName = fleetEntryName;
-                                _photonSideband[_poolSlotIndexLmt].ExpectedKey    = expectedKey;
-                                Thread.MemoryBarrier();
-                            }
-
                             FleetDispatchSlot _slotLmt = new FleetDispatchSlot
                             {
-                                EntryPrice    = entry.LimitPrice > 0 ? entry.LimitPrice : 0,
-                                StopPrice     = 0,
-                                SignalTicks   = DateTime.UtcNow.Ticks,
-                                PoolSlotIndex = _poolSlotIndexLmt,
-                                OrderCount    = 1,
-                                Quantity      = followerQty,
-                                TargetCount   = 0,
-                                Action        = (int)action,
-                                ReservedDelta = reservedDelta
+                                EntryPrice = entry.LimitPrice > 0 ? entry.LimitPrice : 0,
+                                StopPrice = 0,
+                                SignalTicks = DateTime.UtcNow.Ticks,
+                                AccountIndex = accountIndex,
+                                PoolRecordId = _poolRecordIdLmt,
+                                Quantity = followerQty,
+                                TargetCount = 0,
+                                Action = (int)action,
+                                ReservedDelta = reservedDelta,
+                                SignalHash = XxHash64FleetEntry(fleetEntryName)
                             };
                             _slotLmt.Shadow = ComputeFleetDispatchShadow(ref _slotLmt, _photonShadowSalt);
 
                             Interlocked.Increment(ref _pendingFleetDispatchCount);
 
-                            if (_poolSlotIndexLmt >= 0 && _photonDispatchRing.TryEnqueue(ref _slotLmt))
+                            if (_poolRecordIdLmt >= 0 && _photonDispatchRing.TryEnqueue(ref _slotLmt))
                             {
                                 if (_photonMmioMirror != null)
                                 {
@@ -547,11 +555,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                             }
                             else
                             {
-                                if (_poolSlotIndexLmt >= 0)
+                                if (_poolRecordIdLmt >= 0)
                                 {
                                     Order[] legacyOrdersLmt = new Order[] { entry };
-                                    _photonPool.ReleaseByIndex(_poolSlotIndexLmt);
-                                    _photonSideband[_poolSlotIndexLmt] = default(FleetDispatchSideband);
+                                    _photonPool.ReleaseByIndex(_poolRecordIdLmt);
                                     _proxyOrdersLmt = legacyOrdersLmt;
                                 }
                                 _pendingFleetDispatches.Enqueue(new FleetDispatchRequest
@@ -564,6 +571,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                                     SignalTicks = DateTime.UtcNow.Ticks
                                 });
                             }
+                            Interlocked.Increment(ref _dispatchedSlotCount);
                             syncPending         = false;
                             reservedDelta       = 0;
                             registeredForCleanup = false;
@@ -579,11 +587,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                         if (syncPending)
                         {
                             ClearDispatchSyncPending(expectedKey);
+                            Volatile.Write(ref m.DispatchSyncPendingByIndex[accountIndex], 0);
                             syncPending = false;
                         }
 
                         if (reservedDelta != 0)
+                        {
                             AddExpectedPositionDeltaLocked(expectedKey, -reservedDelta);
+                            Interlocked.Add(ref m.ExpectedPositionByIndex[accountIndex], -reservedDelta);
+                        }
 
                         if (registeredForCleanup)
                         {
@@ -601,6 +613,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         // Phase 6: Clean up proactive FSM on dispatch failure (no-op if not yet created)
                         _followerBrackets.TryRemove(fleetEntryName, out _);
 
+                        Interlocked.Increment(ref _skippedSlotCount);
                         dispatchLog.AppendLine($"[DISPATCH] [X] FAILED on {acct.Name}: {ex.Message}");
                     }
                 }
@@ -612,6 +625,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // [Phase 7.2 LATENCY] T_Final: Fleet loop complete (setup+enqueue only; no blocking Submit) -- stop clock, flush forensic report.
                 sw.Stop();
                 long tFinalTicks = sw.ElapsedTicks;
+                Interlocked.Add(ref _dispatchTotalElapsedTicks, tFinalTicks);
+                long peakTicks = Volatile.Read(ref _dispatchPeakElapsedTicks);
+                while (tFinalTicks > peakTicks
+                    && Interlocked.CompareExchange(ref _dispatchPeakElapsedTicks, tFinalTicks, peakTicks) != peakTicks)
+                {
+                    peakTicks = Volatile.Read(ref _dispatchPeakElapsedTicks);
+                }
                 double totalMs  = tFinalTicks        * 1000.0 / Stopwatch.Frequency;
                 double setupMs  = (tLoopStartTicks - t0Ticks) * 1000.0 / Stopwatch.Frequency;
                 double loopMs   = (tFinalTicks - tLoopStartTicks) * 1000.0 / Stopwatch.Frequency;

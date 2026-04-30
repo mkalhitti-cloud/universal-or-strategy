@@ -1,22 +1,43 @@
-# Task: Post-Hardening Oversight & Next Phase Activation
+# Project Morpheus: Hybrid Arena Roadmap (M1-M8)
 
-- [x] Load project baseline and historical context
-    - [x] Read `DIRECTOR_SESSION_LOG.md`
-    - [x] Read previous session's `task.md` and `walkthrough.md`
-    - [x] Verify `src/` directory contents
-- [x] Summarize immediate next steps for regression testing
-- [x] Explain "Regression Testing" and "Weekend Tasks" to user
-- [x] **PHASE 5: Modularization (Refactor First)**
-    - [x] Design "Modular Split" map (e.g., UI → IPC, Compliance, Sizing)
-    - [x] Split `UniversalORStrategyV12_002_Dev.UI.cs` (2200+ lines)
-    - [x] Split `UniversalORStrategyV12_002_Dev.Orders.cs` (2000+ lines)
-- [x] **PHASE 6: Forensic Audit (Small-Node Scan)**
-    - [x] Identify unmarshalled callback race (SIMA)
-- [x] **PHASE 7: Concurrency Hardening (The "Final Green Light")**
-    - [x] Implement `InvokeAsync` / `TriggerCustomEvent` marshalling
-    - [x] Verify thread-safety in simulation
-- [x] **PHASE 8: Unmanaged Exit & Sizing Logic Fix**
-    - [x] Replace `ExitLong/Short` in `SIMA.cs` with `SubmitOrderUnmanaged`
-    - [x] Allow 1-contract trades to have T1 Target if configured
-    - [x] Re-verify stability after logic shift
-- [x] **STABILITY CERTIFIED: Safe to Trade Build 1101E (Modular)**
+## MISSION OBJECTIVE
+Achieve institutional-grade deterministic execution (sub-100ns typical) within NinjaTrader 8 (.NET 4.8) using the "Hybrid Arena" (Management/Execution Split) architecture.
+
+## ROLES & RESPONSIBILITIES
+- **ARCHITECT (Claude P3)**: Strategy & Design. Writes `docs/brain/implementation_plan.md`.
+- **ENGINEER (Codex P4)**: Implementation & Execution. Edits `src/` files based on the approved plan.
+- **ORCHESTRATOR (Antigravity P1)**: Multi-agent coordination, forensic audits, and state management.
+
+---
+
+## ROADMAP
+
+### PHASE 1: THE SOVEREIGNTY PIVOT (M1-M4)
+- [ ] **M1: Blittable Substrate Refactor**
+    - [ ] Eliminate `FleetDispatchSideband` (managed refs).
+    - [ ] Implement index-based account/instrument lookups.
+    - [ ] Define 64-byte aligned, zero-ref `struct` contracts.
+- [ ] **M2: Cold-Path Freeze Logic**
+    - [ ] Implement "Management Membrane" to flatten OOP objects.
+    - [ ] Build the pre-trading validation/compilation engine.
+- [ ] **M3: Decision Table Execution Core**
+    - [ ] Implement the Hot-Path Router (Data-Oriented Scanner).
+    - [ ] Zero-allocation execution loop.
+- [ ] **M4: Sidecar Membrane (MMIO Mirror)**
+    - [ ] Implement lock-free, padded ring buffer.
+    - [ ] Ensure 64-byte cache-line separation between Producer/Consumer.
+
+### PHASE 2: PERFORMANCE & INTEGRATION (M5-M8)
+- [ ] **M5: CPU Affinity & Priority**
+    - [ ] Bind execution thread to dedicated core.
+- [ ] **M6: JIT Warm-up Protocol**
+    - [ ] Implement pre-market synthetic execution to stabilize JIT.
+- [ ] **M7: Telemetry & Observability**
+    - [ ] Low-overhead performance counters.
+- [ ] **M8: Final Verification**
+    - [ ] Sub-100ns benchmark certification.
+
+---
+## CURRENT STATUS
+**State**: Pivoting from "Managed" to "Hybrid Arena" paradigm.
+**Next Action**: Claude (P3) to design the M1/M2 refactor.

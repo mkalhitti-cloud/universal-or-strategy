@@ -39,3 +39,16 @@ diff.txt
 gh_log.txt
 help.txt
 test-vertex.js
+
+# Local Agent & Tool Runtime (NEVER COMMIT)
+.dotnet-home/
+.gemini/
+.claude/
+.cursor/
+.idea/
+.vscode/
+
+# Build and Diagnostic Artifacts
+*.trn
+*.dotnetUserLevelCache
+.fallow/

@@ -41,7 +41,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "1111.002-v28.0";  // R28 v28.0 -- blittable slot + XorShadow + optional MMIO mirror
+        public const string BUILD_TAG = "1112.001-v29.0";  // Hybrid Arena M1-M4: blittable substrate + flattened membrane + MMIO v2
 
         public class UILiveTargetSnapshot
         {
@@ -571,6 +571,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         private readonly ConcurrentQueue<FleetDispatchRequest> _pendingFleetDispatches
             = new ConcurrentQueue<FleetDispatchRequest>();
         private volatile int _pendingFleetDispatchCount = 0;
+        private long _dispatchInvocationCount = 0;
+        private long _dispatchPeakElapsedTicks = 0;
+        private long _dispatchTotalElapsedTicks = 0;
+        private long _dispatchedSlotCount = 0;
+        private long _skippedSlotCount = 0;
 
         // REAP-01: UTC ticks captured each time expectedPositions is set to a non-zero value.
         // REAPER uses this to suppress false "Critical Desync" alerts within a 5-second grace window

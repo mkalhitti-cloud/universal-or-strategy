@@ -239,6 +239,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // V12.1101E [A-2]: Lock IPC writes to activeFleetAccounts -- this dict is also
             // read by the strategy thread (ExecuteMultiAccountMarket) without a lock.
             activeFleetAccounts[resolvedName] = active;
+            Enqueue(ctx => ctx.FreezeManagementMembrane());
             Print($"[V12.2] TOGGLE_ACCOUNT: {resolvedName} (resolved from '{parts[1]}') | Active={active}");
             MarkStickyDirty(); // Build 1103: Persist fleet toggle
         }

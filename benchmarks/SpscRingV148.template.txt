@@ -1,0 +1,88 @@
+using System;
+using System.Runtime.InteropServices;
+using System.Threading;
+
+// SpscRingV148.cs -- AUTOMATED AMAL BENCHMARK TARGET
+// This file is dynamically generated during the Battle 21 filtering phase.
+
+namespace SpscBench
+{
+    [StructLayout(LayoutKind.Explicit)]
+    public unsafe sealed class SpscRingV148 : IDisposable
+    {
+        // === PRODUCER PADDING ===
+        [FieldOffset(0)]  private long _pp0; [FieldOffset(8)]  private long _pp1;
+        [FieldOffset(16)] private long _pp2; [FieldOffset(24)] private long _pp3;
+        [FieldOffset(32)] private long _pp4; [FieldOffset(40)] private long _pp5;
+        [FieldOffset(48)] private long _pp6; [FieldOffset(56)] private long _pp7;
+
+        // === CANONICAL INDICES (Standard Protocol) ===
+        [FieldOffset(64)] private int _producerIndex; 
+
+        // === CONSUMER PADDING ===
+        [FieldOffset(72)]  private long _cp0; [FieldOffset(80)]  private long _cp1;
+        [FieldOffset(88)]  private long _cp2; [FieldOffset(96)]  private long _cp3;
+        [FieldOffset(104)] private long _cp4; [FieldOffset(112)] private long _cp5;
+        [FieldOffset(120)] private long _cp6; [FieldOffset(128)] private int _consumerIndex;
+
+        // === INJECTED EXTRA FIELDS ===
+        private long _cachedConsumer;
+
+        // === INFRASTRUCTURE METADATA ===
+        [FieldOffset(160)] private int _mask;
+        [FieldOffset(164)] private long _slotsRaw;
+        [FieldOffset(172)] private long _handleRaw;
+        [FieldOffset(180)] private int _capacity;
+        [FieldOffset(184)] private int _disposed;
+
+        private CoreLane* Slots => (CoreLane*)_slotsRaw;
+
+        public SpscRingV148(int capacity)
+        {
+            if (capacity < 2 || (capacity & (capacity - 1)) != 0)
+                throw new ArgumentException("Capacity must be a power of 2 and >= 2");
+            _capacity = capacity;
+            _mask = capacity - 1;
+            _producerIndex = 0;
+            _consumerIndex = 0;
+            _disposed = 0;
+
+            CoreLane* ptr;
+            IntPtr handle;
+            CoreLaneAllocator.AllocAligned(capacity, out ptr, out handle);
+            _slotsRaw  = (long)ptr;
+            _handleRaw = handle.ToInt64();
+
+            for (int i = 0; i < capacity; i++)
+                Slots[i].Sequence = i;
+        }
+
+        // === INJECTED TRYENQUEUE ===
+        public bool TryEnqueue(double payload)
+        {
+            // [[TRYENQUEUE_BODY]]
+        }
+
+        // === INJECTED TRYDEQUEUE ===
+        public bool TryDequeue(out double payload)
+        {
+            // [[TRYDEQUEUE_BODY]]
+        }
+
+        public bool IsEmpty => Volatile.Read(ref _producerIndex) == Volatile.Read(ref _consumerIndex);
+
+        public void Dispose()
+        {
+            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 0)
+            {
+                IntPtr handle = new IntPtr(_handleRaw);
+                if (handle != IntPtr.Zero)
+                    Marshal.FreeHGlobal(handle);
+                _handleRaw = 0;
+                _slotsRaw  = 0;
+            }
+        }
+
+        ~SpscRingV148() { Dispose(); }
+    }
+}

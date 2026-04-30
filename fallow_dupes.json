@@ -1,0 +1,660 @@
+﻿{
+  "schema_version": 4,
+  "version": "2.54.3",
+  "elapsed_ms": 52,
+  "clone_groups": [
+    {
+      "instances": [
+        {
+          "file": "artifacts/battle_results/lambda/src/App.tsx",
+          "start_line": 1006,
+          "end_line": 1019,
+          "start_col": 8,
+          "end_col": 37,
+          "fragment": "<ul className=\"space-y-3 text-sm text-slate-700\">\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-01]</span>\n            <span>\n              <strong>Section F Steps 3, 4, 5 ÔÇö grep / POSIX commands on Windows PowerShell:</strong> All three forensic grep commands are POSIX-syntax and will not run natively in Windows PowerShell. PowerShell Select-String equivalents are provided in Section 3 of this review. Plan should replace or supplement these with PowerShell-native commands for Windows developer machines.\n            </span>\n          </li>\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-02]</span>\n            <span>\n              <strong>Section F Steps 6, 7 ÔÇö subagent tooling dependency:</strong> \"forensics\" and \"architect\" subagents (per CLAUDE.md) are environment-dependent. If the engineering environment lacks this tooling, these steps are skipped silently. Plan should note the fallback (manual Select-String equivalents from steps 3-5).\n            </span>\n          </li>\n          <li className=\"flex gap-2\">"
+        },
+        {
+          "file": "artifacts/battle_results/lambda/src/App.tsx",
+          "start_line": 1024,
+          "end_line": 1037,
+          "start_col": 10,
+          "end_col": 13,
+          "fragment": "</li>\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-04]</span>\n            <span>\n              <strong>Section C.1 / Site 16 ÔÇö stateLock stub retention comment:</strong> The plan's Step 4.1 comment says stateLock is retained because \"22 out-of-scope partial files still reference it; scheduled for removal in the next migration phase.\" This is clear and adequate, but the plan should include a follow-up ADR or ticket reference for the next phase to ensure the stub does not persist indefinitely.\n            </span>\n          </li>\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-05]</span>\n            <span>\n              <strong>MSBuild HintPath / Condition attribute:</strong> If any .csproj HintPath changes are part of the cascade migration (not explicitly listed in D.4 but implied by NinjaTrader 8 assembly references), each Reference pointing to a path that may be absent on a CI agent should carry a Condition attribute on the Reference element (not HintPath) to avoid build failures on machines without NinjaTrader 8 installed.\n            </span>\n          </li>\n        </ul>"
+        }
+      ],
+      "token_count": 58,
+      "line_count": 14,
+      "actions": [
+        {
+          "type": "extract-shared",
+          "auto_fixable": false,
+          "description": "Extract duplicated code (14 lines, 2 instances) into a shared function"
+        },
+        {
+          "type": "suppress-line",
+          "auto_fixable": false,
+          "description": "Suppress with an inline comment above the duplicated code",
+          "comment": "// fallow-ignore-next-line code-duplication"
+        }
+      ]
+    },
+    {
+      "instances": [
+        {
+          "file": "artifacts/battle_results/lambda/vite.config.ts",
+          "start_line": 1,
+          "end_line": 19,
+          "start_col": 0,
+          "end_col": 2,
+          "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+        },
+        {
+          "file": "artifacts/battle_results/react/vite.config.ts",
+          "start_line": 1,
+          "end_line": 19,
+          "start_col": 0,
+          "end_col": 2,
+          "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+        },
+        {
+          "file": "artifacts/battlezips/react-system-flow-dashboard/vite.config.ts",
+          "start_line": 1,
+          "end_line": 19,
+          "start_col": 0,
+          "end_col": 2,
+          "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+        },
+        {
+          "file": "artifacts/battlezips/system-flow-visualizer-dashboard/vite.config.ts",
+          "start_line": 1,
+          "end_line": 19,
+          "start_col": 0,
+          "end_col": 2,
+          "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+        },
+        {
+          "file": "artifacts/battlezips/system-flow-visualizer-dashboard_1/vite.config.ts",
+          "start_line": 1,
+          "end_line": 19,
+          "start_col": 0,
+          "end_col": 2,
+          "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+        },
+        {
+          "file": "artifacts/battlezips/system-flow-visualizer-dashboard_2/vite.config.ts",
+          "start_line": 1,
+          "end_line": 19,
+          "start_col": 0,
+          "end_col": 2,
+          "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+        },
+        {
+          "file": "artifacts/battlezips/system-flow-visualizer-dashboard_3/vite.config.ts",
+          "start_line": 1,
+          "end_line": 19,
+          "start_col": 0,
+          "end_col": 2,
+          "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+        },
+        {
+          "file": "tmp/battle_results/battle_2/vite.config.ts",
+          "start_line": 1,
+          "end_line": 19,
+          "start_col": 0,
+          "end_col": 2,
+          "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+        },
+        {
+          "file": "tmp/battle_results/battle_3/vite.config.ts",
+          "start_line": 1,
+          "end_line": 19,
+          "start_col": 0,
+          "end_col": 2,
+          "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+        },
+        {
+          "file": "tmp/battle_results/battle_4/vite.config.ts",
+          "start_line": 1,
+          "end_line": 19,
+          "start_col": 0,
+          "end_col": 2,
+          "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+        },
+        {
+          "file": "tmp/battlezips/build-react-lambda-dashboard/vite.config.ts",
+          "start_line": 1,
+          "end_line": 19,
+          "start_col": 0,
+          "end_col": 2,
+          "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+        },
+        {
+          "file": "tmp/battlezips/build-react-lambda-dashboard_1/vite.config.ts",
+          "start_line": 1,
+          "end_line": 19,
+          "start_col": 0,
+          "end_col": 2,
+          "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+        },
+        {
+          "file": "tmp/battlezips/build-react-tailwind-dashboard/vite.config.ts",
+          "start_line": 1,
+          "end_line": 19,
+          "start_col": 0,
+          "end_col": 2,
+          "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+        },
+        {
+          "file": "tmp/battlezips/react-tailwind-dashboard-implementation/vite.config.ts",
+          "start_line": 1,
+          "end_line": 19,
+          "start_col": 0,
+          "end_col": 2,
+          "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+        }
+      ],
+      "token_count": 92,
+      "line_count": 19,
+      "actions": [
+        {
+          "type": "extract-shared",
+          "auto_fixable": false,
+          "description": "Extract duplicated code (19 lines, 14 instances) into a shared function"
+        },
+        {
+          "type": "suppress-line",
+          "auto_fixable": false,
+          "description": "Suppress with an inline comment above the duplicated code",
+          "comment": "// fallow-ignore-next-line code-duplication"
+        }
+      ]
+    },
+    {
+      "instances": [
+        {
+          "file": "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx",
+          "start_line": 1115,
+          "end_line": 1130,
+          "start_col": 14,
+          "end_col": 82,
+          "fragment": "<div className=\"space-y-4 text-sm text-slate-300 leading-relaxed\">\n                <div>\n                  <p className=\"font-semibold text-yellow-300 mb-1\">\n                    Q: Does a PowerShell function call inside a comment (e.g.,{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      Join-Path\n                    </code>{\" \"}\n                    inside a{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      # comment\n                    </code>{\" \"}\n                    line) get evaluated at runtime?\n                  </p>\n                  <p>\n                    <span className=\"font-bold text-red-300\">No.</span> A{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">#</code>"
+        },
+        {
+          "file": "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx",
+          "start_line": 1158,
+          "end_line": 1175,
+          "start_col": 16,
+          "end_col": 27,
+          "fragment": "<hr className=\"border-slate-700\" />\n                <div>\n                  <p className=\"font-semibold text-yellow-300 mb-1\">\n                    Q: Does the{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      HintPath\n                    </code>{\" \"}\n                    in Linting.csproj need a{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      Condition\n                    </code>{\" \"}\n                    attribute on Linux CI?\n                  </p>\n                  <p>\n                    <span className=\"font-bold text-red-300\">Yes.</span> The{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      $(UserProfile)\n                    </code>"
+        }
+      ],
+      "token_count": 52,
+      "line_count": 18,
+      "actions": [
+        {
+          "type": "extract-shared",
+          "auto_fixable": false,
+          "description": "Extract duplicated code (18 lines, 2 instances) into a shared function"
+        },
+        {
+          "type": "suppress-line",
+          "auto_fixable": false,
+          "description": "Suppress with an inline comment above the duplicated code",
+          "comment": "// fallow-ignore-next-line code-duplication"
+        }
+      ]
+    },
+    {
+      "instances": [
+        {
+          "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+          "start_line": 133,
+          "end_line": 139,
+          "start_col": 13,
+          "end_col": 81,
+          "fragment": "showSite5Code ? 'Hide Code' : 'Show OLD / NEW Code'}\n          </button>\n        </div>\n        <div className=\"grid grid-cols-1 md:grid-cols-3 gap-3 text-xs mb-2\">\n          <div><span className=\"text-slate-400\">Method:</span> <span className=\"text-white font-mono\">HandleMatchedFollowerOrder</span></div>\n          <div><span className=\"text-slate-400\">Classification:</span> <span className=\"text-rose-400 font-bold\">ÔÜá TYPE 2</span></div>\n          <div><span className=\"text-slate-400\">Transform:</span> <span className"
+        },
+        {
+          "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+          "start_line": 179,
+          "end_line": 185,
+          "start_col": 13,
+          "end_col": 81,
+          "fragment": "showSite11Code ? 'Hide Code' : 'Show OLD / NEW Code'}\n          </button>\n        </div>\n        <div className=\"grid grid-cols-1 md:grid-cols-3 gap-3 text-xs mb-2\">\n          <div><span className=\"text-slate-400\">Method:</span> <span className=\"text-white font-mono\">AuditAccountState</span></div>\n          <div><span className=\"text-slate-400\">Classification:</span> <span className=\"text-rose-400 font-bold\">ÔÜá TYPE 2</span></div>\n          <div><span className=\"text-slate-400\">Transform:</span> <span className"
+        }
+      ],
+      "token_count": 73,
+      "line_count": 7,
+      "actions": [
+        {
+          "type": "extract-shared",
+          "auto_fixable": false,
+          "description": "Extract duplicated code (7 lines, 2 instances) into a shared function"
+        },
+        {
+          "type": "suppress-line",
+          "auto_fixable": false,
+          "description": "Suppress with an inline comment above the duplicated code",
+          "comment": "// fallow-ignore-next-line code-duplication"
+        }
+      ]
+    },
+    {
+      "instances": [
+        {
+          "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+          "start_line": 139,
+          "end_line": 145,
+          "start_col": 66,
+          "end_col": 107,
+          "fragment": "<span className=\"text-blue-300\">A (statement-body)</span></div>\n        </div>\n        <div className=\"bg-rose-950/50 border border-rose-700 rounded p-2 text-xs text-rose-200 mb-2\">\n          <span className=\"font-bold text-rose-400\">Variable that would not be cleaned:</span>{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_followerReplaceSpecs</code> ÔÇö the ConcurrentDictionary entry for{' '}\n          <code className=\"bg-black/40 px-1 rounded\">sigName</code> is removed by{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_followerReplaceSpecs.TryRemove(sigName, out _)</code>"
+        },
+        {
+          "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+          "start_line": 185,
+          "end_line": 191,
+          "start_col": 66,
+          "end_col": 103,
+          "fragment": "<span className=\"text-purple-300\">B (expression ÔåÆ statement)</span></div>\n        </div>\n        <div className=\"bg-rose-950/50 border border-rose-700 rounded p-2 text-xs text-rose-200 mb-2\">\n          <span className=\"font-bold text-rose-400\">Variable that would not be cleaned:</span>{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_repairInFlight</code> ÔÇö the ConcurrentDictionary entry for{' '}\n          <code className=\"bg-black/40 px-1 rounded\">repairKey</code> is removed only in the catch block via{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_repairInFlight.TryRemove(repairKey, out _)</code>"
+        }
+      ],
+      "token_count": 50,
+      "line_count": 7,
+      "actions": [
+        {
+          "type": "extract-shared",
+          "auto_fixable": false,
+          "description": "Extract duplicated code (7 lines, 2 instances) into a shared function"
+        },
+        {
+          "type": "suppress-line",
+          "auto_fixable": false,
+          "description": "Suppress with an inline comment above the duplicated code",
+          "comment": "// fallow-ignore-next-line code-duplication"
+        }
+      ]
+    }
+  ],
+  "clone_families": [
+    {
+      "files": [
+        "artifacts/battle_results/lambda/src/App.tsx"
+      ],
+      "groups": [
+        {
+          "instances": [
+            {
+              "file": "artifacts/battle_results/lambda/src/App.tsx",
+              "start_line": 1006,
+              "end_line": 1019,
+              "start_col": 8,
+              "end_col": 37,
+              "fragment": "<ul className=\"space-y-3 text-sm text-slate-700\">\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-01]</span>\n            <span>\n              <strong>Section F Steps 3, 4, 5 ÔÇö grep / POSIX commands on Windows PowerShell:</strong> All three forensic grep commands are POSIX-syntax and will not run natively in Windows PowerShell. PowerShell Select-String equivalents are provided in Section 3 of this review. Plan should replace or supplement these with PowerShell-native commands for Windows developer machines.\n            </span>\n          </li>\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-02]</span>\n            <span>\n              <strong>Section F Steps 6, 7 ÔÇö subagent tooling dependency:</strong> \"forensics\" and \"architect\" subagents (per CLAUDE.md) are environment-dependent. If the engineering environment lacks this tooling, these steps are skipped silently. Plan should note the fallback (manual Select-String equivalents from steps 3-5).\n            </span>\n          </li>\n          <li className=\"flex gap-2\">"
+            },
+            {
+              "file": "artifacts/battle_results/lambda/src/App.tsx",
+              "start_line": 1024,
+              "end_line": 1037,
+              "start_col": 10,
+              "end_col": 13,
+              "fragment": "</li>\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-04]</span>\n            <span>\n              <strong>Section C.1 / Site 16 ÔÇö stateLock stub retention comment:</strong> The plan's Step 4.1 comment says stateLock is retained because \"22 out-of-scope partial files still reference it; scheduled for removal in the next migration phase.\" This is clear and adequate, but the plan should include a follow-up ADR or ticket reference for the next phase to ensure the stub does not persist indefinitely.\n            </span>\n          </li>\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-05]</span>\n            <span>\n              <strong>MSBuild HintPath / Condition attribute:</strong> If any .csproj HintPath changes are part of the cascade migration (not explicitly listed in D.4 but implied by NinjaTrader 8 assembly references), each Reference pointing to a path that may be absent on a CI agent should carry a Condition attribute on the Reference element (not HintPath) to avoid build failures on machines without NinjaTrader 8 installed.\n            </span>\n          </li>\n        </ul>"
+            }
+          ],
+          "token_count": 58,
+          "line_count": 14
+        }
+      ],
+      "total_duplicated_lines": 14,
+      "total_duplicated_tokens": 58,
+      "suggestions": [
+        {
+          "kind": "ExtractFunction",
+          "description": "Extract shared function (14 lines) from App.tsx, App.tsx",
+          "estimated_savings": 14
+        }
+      ],
+      "actions": [
+        {
+          "type": "extract-shared",
+          "auto_fixable": false,
+          "description": "Extract 1 duplicated code block (14 lines) into a shared module",
+          "note": "These clone groups share the same files, indicating a structural relationship ÔÇö refactor together"
+        },
+        {
+          "type": "apply-suggestion",
+          "auto_fixable": false,
+          "description": "Extract shared function (14 lines) from App.tsx, App.tsx"
+        },
+        {
+          "type": "suppress-line",
+          "auto_fixable": false,
+          "description": "Suppress with an inline comment above the duplicated code",
+          "comment": "// fallow-ignore-next-line code-duplication"
+        }
+      ]
+    },
+    {
+      "files": [
+        "artifacts/battle_results/lambda/vite.config.ts",
+        "artifacts/battle_results/react/vite.config.ts",
+        "artifacts/battlezips/react-system-flow-dashboard/vite.config.ts",
+        "artifacts/battlezips/system-flow-visualizer-dashboard/vite.config.ts",
+        "artifacts/battlezips/system-flow-visualizer-dashboard_1/vite.config.ts",
+        "artifacts/battlezips/system-flow-visualizer-dashboard_2/vite.config.ts",
+        "artifacts/battlezips/system-flow-visualizer-dashboard_3/vite.config.ts",
+        "tmp/battle_results/battle_2/vite.config.ts",
+        "tmp/battle_results/battle_3/vite.config.ts",
+        "tmp/battle_results/battle_4/vite.config.ts",
+        "tmp/battlezips/build-react-lambda-dashboard/vite.config.ts",
+        "tmp/battlezips/build-react-lambda-dashboard_1/vite.config.ts",
+        "tmp/battlezips/build-react-tailwind-dashboard/vite.config.ts",
+        "tmp/battlezips/react-tailwind-dashboard-implementation/vite.config.ts"
+      ],
+      "groups": [
+        {
+          "instances": [
+            {
+              "file": "artifacts/battle_results/lambda/vite.config.ts",
+              "start_line": 1,
+              "end_line": 19,
+              "start_col": 0,
+              "end_col": 2,
+              "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+            },
+            {
+              "file": "artifacts/battle_results/react/vite.config.ts",
+              "start_line": 1,
+              "end_line": 19,
+              "start_col": 0,
+              "end_col": 2,
+              "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+            },
+            {
+              "file": "artifacts/battlezips/react-system-flow-dashboard/vite.config.ts",
+              "start_line": 1,
+              "end_line": 19,
+              "start_col": 0,
+              "end_col": 2,
+              "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+            },
+            {
+              "file": "artifacts/battlezips/system-flow-visualizer-dashboard/vite.config.ts",
+              "start_line": 1,
+              "end_line": 19,
+              "start_col": 0,
+              "end_col": 2,
+              "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+            },
+            {
+              "file": "artifacts/battlezips/system-flow-visualizer-dashboard_1/vite.config.ts",
+              "start_line": 1,
+              "end_line": 19,
+              "start_col": 0,
+              "end_col": 2,
+              "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+            },
+            {
+              "file": "artifacts/battlezips/system-flow-visualizer-dashboard_2/vite.config.ts",
+              "start_line": 1,
+              "end_line": 19,
+              "start_col": 0,
+              "end_col": 2,
+              "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+            },
+            {
+              "file": "artifacts/battlezips/system-flow-visualizer-dashboard_3/vite.config.ts",
+              "start_line": 1,
+              "end_line": 19,
+              "start_col": 0,
+              "end_col": 2,
+              "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+            },
+            {
+              "file": "tmp/battle_results/battle_2/vite.config.ts",
+              "start_line": 1,
+              "end_line": 19,
+              "start_col": 0,
+              "end_col": 2,
+              "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+            },
+            {
+              "file": "tmp/battle_results/battle_3/vite.config.ts",
+              "start_line": 1,
+              "end_line": 19,
+              "start_col": 0,
+              "end_col": 2,
+              "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+            },
+            {
+              "file": "tmp/battle_results/battle_4/vite.config.ts",
+              "start_line": 1,
+              "end_line": 19,
+              "start_col": 0,
+              "end_col": 2,
+              "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+            },
+            {
+              "file": "tmp/battlezips/build-react-lambda-dashboard/vite.config.ts",
+              "start_line": 1,
+              "end_line": 19,
+              "start_col": 0,
+              "end_col": 2,
+              "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+            },
+            {
+              "file": "tmp/battlezips/build-react-lambda-dashboard_1/vite.config.ts",
+              "start_line": 1,
+              "end_line": 19,
+              "start_col": 0,
+              "end_col": 2,
+              "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+            },
+            {
+              "file": "tmp/battlezips/build-react-tailwind-dashboard/vite.config.ts",
+              "start_line": 1,
+              "end_line": 19,
+              "start_col": 0,
+              "end_col": 2,
+              "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+            },
+            {
+              "file": "tmp/battlezips/react-tailwind-dashboard-implementation/vite.config.ts",
+              "start_line": 1,
+              "end_line": 19,
+              "start_col": 0,
+              "end_col": 2,
+              "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+            }
+          ],
+          "token_count": 92,
+          "line_count": 19
+        }
+      ],
+      "total_duplicated_lines": 19,
+      "total_duplicated_tokens": 92,
+      "suggestions": [
+        {
+          "kind": "ExtractFunction",
+          "description": "Extract shared function (19 lines) from vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts",
+          "estimated_savings": 247
+        }
+      ],
+      "actions": [
+        {
+          "type": "extract-shared",
+          "auto_fixable": false,
+          "description": "Extract 1 duplicated code block (19 lines) into a shared module",
+          "note": "These clone groups share the same files, indicating a structural relationship ÔÇö refactor together"
+        },
+        {
+          "type": "apply-suggestion",
+          "auto_fixable": false,
+          "description": "Extract shared function (19 lines) from vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts"
+        },
+        {
+          "type": "suppress-line",
+          "auto_fixable": false,
+          "description": "Suppress with an inline comment above the duplicated code",
+          "comment": "// fallow-ignore-next-line code-duplication"
+        }
+      ]
+    },
+    {
+      "files": [
+        "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx"
+      ],
+      "groups": [
+        {
+          "instances": [
+            {
+              "file": "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx",
+              "start_line": 1115,
+              "end_line": 1130,
+              "start_col": 14,
+              "end_col": 82,
+              "fragment": "<div className=\"space-y-4 text-sm text-slate-300 leading-relaxed\">\n                <div>\n                  <p className=\"font-semibold text-yellow-300 mb-1\">\n                    Q: Does a PowerShell function call inside a comment (e.g.,{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      Join-Path\n                    </code>{\" \"}\n                    inside a{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      # comment\n                    </code>{\" \"}\n                    line) get evaluated at runtime?\n                  </p>\n                  <p>\n                    <span className=\"font-bold text-red-300\">No.</span> A{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">#</code>"
+            },
+            {
+              "file": "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx",
+              "start_line": 1158,
+              "end_line": 1175,
+              "start_col": 16,
+              "end_col": 27,
+              "fragment": "<hr className=\"border-slate-700\" />\n                <div>\n                  <p className=\"font-semibold text-yellow-300 mb-1\">\n                    Q: Does the{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      HintPath\n                    </code>{\" \"}\n                    in Linting.csproj need a{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      Condition\n                    </code>{\" \"}\n                    attribute on Linux CI?\n                  </p>\n                  <p>\n                    <span className=\"font-bold text-red-300\">Yes.</span> The{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      $(UserProfile)\n                    </code>"
+            }
+          ],
+          "token_count": 52,
+          "line_count": 18
+        }
+      ],
+      "total_duplicated_lines": 18,
+      "total_duplicated_tokens": 52,
+      "suggestions": [
+        {
+          "kind": "ExtractFunction",
+          "description": "Extract shared function (18 lines) from App.tsx, App.tsx",
+          "estimated_savings": 18
+        }
+      ],
+      "actions": [
+        {
+          "type": "extract-shared",
+          "auto_fixable": false,
+          "description": "Extract 1 duplicated code block (18 lines) into a shared module",
+          "note": "These clone groups share the same files, indicating a structural relationship ÔÇö refactor together"
+        },
+        {
+          "type": "apply-suggestion",
+          "auto_fixable": false,
+          "description": "Extract shared function (18 lines) from App.tsx, App.tsx"
+        },
+        {
+          "type": "suppress-line",
+          "auto_fixable": false,
+          "description": "Suppress with an inline comment above the duplicated code",
+          "comment": "// fallow-ignore-next-line code-duplication"
+        }
+      ]
+    },
+    {
+      "files": [
+        "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx"
+      ],
+      "groups": [
+        {
+          "instances": [
+            {
+              "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+              "start_line": 133,
+              "end_line": 139,
+              "start_col": 13,
+              "end_col": 81,
+              "fragment": "showSite5Code ? 'Hide Code' : 'Show OLD / NEW Code'}\n          </button>\n        </div>\n        <div className=\"grid grid-cols-1 md:grid-cols-3 gap-3 text-xs mb-2\">\n          <div><span className=\"text-slate-400\">Method:</span> <span className=\"text-white font-mono\">HandleMatchedFollowerOrder</span></div>\n          <div><span className=\"text-slate-400\">Classification:</span> <span className=\"text-rose-400 font-bold\">ÔÜá TYPE 2</span></div>\n          <div><span className=\"text-slate-400\">Transform:</span> <span className"
+            },
+            {
+              "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+              "start_line": 179,
+              "end_line": 185,
+              "start_col": 13,
+              "end_col": 81,
+              "fragment": "showSite11Code ? 'Hide Code' : 'Show OLD / NEW Code'}\n          </button>\n        </div>\n        <div className=\"grid grid-cols-1 md:grid-cols-3 gap-3 text-xs mb-2\">\n          <div><span className=\"text-slate-400\">Method:</span> <span className=\"text-white font-mono\">AuditAccountState</span></div>\n          <div><span className=\"text-slate-400\">Classification:</span> <span className=\"text-rose-400 font-bold\">ÔÜá TYPE 2</span></div>\n          <div><span className=\"text-slate-400\">Transform:</span> <span className"
+            }
+          ],
+          "token_count": 73,
+          "line_count": 7
+        },
+        {
+          "instances": [
+            {
+              "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+              "start_line": 139,
+              "end_line": 145,
+              "start_col": 66,
+              "end_col": 107,
+              "fragment": "<span className=\"text-blue-300\">A (statement-body)</span></div>\n        </div>\n        <div className=\"bg-rose-950/50 border border-rose-700 rounded p-2 text-xs text-rose-200 mb-2\">\n          <span className=\"font-bold text-rose-400\">Variable that would not be cleaned:</span>{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_followerReplaceSpecs</code> ÔÇö the ConcurrentDictionary entry for{' '}\n          <code className=\"bg-black/40 px-1 rounded\">sigName</code> is removed by{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_followerReplaceSpecs.TryRemove(sigName, out _)</code>"
+            },
+            {
+              "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+              "start_line": 185,
+              "end_line": 191,
+              "start_col": 66,
+              "end_col": 103,
+              "fragment": "<span className=\"text-purple-300\">B (expression ÔåÆ statement)</span></div>\n        </div>\n        <div className=\"bg-rose-950/50 border border-rose-700 rounded p-2 text-xs text-rose-200 mb-2\">\n          <span className=\"font-bold text-rose-400\">Variable that would not be cleaned:</span>{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_repairInFlight</code> ÔÇö the ConcurrentDictionary entry for{' '}\n          <code className=\"bg-black/40 px-1 rounded\">repairKey</code> is removed only in the catch block via{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_repairInFlight.TryRemove(repairKey, out _)</code>"
+            }
+          ],
+          "token_count": 50,
+          "line_count": 7
+        }
+      ],
+      "total_duplicated_lines": 14,
+      "total_duplicated_tokens": 123,
+      "suggestions": [
+        {
+          "kind": "ExtractFunction",
+          "description": "Extract shared function (7 lines) from Section1_LambdaSites.tsx, Section1_LambdaSites.tsx",
+          "estimated_savings": 7
+        },
+        {
+          "kind": "ExtractFunction",
+          "description": "Extract shared function (7 lines) from Section1_LambdaSites.tsx, Section1_LambdaSites.tsx",
+          "estimated_savings": 7
+        }
+      ],
+      "actions": [
+        {
+          "type": "extract-shared",
+          "auto_fixable": false,
+          "description": "Extract 2 duplicated code blocks (14 lines) into a shared module",
+          "note": "These clone groups share the same files, indicating a structural relationship ÔÇö refactor together"
+        },
+        {
+          "type": "apply-suggestion",
+          "auto_fixable": false,
+          "description": "Extract shared function (7 lines) from Section1_LambdaSites.tsx, Section1_LambdaSites.tsx"
+        },
+        {
+          "type": "apply-suggestion",
+          "auto_fixable": false,
+          "description": "Extract shared function (7 lines) from Section1_LambdaSites.tsx, Section1_LambdaSites.tsx"
+        },
+        {
+          "type": "suppress-line",
+          "auto_fixable": false,
+          "description": "Suppress with an inline comment above the duplicated code",
+          "comment": "// fallow-ignore-next-line code-duplication"
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "total_files": 34,
+    "files_with_clones": 17,
+    "total_lines": 12944,
+    "duplicated_lines": 354,
+    "total_tokens": 46551,
+    "duplicated_tokens": 1429,
+    "clone_groups": 5,
+    "clone_instances": 22,
+    "duplication_percentage": 2.734857849196539
+  }
+}

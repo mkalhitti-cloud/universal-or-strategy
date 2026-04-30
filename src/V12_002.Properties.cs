@@ -291,6 +291,24 @@ namespace NinjaTrader.NinjaScript.Strategies
         public bool EnablePathB { get; set; }
 
         [NinjaScriptProperty]
+        [Display(Name = "Enable Photon MMIO Mirror", GroupName = "Photon Kernel", Order = 5)]
+        public bool EnablePhotonMmioMirror { get; set; } = false;
+
+        // M5 (Build 1112.001-v29.0): CPU affinity bind for the strategy execution thread.
+        // Defaults to OFF -- safe in shared-host environments. When enabled, the cold path
+        // calls BindCpuAffinity() once during State.DataLoaded after FreezeManagementMembrane().
+        [NinjaScriptProperty]
+        [Display(Name = "Enable Photon CPU Affinity", Description = "Bind hot-path thread to CpuAffinityMask. OFF by default. Boost ThreadPriority to Highest when enabled.", GroupName = "Photon Kernel", Order = 6)]
+        public bool EnablePhotonAffinityBind { get; set; } = false;
+
+        // M5: CPU affinity bitmask. 4 = Core 2 (default). 8 = Core 3. 12 = Cores 2+3.
+        // Bit position = core index (0-based). Range guards 1..int.MaxValue.
+        [NinjaScriptProperty]
+        [Range(1, int.MaxValue)]
+        [Display(Name = "Photon CPU Affinity Mask", Description = "Bitmask of CPU cores for the hot-path thread. 4 = Core 2 (default). 8 = Core 3. 12 = Cores 2+3.", GroupName = "Photon Kernel", Order = 7)]
+        public int CpuAffinityMask { get; set; } = 4;
+
+        [NinjaScriptProperty]
         [Display(Name = "Auto Flatten Desync", GroupName = "12. SIMA", Order = 5)]
         public bool AutoFlattenDesync { get; set; }
 
