@@ -1,0 +1,2625 @@
+﻿{
+  "schema_version": 3,
+  "version": "2.57.0",
+  "elapsed_ms": 214,
+  "check": {
+    "schema_version": 4,
+    "version": "2.57.0",
+    "elapsed_ms": 100,
+    "total_issues": 19,
+    "entry_points": {
+      "total": 12,
+      "sources": {
+        "manual_entry": 12
+      }
+    },
+    "summary": {
+      "total_issues": 19,
+      "unused_files": 19,
+      "unused_exports": 0,
+      "unused_types": 0,
+      "private_type_leaks": 0,
+      "unused_dependencies": 0,
+      "unused_enum_members": 0,
+      "unused_class_members": 0,
+      "unresolved_imports": 0,
+      "unlisted_dependencies": 0,
+      "duplicate_exports": 0,
+      "type_only_dependencies": 0,
+      "test_only_dependencies": 0,
+      "circular_dependencies": 0,
+      "boundary_violations": 0,
+      "stale_suppressions": 0
+    },
+    "unused_files": [
+      {
+        "path": "artifacts/battle_results/lambda/src/App.tsx",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battle_results/lambda/src/index.css",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battle_results/lambda/src/main.tsx",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battle_results/lambda/src/utils/cn.ts",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battle_results/react/src/App.tsx",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battle_results/react/src/index.css",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battle_results/react/src/main.tsx",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battle_results/react/src/utils/cn.ts",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battlezips/react-system-flow-dashboard/src/utils/cn.ts",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard/src/utils/cn.ts",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard_1/src/utils/cn.ts",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard_2/src/utils/cn.ts",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard_3/src/utils/cn.ts",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battle_results/battle_3/src/utils/cn.ts",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battle_results/battle_4/src/utils/cn.ts",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard/src/utils/cn.ts",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/utils/cn.ts",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-tailwind-dashboard/src/utils/cn.ts",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/react-tailwind-dashboard-implementation/src/utils/cn.ts",
+        "actions": [
+          {
+            "type": "delete-file",
+            "auto_fixable": false,
+            "description": "Delete this file",
+            "note": "File deletion may remove runtime functionality not visible to static analysis"
+          },
+          {
+            "type": "suppress-file",
+            "auto_fixable": false,
+            "description": "Suppress with a file-level comment at the top of the file",
+            "comment": "// fallow-ignore-file unused-file"
+          }
+        ]
+      }
+    ],
+    "unused_exports": [],
+    "unused_types": [],
+    "private_type_leaks": [],
+    "unused_dependencies": [],
+    "unused_dev_dependencies": [],
+    "unused_optional_dependencies": [],
+    "unused_enum_members": [],
+    "unused_class_members": [],
+    "unresolved_imports": [],
+    "unlisted_dependencies": [],
+    "duplicate_exports": [],
+    "type_only_dependencies": [],
+    "test_only_dependencies": [],
+    "circular_dependencies": [],
+    "boundary_violations": [],
+    "stale_suppressions": []
+  },
+  "dupes": {
+    "clone_groups": [
+      {
+        "instances": [
+          {
+            "file": "artifacts/battle_results/lambda/src/App.tsx",
+            "start_line": 1006,
+            "end_line": 1019,
+            "start_col": 8,
+            "end_col": 37,
+            "fragment": "<ul className=\"space-y-3 text-sm text-slate-700\">\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-01]</span>\n            <span>\n              <strong>Section F Steps 3, 4, 5 ÔÇö grep / POSIX commands on Windows PowerShell:</strong> All three forensic grep commands are POSIX-syntax and will not run natively in Windows PowerShell. PowerShell Select-String equivalents are provided in Section 3 of this review. Plan should replace or supplement these with PowerShell-native commands for Windows developer machines.\n            </span>\n          </li>\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-02]</span>\n            <span>\n              <strong>Section F Steps 6, 7 ÔÇö subagent tooling dependency:</strong> \"forensics\" and \"architect\" subagents (per CLAUDE.md) are environment-dependent. If the engineering environment lacks this tooling, these steps are skipped silently. Plan should note the fallback (manual Select-String equivalents from steps 3-5).\n            </span>\n          </li>\n          <li className=\"flex gap-2\">"
+          },
+          {
+            "file": "artifacts/battle_results/lambda/src/App.tsx",
+            "start_line": 1024,
+            "end_line": 1037,
+            "start_col": 10,
+            "end_col": 13,
+            "fragment": "</li>\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-04]</span>\n            <span>\n              <strong>Section C.1 / Site 16 ÔÇö stateLock stub retention comment:</strong> The plan's Step 4.1 comment says stateLock is retained because \"22 out-of-scope partial files still reference it; scheduled for removal in the next migration phase.\" This is clear and adequate, but the plan should include a follow-up ADR or ticket reference for the next phase to ensure the stub does not persist indefinitely.\n            </span>\n          </li>\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-05]</span>\n            <span>\n              <strong>MSBuild HintPath / Condition attribute:</strong> If any .csproj HintPath changes are part of the cascade migration (not explicitly listed in D.4 but implied by NinjaTrader 8 assembly references), each Reference pointing to a path that may be absent on a CI agent should carry a Condition attribute on the Reference element (not HintPath) to avoid build failures on machines without NinjaTrader 8 installed.\n            </span>\n          </li>\n        </ul>"
+          }
+        ],
+        "token_count": 58,
+        "line_count": 14
+      },
+      {
+        "instances": [
+          {
+            "file": "artifacts/battle_results/lambda/vite.config.ts",
+            "start_line": 1,
+            "end_line": 19,
+            "start_col": 0,
+            "end_col": 2,
+            "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+          },
+          {
+            "file": "artifacts/battle_results/react/vite.config.ts",
+            "start_line": 1,
+            "end_line": 19,
+            "start_col": 0,
+            "end_col": 2,
+            "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+          },
+          {
+            "file": "artifacts/battlezips/react-system-flow-dashboard/vite.config.ts",
+            "start_line": 1,
+            "end_line": 19,
+            "start_col": 0,
+            "end_col": 2,
+            "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+          },
+          {
+            "file": "artifacts/battlezips/system-flow-visualizer-dashboard/vite.config.ts",
+            "start_line": 1,
+            "end_line": 19,
+            "start_col": 0,
+            "end_col": 2,
+            "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+          },
+          {
+            "file": "artifacts/battlezips/system-flow-visualizer-dashboard_1/vite.config.ts",
+            "start_line": 1,
+            "end_line": 19,
+            "start_col": 0,
+            "end_col": 2,
+            "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+          },
+          {
+            "file": "artifacts/battlezips/system-flow-visualizer-dashboard_2/vite.config.ts",
+            "start_line": 1,
+            "end_line": 19,
+            "start_col": 0,
+            "end_col": 2,
+            "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+          },
+          {
+            "file": "artifacts/battlezips/system-flow-visualizer-dashboard_3/vite.config.ts",
+            "start_line": 1,
+            "end_line": 19,
+            "start_col": 0,
+            "end_col": 2,
+            "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+          },
+          {
+            "file": "tmp/battle_results/battle_2/vite.config.ts",
+            "start_line": 1,
+            "end_line": 19,
+            "start_col": 0,
+            "end_col": 2,
+            "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+          },
+          {
+            "file": "tmp/battle_results/battle_3/vite.config.ts",
+            "start_line": 1,
+            "end_line": 19,
+            "start_col": 0,
+            "end_col": 2,
+            "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+          },
+          {
+            "file": "tmp/battle_results/battle_4/vite.config.ts",
+            "start_line": 1,
+            "end_line": 19,
+            "start_col": 0,
+            "end_col": 2,
+            "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+          },
+          {
+            "file": "tmp/battlezips/build-react-lambda-dashboard/vite.config.ts",
+            "start_line": 1,
+            "end_line": 19,
+            "start_col": 0,
+            "end_col": 2,
+            "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+          },
+          {
+            "file": "tmp/battlezips/build-react-lambda-dashboard_1/vite.config.ts",
+            "start_line": 1,
+            "end_line": 19,
+            "start_col": 0,
+            "end_col": 2,
+            "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+          },
+          {
+            "file": "tmp/battlezips/build-react-tailwind-dashboard/vite.config.ts",
+            "start_line": 1,
+            "end_line": 19,
+            "start_col": 0,
+            "end_col": 2,
+            "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+          },
+          {
+            "file": "tmp/battlezips/react-tailwind-dashboard-implementation/vite.config.ts",
+            "start_line": 1,
+            "end_line": 19,
+            "start_col": 0,
+            "end_col": 2,
+            "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+          }
+        ],
+        "token_count": 92,
+        "line_count": 19
+      },
+      {
+        "instances": [
+          {
+            "file": "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx",
+            "start_line": 1115,
+            "end_line": 1130,
+            "start_col": 14,
+            "end_col": 82,
+            "fragment": "<div className=\"space-y-4 text-sm text-slate-300 leading-relaxed\">\n                <div>\n                  <p className=\"font-semibold text-yellow-300 mb-1\">\n                    Q: Does a PowerShell function call inside a comment (e.g.,{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      Join-Path\n                    </code>{\" \"}\n                    inside a{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      # comment\n                    </code>{\" \"}\n                    line) get evaluated at runtime?\n                  </p>\n                  <p>\n                    <span className=\"font-bold text-red-300\">No.</span> A{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">#</code>"
+          },
+          {
+            "file": "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx",
+            "start_line": 1158,
+            "end_line": 1175,
+            "start_col": 16,
+            "end_col": 27,
+            "fragment": "<hr className=\"border-slate-700\" />\n                <div>\n                  <p className=\"font-semibold text-yellow-300 mb-1\">\n                    Q: Does the{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      HintPath\n                    </code>{\" \"}\n                    in Linting.csproj need a{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      Condition\n                    </code>{\" \"}\n                    attribute on Linux CI?\n                  </p>\n                  <p>\n                    <span className=\"font-bold text-red-300\">Yes.</span> The{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      $(UserProfile)\n                    </code>"
+          }
+        ],
+        "token_count": 52,
+        "line_count": 18
+      },
+      {
+        "instances": [
+          {
+            "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+            "start_line": 133,
+            "end_line": 139,
+            "start_col": 13,
+            "end_col": 81,
+            "fragment": "showSite5Code ? 'Hide Code' : 'Show OLD / NEW Code'}\n          </button>\n        </div>\n        <div className=\"grid grid-cols-1 md:grid-cols-3 gap-3 text-xs mb-2\">\n          <div><span className=\"text-slate-400\">Method:</span> <span className=\"text-white font-mono\">HandleMatchedFollowerOrder</span></div>\n          <div><span className=\"text-slate-400\">Classification:</span> <span className=\"text-rose-400 font-bold\">ÔÜá TYPE 2</span></div>\n          <div><span className=\"text-slate-400\">Transform:</span> <span className"
+          },
+          {
+            "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+            "start_line": 179,
+            "end_line": 185,
+            "start_col": 13,
+            "end_col": 81,
+            "fragment": "showSite11Code ? 'Hide Code' : 'Show OLD / NEW Code'}\n          </button>\n        </div>\n        <div className=\"grid grid-cols-1 md:grid-cols-3 gap-3 text-xs mb-2\">\n          <div><span className=\"text-slate-400\">Method:</span> <span className=\"text-white font-mono\">AuditAccountState</span></div>\n          <div><span className=\"text-slate-400\">Classification:</span> <span className=\"text-rose-400 font-bold\">ÔÜá TYPE 2</span></div>\n          <div><span className=\"text-slate-400\">Transform:</span> <span className"
+          }
+        ],
+        "token_count": 73,
+        "line_count": 7
+      },
+      {
+        "instances": [
+          {
+            "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+            "start_line": 139,
+            "end_line": 145,
+            "start_col": 66,
+            "end_col": 107,
+            "fragment": "<span className=\"text-blue-300\">A (statement-body)</span></div>\n        </div>\n        <div className=\"bg-rose-950/50 border border-rose-700 rounded p-2 text-xs text-rose-200 mb-2\">\n          <span className=\"font-bold text-rose-400\">Variable that would not be cleaned:</span>{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_followerReplaceSpecs</code> ÔÇö the ConcurrentDictionary entry for{' '}\n          <code className=\"bg-black/40 px-1 rounded\">sigName</code> is removed by{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_followerReplaceSpecs.TryRemove(sigName, out _)</code>"
+          },
+          {
+            "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+            "start_line": 185,
+            "end_line": 191,
+            "start_col": 66,
+            "end_col": 103,
+            "fragment": "<span className=\"text-purple-300\">B (expression ÔåÆ statement)</span></div>\n        </div>\n        <div className=\"bg-rose-950/50 border border-rose-700 rounded p-2 text-xs text-rose-200 mb-2\">\n          <span className=\"font-bold text-rose-400\">Variable that would not be cleaned:</span>{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_repairInFlight</code> ÔÇö the ConcurrentDictionary entry for{' '}\n          <code className=\"bg-black/40 px-1 rounded\">repairKey</code> is removed only in the catch block via{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_repairInFlight.TryRemove(repairKey, out _)</code>"
+          }
+        ],
+        "token_count": 50,
+        "line_count": 7
+      }
+    ],
+    "clone_families": [
+      {
+        "files": [
+          "artifacts/battle_results/lambda/src/App.tsx"
+        ],
+        "groups": [
+          {
+            "instances": [
+              {
+                "file": "artifacts/battle_results/lambda/src/App.tsx",
+                "start_line": 1006,
+                "end_line": 1019,
+                "start_col": 8,
+                "end_col": 37,
+                "fragment": "<ul className=\"space-y-3 text-sm text-slate-700\">\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-01]</span>\n            <span>\n              <strong>Section F Steps 3, 4, 5 ÔÇö grep / POSIX commands on Windows PowerShell:</strong> All three forensic grep commands are POSIX-syntax and will not run natively in Windows PowerShell. PowerShell Select-String equivalents are provided in Section 3 of this review. Plan should replace or supplement these with PowerShell-native commands for Windows developer machines.\n            </span>\n          </li>\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-02]</span>\n            <span>\n              <strong>Section F Steps 6, 7 ÔÇö subagent tooling dependency:</strong> \"forensics\" and \"architect\" subagents (per CLAUDE.md) are environment-dependent. If the engineering environment lacks this tooling, these steps are skipped silently. Plan should note the fallback (manual Select-String equivalents from steps 3-5).\n            </span>\n          </li>\n          <li className=\"flex gap-2\">"
+              },
+              {
+                "file": "artifacts/battle_results/lambda/src/App.tsx",
+                "start_line": 1024,
+                "end_line": 1037,
+                "start_col": 10,
+                "end_col": 13,
+                "fragment": "</li>\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-04]</span>\n            <span>\n              <strong>Section C.1 / Site 16 ÔÇö stateLock stub retention comment:</strong> The plan's Step 4.1 comment says stateLock is retained because \"22 out-of-scope partial files still reference it; scheduled for removal in the next migration phase.\" This is clear and adequate, but the plan should include a follow-up ADR or ticket reference for the next phase to ensure the stub does not persist indefinitely.\n            </span>\n          </li>\n          <li className=\"flex gap-2\">\n            <span className=\"font-bold text-blue-600 flex-shrink-0\">[A-05]</span>\n            <span>\n              <strong>MSBuild HintPath / Condition attribute:</strong> If any .csproj HintPath changes are part of the cascade migration (not explicitly listed in D.4 but implied by NinjaTrader 8 assembly references), each Reference pointing to a path that may be absent on a CI agent should carry a Condition attribute on the Reference element (not HintPath) to avoid build failures on machines without NinjaTrader 8 installed.\n            </span>\n          </li>\n        </ul>"
+              }
+            ],
+            "token_count": 58,
+            "line_count": 14
+          }
+        ],
+        "total_duplicated_lines": 14,
+        "total_duplicated_tokens": 58,
+        "suggestions": [
+          {
+            "kind": "ExtractFunction",
+            "description": "Extract shared function (14 lines) from App.tsx, App.tsx",
+            "estimated_savings": 14
+          }
+        ]
+      },
+      {
+        "files": [
+          "artifacts/battle_results/lambda/vite.config.ts",
+          "artifacts/battle_results/react/vite.config.ts",
+          "artifacts/battlezips/react-system-flow-dashboard/vite.config.ts",
+          "artifacts/battlezips/system-flow-visualizer-dashboard/vite.config.ts",
+          "artifacts/battlezips/system-flow-visualizer-dashboard_1/vite.config.ts",
+          "artifacts/battlezips/system-flow-visualizer-dashboard_2/vite.config.ts",
+          "artifacts/battlezips/system-flow-visualizer-dashboard_3/vite.config.ts",
+          "tmp/battle_results/battle_2/vite.config.ts",
+          "tmp/battle_results/battle_3/vite.config.ts",
+          "tmp/battle_results/battle_4/vite.config.ts",
+          "tmp/battlezips/build-react-lambda-dashboard/vite.config.ts",
+          "tmp/battlezips/build-react-lambda-dashboard_1/vite.config.ts",
+          "tmp/battlezips/build-react-tailwind-dashboard/vite.config.ts",
+          "tmp/battlezips/react-tailwind-dashboard-implementation/vite.config.ts"
+        ],
+        "groups": [
+          {
+            "instances": [
+              {
+                "file": "artifacts/battle_results/lambda/vite.config.ts",
+                "start_line": 1,
+                "end_line": 19,
+                "start_col": 0,
+                "end_col": 2,
+                "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+              },
+              {
+                "file": "artifacts/battle_results/react/vite.config.ts",
+                "start_line": 1,
+                "end_line": 19,
+                "start_col": 0,
+                "end_col": 2,
+                "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+              },
+              {
+                "file": "artifacts/battlezips/react-system-flow-dashboard/vite.config.ts",
+                "start_line": 1,
+                "end_line": 19,
+                "start_col": 0,
+                "end_col": 2,
+                "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+              },
+              {
+                "file": "artifacts/battlezips/system-flow-visualizer-dashboard/vite.config.ts",
+                "start_line": 1,
+                "end_line": 19,
+                "start_col": 0,
+                "end_col": 2,
+                "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+              },
+              {
+                "file": "artifacts/battlezips/system-flow-visualizer-dashboard_1/vite.config.ts",
+                "start_line": 1,
+                "end_line": 19,
+                "start_col": 0,
+                "end_col": 2,
+                "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+              },
+              {
+                "file": "artifacts/battlezips/system-flow-visualizer-dashboard_2/vite.config.ts",
+                "start_line": 1,
+                "end_line": 19,
+                "start_col": 0,
+                "end_col": 2,
+                "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+              },
+              {
+                "file": "artifacts/battlezips/system-flow-visualizer-dashboard_3/vite.config.ts",
+                "start_line": 1,
+                "end_line": 19,
+                "start_col": 0,
+                "end_col": 2,
+                "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+              },
+              {
+                "file": "tmp/battle_results/battle_2/vite.config.ts",
+                "start_line": 1,
+                "end_line": 19,
+                "start_col": 0,
+                "end_col": 2,
+                "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+              },
+              {
+                "file": "tmp/battle_results/battle_3/vite.config.ts",
+                "start_line": 1,
+                "end_line": 19,
+                "start_col": 0,
+                "end_col": 2,
+                "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+              },
+              {
+                "file": "tmp/battle_results/battle_4/vite.config.ts",
+                "start_line": 1,
+                "end_line": 19,
+                "start_col": 0,
+                "end_col": 2,
+                "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+              },
+              {
+                "file": "tmp/battlezips/build-react-lambda-dashboard/vite.config.ts",
+                "start_line": 1,
+                "end_line": 19,
+                "start_col": 0,
+                "end_col": 2,
+                "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+              },
+              {
+                "file": "tmp/battlezips/build-react-lambda-dashboard_1/vite.config.ts",
+                "start_line": 1,
+                "end_line": 19,
+                "start_col": 0,
+                "end_col": 2,
+                "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+              },
+              {
+                "file": "tmp/battlezips/build-react-tailwind-dashboard/vite.config.ts",
+                "start_line": 1,
+                "end_line": 19,
+                "start_col": 0,
+                "end_col": 2,
+                "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+              },
+              {
+                "file": "tmp/battlezips/react-tailwind-dashboard-implementation/vite.config.ts",
+                "start_line": 1,
+                "end_line": 19,
+                "start_col": 0,
+                "end_col": 2,
+                "fragment": "import path from \"path\";\nimport { fileURLToPath } from \"url\";\nimport tailwindcss from \"@tailwindcss/vite\";\nimport react from \"@vitejs/plugin-react\";\nimport { defineConfig } from \"vite\";\nimport { viteSingleFile } from \"vite-plugin-singlefile\";\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), viteSingleFile()],\n  resolve: {\n    alias: {\n      \"@\": path.resolve(__dirname, \"src\"),\n    },\n  },\n})"
+              }
+            ],
+            "token_count": 92,
+            "line_count": 19
+          }
+        ],
+        "total_duplicated_lines": 19,
+        "total_duplicated_tokens": 92,
+        "suggestions": [
+          {
+            "kind": "ExtractFunction",
+            "description": "Extract shared function (19 lines) from vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts, vite.config.ts",
+            "estimated_savings": 247
+          }
+        ]
+      },
+      {
+        "files": [
+          "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx"
+        ],
+        "groups": [
+          {
+            "instances": [
+              {
+                "file": "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx",
+                "start_line": 1115,
+                "end_line": 1130,
+                "start_col": 14,
+                "end_col": 82,
+                "fragment": "<div className=\"space-y-4 text-sm text-slate-300 leading-relaxed\">\n                <div>\n                  <p className=\"font-semibold text-yellow-300 mb-1\">\n                    Q: Does a PowerShell function call inside a comment (e.g.,{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      Join-Path\n                    </code>{\" \"}\n                    inside a{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      # comment\n                    </code>{\" \"}\n                    line) get evaluated at runtime?\n                  </p>\n                  <p>\n                    <span className=\"font-bold text-red-300\">No.</span> A{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">#</code>"
+              },
+              {
+                "file": "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx",
+                "start_line": 1158,
+                "end_line": 1175,
+                "start_col": 16,
+                "end_col": 27,
+                "fragment": "<hr className=\"border-slate-700\" />\n                <div>\n                  <p className=\"font-semibold text-yellow-300 mb-1\">\n                    Q: Does the{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      HintPath\n                    </code>{\" \"}\n                    in Linting.csproj need a{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      Condition\n                    </code>{\" \"}\n                    attribute on Linux CI?\n                  </p>\n                  <p>\n                    <span className=\"font-bold text-red-300\">Yes.</span> The{\" \"}\n                    <code className=\"font-mono bg-slate-900 px-1 rounded\">\n                      $(UserProfile)\n                    </code>"
+              }
+            ],
+            "token_count": 52,
+            "line_count": 18
+          }
+        ],
+        "total_duplicated_lines": 18,
+        "total_duplicated_tokens": 52,
+        "suggestions": [
+          {
+            "kind": "ExtractFunction",
+            "description": "Extract shared function (18 lines) from App.tsx, App.tsx",
+            "estimated_savings": 18
+          }
+        ]
+      },
+      {
+        "files": [
+          "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx"
+        ],
+        "groups": [
+          {
+            "instances": [
+              {
+                "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+                "start_line": 133,
+                "end_line": 139,
+                "start_col": 13,
+                "end_col": 81,
+                "fragment": "showSite5Code ? 'Hide Code' : 'Show OLD / NEW Code'}\n          </button>\n        </div>\n        <div className=\"grid grid-cols-1 md:grid-cols-3 gap-3 text-xs mb-2\">\n          <div><span className=\"text-slate-400\">Method:</span> <span className=\"text-white font-mono\">HandleMatchedFollowerOrder</span></div>\n          <div><span className=\"text-slate-400\">Classification:</span> <span className=\"text-rose-400 font-bold\">ÔÜá TYPE 2</span></div>\n          <div><span className=\"text-slate-400\">Transform:</span> <span className"
+              },
+              {
+                "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+                "start_line": 179,
+                "end_line": 185,
+                "start_col": 13,
+                "end_col": 81,
+                "fragment": "showSite11Code ? 'Hide Code' : 'Show OLD / NEW Code'}\n          </button>\n        </div>\n        <div className=\"grid grid-cols-1 md:grid-cols-3 gap-3 text-xs mb-2\">\n          <div><span className=\"text-slate-400\">Method:</span> <span className=\"text-white font-mono\">AuditAccountState</span></div>\n          <div><span className=\"text-slate-400\">Classification:</span> <span className=\"text-rose-400 font-bold\">ÔÜá TYPE 2</span></div>\n          <div><span className=\"text-slate-400\">Transform:</span> <span className"
+              }
+            ],
+            "token_count": 73,
+            "line_count": 7
+          },
+          {
+            "instances": [
+              {
+                "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+                "start_line": 139,
+                "end_line": 145,
+                "start_col": 66,
+                "end_col": 107,
+                "fragment": "<span className=\"text-blue-300\">A (statement-body)</span></div>\n        </div>\n        <div className=\"bg-rose-950/50 border border-rose-700 rounded p-2 text-xs text-rose-200 mb-2\">\n          <span className=\"font-bold text-rose-400\">Variable that would not be cleaned:</span>{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_followerReplaceSpecs</code> ÔÇö the ConcurrentDictionary entry for{' '}\n          <code className=\"bg-black/40 px-1 rounded\">sigName</code> is removed by{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_followerReplaceSpecs.TryRemove(sigName, out _)</code>"
+              },
+              {
+                "file": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+                "start_line": 185,
+                "end_line": 191,
+                "start_col": 66,
+                "end_col": 103,
+                "fragment": "<span className=\"text-purple-300\">B (expression ÔåÆ statement)</span></div>\n        </div>\n        <div className=\"bg-rose-950/50 border border-rose-700 rounded p-2 text-xs text-rose-200 mb-2\">\n          <span className=\"font-bold text-rose-400\">Variable that would not be cleaned:</span>{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_repairInFlight</code> ÔÇö the ConcurrentDictionary entry for{' '}\n          <code className=\"bg-black/40 px-1 rounded\">repairKey</code> is removed only in the catch block via{' '}\n          <code className=\"bg-black/40 px-1 rounded\">_repairInFlight.TryRemove(repairKey, out _)</code>"
+              }
+            ],
+            "token_count": 50,
+            "line_count": 7
+          }
+        ],
+        "total_duplicated_lines": 14,
+        "total_duplicated_tokens": 123,
+        "suggestions": [
+          {
+            "kind": "ExtractFunction",
+            "description": "Extract shared function (7 lines) from Section1_LambdaSites.tsx, Section1_LambdaSites.tsx",
+            "estimated_savings": 7
+          },
+          {
+            "kind": "ExtractFunction",
+            "description": "Extract shared function (7 lines) from Section1_LambdaSites.tsx, Section1_LambdaSites.tsx",
+            "estimated_savings": 7
+          }
+        ]
+      }
+    ],
+    "stats": {
+      "total_files": 34,
+      "files_with_clones": 17,
+      "total_lines": 12944,
+      "duplicated_lines": 354,
+      "total_tokens": 46551,
+      "duplicated_tokens": 1429,
+      "clone_groups": 5,
+      "clone_instances": 22,
+      "duplication_percentage": 2.734857849196539
+    }
+  },
+  "health": {
+    "findings": [
+      {
+        "path": "artifacts/battle_results/react/src/App.tsx",
+        "name": "<arrow>",
+        "line": 716,
+        "col": 25,
+        "cyclomatic": 19,
+        "cognitive": 13,
+        "line_count": 79,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "critical",
+        "crap": 380.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "refactor-function",
+            "auto_fixable": false,
+            "description": "Refactor `<arrow>` to reduce complexity (extract helper functions, simplify branching)",
+            "note": "Consider splitting into smaller functions with single responsibilities"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battle_results/lambda/src/App.tsx",
+        "name": "<arrow>",
+        "line": 674,
+        "col": 19,
+        "cyclomatic": 16,
+        "cognitive": 13,
+        "line_count": 83,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "critical",
+        "crap": 272.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "refactor-function",
+            "auto_fixable": false,
+            "description": "Refactor `<arrow>` to reduce complexity (extract helper functions, simplify branching)",
+            "note": "Consider splitting into smaller functions with single responsibilities"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/react-tailwind-dashboard-implementation/src/App.tsx",
+        "name": "<arrow>",
+        "line": 259,
+        "col": 31,
+        "cyclomatic": 14,
+        "cognitive": 14,
+        "line_count": 102,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "critical",
+        "crap": 210.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-tailwind-dashboard/src/App.tsx",
+        "name": "SiteCard",
+        "line": 44,
+        "col": 0,
+        "cyclomatic": 13,
+        "cognitive": 10,
+        "line_count": 103,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "critical",
+        "crap": 182.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `SiteCard` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battle_results/battle_4/src/App.tsx",
+        "name": "App",
+        "line": 404,
+        "col": 15,
+        "cyclomatic": 12,
+        "cognitive": 10,
+        "line_count": 397,
+        "param_count": 0,
+        "exceeded": "crap",
+        "severity": "critical",
+        "crap": 156.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `App` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battle_results/battle_2/src/App.tsx",
+        "name": "<arrow>",
+        "line": 249,
+        "col": 31,
+        "cyclomatic": 12,
+        "cognitive": 14,
+        "line_count": 64,
+        "param_count": 2,
+        "exceeded": "crap",
+        "severity": "critical",
+        "crap": 156.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+        "name": "<arrow>",
+        "line": 217,
+        "col": 22,
+        "cyclomatic": 12,
+        "cognitive": 14,
+        "line_count": 62,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "critical",
+        "crap": 156.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battle_results/battle_2/src/App.tsx",
+        "name": "App",
+        "line": 22,
+        "col": 15,
+        "cyclomatic": 10,
+        "cognitive": 9,
+        "line_count": 479,
+        "param_count": 0,
+        "exceeded": "crap",
+        "severity": "critical",
+        "crap": 110.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `App` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-tailwind-dashboard/src/App.tsx",
+        "name": "<arrow>",
+        "line": 377,
+        "col": 31,
+        "cyclomatic": 10,
+        "cognitive": 10,
+        "line_count": 49,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "critical",
+        "crap": 110.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx",
+        "name": "SiteCard",
+        "line": 811,
+        "col": 0,
+        "cyclomatic": 10,
+        "cognitive": 9,
+        "line_count": 107,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "critical",
+        "crap": 110.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `SiteCard` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battle_results/lambda/src/App.tsx",
+        "name": "<arrow>",
+        "line": 889,
+        "col": 25,
+        "cyclomatic": 9,
+        "cognitive": 6,
+        "line_count": 51,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "high",
+        "crap": 90.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battle_results/battle_2/src/App.tsx",
+        "name": "<arrow>",
+        "line": 358,
+        "col": 37,
+        "cyclomatic": 8,
+        "cognitive": 7,
+        "line_count": 43,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "high",
+        "crap": 72.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-tailwind-dashboard/src/App.tsx",
+        "name": "filtered",
+        "line": 153,
+        "col": 38,
+        "cyclomatic": 8,
+        "cognitive": 6,
+        "line_count": 9,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "high",
+        "crap": 72.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `filtered` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section2_PathConsistency.tsx",
+        "name": "<arrow>",
+        "line": 89,
+        "col": 25,
+        "cyclomatic": 7,
+        "cognitive": 6,
+        "line_count": 47,
+        "param_count": 2,
+        "exceeded": "crap",
+        "severity": "high",
+        "crap": 56.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battle_results/react/src/App.tsx",
+        "name": "<arrow>",
+        "line": 909,
+        "col": 22,
+        "cyclomatic": 7,
+        "cognitive": 6,
+        "line_count": 45,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "high",
+        "crap": 56.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/react-tailwind-dashboard-implementation/src/App.tsx",
+        "name": "<arrow>",
+        "line": 451,
+        "col": 41,
+        "cyclomatic": 6,
+        "cognitive": 7,
+        "line_count": 28,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 42.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/react-tailwind-dashboard-implementation/src/App.tsx",
+        "name": "App",
+        "line": 190,
+        "col": 0,
+        "cyclomatic": 6,
+        "cognitive": 4,
+        "line_count": 414,
+        "param_count": 0,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 42.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `App` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+        "name": "<arrow>",
+        "line": 107,
+        "col": 80,
+        "cyclomatic": 6,
+        "cognitive": 11,
+        "line_count": 13,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 42.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battle_results/battle_4/src/App.tsx",
+        "name": "PatternCard",
+        "line": 245,
+        "col": 0,
+        "cyclomatic": 5,
+        "cognitive": 3,
+        "line_count": 83,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 30.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `PatternCard` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battle_results/battle_2/src/App.tsx",
+        "name": "<arrow>",
+        "line": 169,
+        "col": 23,
+        "cyclomatic": 5,
+        "cognitive": 4,
+        "line_count": 35,
+        "param_count": 2,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 30.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section3_VerificationSteps.tsx",
+        "name": "<arrow>",
+        "line": 251,
+        "col": 19,
+        "cyclomatic": 5,
+        "cognitive": 3,
+        "line_count": 43,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 30.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard/src/App.tsx",
+        "name": "<arrow>",
+        "line": 208,
+        "col": 20,
+        "cyclomatic": 5,
+        "cognitive": 5,
+        "line_count": 10,
+        "param_count": 2,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 30.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+        "name": "filtered",
+        "line": 69,
+        "col": 32,
+        "cyclomatic": 5,
+        "cognitive": 4,
+        "line_count": 7,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 30.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `filtered` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+        "name": "Section1_LambdaSites",
+        "line": 63,
+        "col": 15,
+        "cyclomatic": 5,
+        "cognitive": 4,
+        "line_count": 221,
+        "param_count": 0,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 30.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `Section1_LambdaSites` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section4_Summary.tsx",
+        "name": "<arrow>",
+        "line": 212,
+        "col": 167,
+        "cyclomatic": 5,
+        "cognitive": 6,
+        "line_count": 12,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 30.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-tailwind-dashboard/src/App.tsx",
+        "name": "Section4Summary",
+        "line": 452,
+        "col": 0,
+        "cyclomatic": 5,
+        "cognitive": 4,
+        "line_count": 145,
+        "param_count": 0,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 30.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `Section4Summary` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-tailwind-dashboard/src/App.tsx",
+        "name": "App",
+        "line": 598,
+        "col": 15,
+        "cyclomatic": 5,
+        "cognitive": 4,
+        "line_count": 94,
+        "param_count": 0,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 30.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `App` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battle_results/lambda/src/App.tsx",
+        "name": "<arrow>",
+        "line": 806,
+        "col": 30,
+        "cyclomatic": 5,
+        "cognitive": 6,
+        "line_count": 40,
+        "param_count": 2,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 30.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battle_results/battle_3/src/App.tsx",
+        "name": "<arrow>",
+        "line": 637,
+        "col": 47,
+        "cyclomatic": 5,
+        "cognitive": 4,
+        "line_count": 11,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 30.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battle_results/battle_3/src/App.tsx",
+        "name": "App",
+        "line": 462,
+        "col": 15,
+        "cyclomatic": 5,
+        "cognitive": 4,
+        "line_count": 259,
+        "param_count": 0,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 30.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `App` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx",
+        "name": "<arrow>",
+        "line": 1263,
+        "col": 36,
+        "cyclomatic": 5,
+        "cognitive": 5,
+        "line_count": 46,
+        "param_count": 2,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 30.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `<arrow>` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx",
+        "name": "App",
+        "line": 921,
+        "col": 15,
+        "cyclomatic": 5,
+        "cognitive": 4,
+        "line_count": 807,
+        "param_count": 0,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 30.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `App` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/battle_results/react/src/App.tsx",
+        "name": "App",
+        "line": 1070,
+        "col": 0,
+        "cyclomatic": 5,
+        "cognitive": 4,
+        "line_count": 72,
+        "param_count": 0,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 30.0,
+        "coverage_tier": "none",
+        "actions": [
+          {
+            "type": "add-tests",
+            "auto_fixable": false,
+            "description": "Add test coverage for `App` to lower its CRAP score (coverage reduces risk even without refactoring)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; higher coverage is the fastest way to bring CRAP under threshold"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "files_analyzed": 94,
+      "functions_analyzed": 338,
+      "functions_above_threshold": 33,
+      "max_cyclomatic_threshold": 20,
+      "max_cognitive_threshold": 15,
+      "max_crap_threshold": 30.0,
+      "files_scored": 32,
+      "average_maintainability": 88.9,
+      "coverage_model": "static_estimated",
+      "severity_critical_count": 10,
+      "severity_high_count": 5,
+      "severity_moderate_count": 18
+    },
+    "vital_signs": {
+      "dead_file_pct": 20.2,
+      "dead_export_pct": 0.0,
+      "avg_cyclomatic": 2.0,
+      "p90_cyclomatic": 4,
+      "hotspot_count": 0,
+      "maintainability_avg": 88.9,
+      "unused_dep_count": 0,
+      "circular_dep_count": 0,
+      "counts": {
+        "total_files": 94,
+        "total_exports": 57,
+        "dead_files": 19,
+        "dead_exports": 0,
+        "total_lines": 15759,
+        "files_scored": 32,
+        "total_deps": 0
+      },
+      "unit_size_profile": {
+        "low_risk": 72.2,
+        "medium_risk": 8.9,
+        "high_risk": 6.5,
+        "very_high_risk": 12.4
+      },
+      "unit_interfacing_profile": {
+        "low_risk": 100.0,
+        "medium_risk": 0.0,
+        "high_risk": 0.0,
+        "very_high_risk": 0.0
+      },
+      "p95_fan_in": 1,
+      "coupling_high_pct": 0.0,
+      "total_loc": 15759
+    },
+    "file_scores": [
+      {
+        "path": "artifacts/battle_results/react/src/App.tsx",
+        "fan_in": 1,
+        "fan_out": 0,
+        "dead_code_ratio": 1.0,
+        "complexity_density": 0.05,
+        "maintainability_index": 78.5,
+        "total_cyclomatic": 57,
+        "total_cognitive": 27,
+        "function_count": 25,
+        "lines": 1142,
+        "crap_max": 380.0,
+        "crap_above_threshold": 3
+      },
+      {
+        "path": "artifacts/battle_results/lambda/src/App.tsx",
+        "fan_in": 1,
+        "fan_out": 0,
+        "dead_code_ratio": 1.0,
+        "complexity_density": 0.04,
+        "maintainability_index": 78.8,
+        "total_cyclomatic": 49,
+        "total_cognitive": 25,
+        "function_count": 22,
+        "lines": 1167,
+        "crap_max": 272.0,
+        "crap_above_threshold": 3
+      },
+      {
+        "path": "artifacts/battle_results/lambda/src/utils/cn.ts",
+        "fan_in": 0,
+        "fan_out": 0,
+        "dead_code_ratio": 1.0,
+        "complexity_density": 0.14,
+        "maintainability_index": 79.4,
+        "total_cyclomatic": 1,
+        "total_cognitive": 0,
+        "function_count": 1,
+        "lines": 7,
+        "crap_max": 2.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "artifacts/battle_results/react/src/utils/cn.ts",
+        "fan_in": 0,
+        "fan_out": 0,
+        "dead_code_ratio": 1.0,
+        "complexity_density": 0.14,
+        "maintainability_index": 79.4,
+        "total_cyclomatic": 1,
+        "total_cognitive": 0,
+        "function_count": 1,
+        "lines": 7,
+        "crap_max": 2.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "artifacts/battlezips/react-system-flow-dashboard/src/utils/cn.ts",
+        "fan_in": 0,
+        "fan_out": 0,
+        "dead_code_ratio": 1.0,
+        "complexity_density": 0.14,
+        "maintainability_index": 79.4,
+        "total_cyclomatic": 1,
+        "total_cognitive": 0,
+        "function_count": 1,
+        "lines": 7,
+        "crap_max": 2.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard/src/utils/cn.ts",
+        "fan_in": 0,
+        "fan_out": 0,
+        "dead_code_ratio": 1.0,
+        "complexity_density": 0.14,
+        "maintainability_index": 79.4,
+        "total_cyclomatic": 1,
+        "total_cognitive": 0,
+        "function_count": 1,
+        "lines": 7,
+        "crap_max": 2.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard_1/src/utils/cn.ts",
+        "fan_in": 0,
+        "fan_out": 0,
+        "dead_code_ratio": 1.0,
+        "complexity_density": 0.14,
+        "maintainability_index": 79.4,
+        "total_cyclomatic": 1,
+        "total_cognitive": 0,
+        "function_count": 1,
+        "lines": 7,
+        "crap_max": 2.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard_2/src/utils/cn.ts",
+        "fan_in": 0,
+        "fan_out": 0,
+        "dead_code_ratio": 1.0,
+        "complexity_density": 0.14,
+        "maintainability_index": 79.4,
+        "total_cyclomatic": 1,
+        "total_cognitive": 0,
+        "function_count": 1,
+        "lines": 7,
+        "crap_max": 2.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard_3/src/utils/cn.ts",
+        "fan_in": 0,
+        "fan_out": 0,
+        "dead_code_ratio": 1.0,
+        "complexity_density": 0.14,
+        "maintainability_index": 79.4,
+        "total_cyclomatic": 1,
+        "total_cognitive": 0,
+        "function_count": 1,
+        "lines": 7,
+        "crap_max": 2.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "tmp/battle_results/battle_3/src/utils/cn.ts",
+        "fan_in": 0,
+        "fan_out": 0,
+        "dead_code_ratio": 1.0,
+        "complexity_density": 0.14,
+        "maintainability_index": 79.4,
+        "total_cyclomatic": 1,
+        "total_cognitive": 0,
+        "function_count": 1,
+        "lines": 7,
+        "crap_max": 2.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "tmp/battle_results/battle_4/src/utils/cn.ts",
+        "fan_in": 0,
+        "fan_out": 0,
+        "dead_code_ratio": 1.0,
+        "complexity_density": 0.14,
+        "maintainability_index": 79.4,
+        "total_cyclomatic": 1,
+        "total_cognitive": 0,
+        "function_count": 1,
+        "lines": 7,
+        "crap_max": 2.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard/src/utils/cn.ts",
+        "fan_in": 0,
+        "fan_out": 0,
+        "dead_code_ratio": 1.0,
+        "complexity_density": 0.14,
+        "maintainability_index": 79.4,
+        "total_cyclomatic": 1,
+        "total_cognitive": 0,
+        "function_count": 1,
+        "lines": 7,
+        "crap_max": 2.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/utils/cn.ts",
+        "fan_in": 0,
+        "fan_out": 0,
+        "dead_code_ratio": 1.0,
+        "complexity_density": 0.14,
+        "maintainability_index": 79.4,
+        "total_cyclomatic": 1,
+        "total_cognitive": 0,
+        "function_count": 1,
+        "lines": 7,
+        "crap_max": 2.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "tmp/battlezips/build-react-tailwind-dashboard/src/utils/cn.ts",
+        "fan_in": 0,
+        "fan_out": 0,
+        "dead_code_ratio": 1.0,
+        "complexity_density": 0.14,
+        "maintainability_index": 79.4,
+        "total_cyclomatic": 1,
+        "total_cognitive": 0,
+        "function_count": 1,
+        "lines": 7,
+        "crap_max": 2.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "tmp/battlezips/react-tailwind-dashboard-implementation/src/utils/cn.ts",
+        "fan_in": 0,
+        "fan_out": 0,
+        "dead_code_ratio": 1.0,
+        "complexity_density": 0.14,
+        "maintainability_index": 79.4,
+        "total_cyclomatic": 1,
+        "total_cognitive": 0,
+        "function_count": 1,
+        "lines": 7,
+        "crap_max": 2.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/App.tsx",
+        "fan_in": 1,
+        "fan_out": 4,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.05,
+        "maintainability_index": 92.1,
+        "total_cyclomatic": 6,
+        "total_cognitive": 2,
+        "function_count": 4,
+        "lines": 131,
+        "crap_max": 6.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+        "fan_in": 1,
+        "fan_out": 1,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.13,
+        "maintainability_index": 93.3,
+        "total_cyclomatic": 37,
+        "total_cognitive": 34,
+        "function_count": 12,
+        "lines": 284,
+        "crap_max": 156.0,
+        "crap_above_threshold": 4
+      },
+      {
+        "path": "tmp/battle_results/battle_2/src/App.tsx",
+        "fan_in": 1,
+        "fan_out": 1,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.12,
+        "maintainability_index": 93.6,
+        "total_cyclomatic": 59,
+        "total_cognitive": 40,
+        "function_count": 23,
+        "lines": 501,
+        "crap_max": 156.0,
+        "crap_above_threshold": 4
+      },
+      {
+        "path": "tmp/battlezips/build-react-tailwind-dashboard/src/App.tsx",
+        "fan_in": 1,
+        "fan_out": 1,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.12,
+        "maintainability_index": 93.6,
+        "total_cyclomatic": 83,
+        "total_cognitive": 47,
+        "function_count": 34,
+        "lines": 692,
+        "crap_max": 182.0,
+        "crap_above_threshold": 5
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section2_PathConsistency.tsx",
+        "fan_in": 1,
+        "fan_out": 0,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.07,
+        "maintainability_index": 97.9,
+        "total_cyclomatic": 10,
+        "total_cognitive": 7,
+        "function_count": 3,
+        "lines": 147,
+        "crap_max": 56.0,
+        "crap_above_threshold": 1
+      },
+      {
+        "path": "tmp/battlezips/react-tailwind-dashboard-implementation/src/App.tsx",
+        "fan_in": 1,
+        "fan_out": 0,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.07,
+        "maintainability_index": 97.9,
+        "total_cyclomatic": 41,
+        "total_cognitive": 28,
+        "function_count": 15,
+        "lines": 605,
+        "crap_max": 210.0,
+        "crap_above_threshold": 3
+      },
+      {
+        "path": "tmp/battle_results/battle_3/src/App.tsx",
+        "fan_in": 1,
+        "fan_out": 0,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.06,
+        "maintainability_index": 98.2,
+        "total_cyclomatic": 46,
+        "total_cognitive": 15,
+        "function_count": 31,
+        "lines": 721,
+        "crap_max": 30.0,
+        "crap_above_threshold": 2
+      },
+      {
+        "path": "tmp/battle_results/battle_4/src/App.tsx",
+        "fan_in": 1,
+        "fan_out": 0,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.06,
+        "maintainability_index": 98.2,
+        "total_cyclomatic": 52,
+        "total_cognitive": 22,
+        "function_count": 28,
+        "lines": 801,
+        "crap_max": 156.0,
+        "crap_above_threshold": 2
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section4_Summary.tsx",
+        "fan_in": 1,
+        "fan_out": 0,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.06,
+        "maintainability_index": 98.2,
+        "total_cyclomatic": 13,
+        "total_cognitive": 6,
+        "function_count": 9,
+        "lines": 231,
+        "crap_max": 30.0,
+        "crap_above_threshold": 1
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard/src/App.tsx",
+        "fan_in": 1,
+        "fan_out": 0,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.05,
+        "maintainability_index": 98.5,
+        "total_cyclomatic": 37,
+        "total_cognitive": 15,
+        "function_count": 23,
+        "lines": 789,
+        "crap_max": 30.0,
+        "crap_above_threshold": 1
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard_3/src/App.tsx",
+        "fan_in": 1,
+        "fan_out": 0,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.05,
+        "maintainability_index": 98.5,
+        "total_cyclomatic": 27,
+        "total_cognitive": 13,
+        "function_count": 14,
+        "lines": 570,
+        "crap_max": 20.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard_1/src/App.tsx",
+        "fan_in": 1,
+        "fan_out": 0,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.04,
+        "maintainability_index": 98.8,
+        "total_cyclomatic": 26,
+        "total_cognitive": 9,
+        "function_count": 17,
+        "lines": 606,
+        "crap_max": 12.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard_2/src/App.tsx",
+        "fan_in": 1,
+        "fan_out": 0,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.04,
+        "maintainability_index": 98.8,
+        "total_cyclomatic": 29,
+        "total_cognitive": 9,
+        "function_count": 21,
+        "lines": 645,
+        "crap_max": 12.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section3_VerificationSteps.tsx",
+        "fan_in": 1,
+        "fan_out": 0,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.04,
+        "maintainability_index": 98.8,
+        "total_cyclomatic": 13,
+        "total_cognitive": 4,
+        "function_count": 8,
+        "lines": 298,
+        "crap_max": 30.0,
+        "crap_above_threshold": 1
+      },
+      {
+        "path": "artifacts/battlezips/react-system-flow-dashboard/src/App.tsx",
+        "fan_in": 1,
+        "fan_out": 0,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.03,
+        "maintainability_index": 99.1,
+        "total_cyclomatic": 20,
+        "total_cognitive": 7,
+        "function_count": 13,
+        "lines": 655,
+        "crap_max": 20.0,
+        "crap_above_threshold": 0
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx",
+        "fan_in": 1,
+        "fan_out": 0,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.03,
+        "maintainability_index": 99.1,
+        "total_cyclomatic": 48,
+        "total_cognitive": 27,
+        "function_count": 22,
+        "lines": 1728,
+        "crap_max": 110.0,
+        "crap_above_threshold": 3
+      },
+      {
+        "path": "tmp/battle_results/battle_2/src/utils/cn.ts",
+        "fan_in": 1,
+        "fan_out": 0,
+        "dead_code_ratio": 0.0,
+        "complexity_density": 0.14,
+        "maintainability_index": 99.4,
+        "total_cyclomatic": 1,
+        "total_cognitive": 0,
+        "function_count": 1,
+        "lines": 7,
+        "crap_max": 2.0,
+        "crap_above_threshold": 0
+      }
+    ],
+    "hotspot_summary": {
+      "since": "6 months",
+      "min_commits": 3,
+      "files_analyzed": 0,
+      "files_excluded": 32,
+      "shallow_clone": false
+    },
+    "large_functions": [
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx",
+        "name": "App",
+        "line": 921,
+        "line_count": 807
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard_1/src/App.tsx",
+        "name": "App",
+        "line": 118,
+        "line_count": 488
+      },
+      {
+        "path": "tmp/battle_results/battle_2/src/App.tsx",
+        "name": "App",
+        "line": 22,
+        "line_count": 479
+      },
+      {
+        "path": "artifacts/battlezips/react-system-flow-dashboard/src/App.tsx",
+        "name": "App",
+        "line": 206,
+        "line_count": 449
+      },
+      {
+        "path": "tmp/battlezips/react-tailwind-dashboard-implementation/src/App.tsx",
+        "name": "App",
+        "line": 190,
+        "line_count": 414
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard_2/src/App.tsx",
+        "name": "App",
+        "line": 245,
+        "line_count": 400
+      },
+      {
+        "path": "tmp/battle_results/battle_4/src/App.tsx",
+        "name": "App",
+        "line": 404,
+        "line_count": 397
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard_3/src/App.tsx",
+        "name": "App",
+        "line": 211,
+        "line_count": 359
+      },
+      {
+        "path": "tmp/battle_results/battle_3/src/App.tsx",
+        "name": "App",
+        "line": 462,
+        "line_count": 259
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+        "name": "Section1_LambdaSites",
+        "line": 63,
+        "line_count": 221
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard/src/App.tsx",
+        "name": "App",
+        "line": 624,
+        "line_count": 165
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section4_Summary.tsx",
+        "name": "Section4_Summary",
+        "line": 85,
+        "line_count": 146
+      },
+      {
+        "path": "tmp/battlezips/build-react-tailwind-dashboard/src/App.tsx",
+        "name": "Section4Summary",
+        "line": 452,
+        "line_count": 145
+      },
+      {
+        "path": "artifacts/battle_results/lambda/src/App.tsx",
+        "name": "SiteInventorySection",
+        "line": 644,
+        "line_count": 117
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/App.tsx",
+        "name": "App",
+        "line": 18,
+        "line_count": 113
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section3_VerificationSteps.tsx",
+        "name": "Section3_VerificationSteps",
+        "line": 187,
+        "line_count": 111
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard/src/App.tsx",
+        "name": "SiteCard",
+        "line": 811,
+        "line_count": 107
+      },
+      {
+        "path": "artifacts/battle_results/react/src/App.tsx",
+        "name": "Section1",
+        "line": 693,
+        "line_count": 106
+      },
+      {
+        "path": "tmp/battlezips/build-react-tailwind-dashboard/src/App.tsx",
+        "name": "Section2PathSubstitution",
+        "line": 240,
+        "line_count": 106
+      },
+      {
+        "path": "tmp/battlezips/build-react-tailwind-dashboard/src/App.tsx",
+        "name": "Section3Verification",
+        "line": 347,
+        "line_count": 104
+      },
+      {
+        "path": "artifacts/battle_results/lambda/src/App.tsx",
+        "name": "SummarySection",
+        "line": 952,
+        "line_count": 103
+      },
+      {
+        "path": "artifacts/battlezips/react-system-flow-dashboard/src/App.tsx",
+        "name": "CompareTable",
+        "line": 101,
+        "line_count": 103
+      },
+      {
+        "path": "tmp/battlezips/build-react-tailwind-dashboard/src/App.tsx",
+        "name": "SiteCard",
+        "line": 44,
+        "line_count": 103
+      },
+      {
+        "path": "tmp/battlezips/react-tailwind-dashboard-implementation/src/App.tsx",
+        "name": "<arrow>",
+        "line": 259,
+        "line_count": 102
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard/src/App.tsx",
+        "name": "CompTable",
+        "line": 124,
+        "line_count": 99
+      },
+      {
+        "path": "artifacts/battle_results/react/src/App.tsx",
+        "name": "Section4",
+        "line": 961,
+        "line_count": 97
+      },
+      {
+        "path": "artifacts/battle_results/lambda/src/App.tsx",
+        "name": "App",
+        "line": 1071,
+        "line_count": 96
+      },
+      {
+        "path": "tmp/battlezips/build-react-tailwind-dashboard/src/App.tsx",
+        "name": "App",
+        "line": 598,
+        "line_count": 94
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section2_PathConsistency.tsx",
+        "name": "Section2_PathConsistency",
+        "line": 55,
+        "line_count": 92
+      },
+      {
+        "path": "tmp/battlezips/build-react-tailwind-dashboard/src/App.tsx",
+        "name": "Section1Inventory",
+        "line": 148,
+        "line_count": 91
+      },
+      {
+        "path": "artifacts/battle_results/lambda/src/App.tsx",
+        "name": "VerificationSection",
+        "line": 857,
+        "line_count": 90
+      },
+      {
+        "path": "artifacts/battle_results/lambda/src/App.tsx",
+        "name": "PathSubstitutionSection",
+        "line": 766,
+        "line_count": 86
+      },
+      {
+        "path": "artifacts/battle_results/lambda/src/App.tsx",
+        "name": "<arrow>",
+        "line": 674,
+        "line_count": 83
+      },
+      {
+        "path": "tmp/battle_results/battle_4/src/App.tsx",
+        "name": "PatternCard",
+        "line": 245,
+        "line_count": 83
+      },
+      {
+        "path": "artifacts/battle_results/react/src/App.tsx",
+        "name": "<arrow>",
+        "line": 716,
+        "line_count": 79
+      },
+      {
+        "path": "artifacts/battle_results/react/src/App.tsx",
+        "name": "Section3",
+        "line": 880,
+        "line_count": 78
+      },
+      {
+        "path": "artifacts/battle_results/react/src/App.tsx",
+        "name": "Section2",
+        "line": 802,
+        "line_count": 75
+      },
+      {
+        "path": "artifacts/battle_results/react/src/App.tsx",
+        "name": "App",
+        "line": 1070,
+        "line_count": 72
+      },
+      {
+        "path": "artifacts/battlezips/system-flow-visualizer-dashboard_3/src/App.tsx",
+        "name": "FlowDiagram",
+        "line": 142,
+        "line_count": 67
+      },
+      {
+        "path": "artifacts/battle_results/lambda/src/App.tsx",
+        "name": "<arrow>",
+        "line": 880,
+        "line_count": 64
+      },
+      {
+        "path": "tmp/battle_results/battle_2/src/App.tsx",
+        "name": "<arrow>",
+        "line": 249,
+        "line_count": 64
+      },
+      {
+        "path": "tmp/battlezips/build-react-lambda-dashboard_1/src/components/Section1_LambdaSites.tsx",
+        "name": "<arrow>",
+        "line": 217,
+        "line_count": 62
+      }
+    ],
+    "target_thresholds": {
+      "fan_in_p95": 5.0,
+      "fan_in_p75": 3.0,
+      "fan_out_p95": 8.0,
+      "fan_out_p90": 5
+    }
+  }
+}

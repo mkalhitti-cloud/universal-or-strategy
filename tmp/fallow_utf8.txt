@@ -1,0 +1,256 @@
+﻿ÔöÇÔöÇ Unused Code ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+ÔùÅ Unused files (19)
+  artifacts\battle_results\lambda\src\App.tsx
+  artifacts\battle_results\lambda\src\index.css
+  artifacts\battle_results\lambda\src\main.tsx
+  artifacts\battle_results\lambda\src\utils\cn.ts
+  artifacts\battle_results\react\src\App.tsx
+  artifacts\battle_results\react\src\index.css
+  artifacts\battle_results\react\src\main.tsx
+  artifacts\battle_results\react\src\utils\cn.ts
+  artifacts\battlezips\react-system-flow-dashboard\src\utils\cn.ts
+  artifacts\battlezips\system-flow-visualizer-dashboard\src\utils\cn.ts
+  ... and 9 more (--format json for full list)
+  Files not reachable from any entry point ÔÇö https://docs.fallow.tools/explanations/dead-code#unused-files
+  To suppress: // fallow-ignore-next-line unused-files
+
+ÔùÅ Duplicates (5 clone groups)
+
+     19 lines  14 instances
+    artifacts\battle_results\lambda\vite.config.ts:1-19
+    artifacts\battle_results\react\vite.config.ts:1-19
+    artifacts\battlezips\react-system-flow-dashboard\vite.config.ts:1-19
+    artifacts\battlezips\system-flow-visualizer-dashboard\vite.config.ts:1-19
+    artifacts\battlezips\system-flow-visualizer-dashboard_1\vite.config.ts:1-19
+    artifacts\battlezips\system-flow-visualizer-dashboard_2\vite.config.ts:1-19
+    artifacts\battlezips\system-flow-visualizer-dashboard_3\vite.config.ts:1-19
+    tmp\battle_results\battle_2\vite.config.ts:1-19
+    tmp\battle_results\battle_3\vite.config.ts:1-19
+    tmp\battle_results\battle_4\vite.config.ts:1-19
+    tmp\battlezips\build-react-lambda-dashboard\vite.config.ts:1-19
+    tmp\battlezips\build-react-lambda-dashboard_1\vite.config.ts:1-19
+    tmp\battlezips\build-react-tailwind-dashboard\vite.config.ts:1-19
+    tmp\battlezips\react-tailwind-dashboard-implementation\vite.config.ts:1-19
+
+     18 lines  2 instances
+    tmp\battlezips\build-react-lambda-dashboard\src\App.tsx:1115-1130
+    tmp\battlezips\build-react-lambda-dashboard\src\App.tsx:1158-1175
+
+     14 lines  2 instances
+    artifacts\battle_results\lambda\src\App.tsx:1006-1019
+    artifacts\battle_results\lambda\src\App.tsx:1024-1037
+
+      7 lines  2 instances
+    tmp\battlezips\build-react-lambda-dashboard_1\src\components\Section1_LambdaSites.tsx:133-139
+    tmp\battlezips\build-react-lambda-dashboard_1\src\components\Section1_LambdaSites.tsx:179-185
+
+      7 lines  2 instances
+    tmp\battlezips\build-react-lambda-dashboard_1\src\components\Section1_LambdaSites.tsx:139-145
+    tmp\battlezips\build-react-lambda-dashboard_1\src\components\Section1_LambdaSites.tsx:185-191
+
+  Identical code blocks detected via suffix-array analysis ÔÇö https://docs.fallow.tools/explanations/duplication#clone-groups
+
+ÔùÅ Clone families (1 with multiple groups)
+
+  2 groups, 14 lines across tmp\battlezips\build-react-lambda-dashboard_1\src\components\Section1_LambdaSites.tsx
+    ÔåÆ Extract shared function (7 lines) from Section1_LambdaSites.tsx, Section1_LambdaSites.tsx
+    ÔåÆ Extract shared function (7 lines) from Section1_LambdaSites.tsx, Section1_LambdaSites.tsx
+
+  Groups of related clones across the same files ÔÇö https://docs.fallow.tools/explanations/duplication#clone-families
+
+Ôûá Metrics: 15,759 LOC ┬À dead files 20.2% ┬À dead exports 0.0% ┬À avg cyclomatic 2.0 ┬À p90 cyclomatic 4 ┬À maintainability 88.9 (good) ┬À 0 churn hotspots
+
+  Function size: 72% low ┬À 9% medium ┬À 6% high ┬À 12% very high  (1-15 / 16-30 / 31-60 / >60 LOC)
+
+ÔùÅ Large functions (10 shown, 42 total)
+  tmp\battlezips\build-react-lambda-dashboard\src\App.tsx
+    :921 App  807 lines
+  artifacts\battlezips\system-flow-visualizer-dashboard_1\src\App.tsx
+    :118 App  488 lines
+  tmp\battle_results\battle_2\src\App.tsx
+    :22 App  479 lines
+  artifacts\battlezips\react-system-flow-dashboard\src\App.tsx
+    :206 App  449 lines
+  tmp\battlezips\react-tailwind-dashboard-implementation\src\App.tsx
+    :190 App  414 lines
+  artifacts\battlezips\system-flow-visualizer-dashboard_2\src\App.tsx
+    :245 App  400 lines
+  tmp\battle_results\battle_4\src\App.tsx
+    :404 App  397 lines
+  artifacts\battlezips\system-flow-visualizer-dashboard_3\src\App.tsx
+    :211 App  359 lines
+  tmp\battle_results\battle_3\src\App.tsx
+    :462 App  259 lines
+  tmp\battlezips\build-react-lambda-dashboard_1\src\components\Section1_LambdaSites.tsx
+    :63 Section1_LambdaSites  221 lines
+  Functions exceeding 60 lines of code (very high risk): https://docs.fallow.tools/explanations/health#unit-size
+  use --top 42 to see all
+
+ÔùÅ High complexity functions (33)
+  artifacts\battle_results\react\src\App.tsx
+    :716 <arrow> CRITICAL
+          19 cyclomatic   13 cognitive   79 lines
+         380.0 CRAP
+  artifacts\battle_results\lambda\src\App.tsx
+    :674 <arrow> CRITICAL
+          16 cyclomatic   13 cognitive   83 lines
+         272.0 CRAP
+  tmp\battlezips\react-tailwind-dashboard-implementation\src\App.tsx
+    :259 <arrow> CRITICAL
+          14 cyclomatic   14 cognitive  102 lines
+         210.0 CRAP
+  tmp\battlezips\build-react-tailwind-dashboard\src\App.tsx
+    :44 SiteCard CRITICAL
+          13 cyclomatic   10 cognitive  103 lines
+         182.0 CRAP
+  tmp\battle_results\battle_4\src\App.tsx
+    :404 App CRITICAL
+          12 cyclomatic   10 cognitive  397 lines
+         156.0 CRAP
+  tmp\battle_results\battle_2\src\App.tsx
+    :249 <arrow> CRITICAL
+          12 cyclomatic   14 cognitive   64 lines
+         156.0 CRAP
+  tmp\battlezips\build-react-lambda-dashboard_1\src\components\Section1_LambdaSites.tsx
+    :217 <arrow> CRITICAL
+          12 cyclomatic   14 cognitive   62 lines
+         156.0 CRAP
+  tmp\battle_results\battle_2\src\App.tsx
+    :22 App CRITICAL
+          10 cyclomatic    9 cognitive  479 lines
+         110.0 CRAP
+  tmp\battlezips\build-react-tailwind-dashboard\src\App.tsx
+    :377 <arrow> CRITICAL
+          10 cyclomatic   10 cognitive   49 lines
+         110.0 CRAP
+  tmp\battlezips\build-react-lambda-dashboard\src\App.tsx
+    :811 SiteCard CRITICAL
+          10 cyclomatic    9 cognitive  107 lines
+         110.0 CRAP
+  artifacts\battle_results\lambda\src\App.tsx
+    :889 <arrow> HIGH
+           9 cyclomatic    6 cognitive   51 lines
+          90.0 CRAP
+  tmp\battle_results\battle_2\src\App.tsx
+    :358 <arrow> HIGH
+           8 cyclomatic    7 cognitive   43 lines
+          72.0 CRAP
+  tmp\battlezips\build-react-tailwind-dashboard\src\App.tsx
+    :153 filtered HIGH
+           8 cyclomatic    6 cognitive    9 lines
+          72.0 CRAP
+  tmp\battlezips\build-react-lambda-dashboard_1\src\components\Section2_PathConsistency.tsx
+    :89 <arrow> HIGH
+           7 cyclomatic    6 cognitive   47 lines
+          56.0 CRAP
+  artifacts\battle_results\react\src\App.tsx
+    :909 <arrow> HIGH
+           7 cyclomatic    6 cognitive   45 lines
+          56.0 CRAP
+  tmp\battlezips\react-tailwind-dashboard-implementation\src\App.tsx
+    :451 <arrow>
+           6 cyclomatic    7 cognitive   28 lines
+          42.0 CRAP
+    :190 App
+           6 cyclomatic    4 cognitive  414 lines
+          42.0 CRAP
+  tmp\battlezips\build-react-lambda-dashboard_1\src\components\Section1_LambdaSites.tsx
+    :107 <arrow>
+           6 cyclomatic   11 cognitive   13 lines
+          42.0 CRAP
+  tmp\battle_results\battle_4\src\App.tsx
+    :245 PatternCard
+           5 cyclomatic    3 cognitive   83 lines
+          30.0 CRAP
+  tmp\battle_results\battle_2\src\App.tsx
+    :169 <arrow>
+           5 cyclomatic    4 cognitive   35 lines
+          30.0 CRAP
+  tmp\battlezips\build-react-lambda-dashboard_1\src\components\Section3_VerificationSteps.tsx
+    :251 <arrow>
+           5 cyclomatic    3 cognitive   43 lines
+          30.0 CRAP
+  artifacts\battlezips\system-flow-visualizer-dashboard\src\App.tsx
+    :208 <arrow>
+           5 cyclomatic    5 cognitive   10 lines
+          30.0 CRAP
+  tmp\battlezips\build-react-lambda-dashboard_1\src\components\Section1_LambdaSites.tsx
+    :69 filtered
+           5 cyclomatic    4 cognitive    7 lines
+          30.0 CRAP
+    :63 Section1_LambdaSites
+           5 cyclomatic    4 cognitive  221 lines
+          30.0 CRAP
+  tmp\battlezips\build-react-lambda-dashboard_1\src\components\Section4_Summary.tsx
+    :212 <arrow>
+           5 cyclomatic    6 cognitive   12 lines
+          30.0 CRAP
+  tmp\battlezips\build-react-tailwind-dashboard\src\App.tsx
+    :452 Section4Summary
+           5 cyclomatic    4 cognitive  145 lines
+          30.0 CRAP
+    :598 App
+           5 cyclomatic    4 cognitive   94 lines
+          30.0 CRAP
+  artifacts\battle_results\lambda\src\App.tsx
+    :806 <arrow>
+           5 cyclomatic    6 cognitive   40 lines
+          30.0 CRAP
+  tmp\battle_results\battle_3\src\App.tsx
+    :637 <arrow>
+           5 cyclomatic    4 cognitive   11 lines
+          30.0 CRAP
+    :462 App
+           5 cyclomatic    4 cognitive  259 lines
+          30.0 CRAP
+  tmp\battlezips\build-react-lambda-dashboard\src\App.tsx
+    :1263 <arrow>
+           5 cyclomatic    5 cognitive   46 lines
+          30.0 CRAP
+    :921 App
+           5 cyclomatic    4 cognitive  807 lines
+          30.0 CRAP
+  artifacts\battle_results\react\src\App.tsx
+    :1070 App
+           5 cyclomatic    4 cognitive   72 lines
+          30.0 CRAP
+  Functions exceeding cyclomatic, cognitive, or CRAP thresholds (https://docs.fallow.tools/explanations/health#complexity-metrics)
+  To suppress: // fallow-ignore-next-line complexity
+
+ÔùÅ File health scores (32 files)
+
+   78.5    artifacts\battle_results\react\src\App.tsx
+           1142 LOC    1 fan-in    0 fan-out  100% dead  0.05 density  380.0 risk
+
+   78.8    artifacts\battle_results\lambda\src\App.tsx
+           1167 LOC    1 fan-in    0 fan-out  100% dead  0.04 density  272.0 risk
+
+   79.4    artifacts\battle_results\lambda\src\utils\cn.ts
+              7 LOC    0 fan-in    0 fan-out  100% dead  0.14 density  2.0 risk
+
+   79.4    artifacts\battle_results\react\src\utils\cn.ts
+              7 LOC    0 fan-in    0 fan-out  100% dead  0.14 density  2.0 risk
+
+   79.4    artifacts\battlezips\react-system-flow-dashboard\src\utils\cn.ts
+              7 LOC    0 fan-in    0 fan-out  100% dead  0.14 density  2.0 risk
+
+   79.4    artifacts\battlezips\system-flow-visualizer-dashboard\src\utils\cn.ts
+              7 LOC    0 fan-in    0 fan-out  100% dead  0.14 density  2.0 risk
+
+   79.4    artifacts\battlezips\system-flow-visualizer-dashboard_1\src\utils\cn.ts
+              7 LOC    0 fan-in    0 fan-out  100% dead  0.14 density  2.0 risk
+
+   79.4    artifacts\battlezips\system-flow-visualizer-dashboard_2\src\utils\cn.ts
+              7 LOC    0 fan-in    0 fan-out  100% dead  0.14 density  2.0 risk
+
+   79.4    artifacts\battlezips\system-flow-visualizer-dashboard_3\src\utils\cn.ts
+              7 LOC    0 fan-in    0 fan-out  100% dead  0.14 density  2.0 risk
+
+   79.4    tmp\battle_results\battle_3\src\utils\cn.ts
+              7 LOC    0 fan-in    0 fan-out  100% dead  0.14 density  2.0 risk
+
+  ... and 22 more files (--format json for full list)
+
+  Composite file quality scores based on complexity, coupling, and dead code. Risk: low <15, moderate 15-30, high >=30. CRAP estimated from export references (85% direct, 40% indirect, 0% untested). Use --coverage for exact scores. https://docs.fallow.tools/explanations/health#file-health-scores
+

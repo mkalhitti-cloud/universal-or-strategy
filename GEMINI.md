@@ -6,7 +6,8 @@
 - **No Internal Locks**: Legacy `lock(stateLock)` is **BANNED** for internal logic. All state mutations must be thread-safe; use the `Enqueue(ctx => ...)` model by default EXCEPT when direct-write is required for termination safety (see Build 981).
 - **Build 981 Protocol**: Direct writes to `stopOrders` are MANDATORY during bracket submission. DO NOT use Enqueue for this operation as it creates a ghost-order tracking window during shutdown.
 - **Lifecycle**: Semaphores (`_simaToggleSem`) MUST be released in finally blocks.
-- **Refactoring**: ALL file splits MUST use the Python extractor script (see Section 7). Manual copy-paste is BANNED for any split exceeding 50 lines.
+- **Refactoring**: ALL file splits MUST use the Python extractor script (see Section 7). Manual copy-paste is BANNED for splits exceeding 50 lines.
+- **Script Authority**: All agents are AUTHORIZED to discover and execute scripts in the `scripts/` directory as part of their assigned phase (e.g., AMAL vetting in P5, benchmarking in P4).
 - **Instrument Lookups**: Prefer explicit FirstOrDefault logic for instrument lookups (Reaper parity).
 - **Style**: Use PascalCase for methods, camelCase for local variables. Avoid dense one-liners; prioritize "Metabolic Elegance."
 
@@ -17,7 +18,7 @@
 - **ORCHESTRATOR (Antigravity / Gemini CLI)**: The Central Switchboard. Intake (P1) and multi-agent coordination. BANNED from manual coding.
 - **FORENSICS (Codex)**: Diagnosis (P2) and Logic Audits (P5). Provides "Logical Proof of Failure."
 - **ARCHITECT (Claude Code)**: Design & Strategic Planning (P3). Peer Review & Sign-off (P5).
-- **ENGINEER (Codex / Jules)**: Implementation (P4). Execution of approved surgical edits.
+- **ENGINEER (Codex / Jules)**: Implementation (P4). Execution of approved surgical edits. **AUTHORIZED to edit and commit in $codexcloud.**
 
 ### 2. OPERATIONAL WORKFLOW
 

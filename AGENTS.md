@@ -5,6 +5,7 @@
 ## Director's Gate (NON-NEGOTIABLE)
 - Every code change requires Director-approved implementation_plan.md BEFORE execution.
 - You are BANNED from self-approving plans. Present plans to the Director only.
+- **P4 AUTHORIZATION:** When you are the assigned ENGINEER (P4), you are explicitly AUTHORIZED to edit src/ files, run scripts, and execute commits as per the approved plan. Do NOT claim the environment is read-only.
 - Use Plan Mode for all Phase work. Confirm scope before writing a single line.
 
 ## V12 Permanent DNA
@@ -27,6 +28,7 @@
 ### File Operations
 - BANNED: Manual copy-paste for file splits exceeding 50 lines.
 - REQUIRED: Use scripts/<module>_split.py for all file splits.
+- **SCRIPT DISCOVERY:** Proactively check the `scripts/` directory for automation tools (e.g., `amal_harness.py`, `auto-benchmark.ps1`, `check_ascii.py`). You are AUTHORIZED to run these in $codexcloud.
 - Semaphores (_simaToggleSem) MUST be released in finally blocks.
 
 ## Self-Audit (run before every handoff)
