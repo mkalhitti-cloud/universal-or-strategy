@@ -124,7 +124,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (symmetryDispatchById.TryGetValue(dispatchId, out var ctx) && ctx != null)
             {
-                                {
                     // V1101E HOT-PATCH: Build follower worklist from snapshot; never call stateLock paths while snapshotting.
                     foreach (string fleetEntryName in SymmetryReadFollowers(ctx))
                     {
@@ -141,7 +140,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                         followersToResolve.Add(fleetEntryName);
                     }
                 }
-            }
 
             // V1101E HOT-PATCH: Preserve legacy dispatch-map scan to catch followers missing from ctx.FollowerEntries.
             foreach (var kvp in symmetryPendingFollowerFills.ToArray())

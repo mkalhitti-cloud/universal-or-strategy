@@ -27,7 +27,18 @@ namespace NinjaTrader.NinjaScript.Strategies
             public double MasterAnchorPrice;
             public bool IsResolved;
 
-                        public ImmutableHashSet<string> FollowerEntries = ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+                        public FillStateSnapshot FillState = new FillStateSnapshot(ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal));
+        }
+
+
+        private sealed class FillStateSnapshot
+        {
+            public readonly ImmutableHashSet<string> FollowerEntries;
+
+            public FillStateSnapshot(ImmutableHashSet<string> followerEntries)
+            {
+                FollowerEntries = followerEntries ?? ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+            }
         }
 
         private sealed class PendingFollowerFill
@@ -194,41 +205,46 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 
 
-        private static ImmutableHashSet<string> SymmetryAddFollower(SymmetryDispatchContext ctx, string follower)
+        private void SymmetryAddFollower(SymmetryDispatchContext ctx, string follower)
         {
-            SpinWait spin = new SpinWait();
-            while (true)
+            if (ctx == null || string.IsNullOrEmpty(follower))
+                return;
+
+            Enqueue(_ =>
             {
-                var current = Volatile.Read(ref ctx.FollowerEntries);
-                var updated = current.Add(follower);
-                if (ReferenceEquals(current, updated))
-                    return updated;
-                var prior = Interlocked.CompareExchange(ref ctx.FollowerEntries, updated, current);
-                if (ReferenceEquals(prior, current))
-                    return updated;
-                spin.SpinOnce();
-            }
+                var current = Volatile.Read(ref ctx.FillState);
+                var currentFollowers = current != null
+                    ? current.FollowerEntries
+                    : ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+                var updatedFollowers = currentFollowers.Add(follower);
+                if (!ReferenceEquals(currentFollowers, updatedFollowers))
+                    Interlocked.Exchange(ref ctx.FillState, new FillStateSnapshot(updatedFollowers));
+            });
         }
 
-        private static ImmutableHashSet<string> SymmetryRemoveFollower(SymmetryDispatchContext ctx, string follower)
+        private void SymmetryRemoveFollower(SymmetryDispatchContext ctx, string follower)
         {
-            SpinWait spin = new SpinWait();
-            while (true)
+            if (ctx == null || string.IsNullOrEmpty(follower))
+                return;
+
+            Enqueue(_ =>
             {
-                var current = Volatile.Read(ref ctx.FollowerEntries);
-                var updated = current.Remove(follower);
-                if (ReferenceEquals(current, updated))
-                    return updated;
-                var prior = Interlocked.CompareExchange(ref ctx.FollowerEntries, updated, current);
-                if (ReferenceEquals(prior, current))
-                    return updated;
-                spin.SpinOnce();
-            }
+                var current = Volatile.Read(ref ctx.FillState);
+                var currentFollowers = current != null
+                    ? current.FollowerEntries
+                    : ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+                var updatedFollowers = currentFollowers.Remove(follower);
+                if (!ReferenceEquals(currentFollowers, updatedFollowers))
+                    Interlocked.Exchange(ref ctx.FillState, new FillStateSnapshot(updatedFollowers));
+            });
         }
 
         private static ImmutableHashSet<string> SymmetryReadFollowers(SymmetryDispatchContext ctx)
         {
-            return Volatile.Read(ref ctx.FollowerEntries);
+            var current = Volatile.Read(ref ctx.FillState);
+            return current != null
+                ? current.FollowerEntries
+                : ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
         }
 
         #endregion

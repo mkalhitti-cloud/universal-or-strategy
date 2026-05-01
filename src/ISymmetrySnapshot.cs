@@ -6,15 +6,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public interface ISymmetrySnapshot
     {
-        string DispatchId { get; init; }
-        string TradeType { get; init; }
-        MarketPosition Direction { get; init; }
-        int ExpectedQuantity { get; init; }
-        DateTime CreatedUtc { get; init; }
-        double MasterWeightedFill { get; init; }
-        int MasterFilledQuantity { get; init; }
-        double MasterAnchorPrice { get; init; }
-        bool IsResolved { get; init; }
-        ImmutableHashSet<string> FollowerEntries { get; init; }
+        string DispatchId { get; }
+        string TradeType { get; }
+        MarketPosition Direction { get; }
+        int ExpectedQuantity { get; }
+        DateTime CreatedUtc { get; }
+        double MasterWeightedFill { get; }
+        int MasterFilledQuantity { get; }
+        double MasterAnchorPrice { get; }
+        bool IsResolved { get; }
+        ImmutableHashSet<string> FollowerEntries { get; }
     }
 }
