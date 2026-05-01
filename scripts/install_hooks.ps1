@@ -56,6 +56,15 @@ $lines = @(
     '    echo "[WARN] gitleaks not on PATH -- skipping secret scan. CI will catch it."',
     'fi',
     "",
+    "# Gate 4: Large file detection (Max 20MB)",
+    "MAX_SIZE=20971520",
+    'OVERSIZED=$(git diff --cached --name-only --diff-filter=ACM | xargs -r du -b | awk -v size="$MAX_SIZE" ''$1 > size {print $2}'')',
+    'if [ -n "$OVERSIZED" ]; then',
+    '    echo "PRE-COMMIT FAIL: Files over 20MB detected in staged files."',
+    '    echo "$OVERSIZED"',
+    '    exit 1',
+    "fi",
+    "",
     'echo "--- V12 Pre-Commit Gate: PASS ---"',
     "exit 0"
 )
@@ -65,5 +74,5 @@ $hookContent = $lines -join "`n"
 
 Write-Host ""
 Write-Host "HOOK INSTALLED : $hookTarget"
-Write-Host "Active gates   : [1] lock() ban  [2] ASCII purity  [3] gitleaks (if installed)"
+Write-Host "Active gates   : [1] lock() ban  [2] ASCII purity  [3] gitleaks (if installed)  [4] 20MB size limit"
 Write-Host "To bypass (rare): git commit --no-verify"

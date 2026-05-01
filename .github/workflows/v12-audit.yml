@@ -46,31 +46,41 @@ jobs:
           Write-Host "Installing JetBrains ReSharper CLI..."
           dotnet tool install -g JetBrains.ReSharper.GlobalTools
           
-          $slnOrProj = Get-ChildItem -Path . -Include *.sln, *.csproj -Recurse | Select-Object -First 1
-          if ($slnOrProj) {
-            Write-Host "Found project file: $($slnOrProj.FullName)"
+          # Ensure global tools are on the PATH for subsequent steps
+          $toolPath = "$env:USERPROFILE\.dotnet\tools"
+          if (-not ($env:Path -like "*$toolPath*")) {
+              Write-Host "Adding $toolPath to GITHUB_PATH..."
+              echo "$toolPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+              $env:Path += ";$toolPath"
+          }
+          
+          $proj = "Linting.csproj"
+          if (Test-Path $proj) {
+            Write-Host "Using analysis project: $proj"
             
             Write-Host "--- Running dupFinder (Duplicate Code) ---"
-            dupfinder $slnOrProj.FullName --output=duplicates.xml --show-text
-            if (Test-Path "duplicates.xml") {
-               $dups = [xml](Get-Content duplicates.xml)
-               $dupCount = $dups.DuplicatesReport.Duplicates.Duplicate.Count
-               Write-Host "Found $dupCount duplicates."
-               if ($dupCount -gt 0) { Write-Warning "Duplicate code detected. Check duplicates.xml artifact." }
-            }
+            jb dupfinder $proj --output=duplicates.xml --show-text
             
             Write-Host "--- Running inspectcode (Dead Code & Issues) ---"
-            inspectcode $slnOrProj.FullName --output=inspection.xml --severity=WARNING
-            if (Test-Path "inspection.xml") {
-               $issues = [xml](Get-Content inspection.xml)
-               $issueCount = $issues.Report.Issues.Project.Issue.Count
-               Write-Host "Found $issueCount potential issues."
-            }
+            jb inspectcode $proj --output=inspection.xml --severity=WARNING
           } else {
-            Write-Warning "No .sln or .csproj file found. ReSharper CLI requires a project file to analyze dependencies correctly."
+            Write-Warning "Linting.csproj not found. Skipping ReSharper analysis."
           }
 
       - name: 4. Secret Scanning (Gitleaks)
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 5. SonarAnalyzer.CSharp (Roslyn Analyzer)
+        shell: pwsh
+        run: |
+          $proj = "Linting.csproj"
+          if (Test-Path $proj) {
+            Write-Host "Adding SonarAnalyzer.CSharp to $proj..."
+            dotnet add $proj package SonarAnalyzer.CSharp
+            Write-Host "Building project to run Roslyn analyzers..."
+            dotnet build $proj
+          } else {
+            Write-Host "Linting.csproj not found. Skipping SonarAnalyzer step."
+          }

@@ -1,26 +1,43 @@
 import os
+import sys
+import glob
 
-files = [
-    'src/V12_002.REAPER.cs',
-    'src/V12_002.SIMA.cs',
-    'src/V12_002.cs',
-    'src/V12_002.Lifecycle.cs',
-    'src/V12_002.Orders.Callbacks.cs',
-    'src/V12_002.SIMA.Lifecycle.cs',
-    'src/V12_002.SIMA.Flatten.cs',
-    'src/V12_002.UI.IPC.Commands.Fleet.cs'
-]
-
-for f in files:
+def check_file(f):
     if not os.path.exists(f):
         print(f"{f} not found")
-        continue
+        return True # Not a violation if missing
+    
     with open(f, 'rb') as fh:
         content = fh.read()
         non_ascii = [(i, b) for i, b in enumerate(content) if b > 127]
         if non_ascii:
-            print(f"{f}: Found {len(non_ascii)} non-ASCII bytes")
-            for pos, b in non_ascii[:10]:
-                print(f"  Pos {pos}: 0x{b:02X}")
+            print(f"FAILED: {f} - Found {len(non_ascii)} non-ASCII bytes")
+            for pos, b in non_ascii[:5]:
+                # Try to show context
+                start = max(0, pos - 10)
+                end = min(len(content), pos + 10)
+                context = content[start:end]
+                print(f"  Pos {pos}: 0x{b:02X} | Context: {context}")
+            return False
         else:
-            print(f"{f}: All bytes are ASCII (0-127)")
+            print(f"PASS: {f} - All bytes are ASCII")
+            return True
+
+def main():
+    files = sys.argv[1:]
+    if not files:
+        # Default to all C# files in src
+        files = glob.glob('src/**/*.cs', recursive=True)
+    
+    all_pass = True
+    for f in files:
+        if not check_file(f):
+            all_pass = False
+    
+    if not all_pass:
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+
+# CI Trigger - V12.1.2

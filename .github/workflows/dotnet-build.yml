@@ -38,27 +38,14 @@ jobs:
           }
         shell: pwsh
 
+      - name: Build Solution (Compilation Check)
+        run: dotnet build universal-or-strategy.sln --configuration Release --nologo
+        shell: pwsh
+
       - name: Check for non-ASCII characters (ASCII Gate)
         # [MANIFESTO] Section 7: Non-ASCII in C# string literals breaks NT8 with 300+ errors.
         run: |
-          $files = Get-ChildItem -Path "src" -Filter "*.cs" -Recurse
-          $violations = @()
-          foreach ($f in $files) {
-            $content = [System.IO.File]::ReadAllBytes($f.FullName)
-            foreach ($byte in $content) {
-              if ($byte -gt 127) {
-                $violations += $f.FullName
-                break
-              }
-            }
-          }
-          if ($violations.Count -gt 0) {
-            Write-Host "ASCII GATE FAILED -- non-ASCII bytes found in:"
-            $violations | ForEach-Object { Write-Host "  - $_" }
-            exit 1
-          } else {
-            Write-Host "ASCII Gate PASSED -- all source files are clean."
-          }
+          python check_ascii.py
         shell: pwsh
 
       - name: Report build status
