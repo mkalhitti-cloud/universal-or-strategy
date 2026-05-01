@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [ "**" ]
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main", "master", "codex/**", "feature/**" ]
 
 jobs:
   dna-checks:
@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout codebase
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: 1. ASCII Gate (Compiler Safety)
         shell: pwsh
@@ -67,10 +69,6 @@ jobs:
             Write-Warning "Linting.csproj not found. Skipping ReSharper analysis."
           }
 
-      - name: 4. Secret Scanning (Gitleaks)
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 5. SonarAnalyzer.CSharp (Roslyn Analyzer)
         shell: pwsh

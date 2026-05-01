@@ -7,11 +7,11 @@ name: ".NET Desktop Build"
 
 on:
   push:
-    branches: ["main", "build/**"]
+    branches: ["main", "build/**", "codex/**", "feature/**"]
     paths:
       - "src/**.cs"
   pull_request:
-    branches: ["main"]
+    branches: ["main", "codex/**", "feature/**"]
     paths:
       - "src/**.cs"
 
