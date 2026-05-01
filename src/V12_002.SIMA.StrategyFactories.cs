@@ -8,20 +8,34 @@ namespace NinjaTrader.NinjaScript.Strategies
     {
         private interface IFleetAccountFilter
         {
-            bool ShouldSkip(Account account, AccountRankInfo rankInfo, System.Collections.Generic.HashSet<string> activeAccountSnapshot);
+            bool ShouldSkip(Account account, AccountRankInfo rankInfo, System.Collections.Generic.IReadOnlyCollection<string> activeAccountSnapshot);
         }
 
         private interface IFollowerPricingEngine
         {
-            void ComputeFollowerPrices(
+            FollowerPriceEnvelope ComputeFollowerPrices(
                 OrderAction action,
-                double entryPrice,
-                out double stopPrice,
-                out double t1,
-                out double t2,
-                out double t3,
-                out double t4,
-                out double t5);
+                double entryPrice);
+        }
+
+        private readonly struct FollowerPriceEnvelope
+        {
+            public readonly double StopPrice;
+            public readonly double T1;
+            public readonly double T2;
+            public readonly double T3;
+            public readonly double T4;
+            public readonly double T5;
+
+            public FollowerPriceEnvelope(double stopPrice, double t1, double t2, double t3, double t4, double t5)
+            {
+                StopPrice = stopPrice;
+                T1 = t1;
+                T2 = t2;
+                T3 = t3;
+                T4 = t4;
+                T5 = t5;
+            }
         }
 
         private interface IFollowerFSMBuilder
@@ -48,32 +62,40 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
         private struct StagedTargetBuffer
         {
             public int Count;
-            public StagedTarget T1;
-            public StagedTarget T2;
-            public StagedTarget T3;
-            public StagedTarget T4;
-            public StagedTarget T5;
+            private StagedTarget t1;
+            private StagedTarget t2;
+            private StagedTarget t3;
+            private StagedTarget t4;
+            private StagedTarget t5;
 
-            public void Add(in StagedTarget target)
+            public bool Add(in StagedTarget target)
             {
-                if (Count == 0) T1 = target;
-                else if (Count == 1) T2 = target;
-                else if (Count == 2) T3 = target;
-                else if (Count == 3) T4 = target;
-                else if (Count == 4) T5 = target;
-                Count = Math.Min(5, Count + 1);
+                if (Count >= 5) return false;
+
+                if (Count == 0) t1 = target;
+                else if (Count == 1) t2 = target;
+                else if (Count == 2) t3 = target;
+                else if (Count == 3) t4 = target;
+                else t5 = target;
+
+                Count++;
+                return true;
             }
 
             public StagedTarget At(int index)
             {
-                if (index == 0) return T1;
-                if (index == 1) return T2;
-                if (index == 2) return T3;
-                if (index == 3) return T4;
-                return T5;
+                if (index < 0 || index >= Count)
+                    throw new ArgumentOutOfRangeException(nameof(index));
+
+                if (index == 0) return t1;
+                if (index == 1) return t2;
+                if (index == 2) return t3;
+                if (index == 3) return t4;
+                return t5;
             }
         }
 
