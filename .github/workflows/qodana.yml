@@ -1,0 +1,31 @@
+name: Qodana
+on:
+  pull_request:
+    branches:
+      - main
+      - codex/**
+      - feature/**
+  push:
+    branches:
+      - main
+      - codex/**
+      - feature/**
+
+jobs:
+  qodana:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: 'Qodana Scan'
+        uses: JetBrains/qodana-action@v2024.1
+        with:
+          args: --project-at,.
+          cache-default-branch-only: true
+        env:
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}

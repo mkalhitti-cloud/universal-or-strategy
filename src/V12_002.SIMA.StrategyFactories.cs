@@ -1,4 +1,4 @@
-// Phase 3: Strategy factories and dispatch decoupling contracts.
+// Phase 3: Strategy factories and dispatch decoupling contracts. [BUILD_TRIGGER_SENTINEL_CI_FIX_001]
 using System;
 using NinjaTrader.Cbi;
 

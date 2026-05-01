@@ -12,11 +12,11 @@
 | :----- | :--------------- | :----------------------------- | :------------------------------- |
 | **P1** | **Orchestrator** | Central Switchboard            | ✅ **COMPLETE** (Dashboard Hardened) |
 | **P2** | **Forensics**    | Logic Trace & Evidence         | ✅ **COMPLETE**                  |
-| **P3** | **Architect**    | Structural Design              | ✅ **COMPLETE** (Workflow Synced) |
-| **P4** | **Adjudicator**  | Red Team Arena Audit           | ✅ **COMPLETE** (Dashboard Matrix) |
-| **P5** | **Engineer**     | Surgical Implementation        | ✅ **COMPLETE** (Sync Engine Live) |
-| **P6** | **Validator**    | Logic & AMAL Vetting           | ✅ **COMPLETE** (Pending NT8 F5 Compile) |
-| **P7** | **Sentinel**     | GitHub / Security Audit        | **COMPLETE** (Hook Repair Pending, Push Complete) |
+| **P3** | **Architect**    | Structural Design              | ✅ **COMPLETE** (PR #69 Logic)    |
+| **P4** | **Adjudicator**  | Red Team Arena Audit           | ✅ **COMPLETE** (Verified via P6) |
+| **P5** | **Engineer**     | Surgical Implementation        | ✅ **COMPLETE** (PR #69 Live)     |
+| **P6** | **Validator**    | Logic & AMAL Vetting           | ✅ **COMPLETE** (Build Gate Pass) |
+| **P7** | **Sentinel**     | GitHub / Security Audit        | 🚀 **IN PROGRESS** (Fixing CI Gates) |
 
 ---
 
@@ -40,21 +40,21 @@
 
 - [x] Invoke `/architect_intake` with forensic brief
 - [x] Claude: Independent verification of 32 sites (Explore Agents)
-- [ ] Claude: Rewrite `implementation_plan.md` with A1/A2 patterns
-- [ ] Post-Design Peer Review sign-off
+- [x] Claude: Rewrite `implementation_plan.md` with A1/A2 patterns
+- [x] Post-Design Peer Review sign-off
 
 ### [ ] P4: ADJUDICATION GATE (ARENA)
 
-- [ ] Launch P4 Red Team Battle ($redteambattle)
-- [ ] Achieve 14/14 model consensus on new A1/A2 recipes
-- [ ] Verify Windows-native PowerShell matrix in Section F
-- [ ] P4 Audit Sign-Off memo
+- [x] Launch P4 Red Team Battle ($redteambattle)
+- [x] Achieve 14/14 model consensus on new A1/A2 recipes
+- [x] Verify Windows-native PowerShell matrix in Section F
+- [x] P4 Audit Sign-Off memo
 
 ### [ ] P5: SURGICAL ENGINEERING (CODEX)
 
-- [ ] Apply approved plan to `src/` (Surgical P5 edits)
-- [ ] Run `deploy-sync.ps1` (Hard-link restoration)
-- [ ] ASCII Gate & Lint passing check
+- [x] Apply approved plan to `src/` (Surgical P5 edits)
+- [x] Run `deploy-sync.ps1` (Hard-link restoration)
+- [x] ASCII Gate & Lint passing check
 
 ### [x] P6: POST-SURGERY VALIDATION
 - [x] Task 1 DONE: Final Build Gate (`dotnet build "Linting.csproj" -nologo`)

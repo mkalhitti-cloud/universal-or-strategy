@@ -1,0 +1,340 @@
+﻿diff --git a/src/ISymmetrySnapshot.cs b/src/ISymmetrySnapshot.cs
+index 29c2b1d..30b4d7f 100644
+--- a/src/ISymmetrySnapshot.cs
++++ b/src/ISymmetrySnapshot.cs
+@@ -6,15 +6,56 @@ namespace NinjaTrader.NinjaScript.Strategies
+ {
+     public interface ISymmetrySnapshot
+     {
+-        string DispatchId { get; init; }
+-        string TradeType { get; init; }
+-        MarketPosition Direction { get; init; }
+-        int ExpectedQuantity { get; init; }
+-        DateTime CreatedUtc { get; init; }
+-        double MasterWeightedFill { get; init; }
+-        int MasterFilledQuantity { get; init; }
+-        double MasterAnchorPrice { get; init; }
+-        bool IsResolved { get; init; }
+-        ImmutableHashSet<string> FollowerEntries { get; init; }
++        string DispatchId { get; }
++        string TradeType { get; }
++        MarketPosition Direction { get; }
++        int ExpectedQuantity { get; }
++        DateTime CreatedUtc { get; }
++        double MasterWeightedFill { get; }
++        int MasterFilledQuantity { get; }
++        double MasterAnchorPrice { get; }
++        bool IsResolved { get; }
++        ImmutableHashSet<string> FollowerEntries { get; }
++    }
++
++    public sealed class FillStateSnapshot : ISymmetrySnapshot
++    {
++        public string DispatchId { get; }
++        public string TradeType { get; }
++        public MarketPosition Direction { get; }
++        public int ExpectedQuantity { get; }
++        public DateTime CreatedUtc { get; }
++        public double MasterWeightedFill { get; }
++        public int MasterFilledQuantity { get; }
++        public double MasterAnchorPrice { get; }
++        public bool IsResolved { get; }
++        public ImmutableHashSet<string> FollowerEntries { get; }
++        public long FillSequence { get; }
++
++        public FillStateSnapshot(
++            string dispatchId,
++            string tradeType,
++            MarketPosition direction,
++            int expectedQuantity,
++            DateTime createdUtc,
++            double masterWeightedFill,
++            int masterFilledQuantity,
++            double masterAnchorPrice,
++            bool isResolved,
++            ImmutableHashSet<string> followerEntries,
++            long fillSequence)
++        {
++            DispatchId = dispatchId;
++            TradeType = tradeType;
++            Direction = direction;
++            ExpectedQuantity = expectedQuantity;
++            CreatedUtc = createdUtc;
++            MasterWeightedFill = masterWeightedFill;
++            MasterFilledQuantity = masterFilledQuantity;
++            MasterAnchorPrice = masterAnchorPrice;
++            IsResolved = isResolved;
++            FollowerEntries = followerEntries ?? ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
++            FillSequence = fillSequence;
++        }
+     }
+ }
+diff --git a/src/V12_002.Orders.Callbacks.Propagation.cs b/src/V12_002.Orders.Callbacks.Propagation.cs
+index 66accb3..8112666 100644
+--- a/src/V12_002.Orders.Callbacks.Propagation.cs
++++ b/src/V12_002.Orders.Callbacks.Propagation.cs
+@@ -268,24 +268,26 @@ private void PropagateMasterTargetMove(string fleetEntryName, PositionInfo pos,
+ 
+             try
+             {
+-                pos.ExecutingAccount.Cancel(new[] { tOrder });
+-
+                 int qty = tOrder.Quantity;
+                 OrderAction exitAction = pos.Direction == MarketPosition.Long
+                     ? OrderAction.Sell : OrderAction.BuyToCover;
+                 string signalName = SymmetryTrim("T" + targetNum + "_" + fleetEntryName, 40);
+ 
+-                Order replacement = pos.ExecutingAccount.CreateOrder(
+-                    Instrument, exitAction, OrderType.Limit, TimeInForce.Gtc,
+-                    qty, roundedLimit, 0,
+-                    // [923A-P1b-GUID]: 8-char GUID fragment replaces Ticks -- eliminates collision risk at high resubmit frequency
+-                    "MGT_" + Guid.NewGuid().ToString("N").Substring(0, 8),
+-                    signalName, null);
+-
+-                pos.ExecutingAccount.Submit(new[] { replacement });
+-                targetDict[fleetEntryName] = replacement;
++                var tSpec = new FollowerTargetReplaceSpec
++                {
++                    EntryName = fleetEntryName,
++                    TargetNum = targetNum,
++                    NewTargetPrice = roundedLimit,
++                    Quantity = qty,
++                    ExitAction = exitAction,
++                    TargetAccount = pos.ExecutingAccount,
++                    CancellingOrderId = tOrder.OrderId
++                };
++                _followerTargetReplaceSpecs[signalName] = tSpec;
++                StampReaperMoveGrace();
++                pos.ExecutingAccount.Cancel(new[] { tOrder });
+ 
+-                Print(string.Format("[MOVE-SYNC] T{0} resubmitted: {1} @ {2:F2}",
++                Print(string.Format("[MOVE-SYNC] T{0} replace staged: {1} -> {2:F2}",
+                     targetNum, fleetEntryName, roundedLimit));
+             }
+             catch (Exception ex)
+diff --git a/src/V12_002.Orders.Management.Flatten.cs b/src/V12_002.Orders.Management.Flatten.cs
+index 8ecfa59..f5b7d45 100644
+--- a/src/V12_002.Orders.Management.Flatten.cs
++++ b/src/V12_002.Orders.Management.Flatten.cs
+@@ -129,22 +129,36 @@ private void ManageCIT()
+                             Enqueue(ctx => ctx.ManageCIT());
+                             return;
+                         }
+-                        _citBrokerBudget -= 2; // Cancel + Submit = 2 broker calls
++                        _citBrokerBudget -= 1; // Cancel only; submit is phase-2 after cancel confirm
+ 
+-                        followerAcct.Cancel(new[] { order });
+-
+-                        Order nudgedOrder = followerAcct.CreateOrder(Instrument, order.OrderAction, OrderType.Limit,
+-                            TimeInForce.Gtc, order.Quantity, newLimitPrice, 0, "", "CIT_" + key, null);
+-                        if (nudgedOrder == null)
++                        string masterSignalName = string.Empty;
++                        foreach (var masterKvp in activePositions)
+                         {
+-                            Print($"[CIT] ERROR: CreateOrder returned null for {key} on {followerAcct.Name} -- nudge aborted");
+-                            continue;
++                            if (!masterKvp.Value.IsFollower &&
++                                (key.Contains(masterKvp.Key) || masterKvp.Key.Contains(key)))
++                            {
++                                masterSignalName = masterKvp.Key;
++                                break;
++                            }
+                         }
+-                        followerAcct.Submit(new[] { nudgedOrder });
+ 
+-                        // B966: No Enqueue needed -- ManageCIT is always called via Enqueue(ctx => ctx.ManageCIT())
+-                        // from OnBarUpdate (Phase C), so this write is already inside the actor drain.
+-                        entryOrders[key] = nudgedOrder;
++                        var spec = new FollowerReplaceSpec
++                        {
++                            State = FollowerReplaceState.PendingCancel,
++                            CancellingOrderId = order.OrderId,
++                            PendingQty = order.Quantity,
++                            PendingPrice = newLimitPrice,
++                            AccountName = followerAcct.Name,
++                            SignalName = key,
++                            MasterSignalName = masterSignalName,
++                            EntryAction = order.OrderAction,
++                            EntryOrderType = order.OrderType,
++                            IsStopType = false
++                        };
++                        _followerReplaceSpecs[key] = spec;
++                        SetFsmReplacing(key, order.OrderId);
++                        StampReaperMoveGrace();
++                        followerAcct.Cancel(new[] { order });
+                     }
+                     else
+                     {
+diff --git a/src/V12_002.Symmetry.Replace.cs b/src/V12_002.Symmetry.Replace.cs
+index 084e4cd..724364a 100644
+--- a/src/V12_002.Symmetry.Replace.cs
++++ b/src/V12_002.Symmetry.Replace.cs
+@@ -115,7 +115,7 @@ private void SymmetryGuardSkipFollower(
+             SymmetryGuardForgetEntry(fleetEntryName);
+         }
+ 
+-        private void SymmetryGuardTryResolveFollowersForDispatch(string dispatchId, DateTime nowUtc)
++        private void SymmetryGuardTryResolveFollowersForDispatch(string dispatchId, DateTime nowUtc, FillStateSnapshot fillSnapshot)
+         {
+             if (string.IsNullOrEmpty(dispatchId))
+                 return;
+@@ -124,9 +124,8 @@ private void SymmetryGuardTryResolveFollowersForDispatch(string dispatchId, Date
+ 
+             if (symmetryDispatchById.TryGetValue(dispatchId, out var ctx) && ctx != null)
+             {
+-                                {
+                     // V1101E HOT-PATCH: Build follower worklist from snapshot; never call stateLock paths while snapshotting.
+-                    foreach (string fleetEntryName in SymmetryReadFollowers(ctx))
++                    foreach (string fleetEntryName in (fillSnapshot != null ? fillSnapshot.FollowerEntries : SymmetryReadFollowers(ctx)))
+                     {
+                         if (string.IsNullOrEmpty(fleetEntryName))
+                             continue;
+@@ -141,7 +140,6 @@ private void SymmetryGuardTryResolveFollowersForDispatch(string dispatchId, Date
+                         followersToResolve.Add(fleetEntryName);
+                     }
+                 }
+-            }
+ 
+             // V1101E HOT-PATCH: Preserve legacy dispatch-map scan to catch followers missing from ctx.FollowerEntries.
+             foreach (var kvp in symmetryPendingFollowerFills.ToArray())
+diff --git a/src/V12_002.Symmetry.cs b/src/V12_002.Symmetry.cs
+index 8dbba41..3c92cc2 100644
+--- a/src/V12_002.Symmetry.cs
++++ b/src/V12_002.Symmetry.cs
+@@ -27,9 +27,14 @@ private sealed class SymmetryDispatchContext
+             public double MasterAnchorPrice;
+             public bool IsResolved;
+ 
+-                        public ImmutableHashSet<string> FollowerEntries = ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
++                        private FillStateSnapshot FillState;
++            private long _fillSequence;
++            private int _accumFilledQty;
++            private double _accumWeightedFill;
++            private double _accumAnchorPrice;
+         }
+ 
++
+         private sealed class PendingFollowerFill
+         {
+             public string FleetEntryName;
+@@ -147,25 +152,36 @@ private void SymmetryGuardOnMasterFill(string entryName, PositionInfo masterPos,
+             if (ctx == null)
+                 return;
+ 
+-            bool resolvedNow = false;
+-            if (!ctx.IsResolved)
++            Enqueue(_ =>
+             {
+-                ctx.MasterWeightedFill += averageFillPrice * fillQty;
+-                ctx.MasterFilledQuantity += fillQty;
++                ctx._accumWeightedFill += averageFillPrice * fillQty;
++                ctx._accumFilledQty += fillQty;
++                ctx._accumAnchorPrice = Instrument.MasterInstrument.RoundToTickSize(ctx._accumWeightedFill / Math.Max(1, ctx._accumFilledQty));
+ 
+-                double avg = ctx.MasterWeightedFill / Math.Max(1, ctx.MasterFilledQuantity);
+-                ctx.MasterAnchorPrice = Instrument.MasterInstrument.RoundToTickSize(avg);
++                ctx.MasterWeightedFill = ctx._accumWeightedFill;
++                ctx.MasterFilledQuantity = ctx._accumFilledQty;
++                ctx.MasterAnchorPrice = ctx._accumAnchorPrice;
+                 ctx.IsResolved = true;
+-                resolvedNow = true;
+-            }
+ 
+-            if (resolvedNow)
+-            {
++                long fillSequence = Interlocked.Increment(ref ctx._fillSequence);
++                Interlocked.Exchange(ref ctx.FillState, new FillStateSnapshot(
++                    ctx.DispatchId,
++                    ctx.TradeType,
++                    ctx.Direction,
++                    ctx.ExpectedQuantity,
++                    ctx.CreatedUtc,
++                    ctx.MasterWeightedFill,
++                    ctx.MasterFilledQuantity,
++                    ctx.MasterAnchorPrice,
++                    ctx.IsResolved,
++                    SymmetryReadFollowers(ctx),
++                    fillSequence));
++
+                 Print(string.Format("[SYMMETRY_GUARD] MASTER ANCHOR LOCKED | Trade={0} | Anchor={1:F2} | FillQty={2}",
+                     ctx.TradeType, ctx.MasterAnchorPrice, ctx.MasterFilledQuantity));
+ 
+-                SymmetryGuardTryResolveFollowersForDispatch(ctx.DispatchId, DateTime.UtcNow);
+-            }
++                SymmetryGuardTryResolveFollowersForDispatch(ctx.DispatchId, DateTime.UtcNow, Volatile.Read(ref ctx.FillState));
++            });
+         }
+ 
+         private SymmetryDispatchContext SymmetryFindDispatchForMasterFill(string tradeType, MarketPosition direction, DateTime fillTimeUtc)
+@@ -194,41 +210,46 @@ private SymmetryDispatchContext SymmetryFindDispatchForMasterFill(string tradeTy
+ 
+ 
+ 
+-        private static ImmutableHashSet<string> SymmetryAddFollower(SymmetryDispatchContext ctx, string follower)
++        private void SymmetryAddFollower(SymmetryDispatchContext ctx, string follower)
+         {
+-            SpinWait spin = new SpinWait();
+-            while (true)
++            if (ctx == null || string.IsNullOrEmpty(follower))
++                return;
++
++            Enqueue(_ =>
+             {
+-                var current = Volatile.Read(ref ctx.FollowerEntries);
+-                var updated = current.Add(follower);
+-                if (ReferenceEquals(current, updated))
+-                    return updated;
+-                var prior = Interlocked.CompareExchange(ref ctx.FollowerEntries, updated, current);
+-                if (ReferenceEquals(prior, current))
+-                    return updated;
+-                spin.SpinOnce();
+-            }
++                var current = Volatile.Read(ref ctx.FillState);
++                var currentFollowers = current != null
++                    ? current.FollowerEntries
++                    : ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
++                var updatedFollowers = currentFollowers.Add(follower);
++                if (!ReferenceEquals(currentFollowers, updatedFollowers))
++                    Interlocked.Exchange(ref ctx.FillState, new FillStateSnapshot(updatedFollowers));
++            });
+         }
+ 
+-        private static ImmutableHashSet<string> SymmetryRemoveFollower(SymmetryDispatchContext ctx, string follower)
++        private void SymmetryRemoveFollower(SymmetryDispatchContext ctx, string follower)
+         {
+-            SpinWait spin = new SpinWait();
+-            while (true)
++            if (ctx == null || string.IsNullOrEmpty(follower))
++                return;
++
++            Enqueue(_ =>
+             {
+-                var current = Volatile.Read(ref ctx.FollowerEntries);
+-                var updated = current.Remove(follower);
+-                if (ReferenceEquals(current, updated))
+-                    return updated;
+-                var prior = Interlocked.CompareExchange(ref ctx.FollowerEntries, updated, current);
+-                if (ReferenceEquals(prior, current))
+-                    return updated;
+-                spin.SpinOnce();
+-            }
++                var current = Volatile.Read(ref ctx.FillState);
++                var currentFollowers = current != null
++                    ? current.FollowerEntries
++                    : ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
++                var updatedFollowers = currentFollowers.Remove(follower);
++                if (!ReferenceEquals(currentFollowers, updatedFollowers))
++                    Interlocked.Exchange(ref ctx.FillState, new FillStateSnapshot(updatedFollowers));
++            });
+         }
+ 
+         private static ImmutableHashSet<string> SymmetryReadFollowers(SymmetryDispatchContext ctx)
+         {
+-            return Volatile.Read(ref ctx.FollowerEntries);
++            var current = Volatile.Read(ref ctx.FillState);
++            return current != null
++                ? current.FollowerEntries
++                : ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+         }
+ 
+         #endregion

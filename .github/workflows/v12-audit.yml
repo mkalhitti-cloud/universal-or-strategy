@@ -20,10 +20,10 @@ jobs:
       - name: 1. ASCII Gate (Compiler Safety)
         shell: pwsh
         run: |
-          if (Test-Path "scripts/check_ascii.py") {
-            python scripts/check_ascii.py
+          if (Test-Path "check_ascii.py") {
+            python check_ascii.py
           } else {
-            Write-Host "scripts/check_ascii.py not found. Please ensure the script exists in the repository."
+            Write-Host "check_ascii.py not found. Please ensure the script exists in the repository root."
             # If the script isn't found, you might want to fail the build depending on strictness.
           }
 
