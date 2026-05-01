@@ -1,0 +1,125 @@
+name: V12 Permanent DNA Audit
+
+on:
+  pull_request:
+    branches: [ "**" ]
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  dna-checks:
+    name: V12 Protocol Gates
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout codebase
+        uses: actions/checkout@v4
+
+      - name: 1. ASCII Gate (Compiler Safety)
+        shell: pwsh
+        run: |
+          if (Test-Path "scripts/check_ascii.py") {
+            python scripts/check_ascii.py
+          } else {
+            Write-Host "scripts/check_ascii.py not found. Please ensure the script exists in the repository."
+            # If the script isn't found, you might want to fail the build depending on strictness.
+          }
+
+      - name: 2. Lock Audit (No Internal Locks)
+        shell: pwsh
+        run: |
+          Write-Host "Scanning for banned lock(stateLock) statements..."
+          # Search all C# files recursively
+          $lockMatches = Get-ChildItem -Path . -Filter *.cs -Recurse | Select-String -Pattern "lock\s*\(\s*stateLock\s*\)"
+          
+          if ($lockMatches.Count -gt 0) {
+            Write-Error "CRITICAL PROTOCOL VIOLATION: lock(stateLock) found in source files. Internal locks are BANNED per V12 DNA."
+            $lockMatches | ForEach-Object { Write-Host "$($_.Path):$($_.LineNumber) -> $($_.Line.Trim())" }
+            exit 1
+          } else {
+            Write-Host "PASS: Zero lock(stateLock) statements found."
+          }
+
+      - name: 3. Duplication & Dead Code Analysis (JetBrains ReSharper CLI)
+        shell: pwsh
+        run: |
+          Write-Host "Installing JetBrains ReSharper CLI..."
+          dotnet tool install -g JetBrains.ReSharper.GlobalTools
+          
+          $slnOrProj = Get-ChildItem -Path . -Include *.sln, *.csproj -Recurse | Select-Object -First 1
+          if ($slnOrProj) {
+            Write-Host "Found project file: $($slnOrProj.FullName)"
+            
+            Write-Host "--- Running dupFinder (Duplicate Code) ---"
+            dupfinder $slnOrProj.FullName --output=duplicates.xml --show-text
+            if (Test-Path "duplicates.xml") {
+               $dups = [xml](Get-Content duplicates.xml)
+               $dupCount = $dups.DuplicatesReport.Duplicates.Duplicate.Count
+               Write-Host "Found $dupCount duplicates."
+               if ($dupCount -gt 0) { Write-Warning "Duplicate code detected. Check duplicates.xml artifact." }
+            }
+            
+            Write-Host "--- Running inspectcode (Dead Code & Issues) ---"
+            inspectcode $slnOrProj.FullName --output=inspection.xml --severity=WARNING
+            if (Test-Path "inspection.xml") {
+               $issues = [xml](Get-Content inspection.xml)
+               $issueCount = $issues.Report.Issues.Project.Issue.Count
+               Write-Host "Found $issueCount potential issues."
+            }
+          } else {
+            Write-Warning "No .sln or .csproj file found. ReSharper CLI requires a project file to analyze dependencies correctly."
+          }
+
+      - name: 4. Secret Scanning (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 5. SonarAnalyzer.CSharp (Roslyn Analyzer)
+        shell: pwsh
+        run: |
+          $proj = Get-ChildItem -Path . -Filter *.csproj -Recurse | Select-Object -First 1
+          if ($proj) {
+            Write-Host "Adding SonarAnalyzer.CSharp to $($proj.FullName)..."
+            dotnet add $proj.FullName package SonarAnalyzer.CSharp
+            Write-Host "Building project to run Roslyn analyzers..."
+            dotnet build $proj.FullName
+          } else {
+            Write-Host "No .csproj found to add SonarAnalyzer.CSharp."
+          }
+
+  qodana:
+    name: JetBrains Qodana
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Qodana Scan
+        uses: JetBrains/qodana-action@v2023.3
+        env:
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+
+  codeql:
+    name: CodeQL Semantic Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: csharp
+          
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+        
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
