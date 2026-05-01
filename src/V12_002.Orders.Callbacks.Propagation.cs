@@ -123,7 +123,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 symmetryDispatchById.TryGetValue(dispatchId, out var ctx))
             {
                 string[] snapshot;
-                lock (ctx.Sync) { snapshot = ctx.FollowerEntries.ToArray(); }
+                snapshot = SymmetryReadFollowers(ctx).ToArray();
                 followerEntryNames = snapshot;
             }
             else

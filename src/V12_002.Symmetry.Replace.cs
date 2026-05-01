@@ -124,10 +124,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (symmetryDispatchById.TryGetValue(dispatchId, out var ctx) && ctx != null)
             {
-                lock (ctx.Sync)
-                {
-                    // V1101E HOT-PATCH: Build follower worklist under ctx.Sync only; never call stateLock paths while holding ctx.Sync.
-                    foreach (string fleetEntryName in ctx.FollowerEntries)
+                                {
+                    // V1101E HOT-PATCH: Build follower worklist from snapshot; never call stateLock paths while snapshotting.
+                    foreach (string fleetEntryName in SymmetryReadFollowers(ctx))
                     {
                         if (string.IsNullOrEmpty(fleetEntryName))
                             continue;
@@ -186,7 +185,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (!symmetryDispatchById.TryGetValue(dispatchId, out var ctx)) return;
 
             string[] followers;
-            lock (ctx.Sync) { followers = ctx.FollowerEntries.ToArray(); }
+            followers = SymmetryReadFollowers(ctx).ToArray();
 
             Print(string.Format("[CASCADE] Master {0} cancelled -- terminating {1} linked follower(s).", masterEntryName, followers.Length));
 
@@ -218,8 +217,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (symmetryFleetEntryToDispatch.TryRemove(entryName, out var dispatchId) &&
                 symmetryDispatchById.TryGetValue(dispatchId, out var ctx))
             {
-                lock (ctx.Sync)
-                    ctx.FollowerEntries.Remove(entryName);
+                SymmetryRemoveFollower(ctx, entryName);
             }
         }
 
@@ -241,9 +239,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (ctx.IsResolved)
                 {
                     bool hasActiveFollowers = false;
-                    lock (ctx.Sync)
-                    {
-                        foreach (string follower in ctx.FollowerEntries)
+                                        {
+                        foreach (string follower in SymmetryReadFollowers(ctx))
                         {
                             // V12.Phase8 [F-04]: activePositions is a ConcurrentDictionary but
                             // ContainsKey here is used alongside ctx.FollowerEntries iteration under

@@ -86,9 +86,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             var followerEntryNames = new System.Collections.Generic.List<string>();
-            lock (ctx.Sync)
-            {
-                foreach (string followerEntryName in ctx.FollowerEntries)
+            foreach (string followerEntryName in SymmetryReadFollowers(ctx))
                 {
                     if (string.IsNullOrEmpty(followerEntryName))
                         continue;
@@ -98,7 +96,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                         continue;
                     followerEntryNames.Add(followerEntryName);
                 }
-            }
 
             foreach (var kvp in symmetryFleetEntryToDispatch.ToArray())
             {

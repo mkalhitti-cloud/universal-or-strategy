@@ -35,11 +35,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     bool anchorReady;
                     double preCheckAnchor;
-                    lock (preCheckCtx.Sync)
-                    {
-                        anchorReady   = preCheckCtx.IsResolved;
-                        preCheckAnchor = preCheckCtx.MasterAnchorPrice;
-                    }
+                    anchorReady   = preCheckCtx.IsResolved;
+                    preCheckAnchor = preCheckCtx.MasterAnchorPrice;
                     if (anchorReady && preCheckAnchor > 0)
                     {
                         Print(string.Format("[ANCHOR-01] Pre-applying master anchor {0:F2} for {1} -- bracket will use master fill price",
@@ -128,12 +125,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             bool isResolved;
             double masterAnchor;
-            lock (ctx.Sync)
-            {
-                // V1101E HOT-PATCH: Snapshot dispatch state under ctx.Sync, then release before any stateLock path.
-                isResolved = ctx.IsResolved;
-                masterAnchor = ctx.MasterAnchorPrice;
-            }
+            // V1101E HOT-PATCH: Snapshot dispatch state via lock-free read.
+            isResolved = ctx.IsResolved;
+            masterAnchor = ctx.MasterAnchorPrice;
 
             if (!isResolved)
             {

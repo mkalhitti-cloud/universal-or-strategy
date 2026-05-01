@@ -241,8 +241,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return false;
             }
 
-            lock (ctx.Sync)
-                followerEntries = ctx.FollowerEntries.ToArray();
+            followerEntries = SymmetryReadFollowers(ctx).ToArray();
 
             return followerEntries != null && followerEntries.Length > 0;
         }

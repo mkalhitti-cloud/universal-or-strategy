@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
+using System.Threading;
 using System.Linq;
 using NinjaTrader.Cbi;
 using NinjaTrader.NinjaScript;
@@ -25,8 +27,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             public double MasterAnchorPrice;
             public bool IsResolved;
 
-            public readonly object Sync = new object();
-            public readonly HashSet<string> FollowerEntries = new HashSet<string>(StringComparer.Ordinal);
+                        public ImmutableHashSet<string> FollowerEntries = ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
         }
 
         private sealed class PendingFollowerFill
@@ -112,8 +113,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (symmetryDispatchById.TryGetValue(dispatchId, out var ctx))
             {
-                lock (ctx.Sync)
-                    ctx.FollowerEntries.Add(fleetEntryName);
+                SymmetryAddFollower(ctx, fleetEntryName);
             }
         }
 
@@ -148,18 +148,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
 
             bool resolvedNow = false;
-            lock (ctx.Sync)
+            if (!ctx.IsResolved)
             {
-                if (!ctx.IsResolved)
-                {
-                    ctx.MasterWeightedFill += averageFillPrice * fillQty;
-                    ctx.MasterFilledQuantity += fillQty;
+                ctx.MasterWeightedFill += averageFillPrice * fillQty;
+                ctx.MasterFilledQuantity += fillQty;
 
-                    double avg = ctx.MasterWeightedFill / Math.Max(1, ctx.MasterFilledQuantity);
-                    ctx.MasterAnchorPrice = Instrument.MasterInstrument.RoundToTickSize(avg);
-                    ctx.IsResolved = true;
-                    resolvedNow = true;
-                }
+                double avg = ctx.MasterWeightedFill / Math.Max(1, ctx.MasterFilledQuantity);
+                ctx.MasterAnchorPrice = Instrument.MasterInstrument.RoundToTickSize(avg);
+                ctx.IsResolved = true;
+                resolvedNow = true;
             }
 
             if (resolvedNow)
@@ -193,6 +190,45 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             return best;
+        }
+
+
+
+        private static ImmutableHashSet<string> SymmetryAddFollower(SymmetryDispatchContext ctx, string follower)
+        {
+            SpinWait spin = new SpinWait();
+            while (true)
+            {
+                var current = Volatile.Read(ref ctx.FollowerEntries);
+                var updated = current.Add(follower);
+                if (ReferenceEquals(current, updated))
+                    return updated;
+                var prior = Interlocked.CompareExchange(ref ctx.FollowerEntries, updated, current);
+                if (ReferenceEquals(prior, current))
+                    return updated;
+                spin.SpinOnce();
+            }
+        }
+
+        private static ImmutableHashSet<string> SymmetryRemoveFollower(SymmetryDispatchContext ctx, string follower)
+        {
+            SpinWait spin = new SpinWait();
+            while (true)
+            {
+                var current = Volatile.Read(ref ctx.FollowerEntries);
+                var updated = current.Remove(follower);
+                if (ReferenceEquals(current, updated))
+                    return updated;
+                var prior = Interlocked.CompareExchange(ref ctx.FollowerEntries, updated, current);
+                if (ReferenceEquals(prior, current))
+                    return updated;
+                spin.SpinOnce();
+            }
+        }
+
+        private static ImmutableHashSet<string> SymmetryReadFollowers(SymmetryDispatchContext ctx)
+        {
+            return Volatile.Read(ref ctx.FollowerEntries);
         }
 
         #endregion
