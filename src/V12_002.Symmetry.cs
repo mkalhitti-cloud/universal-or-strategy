@@ -25,10 +25,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             public double MasterWeightedFill;
             public int MasterFilledQuantity;
             public double MasterAnchorPrice;
-            public volatile bool IsResolved;
-            public int _resolutionSpinLock;
+            public bool IsResolved;
 
-            public ImmutableHashSet<string> FollowerEntries = ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+                        public ImmutableHashSet<string> FollowerEntries = ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
         }
 
         private sealed class PendingFollowerFill
@@ -151,27 +150,13 @@ namespace NinjaTrader.NinjaScript.Strategies
             bool resolvedNow = false;
             if (!ctx.IsResolved)
             {
-                SpinWait spin = new SpinWait();
-                while (Interlocked.CompareExchange(ref ctx._resolutionSpinLock, 1, 0) != 0)
-                    spin.SpinOnce();
+                ctx.MasterWeightedFill += averageFillPrice * fillQty;
+                ctx.MasterFilledQuantity += fillQty;
 
-                try
-                {
-                    if (!ctx.IsResolved)
-                    {
-                        ctx.MasterWeightedFill += averageFillPrice * fillQty;
-                        ctx.MasterFilledQuantity += fillQty;
-
-                        double avg = ctx.MasterWeightedFill / Math.Max(1, ctx.MasterFilledQuantity);
-                        ctx.MasterAnchorPrice = Instrument.MasterInstrument.RoundToTickSize(avg);
-                        ctx.IsResolved = true;
-                        resolvedNow = true;
-                    }
-                }
-                finally
-                {
-                    Volatile.Write(ref ctx._resolutionSpinLock, 0);
-                }
+                double avg = ctx.MasterWeightedFill / Math.Max(1, ctx.MasterFilledQuantity);
+                ctx.MasterAnchorPrice = Instrument.MasterInstrument.RoundToTickSize(avg);
+                ctx.IsResolved = true;
+                resolvedNow = true;
             }
 
             if (resolvedNow)
