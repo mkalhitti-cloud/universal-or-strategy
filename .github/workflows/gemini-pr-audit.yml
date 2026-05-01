@@ -1,4 +1,4 @@
-name: Gemini Standards Auditor (Vertex AI)
+name: Gemini Standards Auditor (Google AI Studio)
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   gemini-audit:
-    name: Gemini 3.1 Pro (Standards Audit)
+    name: Gemini 1.5 Pro (Standards Audit)
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -23,32 +23,32 @@ jobs:
         run: |
           git diff origin/${{ github.event.pull_request.base.ref }}...HEAD > pr.diff
 
-      - name: Authenticate to Google Cloud
-        id: auth
-        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed  # v2
-        with:
-          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
-
       - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      - name: Install Vertex AI SDK
-        run: npm install @google-cloud/vertexai
+      - name: Install Google AI SDK
+        run: npm install @google/generative-ai
 
       - name: Run Gemini Standards Audit
         id: gemini_audit
         env:
-          GCP_PROJECT_ID: "project-263b6139-6893-4788-995"
-          GCP_REGION: "us-central1"
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           cat << 'EOF' > gemini_audit.js
           const fs = require('fs');
-          const { VertexAI } = require('@google-cloud/vertexai');
+          const { GoogleGenerativeAI } = require('@google/generative-ai');
 
           async function run() {
             try {
+              if (!process.env.GEMINI_API_KEY) {
+                throw new Error("GEMINI_API_KEY secret is missing. Please add it to GitHub Repository Secrets.");
+              }
+
+              const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+              const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+
               let diffContent = fs.readFileSync('pr.diff', 'utf8');
               let geminiMdContent = '';
               try {
@@ -57,20 +57,18 @@ jobs:
                 console.log('GEMINI.md not found, proceeding without it.');
               }
 
-              // SECURITY (Build 1105): Truncate oversized diffs to prevent prompt stuffing
+              // SECURITY: Truncate oversized diffs
               const MAX_DIFF_CHARS = 100000;
               if (diffContent.length > MAX_DIFF_CHARS) {
                 diffContent = diffContent.substring(0, MAX_DIFF_CHARS) + '\n... [TRUNCATED at 100KB]';
               }
 
-              // SECURITY (Build 1105): Use string concatenation with JSON.stringify to prevent
-              // template literal injection from malicious PR diff content.
               const prompt = 'You are the Gemini Standards Auditor (Antigravity Auto-Auditor) performing an automated compliance check.\n'
                 + 'Your task is to analyze the following PR diff strictly against our project\'s institutional standards.\n\n'
                 + 'GEMINI.md Standards:\n'
-                + JSON.stringify(geminiMdContent) + '\n\n'
+                + geminiMdContent + '\n\n'
                 + 'PR DIFF:\n'
-                + JSON.stringify(diffContent) + '\n\n'
+                + diffContent + '\n\n'
                 + 'Systematic Audit Protocol:\n'
                 + '1. Verify Zero-Trust IPC compliance.\n'
                 + '2. Check for FSM Follower Replace pattern violations.\n'
@@ -82,62 +80,17 @@ jobs:
                 + '- Final Audit Verdict: PASS or FAIL.\n\n'
                 + 'Be uncompromising. Safety first.';
 
-              const project = process.env.GCP_PROJECT_ID;
-              const regions = ['global', 'us-central1', 'us-east4', 'us-west1', 'europe-west1', 'us-east1'];
-              const modelsToTry = [
-                'gemini-3.1-pro-preview',
-                'gemini-1.5-pro-002',
-                'gemini-1.5-flash-002',
-                'gemini-1.5-pro',
-                'gemini-1.5-flash'
-              ];
+              const result = await model.generateContent(prompt);
+              const response = await result.response;
+              const text = response.text();
 
-              let generativeModel;
-              let workingRegion = '';
-              let workingModel = '';
-
-              console.log(`Starting Vertex AI Probe for project: ${project}`);
-
-              outerLoop:
-              for (const loc of regions) {
-                console.log(`Probing region: ${loc}`);
-                const vertex_ai = new VertexAI({ project, location: loc });
-
-                for (const modelName of modelsToTry) {
-                  try {
-                    console.log(`  Trying ${modelName}...`);
-                    const testModel = vertex_ai.getGenerativeModel({ model: modelName });
-                    await testModel.generateContent({
-                      contents: [{ role: 'user', parts: [{ text: 'ping' }] }],
-                    });
-                    console.log(`  SUCCESS: ${modelName} works in ${loc}`);
-                    generativeModel = testModel;
-                    workingRegion = loc;
-                    workingModel = modelName;
-                    break outerLoop;
-                  } catch (e) {
-                    console.log(`  FAILED: ${modelName} in ${loc}: ${e.message}`);
-                  }
-                }
-              }
-
-              if (!generativeModel) {
-                throw new Error(`Failed to find any working Gemini model across regions: ${regions.join(', ')}. Please verify Vertex AI API and Billing are active.`);
-              }
-
-              console.log(`Proceeding with audit using ${workingModel} in ${workingRegion}`);
-              const resp = await generativeModel.generateContent({
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-              });
-
-              const reviewText = `**Forensic Audit Result (${workingModel} @ ${workingRegion})**\n\n` + resp.response.candidates[0].content.parts[0].text;
-              fs.writeFileSync('review.txt', reviewText);
+              fs.writeFileSync('review.txt', text);
             } catch (error) {
               console.error('Critical Failure:', error);
               fs.writeFileSync(
                 'review.txt',
                 "Warning: **Gemini Auditor Critical Failure**: " + error.message +
-                  "\n\n**Recommendation**: Check GCP Console for Project 'project-263b6139-6893-4788-995'. Ensure 'Vertex AI API' is enabled and models are accessible in your region."
+                  "\n\n**Recommendation**: Ensure 'GEMINI_API_KEY' is set in GitHub Secrets and is a valid Google AI Studio API key."
               );
               process.exit(0);
             }
@@ -147,7 +100,7 @@ jobs:
           node gemini_audit.js
 
       - name: Post Gemini Review Comment
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b  # v7
+        uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
@@ -156,5 +109,6 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: "### Antigravity Auto-Auditor (Gemini via Vertex AI)\n\n" + reviewText
+              body: "### Antigravity Auto-Auditor (Gemini AI Studio)\n\n" + reviewText
             });
+
