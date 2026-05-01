@@ -37,7 +37,14 @@ Achieve institutional-grade deterministic execution (sub-100ns typical) within N
 - [ ] **M8: Final Verification**
     - [ ] Sub-100ns benchmark certification.
 
+### PHASE 3: MAINTENANCE & HYGIENE (Current)
+- [ ] **M9: Maintainability Score Recovery**
+    - [x] Expand Audit Scope (.fallowrc.json).
+    - [ ] Prune Dead Code (tmp/, artifacts/battle_results/).
+    - [ ] Reduce Hotspot Complexity (ManageTrailingStops, ExecuteSmartDispatchEntry).
+    - [ ] Target Score > 88.9 (Current Baseline: 81.4).
+
 ---
 ## CURRENT STATUS
-**State**: Substrate v29.0 established. M1-M7 integrated.
-**Next Action**: Decompose `ExecuteSmartDispatchEntry` (Phase 1).
+**State**: Substrate v30.0 (Maintainability Pivot).
+**Next Action**: Prune dead code and begin `ExecuteSmartDispatchEntry` decomposition.

@@ -16,18 +16,18 @@
   },
   {
     "id": "mmiospscring-kernel-documentation-page",
-    "status": "SKIP",
-    "error": "Incomplete code"
+    "status": "FAIL",
+    "error": "Benchmark failed"
   },
   {
     "id": "mmiospscring-kernel-documentation-page (1)",
-    "status": "SKIP",
-    "error": "Incomplete code"
+    "status": "FAIL",
+    "error": "Benchmark failed"
   },
   {
     "id": "mmiospscring-kernel-documentation-page (2)",
-    "status": "SKIP",
-    "error": "Incomplete code"
+    "status": "FAIL",
+    "error": "Benchmark failed"
   },
   {
     "id": "mmiospscring-kernel-documentation-page (3)",
@@ -81,8 +81,8 @@
   },
   {
     "id": "mmiospscring-kernel-reference-page (5)",
-    "status": "SKIP",
-    "error": "Incomplete code"
+    "status": "FAIL",
+    "error": "Benchmark failed"
   },
   {
     "id": "mmiospscring-kernel-reference-page (6)",
@@ -91,8 +91,8 @@
   },
   {
     "id": "mmiospscring-kernel-reference-page (7)",
-    "status": "SKIP",
-    "error": "Incomplete code"
+    "status": "FAIL",
+    "error": "Benchmark failed"
   },
   {
     "id": "mmiospscring-kernel-reference-page (8)",
@@ -101,7 +101,7 @@
   },
   {
     "id": "mmiospscring-kernel-reference-page (9)",
-    "status": "SKIP",
-    "error": "Incomplete code"
+    "status": "FAIL",
+    "error": "Benchmark failed"
   }
 ]

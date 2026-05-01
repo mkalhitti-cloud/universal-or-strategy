@@ -248,8 +248,12 @@ def main():
                 with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                     file_content = f.read()
                 if ext == '.html':
-                    # Strip tags, unescape entities
-                    file_content = _html.unescape(re.sub(r'<[^>]+>', ' ', file_content))
+                    import re
+                    match = re.search(r'<script id="csharp-source".*?>(.*?)</script>', file_content, re.DOTALL)
+                    if match:
+                        file_content = match.group(1)
+                    else:
+                        file_content = _html.unescape(re.sub(r'<[^>]+>', ' ', file_content))
                 # ASCII Gate (pre-extraction): strip non-ASCII (box-drawing, em-dash, arrows) 
                 # before method extraction so they cannot survive into injected C# code.
                 file_content = file_content.encode('ascii', errors='ignore').decode('ascii')

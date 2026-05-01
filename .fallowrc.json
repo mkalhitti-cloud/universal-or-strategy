@@ -1,43 +1,19 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "entry": [
-    "artifacts/battlezips/**/src/main.tsx",
-    "artifacts/battlezips/**/src/index.tsx",
-    "tmp/battlezips/**/src/main.tsx",
-    "tmp/battlezips/**/src/index.tsx",
-    "tmp/battle_results/**/src/main.tsx",
-    "tmp/battle_results/**/src/index.tsx",
-    "docs/arena_battles/**/src/main.tsx",
-    "docs/arena_battles/**/src/index.tsx"
-  ],
-  "ignorePatterns": [
     "**/*.cs",
     "**/*.py",
-    "**/*.ps1",
-    "**/*.sln",
-    "**/*.csproj",
-    "src/**",
-    "app/**",
-    "scripts/**"
+    "**/*.ts",
+    "**/*.tsx"
   ],
-  "regression": {
-    "baseline":     {
-      "totalIssues": 27,
-      "unusedFiles": 19,
-      "unusedExports": 3,
-      "unusedTypes": 5,
-      "unusedDependencies": 0,
-      "unusedDevDependencies": 0,
-      "unusedOptionalDependencies": 0,
-      "unusedEnumMembers": 0,
-      "unusedClassMembers": 0,
-      "unresolvedImports": 0,
-      "unlistedDependencies": 0,
-      "duplicateExports": 0,
-      "circularDependencies": 0,
-      "typeOnlyDependencies": 0,
-      "testOnlyDependencies": 0,
-      "boundaryViolations": 0
-    }
-  }
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/.git/**",
+    "**/.fallow/**",
+    "**/.gemini/**",
+    "**/bin/**",
+    "**/obj/**",
+    "**/artifacts/**",
+    "**/tmp/**"
+  ]
 }
