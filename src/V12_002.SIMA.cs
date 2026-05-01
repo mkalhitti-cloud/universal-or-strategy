@@ -71,7 +71,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 
         // V12.1101E [F-06]: Atomic expectedPositions mutation via ConcurrentDictionary.AddOrUpdate.
-        // Phase 10: lock(stateLock) removed -- AddOrUpdate is atomic; Interlocked.Exchange is independent.
+        // Phase 10: lock removed -- AddOrUpdate is atomic; Interlocked.Exchange is independent.
         private void AddExpectedPositionDeltaLocked(string accountName, int delta)
         {
             if (string.IsNullOrEmpty(accountName) || expectedPositions == null) return;
@@ -91,7 +91,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         // V12.1101E [F-06]: Shared AddOrUpdate wrapper -- ConcurrentDictionary.AddOrUpdate is atomic.
-        // Phase 10: lock(stateLock) removed -- AddOrUpdate is inherently thread-safe.
+        // Phase 10: lock removed -- AddOrUpdate is inherently thread-safe.
         private void AddOrUpdateExpectedPositionLocked(string accountName, int addValue, Func<int, int> updateExisting)
         {
             if (string.IsNullOrEmpty(accountName) || expectedPositions == null || updateExisting == null) return;
@@ -99,7 +99,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         // V12.1101E [F-06]: Set expectedPositions -- each operation is independently atomic.
-        // Phase 10: lock(stateLock) removed -- ConcurrentDictionary indexer, TryRemove, and
+        // Phase 10: lock removed -- ConcurrentDictionary indexer, TryRemove, and
         // Interlocked.Exchange are each thread-safe. REAPER 5s grace absorbs any interleaving.
         private void SetExpectedPositionLocked(string accountName, int value)
         {
@@ -120,7 +120,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         // Build 930.1 [P1]: Delta rollback for cascade cancellations.
         // Subtracts or adds the cancelled entry's quantity to the signed total.
         // Preserves expected position for other active entries on the same account.
-        // Phase 10: lock(stateLock) removed -- uses ConcurrentDictionary.AddOrUpdate atomic.
+        // Phase 10: lock removed -- uses ConcurrentDictionary.AddOrUpdate atomic.
         private void DeltaExpectedPositionLocked(string accountName, int delta)
         {
             if (string.IsNullOrEmpty(accountName) || expectedPositions == null) return;
