@@ -47,7 +47,15 @@ jobs:
               }
 
               const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-              const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+              // Primary: gemini-3.1-pro-preview, Fallback: gemini-1.5-pro
+              let model;
+              try {
+                model = genAI.getGenerativeModel({ model: "gemini-3.1-pro-preview" });
+                console.log("Selected model: gemini-3.1-pro-preview");
+              } catch (e) {
+                console.log("gemini-3.1-pro-preview not found, falling back to gemini-1.5-pro");
+                model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+              }
 
               let diffContent = fs.readFileSync('pr.diff', 'utf8');
               let geminiMdContent = '';
