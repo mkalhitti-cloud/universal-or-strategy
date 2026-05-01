@@ -129,22 +129,36 @@ namespace NinjaTrader.NinjaScript.Strategies
                             Enqueue(ctx => ctx.ManageCIT());
                             return;
                         }
-                        _citBrokerBudget -= 2; // Cancel + Submit = 2 broker calls
+                        _citBrokerBudget -= 1; // Cancel only; submit is phase-2 after cancel confirm
 
-                        followerAcct.Cancel(new[] { order });
-
-                        Order nudgedOrder = followerAcct.CreateOrder(Instrument, order.OrderAction, OrderType.Limit,
-                            TimeInForce.Gtc, order.Quantity, newLimitPrice, 0, "", "CIT_" + key, null);
-                        if (nudgedOrder == null)
+                        string masterSignalName = string.Empty;
+                        foreach (var masterKvp in activePositions)
                         {
-                            Print($"[CIT] ERROR: CreateOrder returned null for {key} on {followerAcct.Name} -- nudge aborted");
-                            continue;
+                            if (!masterKvp.Value.IsFollower &&
+                                (key.Contains(masterKvp.Key) || masterKvp.Key.Contains(key)))
+                            {
+                                masterSignalName = masterKvp.Key;
+                                break;
+                            }
                         }
-                        followerAcct.Submit(new[] { nudgedOrder });
 
-                        // B966: No Enqueue needed -- ManageCIT is always called via Enqueue(ctx => ctx.ManageCIT())
-                        // from OnBarUpdate (Phase C), so this write is already inside the actor drain.
-                        entryOrders[key] = nudgedOrder;
+                        var spec = new FollowerReplaceSpec
+                        {
+                            State = FollowerReplaceState.PendingCancel,
+                            CancellingOrderId = order.OrderId,
+                            PendingQty = order.Quantity,
+                            PendingPrice = newLimitPrice,
+                            AccountName = followerAcct.Name,
+                            SignalName = key,
+                            MasterSignalName = masterSignalName,
+                            EntryAction = order.OrderAction,
+                            EntryOrderType = order.OrderType,
+                            IsStopType = false
+                        };
+                        _followerReplaceSpecs[key] = spec;
+                        SetFsmReplacing(key, order.OrderId);
+                        StampReaperMoveGrace();
+                        followerAcct.Cancel(new[] { order });
                     }
                     else
                     {

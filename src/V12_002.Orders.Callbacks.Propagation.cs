@@ -268,24 +268,26 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             try
             {
-                pos.ExecutingAccount.Cancel(new[] { tOrder });
-
                 int qty = tOrder.Quantity;
                 OrderAction exitAction = pos.Direction == MarketPosition.Long
                     ? OrderAction.Sell : OrderAction.BuyToCover;
                 string signalName = SymmetryTrim("T" + targetNum + "_" + fleetEntryName, 40);
 
-                Order replacement = pos.ExecutingAccount.CreateOrder(
-                    Instrument, exitAction, OrderType.Limit, TimeInForce.Gtc,
-                    qty, roundedLimit, 0,
-                    // [923A-P1b-GUID]: 8-char GUID fragment replaces Ticks -- eliminates collision risk at high resubmit frequency
-                    "MGT_" + Guid.NewGuid().ToString("N").Substring(0, 8),
-                    signalName, null);
+                var tSpec = new FollowerTargetReplaceSpec
+                {
+                    EntryName = fleetEntryName,
+                    TargetNum = targetNum,
+                    NewTargetPrice = roundedLimit,
+                    Quantity = qty,
+                    ExitAction = exitAction,
+                    TargetAccount = pos.ExecutingAccount,
+                    CancellingOrderId = tOrder.OrderId
+                };
+                _followerTargetReplaceSpecs[signalName] = tSpec;
+                StampReaperMoveGrace();
+                pos.ExecutingAccount.Cancel(new[] { tOrder });
 
-                pos.ExecutingAccount.Submit(new[] { replacement });
-                targetDict[fleetEntryName] = replacement;
-
-                Print(string.Format("[MOVE-SYNC] T{0} resubmitted: {1} @ {2:F2}",
+                Print(string.Format("[MOVE-SYNC] T{0} replace staged: {1} -> {2:F2}",
                     targetNum, fleetEntryName, roundedLimit));
             }
             catch (Exception ex)
