@@ -27,19 +27,13 @@ namespace NinjaTrader.NinjaScript.Strategies
             public double MasterAnchorPrice;
             public bool IsResolved;
 
-                        public FillStateSnapshot FillState = new FillStateSnapshot(ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal));
+                        public FillStateSnapshot FillState;
+            public long _fillSequence;
+            public int _accumFilledQty;
+            public double _accumWeightedFill;
+            public double _accumAnchorPrice;
         }
 
-
-        private sealed class FillStateSnapshot
-        {
-            public readonly ImmutableHashSet<string> FollowerEntries;
-
-            public FillStateSnapshot(ImmutableHashSet<string> followerEntries)
-            {
-                FollowerEntries = followerEntries ?? ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
-            }
-        }
 
         private sealed class PendingFollowerFill
         {
@@ -158,25 +152,33 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (ctx == null)
                 return;
 
-            bool resolvedNow = false;
-            if (!ctx.IsResolved)
-            {
-                ctx.MasterWeightedFill += averageFillPrice * fillQty;
-                ctx.MasterFilledQuantity += fillQty;
+            ctx._accumWeightedFill += averageFillPrice * fillQty;
+            ctx._accumFilledQty += fillQty;
+            ctx._accumAnchorPrice = Instrument.MasterInstrument.RoundToTickSize(ctx._accumWeightedFill / Math.Max(1, ctx._accumFilledQty));
 
-                double avg = ctx.MasterWeightedFill / Math.Max(1, ctx.MasterFilledQuantity);
-                ctx.MasterAnchorPrice = Instrument.MasterInstrument.RoundToTickSize(avg);
-                ctx.IsResolved = true;
-                resolvedNow = true;
-            }
+            ctx.MasterWeightedFill = ctx._accumWeightedFill;
+            ctx.MasterFilledQuantity = ctx._accumFilledQty;
+            ctx.MasterAnchorPrice = ctx._accumAnchorPrice;
+            ctx.IsResolved = true;
 
-            if (resolvedNow)
-            {
-                Print(string.Format("[SYMMETRY_GUARD] MASTER ANCHOR LOCKED | Trade={0} | Anchor={1:F2} | FillQty={2}",
-                    ctx.TradeType, ctx.MasterAnchorPrice, ctx.MasterFilledQuantity));
+            long fillSequence = Interlocked.Increment(ref ctx._fillSequence);
+            Interlocked.Exchange(ref ctx.FillState, new FillStateSnapshot(
+                ctx.DispatchId,
+                ctx.TradeType,
+                ctx.Direction,
+                ctx.ExpectedQuantity,
+                ctx.CreatedUtc,
+                ctx.MasterWeightedFill,
+                ctx.MasterFilledQuantity,
+                ctx.MasterAnchorPrice,
+                ctx.IsResolved,
+                SymmetryReadFollowers(ctx),
+                fillSequence));
 
-                SymmetryGuardTryResolveFollowersForDispatch(ctx.DispatchId, DateTime.UtcNow);
-            }
+            Print(string.Format("[SYMMETRY_GUARD] MASTER ANCHOR LOCKED | Trade={0} | Anchor={1:F2} | FillQty={2}",
+                ctx.TradeType, ctx.MasterAnchorPrice, ctx.MasterFilledQuantity));
+
+            SymmetryGuardTryResolveFollowersForDispatch(ctx.DispatchId, DateTime.UtcNow, Volatile.Read(ref ctx.FillState));
         }
 
         private SymmetryDispatchContext SymmetryFindDispatchForMasterFill(string tradeType, MarketPosition direction, DateTime fillTimeUtc)

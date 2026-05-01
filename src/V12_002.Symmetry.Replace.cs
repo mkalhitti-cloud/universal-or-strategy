@@ -115,7 +115,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             SymmetryGuardForgetEntry(fleetEntryName);
         }
 
-        private void SymmetryGuardTryResolveFollowersForDispatch(string dispatchId, DateTime nowUtc)
+        private void SymmetryGuardTryResolveFollowersForDispatch(string dispatchId, DateTime nowUtc, FillStateSnapshot fillSnapshot)
         {
             if (string.IsNullOrEmpty(dispatchId))
                 return;
@@ -125,7 +125,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (symmetryDispatchById.TryGetValue(dispatchId, out var ctx) && ctx != null)
             {
                     // V1101E HOT-PATCH: Build follower worklist from snapshot; never call stateLock paths while snapshotting.
-                    foreach (string fleetEntryName in SymmetryReadFollowers(ctx))
+                    foreach (string fleetEntryName in (fillSnapshot != null ? fillSnapshot.FollowerEntries : SymmetryReadFollowers(ctx)))
                     {
                         if (string.IsNullOrEmpty(fleetEntryName))
                             continue;
