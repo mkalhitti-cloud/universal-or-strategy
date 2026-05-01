@@ -48,7 +48,7 @@ jobs:
         shell: pwsh
 
       - name: Build Solution (Compilation Check)
-        run: dotnet build universal-or-strategy.sln --configuration Release --nologo
+        run: dotnet build universal-or-strategy.sln --configuration Release --no-restore --nologo
         shell: pwsh
 
       - name: Check for non-ASCII characters (ASCII Gate)
