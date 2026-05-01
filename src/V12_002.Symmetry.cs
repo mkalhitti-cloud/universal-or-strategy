@@ -27,8 +27,13 @@ namespace NinjaTrader.NinjaScript.Strategies
             public double MasterAnchorPrice;
             public bool IsResolved;
 
-                        public ImmutableHashSet<string> FollowerEntries = ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+                        private FillStateSnapshot FillState;
+            private long _fillSequence;
+            private int _accumFilledQty;
+            private double _accumWeightedFill;
+            private double _accumAnchorPrice;
         }
+
 
         private sealed class PendingFollowerFill
         {
@@ -147,25 +152,36 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (ctx == null)
                 return;
 
-            bool resolvedNow = false;
-            if (!ctx.IsResolved)
+            Enqueue(_ =>
             {
-                ctx.MasterWeightedFill += averageFillPrice * fillQty;
-                ctx.MasterFilledQuantity += fillQty;
+                ctx._accumWeightedFill += averageFillPrice * fillQty;
+                ctx._accumFilledQty += fillQty;
+                ctx._accumAnchorPrice = Instrument.MasterInstrument.RoundToTickSize(ctx._accumWeightedFill / Math.Max(1, ctx._accumFilledQty));
 
-                double avg = ctx.MasterWeightedFill / Math.Max(1, ctx.MasterFilledQuantity);
-                ctx.MasterAnchorPrice = Instrument.MasterInstrument.RoundToTickSize(avg);
+                ctx.MasterWeightedFill = ctx._accumWeightedFill;
+                ctx.MasterFilledQuantity = ctx._accumFilledQty;
+                ctx.MasterAnchorPrice = ctx._accumAnchorPrice;
                 ctx.IsResolved = true;
-                resolvedNow = true;
-            }
 
-            if (resolvedNow)
-            {
+                long fillSequence = Interlocked.Increment(ref ctx._fillSequence);
+                Interlocked.Exchange(ref ctx.FillState, new FillStateSnapshot(
+                    ctx.DispatchId,
+                    ctx.TradeType,
+                    ctx.Direction,
+                    ctx.ExpectedQuantity,
+                    ctx.CreatedUtc,
+                    ctx.MasterWeightedFill,
+                    ctx.MasterFilledQuantity,
+                    ctx.MasterAnchorPrice,
+                    ctx.IsResolved,
+                    SymmetryReadFollowers(ctx),
+                    fillSequence));
+
                 Print(string.Format("[SYMMETRY_GUARD] MASTER ANCHOR LOCKED | Trade={0} | Anchor={1:F2} | FillQty={2}",
                     ctx.TradeType, ctx.MasterAnchorPrice, ctx.MasterFilledQuantity));
 
-                SymmetryGuardTryResolveFollowersForDispatch(ctx.DispatchId, DateTime.UtcNow);
-            }
+                SymmetryGuardTryResolveFollowersForDispatch(ctx.DispatchId, DateTime.UtcNow, Volatile.Read(ref ctx.FillState));
+            });
         }
 
         private SymmetryDispatchContext SymmetryFindDispatchForMasterFill(string tradeType, MarketPosition direction, DateTime fillTimeUtc)
@@ -194,41 +210,46 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 
 
-        private static ImmutableHashSet<string> SymmetryAddFollower(SymmetryDispatchContext ctx, string follower)
+        private void SymmetryAddFollower(SymmetryDispatchContext ctx, string follower)
         {
-            SpinWait spin = new SpinWait();
-            while (true)
+            if (ctx == null || string.IsNullOrEmpty(follower))
+                return;
+
+            Enqueue(_ =>
             {
-                var current = Volatile.Read(ref ctx.FollowerEntries);
-                var updated = current.Add(follower);
-                if (ReferenceEquals(current, updated))
-                    return updated;
-                var prior = Interlocked.CompareExchange(ref ctx.FollowerEntries, updated, current);
-                if (ReferenceEquals(prior, current))
-                    return updated;
-                spin.SpinOnce();
-            }
+                var current = Volatile.Read(ref ctx.FillState);
+                var currentFollowers = current != null
+                    ? current.FollowerEntries
+                    : ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+                var updatedFollowers = currentFollowers.Add(follower);
+                if (!ReferenceEquals(currentFollowers, updatedFollowers))
+                    Interlocked.Exchange(ref ctx.FillState, new FillStateSnapshot(updatedFollowers));
+            });
         }
 
-        private static ImmutableHashSet<string> SymmetryRemoveFollower(SymmetryDispatchContext ctx, string follower)
+        private void SymmetryRemoveFollower(SymmetryDispatchContext ctx, string follower)
         {
-            SpinWait spin = new SpinWait();
-            while (true)
+            if (ctx == null || string.IsNullOrEmpty(follower))
+                return;
+
+            Enqueue(_ =>
             {
-                var current = Volatile.Read(ref ctx.FollowerEntries);
-                var updated = current.Remove(follower);
-                if (ReferenceEquals(current, updated))
-                    return updated;
-                var prior = Interlocked.CompareExchange(ref ctx.FollowerEntries, updated, current);
-                if (ReferenceEquals(prior, current))
-                    return updated;
-                spin.SpinOnce();
-            }
+                var current = Volatile.Read(ref ctx.FillState);
+                var currentFollowers = current != null
+                    ? current.FollowerEntries
+                    : ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+                var updatedFollowers = currentFollowers.Remove(follower);
+                if (!ReferenceEquals(currentFollowers, updatedFollowers))
+                    Interlocked.Exchange(ref ctx.FillState, new FillStateSnapshot(updatedFollowers));
+            });
         }
 
         private static ImmutableHashSet<string> SymmetryReadFollowers(SymmetryDispatchContext ctx)
         {
-            return Volatile.Read(ref ctx.FollowerEntries);
+            var current = Volatile.Read(ref ctx.FillState);
+            return current != null
+                ? current.FollowerEntries
+                : ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
         }
 
         #endregion
