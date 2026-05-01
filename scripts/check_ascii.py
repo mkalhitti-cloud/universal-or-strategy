@@ -4,9 +4,9 @@ import sys
 root=Path(sys.argv[1] if len(sys.argv)>1 else 'src')
 bad=[]
 for p in root.rglob('*.cs'):
-    t=p.read_text(encoding='utf-8',errors='ignore')
+    t=p.read_bytes()
     for i,line in enumerate(t.splitlines(),1):
-        if any(ord(ch)>127 for ch in line):
+        if any(b>127 for b in line):
             bad.append((p,i))
             break
 if bad:
