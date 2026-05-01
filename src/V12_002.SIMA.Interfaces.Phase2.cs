@@ -13,7 +13,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
     internal interface IDispatchRouter
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         IOrderCommandFactory Select(OrderType entryOrderType);
     }
 
@@ -105,7 +104,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         public double StopPx;
 
         public int TotalOrderCount =>
-            1 + (StopOrder != null ? 1 : 0) + (StagedTargets != null ? StagedTargets.Count : 0);
+            (EntryOrder != null ? 1 : 0) + (StopOrder != null ? 1 : 0) + (StagedTargets != null ? StagedTargets.Count : 0);
     }
 
     internal interface IPhotonDispatchChannel
