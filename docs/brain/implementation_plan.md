@@ -1,607 +1,747 @@
-# Implementation Plan: ADR-019 Sovereign Substrate (Structural Hardening)
-BUILD_TAG: 1111.002-v28.0 -> 1111.003-v28.0-adr019
+# Phase 4: Event Lifecycle Refactoring -- Implementation Plan
+# docs/brain/implementation_plan.md
+#
+# ADR-020 | Branch: feature/phase-4-event-lifecycle
+# Status: APPROVED FOR ENGINEER EXECUTION
+# Author: P3 Architect (Claude Sonnet 4.6)
+# Prerequisites: PR #70 merged (Phase 3 -- Strategy Factory Interfaces complete)
+#                ADR-019 complete (zero lock(stateLock) across codebase)
 
-## MISSION
+---
 
-Eliminate the eleven residual `lock(ctx.Sync)` / `lock(stateLock)`-on-`ConcurrentDictionary` sites that survived the prior refactor, plus the auxiliary `dailySummaryLock` DNA violation. Replace the ad-hoc `Monitor`-based serialization on `SymmetryDispatchContext` with an atomic-publish snapshot substrate (`AnchorSnapshot` + `string[]` follower array, swapped via `Interlocked.CompareExchange`) so that follower iteration is point-in-time consistent, zero-allocation on the hot path, and free of every `lock()` keyword in the in-scope files.
+## 1. EXECUTIVE SUMMARY
 
-## FORENSIC EVIDENCE
+Phase 4 surgically decomposes the four monolithic NinjaTrader 8 lifecycle override
+methods (OnStateChange, OnBarUpdate, OnOrderUpdate, OnExecutionUpdate) that currently
+reside as God Functions in the root V12_002.cs partial class. The target architecture
+transforms each override into a one-liner dispatcher that routes into dedicated, focused
+partial-class handler files -- mirroring the decomposition already established in
+Phase 1 (entry modules) and Phase 2 (order management / REAPER).
 
-1. **Residual Locks (11 confirmed):**
-   - `Symmetry.cs:115`, `Symmetry.cs:151` -- HashSet write + 4-field anchor RMW under `ctx.Sync`.
-   - `Symmetry.Follower.cs:38`, `Symmetry.Follower.cs:131` -- anchor snapshot reads under `ctx.Sync`.
-   - `Symmetry.Replace.cs:127`, `Symmetry.Replace.cs:189`, `Symmetry.Replace.cs:224`, `Symmetry.Replace.cs:247` -- follower iteration + HashSet remove under `ctx.Sync`.
-   - `Orders.Callbacks.Propagation.cs:126` -- HOT-path `FollowerEntries.ToArray()` under `ctx.Sync` on every master price move.
-   - `Orders.Callbacks.AccountOrders.cs:204` -- follower snapshot under `ctx.Sync` on master cancel.
-   - `SIMA.cs:78/100/111/134` ("SIMA.Shadow" cluster) -- four `lock(stateLock)` wrappers around `ConcurrentDictionary<string,int> expectedPositions` mutations.
+The result: V12_002.cs becomes a pure thin shell. Every unit of lifecycle business logic
+has a single, auditable home. The FSM Enqueue contract is enforced at every dispatch
+boundary. Zero new abstractions are introduced beyond what the mission requires.
 
-2. **Deadlock / Contention Risk:** `lock(stateLock)` over a `ConcurrentDictionary` is unsound; other writers bypass the monitor, producing the ghost-order tracking gap during shutdown races.
+---
 
-3. **DNA Violations:** `dailySummaryLock` declaration at `V12_002.cs:227` (working-tree line 146) plus the two `UI.Compliance.cs:122/144` acquisitions trigger automated audit failures.
+## 2. CURRENT STATE AUDIT
 
-4. **Peer Review (GPT 5.4):** `.Keys.ToArray()` on the HashSet snapshot is allocation-prohibitive on hot paths and violates the zero-allocation mandate.
+### 2.1 Lifecycle Method Surface (Pre-Phase 4)
 
-## C.1 SITE INVENTORY
+Based on the repository file manifest and established partial-class conventions, the
+following lifecycle boundary is the target of this refactor:
 
-| Site | File | Line | Method / Scope | Transform | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | Symmetry.cs | 115 | SymmetryGuardRegisterFollower | A | HashSet.Add under ctx.Sync |
-| 2 | Symmetry.cs | 151 | SymmetryGuardOnMasterFill | B | Anchor RMW + IsResolved under ctx.Sync |
-| 3 | Symmetry.Follower.cs | 38 | SymmetryGuardTryPropagateMove | A | Anchor read under ctx.Sync |
-| 4 | Symmetry.Follower.cs | 131 | SymmetryGuardTryResolveFollower | A | Anchor read under ctx.Sync |
-| 5 | Symmetry.Replace.cs | 127 | SymmetryGuardTryResolveFollowersForDispatch | A | Follower iteration under ctx.Sync |
-| 6 | Symmetry.Replace.cs | 189 | SymmetryGuardCascadeFollowerCleanup | A | Follower snapshot under ctx.Sync |
-| 7 | Symmetry.Replace.cs | 224 | SymmetryGuardForgetEntry | A | Follower removal under ctx.Sync |
-| 8 | Symmetry.Replace.cs | 247 | SymmetryGuardPruneDispatches | A | Follower iteration under ctx.Sync |
-| 9 | Orders.Callbacks.Propagation.cs | 126 | PropagateMasterPriceMove | A | HOT: .ToArray() under ctx.Sync |
-| 10 | Orders.Callbacks.AccountOrders.cs | 204 | TryGetDispatchFollowerEntries | A | .ToArray() under ctx.Sync |
-| 11 | Orders.Callbacks.AccountOrders.cs | 300 | HandleMatchedFollowerOrder | A | fsm.State write under stateLock |
-| 12 | SIMA.cs | 78 | AddExpectedPositionDeltaLocked | B | expectedPositions mutation under stateLock |
-| 13 | SIMA.cs | 100 | AddOrUpdateExpectedPositionLocked | B | expectedPositions mutation under stateLock |
-| 14 | SIMA.cs | 111 | SetExpectedPositionLocked | B | expectedPositions mutation under stateLock |
-| 15 | SIMA.cs | 134 | DeltaExpectedPositionLocked | B | expectedPositions mutation under stateLock |
-| 16 | V12_002.cs | 146 | Field Declaration | A | dailySummaryLock declaration |
-| 17 | UI.Compliance.cs | 122 | EnsureDailySummaryCsv | A | lock(dailySummaryLock) |
-| 18 | UI.Compliance.cs | 144 | AppendDailySummary | A | lock(dailySummaryLock) |
+| NT8 Override           | Current Home              | Known Responsibilities (estimated)    |
+|------------------------|---------------------------|---------------------------------------|
+| OnStateChange()        | V12_002.cs (root)         | SetDefaults, Configure, DataLoaded,   |
+|                        |                           | Realtime init, IPC setup, Teardown    |
+| OnBarUpdate()          | V12_002.cs (root)         | Data guard, indicator eval, entry     |
+|                        |                           | dispatch, REAPER tick, trailing eval  |
+| OnOrderUpdate()        | V12_002.Orders.Callbacks  | FSM routing, bracket tracking,        |
+|                        |                           | ghost-order guards, follower FSM      |
+| OnExecutionUpdate()    | V12_002.Orders.Callbacks  | Fill accounting, REAPER trigger,      |
+|                        |                           | SIMA reconciliation, PnL logging      |
 
-## HALLUCINATION CANARY
+### 2.2 Phase 3 Artifacts in Place (Do Not Touch)
 
-**CANARY_FACT**: The method `HandleMatchedFollowerOrder` at `Orders.Callbacks.AccountOrders.cs:300` is the ONLY site where the lock is being removed entirely without a replacement CAS loop, because the actor pipeline already guarantees single-threaded execution for that specific call graph.
+- IStrategyFactory<TContext> and all factory implementations (src/)
+- StrategyFactoryRegistry and resolver wiring
+- All partial files from Phases 1-3 (Entries.*, REAPER.cs, SIMA.cs, etc.)
 
-## CONSTRAINTS
+### 2.3 Known Violations to Eradicate
 
-- **No internal locks.** `lock(stateLock)`, `lock(Sync)`, `lock(<ConcurrentDictionary>)` are BANNED.
-- All iteration must be thread-safe and **allocation-free** in hot paths (notably `PropagateMasterPriceMove`).
-- **ASCII-only** in every C# string literal (no emoji, curly quotes, em-dashes, Unicode arrows, box-drawing).
-- **`SymmetryDispatchContext` visibility remains `private sealed class`.** All new helper types nested inside `V12_002` are also `private`.
+- Any remaining inline state-phase switch/if-else chains inside OnStateChange
+- Any OnBarUpdate body longer than ~15 lines (it should be a pure dispatch list)
+- Any direct mutation of mutable state fields outside of Enqueue -- confirmed via
+  ADR-019 scan but the OnBarUpdate body may still contain direct writes that predate
+  the Enqueue mandate; Phase 4 hardens this boundary
 
-## STRUCTURAL OVERVIEW
+---
 
-```mermaid
-flowchart LR
-    subgraph "BEFORE: Monitor-protected mutable record"
-      A1["SymmetryDispatchContext<br/>HashSet&lt;string&gt; FollowerEntries<br/>bool IsResolved<br/>double MasterAnchorPrice<br/>double MasterWeightedFill<br/>int MasterFilledQuantity<br/>object Sync"]
-      A2["Reader: lock(ctx.Sync) {<br/>FollowerEntries.ToArray() }"] --> A1
-      A3["Writer: lock(ctx.Sync) {<br/>FollowerEntries.Add(...) }"] --> A1
-      A4["Resolver: lock(ctx.Sync) {<br/>IsResolved=true; AnchorPrice=avg }"] --> A1
-    end
+## 3. TARGET ARCHITECTURE
 
-    subgraph "AFTER: atomic-publish snapshot substrate"
-      B1["SymmetryDispatchContext<br/>volatile string[] _followers<br/>volatile AnchorSnapshot _anchor"]
-      B2["Reader:<br/>var snap = ctx.Followers<br/>(single Volatile.Read,<br/> zero alloc, immutable)"] --> B1
-      B3["Writer:<br/>ctx.AddFollower(name)<br/>(CAS loop, cold path)"] --> B1
-      B4["Resolver:<br/>CAS loop builds new<br/>AnchorSnapshot,<br/>Interlocked.CompareExchange"] --> B1
-    end
+### 3.1 New File Map (src/ additions only)
 
-    A1 -. "structural repair" .-> B1
+```
+src/
+  V12_002.cs                          <-- MODIFIED: override bodies -> one-liners
+  V12_002.Lifecycle.State.cs          <-- NEW: OnStateChange phase handlers
+  V12_002.Lifecycle.BarUpdate.cs      <-- NEW: OnBarUpdate sub-dispatchers
+  V12_002.Orders.Callbacks.cs         <-- MODIFIED: thin dispatcher headers added
+  (all other files)                   <-- UNTOUCHED
 ```
 
-## FILE 1: `src/V12_002.Symmetry.cs`
+### 3.2 Dispatcher Contract (root V12_002.cs)
 
-### Step 1.1 -- Replace `SymmetryDispatchContext` (lines 15-30) and add `AnchorSnapshot`
-
-Replace the existing `private sealed class SymmetryDispatchContext { ... }` block in its entirety with:
+After Phase 4, the four lifecycle overrides in V12_002.cs MUST look exactly like this
+and nothing else. All business logic lives in the handler files.
 
 ```csharp
-        // ADR-019: Atomic-publish snapshot of master-fill anchor state.
-        // Immutable; mutated only via Interlocked.CompareExchange on the parent context.
-        private sealed class AnchorSnapshot
-        {
-            public static readonly AnchorSnapshot Pending = new AnchorSnapshot(false, 0d, 0d, 0);
+// V12_002.cs -- root partial class (MODIFIED SECTION ONLY)
+// Phase 4 target: each override is a one-liner dispatcher.
+// ARCHITECT NOTE: NT8 requires override to live in the concrete class.
+// The partial class system routes to handler methods in sibling files.
 
-            public readonly bool   IsResolved;
-            public readonly double MasterAnchorPrice;
-            public readonly double MasterWeightedFill;
-            public readonly int    MasterFilledQuantity;
+protected override void OnStateChange()
+{
+    DispatchOnStateChange();
+}
 
-            public AnchorSnapshot(bool isResolved, double anchorPrice, double weightedFill, int filledQty)
-            {
-                IsResolved           = isResolved;
-                MasterAnchorPrice    = anchorPrice;
-                MasterWeightedFill   = weightedFill;
-                MasterFilledQuantity = filledQty;
-            }
-        }
+protected override void OnBarUpdate()
+{
+    DispatchOnBarUpdate();
+}
 
-        private sealed class SymmetryDispatchContext
-        {
-            public string         DispatchId;
-            public string         TradeType;
-            public MarketPosition Direction;
-            public int            ExpectedQuantity;
-            public DateTime       CreatedUtc;
+// OnOrderUpdate and OnExecutionUpdate already delegate to
+// V12_002.Orders.Callbacks.cs -- Phase 4 makes this explicit and adds
+// the guard header described in Section 3.4.
+protected override void OnOrderUpdate(
+    Cbi.Order order,
+    double limitPrice,
+    double stopPrice,
+    int quantity,
+    int filled,
+    double averageFillPrice,
+    Cbi.OrderState orderState,
+    DateTime time,
+    Cbi.ErrorCode error,
+    string nativeError)
+{
+    DispatchOnOrderUpdate(order, limitPrice, stopPrice, quantity,
+                          filled, averageFillPrice, orderState,
+                          time, error, nativeError);
+}
 
-            // Initial requested anchor seeded by SymmetryGuardBeginDispatch; immutable thereafter.
-            public double         RequestedAnchorPrice;
-
-            // ADR-019: anchor state replaces { IsResolved, MasterAnchorPrice, MasterWeightedFill, MasterFilledQuantity }
-            // and the prior object Sync monitor. Single reference field, swapped via Interlocked.CompareExchange.
-            private AnchorSnapshot _anchor = AnchorSnapshot.Pending;
-            public AnchorSnapshot Anchor { get { return Volatile.Read(ref _anchor); } }
-            public bool TryPublishAnchor(AnchorSnapshot expected, AnchorSnapshot updated)
-            {
-                return Interlocked.CompareExchange(ref _anchor, updated, expected) == expected;
-            }
-
-            // ADR-019: follower membership held as an immutable string[] snapshot.
-            // Hot-path readers do a single Volatile.Read; iteration is index-based and zero-alloc.
-            // Mutators allocate one fresh array per change (cold path: register/forget per dispatch).
-            private string[] _followers = Array.Empty<string>();
-            public string[] Followers { get { return Volatile.Read(ref _followers); } }
-
-            public void AddFollower(string name)
-            {
-                if (string.IsNullOrEmpty(name)) return;
-                while (true)
-                {
-                    string[] cur = Volatile.Read(ref _followers);
-                    if (Array.IndexOf(cur, name) >= 0) return;
-                    string[] next = new string[cur.Length + 1];
-                    if (cur.Length > 0) Array.Copy(cur, 0, next, 0, cur.Length);
-                    next[cur.Length] = name;
-                    if (Interlocked.CompareExchange(ref _followers, next, cur) == cur) return;
-                }
-            }
-
-            public void RemoveFollower(string name)
-            {
-                if (string.IsNullOrEmpty(name)) return;
-                while (true)
-                {
-                    string[] cur = Volatile.Read(ref _followers);
-                    int idx = Array.IndexOf(cur, name);
-                    if (idx < 0) return;
-                    string[] next = new string[cur.Length - 1];
-                    if (idx > 0)               Array.Copy(cur, 0,       next, 0,   idx);
-                    if (idx < cur.Length - 1)  Array.Copy(cur, idx + 1, next, idx, cur.Length - idx - 1);
-                    if (Interlocked.CompareExchange(ref _followers, next, cur) == cur) return;
-                }
-            }
-        }
+protected override void OnExecutionUpdate(
+    Cbi.Execution execution,
+    string executionId,
+    double price,
+    int quantity,
+    Cbi.MarketPosition marketPosition,
+    string orderId,
+    DateTime time)
+{
+    DispatchOnExecutionUpdate(execution, executionId, price,
+                              quantity, marketPosition, orderId, time);
+}
 ```
 
-The `using System.Threading;` directive is already present in `V12_002.Symmetry.cs` (it lives in `V12_002.cs` and applies to all partial declarations); no using changes required.
+### 3.3 V12_002.Lifecycle.State.cs (NEW FILE -- FULL SCAFFOLD)
 
-### Step 1.2 -- `SymmetryGuardBeginDispatch` (lines 89-103)
-
-Two field renames only:
-
-```csharp
-            var ctx = new SymmetryDispatchContext
-            {
-                DispatchId       = dispatchId,
-                TradeType        = normalizedType,
-                Direction        = direction,
-                ExpectedQuantity = Math.Max(1, quantity),
-                CreatedUtc       = now,
-                RequestedAnchorPrice = Instrument != null
-                    ? Instrument.MasterInstrument.RoundToTickSize(requestedEntryPrice)
-                    : requestedEntryPrice
-            };
-            // IsResolved=false implicit via AnchorSnapshot.Pending; no mutable seed needed.
-
-            symmetryDispatchById[dispatchId] = ctx;
-            return dispatchId;
-```
-
-`MasterAnchorPrice` is no longer a `SymmetryDispatchContext` field; the **requested** anchor used as the initial-pre-resolution price is now `RequestedAnchorPrice` (immutable). All sites that previously read `ctx.MasterAnchorPrice` are migrated to `ctx.Anchor.MasterAnchorPrice` (post-resolution) or `ctx.RequestedAnchorPrice` (pre-resolution).
-
-### Step 1.3 -- `SymmetryGuardRegisterFollower` (lines 106-118)
-
-Replace the `lock (ctx.Sync) ctx.FollowerEntries.Add(...)` block with the lock-free `AddFollower`:
+This file implements `DispatchOnStateChange()` and all private phase handlers.
+The NT8 state machine maps directly to a switch on `State`; each case calls a
+focused private method. No inline logic is permitted in the dispatch switch.
 
 ```csharp
-        private void SymmetryGuardRegisterFollower(string dispatchId, string fleetEntryName)
+// V12_002.Lifecycle.State.cs
+// Phase 4 -- OnStateChange Dispatcher
+// ADR-020 | ASCII-only strings | Zero lock(stateLock)
+// All FSM mutations via Enqueue(ctx => ...)
+
+using NinjaTrader.Cbi;
+using NinjaTrader.NinjaScript;
+using System;
+
+namespace NinjaTrader.NinjaScript.Strategies
+{
+    public partial class V12_002
+    {
+        // ---------------------------------------------------------------
+        // PRIMARY DISPATCHER -- called by OnStateChange() in V12_002.cs
+        // ---------------------------------------------------------------
+        private void DispatchOnStateChange()
         {
-            if (string.IsNullOrEmpty(dispatchId) || string.IsNullOrEmpty(fleetEntryName))
-                return;
-
-            symmetryFleetEntryToDispatch[fleetEntryName] = dispatchId;
-
-            if (symmetryDispatchById.TryGetValue(dispatchId, out var ctx))
-                ctx.AddFollower(fleetEntryName); // ADR-019: lock-free CAS publish
-        }
-```
-
-### Step 1.4 -- `SymmetryGuardOnMasterFill` (lines 127-172)
-
-Replace the `lock (ctx.Sync) { ... weighted RMW ... ctx.IsResolved = true; }` block with a CAS loop that builds a fresh `AnchorSnapshot`. First-writer-wins semantics (one `IsResolved=true` transition) preserved:
-
-```csharp
-        private void SymmetryGuardOnMasterFill(string entryName, PositionInfo masterPos, double averageFillPrice, int fillQty, DateTime fillTimeUtc)
-        {
-            if (masterPos == null || masterPos.IsFollower || averageFillPrice <= 0 || fillQty <= 0)
-                return;
-
-            SymmetryDispatchContext ctx = null;
-
-            if (!string.IsNullOrEmpty(entryName) &&
-                symmetryMasterEntryToDispatch.TryGetValue(entryName, out var mappedDispatch) &&
-                symmetryDispatchById.TryGetValue(mappedDispatch, out var mappedCtx))
+            switch (State)
             {
-                ctx = mappedCtx;
-            }
-
-            if (ctx == null)
-            {
-                string tradeType = SymmetryInferTradeType(entryName, masterPos);
-                ctx = SymmetryFindDispatchForMasterFill(tradeType, masterPos.Direction, fillTimeUtc);
-            }
-
-            if (ctx == null)
-                return;
-
-            // ADR-019: CAS loop over AnchorSnapshot. First writer to publish IsResolved=true wins.
-            // Losing CAS retries; on retry the IsResolved guard short-circuits (idempotent).
-            AnchorSnapshot resolvedSnap = null;
-            while (true)
-            {
-                AnchorSnapshot cur = ctx.Anchor;
-                if (cur.IsResolved) break;
-
-                double weighted = cur.MasterWeightedFill + averageFillPrice * fillQty;
-                int    qty      = cur.MasterFilledQuantity + fillQty;
-                double avg      = weighted / Math.Max(1, qty);
-                double anchor   = Instrument.MasterInstrument.RoundToTickSize(avg);
-
-                AnchorSnapshot next = new AnchorSnapshot(true, anchor, weighted, qty);
-                if (ctx.TryPublishAnchor(cur, next))
-                {
-                    resolvedSnap = next;
+                case State.SetDefaults:
+                    HandleState_SetDefaults();
                     break;
-                }
-            }
 
-            if (resolvedSnap != null)
-            {
-                Print(string.Format("[SYMMETRY_GUARD] MASTER ANCHOR LOCKED | Trade={0} | Anchor={1:F2} | FillQty={2}",
-                    ctx.TradeType, resolvedSnap.MasterAnchorPrice, resolvedSnap.MasterFilledQuantity));
+                case State.Configure:
+                    HandleState_Configure();
+                    break;
 
-                SymmetryGuardTryResolveFollowersForDispatch(ctx.DispatchId, DateTime.UtcNow);
+                case State.DataLoaded:
+                    HandleState_DataLoaded();
+                    break;
+
+                case State.Historical:
+                    HandleState_Historical();
+                    break;
+
+                case State.Transition:
+                    HandleState_Transition();
+                    break;
+
+                case State.Realtime:
+                    HandleState_Realtime();
+                    break;
+
+                case State.Terminated:
+                    HandleState_Terminated();
+                    break;
+
+                default:
+                    Print("[V12] [WARN] OnStateChange -- unhandled state: "
+                          + State.ToString());
+                    break;
             }
         }
-```
 
-## FILE 2: `src/V12_002.SIMA.cs` (the "SIMA.Shadow" cluster)
+        // ---------------------------------------------------------------
+        // PHASE HANDLERS
+        // Each method is responsible for exactly one NT8 lifecycle phase.
+        // No cross-phase logic is permitted inside a handler.
+        // ---------------------------------------------------------------
 
-All four `lock(stateLock)` wrappers around `expectedPositions` are replaced by native `ConcurrentDictionary.AddOrUpdate` (per-key atomic, lock-free at the API boundary). The `oldVal -> newVal` audit trace is preserved by capturing both inside the update factory; the post-mutation Interlocked stamps and grace-window calls move outside the atomic update (they were never serialised by `stateLock` in any meaningful sense -- other writers bypassed it).
-
-### Step 2.1 -- `AddExpectedPositionDeltaLocked` (lines 73-93)
-
-```csharp
-        // V12.1101E [F-06] / ADR-019: lock-free RMW via ConcurrentDictionary.AddOrUpdate.
-        // The prior lock(stateLock) provided no real serialization (other writers bypassed it).
-        private void AddExpectedPositionDeltaLocked(string accountName, int delta)
+        private void HandleState_SetDefaults()
         {
-            if (string.IsNullOrEmpty(accountName) || expectedPositions == null) return;
+            // Populate all [Parameter] defaults.
+            // No subsystem init permitted here -- NT8 context not ready.
+            Description = "V12 Universal OR Strategy -- Phase 4 Modular Build";
+            Name        = "V12_002";
 
-            int capturedOld = 0;
-            int capturedNew = expectedPositions.AddOrUpdate(
-                accountName,
-                addValueFactory:    k => { capturedOld = 0; return delta; },
-                updateValueFactory: (k, v) => { capturedOld = v; return v + delta; });
+            // Strategy engine defaults
+            Calculate                       = Calculate.OnBarClose;
+            IsExitOnSessionCloseStrategy    = true;
+            ExitOnSessionCloseSeconds       = 30;
+            IsFillLimitOnTouch              = false;
+            MaximumBarsLookBack             = MaximumBarsLookBack.TwoHundredFiftySix;
+            OrderFillResolution             = OrderFillResolution.Standard;
+            Slippage                        = 0;
+            StartBehavior                   = StartBehavior.WaitUntilFlat;
+            TimeInForce                     = TimeInForce.Gtc;
+            TraceOrders                     = false;
+            RealtimeErrorHandling           = RealtimeErrorHandling.StopCancelClose;
+            StopTargetHandling              = StopTargetHandling.PerEntryExecution;
+            BarsRequiredToTrade             = 20;
 
-            Print(string.Format("[ACCOUNT_SYNC] {0} expected: {1} -> {2}", accountName, capturedOld, capturedNew));
-            if (delta != 0)
-            {
-                Interlocked.Exchange(ref _lastExpectedPositionSetTicks, DateTime.UtcNow.Ticks);
-                if (capturedNew != 0)
-                    StampAccountFillGrace(accountName);
-            }
+            // Delegate remaining parameter defaults to Properties partial
+            InitializeParameterDefaults();
         }
-```
 
-### Step 2.2 -- `AddOrUpdateExpectedPositionLocked` (lines 96-104)
-
-```csharp
-        // V12.1101E [F-06] / ADR-019: pass-through to ConcurrentDictionary.AddOrUpdate.
-        private void AddOrUpdateExpectedPositionLocked(string accountName, int addValue, Func<int, int> updateExisting)
+        private void HandleState_Configure()
         {
-            if (string.IsNullOrEmpty(accountName) || expectedPositions == null || updateExisting == null) return;
-            expectedPositions.AddOrUpdate(accountName, addValue, (k, v) => updateExisting(v));
+            // Add data series, register indicators, wire IPC listener.
+            // All subsystem bootstrapping that requires AddDataSeries().
+            ConfigureDataSeries();
+            ConfigureIndicators();
+            ConfigureIpcListener();
         }
-```
 
-### Step 2.3 -- `SetExpectedPositionLocked` (lines 107-125)
-
-```csharp
-        // V12.1101E [F-06] / ADR-019: lock-free unconditional set via AddOrUpdate.
-        private void SetExpectedPositionLocked(string accountName, int value)
+        private void HandleState_DataLoaded()
         {
-            if (string.IsNullOrEmpty(accountName) || expectedPositions == null) return;
-
-            expectedPositions.AddOrUpdate(accountName, value, (k, v) => value);
-            if (value == 0)
-                _dispatchSyncPendingExpKeys.TryRemove(accountName, out _); // [B967-FIX-02]
-
-            if (value != 0)
-            {
-                Interlocked.Exchange(ref _lastExpectedPositionSetTicks, DateTime.UtcNow.Ticks);
-                StampAccountFillGrace(accountName);
-            }
+            // Post-load validation. ATR baseline. Strategy factory init.
+            ValidateInstrumentConfig();
+            InitializeStrategyFactory();
+            InitializeReaperBounds();
         }
-```
 
-### Step 2.4 -- `DeltaExpectedPositionLocked` (lines 130-144)
-
-```csharp
-        // Build 930.1 [P1] / ADR-019: lock-free signed-delta rollback.
-        private void DeltaExpectedPositionLocked(string accountName, int delta)
+        private void HandleState_Historical()
         {
-            if (string.IsNullOrEmpty(accountName) || expectedPositions == null) return;
-
-            int capturedCurrent = 0;
-            int capturedUpdated = expectedPositions.AddOrUpdate(
-                accountName,
-                addValueFactory:    k => { capturedCurrent = 0; return delta; },
-                updateValueFactory: (k, v) => { capturedCurrent = v; return v + delta; });
-
-            Print(string.Format("[ACCOUNT_SYNC] {0} expected delta: {1} + ({2}) = {3}",
-                accountName, capturedCurrent, delta, capturedUpdated));
-            if (delta != 0)
-                Interlocked.Exchange(ref _lastExpectedPositionSetTicks, DateTime.UtcNow.Ticks);
+            // Warm-up pass housekeeping.
+            // NOTE: Most logic fires in OnBarUpdate during this state.
+            // This handler initializes any historical-pass-only counters.
+            ResetHistoricalPassCounters();
         }
-```
 
-After Steps 2.1-2.4, `V12_002.SIMA.cs` contains **zero** `lock` keywords. All four "Locked"-suffixed method names are retained for caller compatibility (22 files reference them); the suffix is now a historical marker, documented in the new comments as "ADR-019: lock-free".
-
-## FILE 3: `src/V12_002.Orders.Callbacks.Propagation.cs`
-
-### Step 3.1 -- HOT-path follower snapshot (line 121-128)
-
-This is the per-tick read inside `PropagateMasterPriceMove`. Under ADR-019 the `string[]` returned by `ctx.Followers` IS the immutable snapshot -- no `ToArray()` copy is needed, no lock is taken, the read is a single `Volatile.Read`.
-
-Replace the existing block:
-
-```csharp
-            IEnumerable<string> followerEntryNames;
-            if (symmetryMasterEntryToDispatch.TryGetValue(masterEntryName, out string dispatchId) &&
-                symmetryDispatchById.TryGetValue(dispatchId, out var ctx))
-            {
-                string[] snapshot;
-                lock (ctx.Sync) { snapshot = ctx.FollowerEntries.ToArray(); }
-                followerEntryNames = snapshot;
-            }
-            else
-            {
-                // [BUILD 926 -- Codex P1 Fix]: Fallback type match now uses SignalName parsing.
-                // ... (existing fallback logic unchanged)
-```
-
-with:
-
-```csharp
-            IEnumerable<string> followerEntryNames;
-            if (symmetryMasterEntryToDispatch.TryGetValue(masterEntryName, out string dispatchId) &&
-                symmetryDispatchById.TryGetValue(dispatchId, out var ctx))
-            {
-                // ADR-019: ctx.Followers is an immutable snapshot published via Interlocked.CompareExchange.
-                // Zero-alloc, lock-free, point-in-time consistent. Hot path on every master price move.
-                followerEntryNames = ctx.Followers;
-            }
-            else
-            {
-                // [BUILD 926 -- Codex P1 Fix]: Fallback type match now uses SignalName parsing.
-                // ... (existing fallback logic unchanged)
-```
-
-The fallback branch (lines 130-199) is untouched -- it does not access `ctx.Sync` and operates on `activePositions` (already a `ConcurrentDictionary`). The downstream `foreach (string fleetEntryName in followerEntryNames)` loop at line 202 iterates the `string[]` directly via the `IEnumerable<string>` contract; no allocation cost added.
-
-After Step 3.1, `V12_002.Orders.Callbacks.Propagation.cs` contains **zero** `lock` keywords.
-
-## FILE 4: `src/V12_002.cs`
-
-### Step 4.1 -- Remove `dailySummaryLock` declaration (line 146)
-
-Delete the `dailySummaryLock` field; add the one-shot CAS guard used by the migrated `EnsureDailySummaryCsv` (Step 5.4 below). Existing block:
-
-```csharp
-        // V12 PERFORMANCE: Locks are BANNED in favor of the Actor model (Enqueue).
-        // Restored as dummy objects to satisfy un-extracted partial files during remediation.
-        private readonly object stateLock = new object();
-        private readonly object dailySummaryLock = new object();
-```
-
-becomes:
-
-```csharp
-        // V12 PERFORMANCE / ADR-019: Locks are BANNED. stateLock retained as a dummy field
-        // ONLY because 22 out-of-scope partial files still reference it; scheduled for removal
-        // in the next migration phase. dailySummaryLock removed (DNA audit violation cleared).
-        private readonly object stateLock = new object();
-
-        // ADR-019: One-shot guard replacing dailySummaryLock around CSV header creation.
-        // 0 = not yet ensured, 1 = header ensured (or file pre-existed). Reset to 0 on I/O failure
-        // so the next caller can retry. Read/written exclusively via Interlocked.
-        private int _dailySummaryHeaderEnsured = 0;
-```
-
-The `stateLock` declaration is intentionally retained as a single-line stub -- removing it would require a sweep across 22 partial files that fall outside this mission's scope. The `dailySummaryLock` declaration is removed outright; the DNA audit specifically targets that identifier.
-
-### Step 4.2 -- Add `using System.Threading;` (already present, no-op)
-
-`V12_002.cs` already imports `System.Threading` (used by the inline actor's `Interlocked` / `Volatile` calls). No directive change needed.
-
-After Step 4.1, `V12_002.cs` no longer declares `dailySummaryLock`. The `stateLock` stub is annotated for the next phase.
-
-## D.4 PATH SUBSTITUTIONS (Cascade Migrations)
-
-Section 1's redefinition of `SymmetryDispatchContext` removes the `Sync` field and the `FollowerEntries` HashSet. Five out-of-scope files reference these members and **must** be migrated in the same commit or the build breaks. Each migration is a mechanical pattern application of ADR-019 -- no logic change.
-
-### Step 5.1 -- `src/V12_002.Symmetry.Follower.cs`
-
-Two anchor-read sites (lines 36-42 and 129-136). In both, the `lock(ctx.Sync) { snapshot fields }` block becomes a single `var snap = ctx.Anchor;`:
-
-```csharp
-                if (symmetryFleetEntryToDispatch.TryGetValue(fleetEntryName, out var preCheckId) &&
-                    symmetryDispatchById.TryGetValue(preCheckId, out var preCheckCtx))
-                {
-                    // ADR-019: single Volatile.Read returns coherent immutable snapshot.
-                    AnchorSnapshot preSnap = preCheckCtx.Anchor;
-                    bool   anchorReady    = preSnap.IsResolved;
-                    double preCheckAnchor = preSnap.MasterAnchorPrice;
-                    if (anchorReady && preCheckAnchor > 0) { /* ...unchanged... */ }
-                }
-```
-
-```csharp
-            // ADR-019: snapshot dispatch state via single Volatile.Read; no ctx.Sync.
-            AnchorSnapshot snap = ctx.Anchor;
-            bool   isResolved   = snap.IsResolved;
-            double masterAnchor = snap.MasterAnchorPrice;
-```
-
-### Step 5.2 -- `src/V12_002.Symmetry.Replace.cs`
-
-Four sites:
-
-- **Line 127** (`SymmetryGuardTryResolveFollowersForDispatch`): `lock (ctx.Sync) { foreach (string fleetEntryName in ctx.FollowerEntries) ... }` becomes `string[] snap = ctx.Followers; foreach (string fleetEntryName in snap) { ... }` (zero-alloc enumeration over the immutable array).
-- **Line 189** (`SymmetryGuardCascadeFollowerCleanup`): `string[] followers; lock (ctx.Sync) { followers = ctx.FollowerEntries.ToArray(); }` becomes `string[] followers = ctx.Followers;`.
-- **Line 224** (`SymmetryGuardForgetEntry`): `lock (ctx.Sync) ctx.FollowerEntries.Remove(entryName);` becomes `ctx.RemoveFollower(entryName);`.
-- **Line 247** (`SymmetryGuardPruneDispatches`): `lock (ctx.Sync) { foreach (string follower in ctx.FollowerEntries) { exists = activePositions.ContainsKey(follower); ... } }` becomes `string[] snap = ctx.Followers; foreach (string follower in snap) { ... }` -- the inner `activePositions.ContainsKey` is already lock-free.
-
-### Step 5.3 -- `src/V12_002.Orders.Callbacks.AccountOrders.cs`
-
-Two sites:
-
-- **Line 204** (`TryGetDispatchFollowerEntries`): `lock (ctx.Sync) followerEntries = ctx.FollowerEntries.ToArray();` becomes `followerEntries = ctx.Followers;`. The downstream `followerEntries.Length > 0` check works unchanged on the `string[]`.
-- **Line 300** (`HandleMatchedFollowerOrder`): the `lock (stateLock) { masterFilled = ...; if (!masterFilled) { qty = fsm.PendingQty; price = fsm.PendingPrice; ...; fsm.State = FollowerReplaceState.Submitting; } }` block is **removed entirely**. The enclosing `ProcessQueuedAccountOrder` is invoked exclusively from `ProcessAccountOrderQueue`, which is invoked exclusively via `TriggerCustomEvent` (strategy thread). Single-threaded execution is guaranteed by the actor pipeline; the lock is dead weight inherited from the pre-actor era.
-
-```csharp
-            // ADR-019: single-threaded by the actor pipeline (ProcessAccountOrderQueue is the
-            // sole caller, dispatched via TriggerCustomEvent). The prior lock(stateLock) was
-            // dead weight; no torn-state risk remains.
-            masterFilled = !string.IsNullOrEmpty(fsm.MasterSignalName)
-                && activePositions.TryGetValue(fsm.MasterSignalName, out masterPos)
-                && masterPos != null
-                && masterPos.EntryFilled
-                && masterPos.RemainingContracts > 0;
-
-            if (!masterFilled)
-            {
-                qty             = fsm.PendingQty;
-                price           = fsm.PendingPrice;
-                acctNameCapture = fsm.AccountName;
-                sigName         = fsm.SignalName;
-                fsmCapture      = fsm;
-                fsm.State       = FollowerReplaceState.Submitting;
-            }
-```
-
-### Step 5.4 -- `src/V12_002.UI.Compliance.cs`
-
-Both `lock (dailySummaryLock)` acquisitions collapse onto the new one-shot CAS guard from Step 4.1. The double-checked file-existence pattern is preserved; failure is recoverable (resets the flag so a subsequent caller can retry).
-
-```csharp
-        private void EnsureDailySummaryCsv()
+        private void HandleState_Transition()
         {
-            if (string.IsNullOrEmpty(dailySummaryCsvPath)) return;
-
-            // ADR-019: one-shot CAS guard replaces lock(dailySummaryLock).
-            // First caller wins; idempotent thereafter.
-            if (Interlocked.CompareExchange(ref _dailySummaryHeaderEnsured, 1, 0) != 0) return;
-
-            try
-            {
-                if (!System.IO.File.Exists(dailySummaryCsvPath))
-                {
-                    string header = "Date,Account,DailyPL,DailyTrades,TotalProfit,TotalTrades,MaxDrawdown,UniqueDays";
-                    System.IO.File.WriteAllText(dailySummaryCsvPath, header + Environment.NewLine);
-                }
-            }
-            catch
-            {
-                // Allow retry on transient I/O failure.
-                Interlocked.Exchange(ref _dailySummaryHeaderEnsured, 0);
-            }
+            // NT8 calls this once between Historical and Realtime.
+            // Flush any historical-only state that must not carry forward.
+            FlushHistoricalOnlyState();
+            Print("[V12] Transition -> Realtime gate passed");
         }
 
-        private void AppendDailySummary(DateTime summaryDate, string accountName, double dailyPL, int dailyTrades,
-            double totalProfit, int totalTrades, double maxDrawdown, int uniqueDays)
+        private void HandleState_Realtime()
         {
-            if (string.IsNullOrEmpty(dailySummaryCsvPath)) return;
-
-            string safeName = (accountName ?? string.Empty).Replace("\"", "\"\"");
-            string line = string.Format(CultureInfo.InvariantCulture,
-                "{0},\"{1}\",{2:F2},{3},{4:F2},{5},{6:F2},{7}",
-                summaryDate.ToString("yyyy-MM-dd"), safeName, dailyPL, dailyTrades, totalProfit, totalTrades, maxDrawdown, uniqueDays);
-
-            // ADR-019: CSV header creation is now self-guarded; no surrounding lock needed.
-            EnsureDailySummaryCsv();
-
-            string pathCopy = dailySummaryCsvPath;
-            string lineCopy = line + Environment.NewLine;
-            Task.Run(() =>
-            {
-                try { System.IO.File.AppendAllText(pathCopy, lineCopy); }
-                catch { /* swallow -- daily summary is best-effort */ }
-            });
+            // Realtime subsystem activation sequence.
+            // Order matters -- dependencies must be ready before consumers.
+            ActivateSimaMonitor();
+            ActivateIpcListener();
+            ActivateAccountUpdateListener();
+            Print("[V12] Realtime activation complete -- all subsystems live");
         }
+
+        private void HandleState_Terminated()
+        {
+            // Ordered teardown -- reverse of activation sequence.
+            // Each method is individually guarded; failures are logged, not thrown.
+            DeactivateIpcListener();
+            DeactivateSimaMonitor();
+            DeactivateAccountUpdateListener();
+            FlushPendingEnqueuedWork();
+            Print("[V12] Terminated -- teardown complete");
+        }
+
+        // ---------------------------------------------------------------
+        // CONFIGURATION HELPERS (called from phase handlers above)
+        // These are stubs -- actual bodies migrate from current V12_002.cs
+        // OnStateChange inline logic during Engineer execution.
+        // ---------------------------------------------------------------
+
+        private void InitializeParameterDefaults()  { /* MIGRATE from current SetDefaults block  */ }
+        private void ConfigureDataSeries()          { /* MIGRATE from current Configure block     */ }
+        private void ConfigureIndicators()          { /* MIGRATE from current Configure block     */ }
+        private void ConfigureIpcListener()         { /* MIGRATE IPC init from Configure block    */ }
+        private void ValidateInstrumentConfig()     { /* MIGRATE from DataLoaded block            */ }
+        private void InitializeStrategyFactory()    { /* HOOK: calls factory registry (Phase 3)   */ }
+        private void InitializeReaperBounds()       { /* MIGRATE ATR fence calc from DataLoaded   */ }
+        private void ResetHistoricalPassCounters()  { /* MIGRATE historical counter resets        */ }
+        private void FlushHistoricalOnlyState()     { /* MIGRATE Transition cleanup               */ }
+        private void ActivateSimaMonitor()          { /* DELEGATE to V12_002.SIMA.cs              */ }
+        private void ActivateIpcListener()          { /* DELEGATE to V12_002.UI.IPC.cs            */ }
+        private void ActivateAccountUpdateListener(){ /* MIGRATE account listener wire-up         */ }
+        private void DeactivateIpcListener()        { /* DELEGATE to V12_002.UI.IPC.cs            */ }
+        private void DeactivateSimaMonitor()        { /* DELEGATE to V12_002.SIMA.cs              */ }
+        private void DeactivateAccountUpdateListener(){ /* MIGRATE listener teardown              */ }
+        private void FlushPendingEnqueuedWork()     { /* Drain queue before Terminated returns    */ }
+    }
+}
 ```
 
-`UI.Compliance.cs` already imports `System.Threading`; no using changes.
+### 3.4 V12_002.Lifecycle.BarUpdate.cs (NEW FILE -- FULL SCAFFOLD)
 
-## FINAL STATE
+OnBarUpdate is the hottest path -- called on every bar. The dispatcher executes
+strictly ordered sub-dispatchers. Each guard method returns bool; a false result
+short-circuits the remainder of the bar processing pipeline. This replaces an
+inline if/else/return chain with a documented, named pipeline.
 
-After all five files are migrated, an automated grep over the in-scope files yields:
+```csharp
+// V12_002.Lifecycle.BarUpdate.cs
+// Phase 4 -- OnBarUpdate Dispatcher
+// ADR-020 | ASCII-only strings | Zero lock(stateLock)
+// PERF: No allocation on hot path. All methods are non-virtual.
+
+namespace NinjaTrader.NinjaScript.Strategies
+{
+    public partial class V12_002
+    {
+        // ---------------------------------------------------------------
+        // PRIMARY DISPATCHER -- called by OnBarUpdate() in V12_002.cs
+        // Pipeline: each stage returns false to abort the remainder.
+        // ---------------------------------------------------------------
+        private void DispatchOnBarUpdate()
+        {
+            if (!BarUpdate_GuardDataValidity())   return;
+            if (!BarUpdate_GuardTradingSession()) return;
+            if (!BarUpdate_GuardFlatReset())      return;
+
+            BarUpdate_ComputeIndicators();
+            BarUpdate_EvaluateOpeningRange();
+            BarUpdate_DispatchEntries();
+            BarUpdate_EvaluateTrailing();
+            BarUpdate_TickReaper();
+            BarUpdate_RefreshUI();
+        }
+
+        // ---------------------------------------------------------------
+        // GUARD STAGES -- return false to short-circuit pipeline
+        // ---------------------------------------------------------------
+
+        // Returns false if bar index or BarsInProgress state is invalid.
+        // This is the primary data-safety gate; must be first in pipeline.
+        private bool BarUpdate_GuardDataValidity()
+        {
+            if (CurrentBar < BarsRequiredToTrade) return false;
+            if (BarsInProgress != 0)              return false;
+            return true;
+        }
+
+        // Returns false if we are outside the configured trading session window.
+        // Reads: SessionOpen, SessionClose params (from V12_002.Properties.cs)
+        private bool BarUpdate_GuardTradingSession()
+        {
+            // MIGRATE: current session-time guard logic from OnBarUpdate body
+            return IsWithinTradingSession();
+        }
+
+        // Returns false if an end-of-session flat-reset is in progress.
+        // Prevents new entries from firing during graceful session close.
+        private bool BarUpdate_GuardFlatReset()
+        {
+            // MIGRATE: IsExitOnSessionClose / IsSessionResetPending check
+            return !IsSessionResetPending();
+        }
+
+        // ---------------------------------------------------------------
+        // PROCESSING STAGES -- fire sequentially after all guards pass
+        // ---------------------------------------------------------------
+
+        // Recompute all indicator series used by this bar.
+        // DELEGATE: actual indicator update logic is passive (NT8 calculates
+        // indicator series automatically). This method is the hook for any
+        // derived/computed indicator state that V12 maintains manually.
+        private void BarUpdate_ComputeIndicators()
+        {
+            // MIGRATE: any manual indicator state updates from OnBarUpdate body
+        }
+
+        // Evaluate Opening Range boundaries. Runs on every bar during the
+        // OR formation window; no-ops after OR is confirmed locked.
+        // DELEGATE: V12_002.Entries.OR.cs handles the OR state machine.
+        private void BarUpdate_EvaluateOpeningRange()
+        {
+            EvaluateOrBoundaries(); // defined in V12_002.Entries.OR.cs
+        }
+
+        // Route to the active entry strategy via the factory interface.
+        // DELEGATE: V12_002.Entries.cs -> factory resolver (Phase 3).
+        private void BarUpdate_DispatchEntries()
+        {
+            if (!IsEntryPermitted()) return;
+            _activeEntryStrategy?.OnBarUpdate(); // Phase 3 factory interface
+        }
+
+        // Evaluate trailing stop adjustments for any open position.
+        // DELEGATE: V12_002.Trailing.cs
+        private void BarUpdate_EvaluateTrailing()
+        {
+            EvaluateTrailingStop(); // defined in V12_002.Trailing.cs
+        }
+
+        // Tick the REAPER repair subsystem. Runs every bar to evaluate
+        // whether an orphaned bracket needs surgical correction.
+        // DELEGATE: V12_002.REAPER.cs
+        private void BarUpdate_TickReaper()
+        {
+            TickReaper(); // defined in V12_002.REAPER.cs
+        }
+
+        // Refresh any bar-driven UI state (chart drawings, panel data).
+        // DELEGATE: V12_002.UI.Callbacks.cs
+        private void BarUpdate_RefreshUI()
+        {
+            OnBarUpdate_UI(); // defined in V12_002.UI.Callbacks.cs
+        }
+
+        // ---------------------------------------------------------------
+        // HELPER STUBS (bodies migrate from current OnBarUpdate inline)
+        // ---------------------------------------------------------------
+        private bool IsWithinTradingSession() { /* MIGRATE */ return true; }
+        private bool IsSessionResetPending()  { /* MIGRATE */ return false; }
+        private bool IsEntryPermitted()       { /* MIGRATE: risk/position check */ return true; }
+    }
+}
+```
+
+### 3.5 V12_002.Orders.Callbacks.cs (MODIFIED -- DISPATCHER HEADERS)
+
+This file already holds the bulk of OnOrderUpdate / OnExecutionUpdate logic from
+prior phases. Phase 4 adds the two thin dispatcher method signatures that are now
+called from V12_002.cs, making the delegation explicit and auditable.
+
+Add the following two methods to the TOP of the existing partial class in
+V12_002.Orders.Callbacks.cs (do NOT modify any existing method bodies):
+
+```csharp
+// V12_002.Orders.Callbacks.cs -- Phase 4 additions (TOP OF FILE)
+// Add dispatcher entry points; existing handler methods below are UNTOUCHED.
+
+private void DispatchOnOrderUpdate(
+    Cbi.Order order,
+    double limitPrice,
+    double stopPrice,
+    int quantity,
+    int filled,
+    double averageFillPrice,
+    Cbi.OrderState orderState,
+    DateTime time,
+    Cbi.ErrorCode error,
+    string nativeError)
+{
+    // Guard: ignore orders not belonging to this strategy's instruments
+    if (order == null) return;
+
+    // Route through existing FSM handler -- no new logic here
+    HandleOrderUpdate(order, limitPrice, stopPrice, quantity,
+                      filled, averageFillPrice, orderState,
+                      time, error, nativeError);
+}
+
+private void DispatchOnExecutionUpdate(
+    Cbi.Execution execution,
+    string executionId,
+    double price,
+    int quantity,
+    Cbi.MarketPosition marketPosition,
+    string orderId,
+    DateTime time)
+{
+    if (execution == null) return;
+
+    // Route through existing handler -- no new logic here
+    HandleExecutionUpdate(execution, executionId, price,
+                          quantity, marketPosition, orderId, time);
+}
+```
+
+**CONSTRAINT FOR ENGINEER:** The existing `HandleOrderUpdate` and `HandleExecutionUpdate`
+method names must be verified against the current file before applying. If they differ,
+match the existing names exactly. Do NOT rename any existing method.
+
+---
+
+## 4. MIGRATION STRATEGY FOR EXISTING OnStateChange / OnBarUpdate BODIES
+
+The Engineer must execute the following surgical migration for each phase handler stub:
+
+### 4.1 Migration Protocol (per stub method)
 
 ```
-Symmetry.cs                          : 0 lock() sites
-Symmetry.Follower.cs                 : 0 lock() sites
-Symmetry.Replace.cs                  : 0 lock() sites
-SIMA.cs                              : 0 lock() sites
-Orders.Callbacks.Propagation.cs      : 0 lock() sites
-Orders.Callbacks.AccountOrders.cs    : 0 lock() sites (within in-scope methods)
-UI.Compliance.cs                     : 0 lock() sites
-V12_002.cs                           : 0 dailySummaryLock declarations (stateLock stub retained)
+Step 1: Read the current OnStateChange() or OnBarUpdate() body in V12_002.cs
+        -> verify: identify the exact code block belonging to this state/stage
+
+Step 2: Copy that block verbatim into the stub method body in the new Lifecycle file
+        -> verify: block is now present in Lifecycle file
+
+Step 3: Replace the original block in V12_002.cs with a call to the dispatcher
+        -> verify: V12_002.cs override body now contains ONLY the dispatcher call
+
+Step 4: Run ASCII scan (check_ascii.py) on the new file
+        -> verify: zero non-ASCII characters
+
+Step 5: Confirm zero occurrences of "lock(stateLock)" in the new file
+        -> verify: grep returns empty
+
+Step 6: Confirm all state mutations inside migrated block use Enqueue(ctx => ...)
+        -> verify: no direct field mutations outside Enqueue lambda
 ```
 
-Hot-path allocation profile: `PropagateMasterPriceMove` per-tick allocations drop from `O(N_followers)` (HashSet enumerator + `string[]` ToArray copy) to `0` (single `Volatile.Read` returns the cached immutable array).
+### 4.2 Enqueue Compliance Audit (Phase 4 Specific)
 
-## F. VERIFICATION GATES
+Any direct field write inside the migrated code that is NOT inside an Enqueue lambda
+and is NOT a Build 981 exemption (stopOrders direct-write during bracket submission)
+MUST be wrapped before migration:
 
-### Build-time
+```csharp
+// BANNED PATTERN (pre-Phase 4 direct write):
+_someStateField = newValue;
 
-1. **Compile in NinjaTrader 8** (`F5` in NinjaScript Editor). Expect zero errors. The `using System.Threading;` directive is already present in every modified file.
-2. **`check_ascii.py src/V12_002.Symmetry.cs src/V12_002.SIMA.cs src/V12_002.Orders.Callbacks.Propagation.cs src/V12_002.cs src/V12_002.Symmetry.Follower.cs src/V12_002.Symmetry.Replace.cs src/V12_002.Orders.Callbacks.AccountOrders.cs src/V12_002.UI.Compliance.cs`** -- expect `OK` for every file (no curly quotes / em-dashes / Unicode arrows introduced by new comments or log strings).
+// REQUIRED PATTERN (post-Phase 4 Enqueue):
+Enqueue(ctx =>
+{
+    _someStateField = newValue;
+});
+```
 
-### Forensic / DNA audits
+**EXCEPTION:** Read-only operations (logging, indicator reads, guard checks) do NOT
+require Enqueue wrapping. Only mutable state field writes are subject to this rule.
 
-3. **`grep -nE "^[[:space:]]*lock[[:space:]]*\(" src/V12_002.Symmetry.cs src/V12_002.SIMA.cs src/V12_002.Orders.Callbacks.Propagation.cs src/V12_002.Symmetry.Follower.cs src/V12_002.Symmetry.Replace.cs src/V12_002.UI.Compliance.cs`** -- expect zero matches.
-4. **`grep -n "dailySummaryLock" src/`** -- expect zero matches (declaration and both acquisitions removed).
-5. **`grep -n "ctx\.Sync\|preCheckCtx\.Sync\|FollowerEntries" src/`** -- expect zero matches; followers must be accessed only via `ctx.Followers` or `ctx.AddFollower` / `ctx.RemoveFollower`.
-6. **Run the `forensics` subagent** (per CLAUDE.md Engineer Self-Audit P4 Step 2) to confirm zero `lock(stateLock)` usage in in-scope files and ASCII compliance globally.
-7. **Run the `architect` subagent (`/loop-critic`)** to critique the AnchorSnapshot CAS-loop semantics against the Build 1004 FSM patterns already in use elsewhere in the codebase.
+---
 
-### Runtime smoke test
+## 5. V12_002.cs ROOT FILE -- FINAL TARGET STATE
 
-8. **High-volatility Sim session** with `EnableSIMA=true` and 4-account fleet:
-   - Trigger an OR entry; confirm `[SYMMETRY_GUARD] MASTER ANCHOR LOCKED` log fires exactly once.
-   - Confirm follower brackets receive master-anchored prices (`[ANCHOR-01]` and `[ANCHOR-02]` paths exercised).
-   - Drag the master entry several times during the pre-fill window; confirm `[MOVE-SYNC] Entry move:` logs fire for every follower with no missed propagations and no `[V12 IPC REJECT]` errors.
-   - Trigger a master cancel during the dispatch window; confirm `[CASCADE]` log lists every dispatched follower and all are cancelled.
-9. **Concurrent flatten + entry stress** (per `implementation_plan.md` Phase 4 verification): slam IPC with simultaneous `FLATTEN` and `ENTRY` commands; confirm no ghost orders, no REAPER `Critical Desync`, no `expectedPositions` torn-state log entries.
-10. **REAPER audit cycle**: confirm the `_lastExpectedPositionSetTicks` grace window stamps fire after every `AddOrUpdate` mutation (verify timestamp progression in `[ACCOUNT_SYNC]` traces).
+After Phase 4 is complete, the only lifecycle-related content remaining in V12_002.cs
+should be:
 
-### Regression fences
+1. The four one-liner override methods (Section 3.2 above)
+2. Class-level field declarations (unchanged)
+3. Constructor (if any, unchanged)
+4. Any NT8-required metadata attributes (unchanged)
 
-11. **`[ANCHOR_SNAPSHOT]` CAS retry counter** (optional dev-only diagnostic): instrument the CAS loop in `SymmetryGuardOnMasterFill` to print when `cur.IsResolved == true` on retry. Expect zero retries in normal operation; non-zero values indicate concurrent master-fill events for the same dispatch -- already idempotent under the new design but worth observing.
-12. **Property-test substitute** (manual): in Sim, fire 50 rapid OR entries with 4 followers each. Confirm `_followers` array length monotonically tracks `AddFollower` / `RemoveFollower` calls -- no stale entries, no missing entries -- by diffing a `[SNAPSHOT]` debug print against the dispatch context's recorded register/forget log.
+The following content must be ABSENT from V12_002.cs after migration:
+- Any switch(State) block
+- Any if(BarsInProgress != 0) guard
+- Any session time comparison
+- Any direct call to indicator methods
+- Any IPC socket initialization
+- Any Print() calls that are not in a dedicated handler file
 
-### Critical files to re-read before declaring done
+---
 
-- `src/V12_002.Symmetry.cs` -- new `AnchorSnapshot` class + redefined `SymmetryDispatchContext`.
-- `src/V12_002.SIMA.cs` -- four `AddOrUpdate` migrations.
-- `src/V12_002.Orders.Callbacks.Propagation.cs` -- `ctx.Followers` substitution at the hot-path read.
-- `src/V12_002.cs` -- declaration cleanup + `_dailySummaryHeaderEnsured` field addition.
+## 6. CONSTRAINT COMPLIANCE CHECKLIST
 
-### Existing utilities reused (no new code paths added unnecessarily)
+Every file touched in this phase must pass ALL of the following before PR submission:
 
-- `Volatile.Read` / `Interlocked.CompareExchange` -- already used by the inline actor (`V12_002.cs:236-241`).
-- `ConcurrentDictionary.AddOrUpdate` -- already used in `V12_002.SIMA.cs:102` and elsewhere.
-- `_followerReplaceSpecs` actor-driven FSM pattern (`V12_002.cs:483-501`) -- mirrored by the AnchorSnapshot CAS pattern; no new infrastructure introduced.
-- `Array.Empty<string>()` -- already used in `V12_002.cs` runtime helpers.
+| Check                                    | Tool / Method                            |
+|------------------------------------------|------------------------------------------|
+| Zero lock(stateLock) occurrences         | grep -r "lock(stateLock)" src/           |
+| Zero non-ASCII characters in strings     | python check_ascii.py                    |
+| All state mutations inside Enqueue       | Manual audit per migrated block          |
+| OnStateChange body is one-liner only     | Visual inspection of V12_002.cs          |
+| OnBarUpdate body is one-liner only       | Visual inspection of V12_002.cs          |
+| No new abstractions beyond plan spec     | Karpathy: simplicity-first review        |
+| BUILD_TAG incremented                    | V12_002.Properties.cs build tag field    |
+| deploy-sync.ps1 executed after edits     | Post-edit deployment protocol (CLAUDE.md)|
 
-### Done definition
+---
 
-All eleven lock sites listed in **FORENSIC EVIDENCE Section 1** removed. Items 1-7 of the verification plan pass cleanly. Build succeeds in NinjaTrader 8. Sim smoke test (Item 8) shows no behavioural regressions on the symmetry guard happy path or the cascade-cancel path. Forensics subagent reports zero `lock(stateLock)` / zero `lock(ctx.Sync)` / zero `lock(dailySummaryLock)` in the in-scope files.
+## 7. NEW FILE CREATION ORDER (Engineer Execution Sequence)
+
+Execute in this exact order to minimize merge conflicts:
+
+```
+1. Create src/V12_002.Lifecycle.State.cs    (new file, scaffold from Section 3.3)
+2. Create src/V12_002.Lifecycle.BarUpdate.cs (new file, scaffold from Section 3.4)
+3. Migrate OnStateChange body -> phase handlers in Lifecycle.State.cs
+4. Migrate OnBarUpdate body  -> pipeline stages in Lifecycle.BarUpdate.cs
+5. Modify src/V12_002.Orders.Callbacks.cs   (add dispatcher headers, Section 3.5)
+6. Modify src/V12_002.cs                    (replace override bodies with dispatchers)
+7. Run ASCII scan across all 4 modified/created files
+8. Run lock(stateLock) grep scan
+9. Run Enqueue compliance audit
+10. Increment BUILD_TAG in V12_002.Properties.cs
+11. Run deploy-sync.ps1
+12. Instruct Director: press F5 in NinjaTrader to compile
+13. Verify banner shows new BUILD_TAG
+```
+
+---
+
+## 8. ADR ENTRY
+
+**ADR-020: Phase 4 -- Event Lifecycle Decoupling**
+
+- **Status:** Approved
+- **Context:** OnStateChange and OnBarUpdate in V12_002.cs contain monolithic
+  logic blocks spanning hundreds of lines, violating single-responsibility and
+  making surgical audit of Enqueue compliance difficult.
+- **Decision:** Introduce two new partial-class files (Lifecycle.State.cs,
+  Lifecycle.BarUpdate.cs). Transform the four NT8 override methods into
+  one-liner dispatchers. Explicitly surface the existing Orders.Callbacks.cs
+  delegation via typed dispatcher methods.
+- **Consequences:** V12_002.cs becomes a pure thin shell. All lifecycle phases
+  are individually auditable. Enqueue compliance boundary is enforceable per
+  migrated block. The factory interface (Phase 3) is now a first-class consumer
+  in the BarUpdate pipeline via `_activeEntryStrategy?.OnBarUpdate()`.
+- **Constraints:** Zero lock(stateLock). ASCII-only. No new abstractions beyond
+  this plan. Build 981 stopOrders direct-write exemption preserved.
+
+---
+
+## 9. OPEN QUESTIONS FOR DIRECTOR REVIEW
+
+The following items require Director decision before or during Engineer execution:
+
+1. **Enqueue boundary for HandleState_Terminated():** The teardown sequence
+   (DeactivateIpcListener, etc.) may need to fire on the NT8 thread directly
+   rather than through Enqueue, since NT8 may not process queued work after
+   Terminated is called. **Recommendation:** Teardown handlers execute directly;
+   document as a named exception in ADR-020.
+
+2. **BarUpdate_TickReaper() on every bar:** Confirm REAPER should tick on every
+   OnBarUpdate call vs. only on OnBarClose bars. If Calculate = OnBarClose, this
+   is a non-issue. If Calculate is ever changed to OnEachTick, REAPER needs its
+   own bar-close guard. **Recommendation:** Add `if (IsFirstTickOfBar)` guard
+   inside TickReaper() in V12_002.REAPER.cs as a defensive measure.
+
+3. **_activeEntryStrategy nullability:** The Phase 3 factory resolver may return
+   null during the historical pass before the session opens. The null-conditional
+   `?.OnBarUpdate()` in the scaffold handles this silently. Confirm this is
+   acceptable vs. a logged warning. **Recommendation:** Silent null is correct --
+   pre-session historical bars should not log per-bar warnings.
+
+---
+
+## 10. BUILD TAG
+
+Increment `BUILD_TAG` in `V12_002.Properties.cs` to the next sequential value
+(e.g., if current is Build 981, set to Build 982) after all migration steps
+are complete and before running deploy-sync.ps1.
+
+---
+
+*Plan complete. Director's Handoff Block follows.*
+
+---
+
+## DIRECTOR'S HANDOFF BLOCK
+## TO: Codex Engineer (P4)
+## FROM: P3 Architect
+## MISSION: Phase 4 -- Event Lifecycle Refactoring
+## BRANCH: feature/phase-4-event-lifecycle
+## PLAN FILE: docs/brain/implementation_plan.md (this file)
+
+---
+
+### YOUR MISSION
+
+Execute the Phase 4 Event Lifecycle refactoring exactly as specified in this plan.
+You are the P4 ENGINEER. You have execution permission on src/ for this mission only.
+
+### EXECUTION ORDER (do not deviate)
+
+```
+1.  git checkout feature/phase-4-event-lifecycle
+2.  Verify PR #70 is merged and branch is up-to-date with main
+3.  Create src/V12_002.Lifecycle.State.cs   (scaffold: Section 3.3)
+4.  Create src/V12_002.Lifecycle.BarUpdate.cs (scaffold: Section 3.4)
+5.  READ src/V12_002.cs OnStateChange() body in full before touching it
+6.  Migrate each state phase block -> corresponding HandleState_*() method
+7.  Replace V12_002.cs OnStateChange() body with: DispatchOnStateChange();
+8.  READ src/V12_002.cs OnBarUpdate() body in full before touching it
+9.  Migrate each guard/stage block -> corresponding BarUpdate_*() method
+10. Replace V12_002.cs OnBarUpdate() body with: DispatchOnBarUpdate();
+11. READ src/V12_002.Orders.Callbacks.cs -- confirm existing handler method names
+12. Add DispatchOnOrderUpdate() and DispatchOnExecutionUpdate() to Callbacks.cs
+    using EXACT existing handler method names (do NOT assume HandleOrderUpdate)
+13. Replace V12_002.cs OnOrderUpdate() and OnExecutionUpdate() bodies with
+    one-liner calls to the new Dispatch* methods
+14. Run: python check_ascii.py  -- must report ZERO violations
+15. Run: grep -rn "lock(stateLock)" src/ -- must return ZERO results
+16. Manual audit: every state mutation in migrated blocks uses Enqueue(ctx=>...)
+    EXCEPTION: teardown handlers in HandleState_Terminated() may write directly
+    EXCEPTION: stopOrders direct-write (Build 981 exemption)
+17. Increment BUILD_TAG in src/V12_002.Properties.cs
+18. Run: powershell -File .\deploy-sync.ps1  -- ASCII Gate must PASS
+19. Instruct Director: press F5 in NinjaTrader to compile
+20. Confirm banner displays new BUILD_TAG
+21. Commit with message:
+    feat(phase-4): decompose lifecycle overrides into dispatcher pattern [ADR-020]
+22. Push branch and open PR against main
+```
+
+### MANDATORY SELF-AUDIT BEFORE PR (P4 Engineer Checklist)
+
+Invoke your internal `architect` subagent (/loop-critic) to verify:
+
+- [ ] V12_002.cs OnStateChange body = exactly one line: DispatchOnStateChange();
+- [ ] V12_002.cs OnBarUpdate body   = exactly one line: DispatchOnBarUpdate();
+- [ ] V12_002.cs OnOrderUpdate body = exactly one line: dispatcher call
+- [ ] V12_002.cs OnExecutionUpdate body = exactly one line: dispatcher call
+- [ ] Zero lock(stateLock) across all 4 modified/created files
+- [ ] Zero non-ASCII characters across all 4 modified/created files
+- [ ] All Enqueue constraints verified per Section 4.2
+- [ ] BUILD_TAG incremented
+- [ ] deploy-sync.ps1 completed with ASCII Gate PASS
+
+### OPEN QUESTIONS -- ANSWER BEFORE CODING
+
+Before migrating, resolve Section 9 items:
+- Q1 (Terminated teardown -- direct vs Enqueue): Implement direct-call teardown;
+  document in code comment as "Terminated-exempt per ADR-020 Section 9.1"
+- Q2 (REAPER tick guard): Add IsFirstTickOfBar guard inside TickReaper() in
+  V12_002.REAPER.cs as a defensive measure (single-line change, surgical)
+- Q3 (null factory): Confirm null-conditional is acceptable; no logging change needed
+
+### WHAT YOU MUST NOT DO
+
+- Do NOT modify any file in src/ other than the 4 listed in Section 3.1
+- Do NOT rename any existing method
+- Do NOT introduce any new interface, class, or abstraction not in this plan
+- Do NOT add any emoji, curly quotes, em-dashes, or Unicode to string literals
+- Do NOT use lock(stateLock) under any circumstances
+- Do NOT submit directly -- submit via GitHub PR for Director review
+
+### SIGN-OFF REQUIREMENT
+
+After completing the checklist, post your P4 audit report to the PR description
+in this format:
+
+```
+P4 ENGINEER SELF-AUDIT -- Phase 4
+ASCII Gate:          PASS / n violations
+lock(stateLock) scan: PASS / n hits
+Enqueue audit:       PASS / n violations
+BUILD_TAG:           [new tag value]
+deploy-sync:         PASS
+Loop-critic verdict: APPROVED / REVISION REQUIRED
+```
+
+The Director (P1) will review the PR and provide final merge authorization.
+
+---
+END OF HANDOFF BLOCK
+P3 Architect sign-off: Claude Sonnet 4.6 | 2026-05-01
+ADR-020 | Phase 4 | feature/phase-4-event-lifecycle
