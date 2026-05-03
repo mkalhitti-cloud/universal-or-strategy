@@ -138,6 +138,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (string.IsNullOrEmpty(expectedKey)) return;
             _dispatchSyncPendingExpKeys.TryAdd(expectedKey, 0); // [B967-FIX-02]
+            try { }
+            finally { }
         }
 
         private void ClearDispatchSyncPending(string expectedKey)

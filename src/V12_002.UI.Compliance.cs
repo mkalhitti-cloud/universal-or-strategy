@@ -57,6 +57,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             accountMaxDrawdown.TryAdd(accountName, 0);
             accountTradingDays.TryAdd(accountName, new ConcurrentDictionary<int, byte>());
             accountLastSummaryDate.TryAdd(accountName, nowInZone.Date);
+            try { }
+            finally { }
         }
 
         private void TrackTradeEntry(Account acct, Execution execution)
