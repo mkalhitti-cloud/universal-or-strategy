@@ -87,6 +87,7 @@ Codex is workflow-aware and MUST follow these patterns from `.agent/workflows/`:
 | `/coordinator`       | `.agent/workflows/coordinator.md`       | Antigravity routes to FORENSICS / ARCHITECT / ENGINEER    |
 | `/agent-as-tool`     | `.agent/workflows/agent_as_tool.md`     | Stateless single-use diagnostic or surgical edit          |
 | `/multi-agent-audit` | `.agent/workflows/multi_agent_audit.md` | Red-team multi-agent cross-audit                          |
+| `/mission`           | `.agent/workflows/mission.md`           | CONTRACT + TDD RED/GREEN + Orchestrator->Worker->Validator |
 
 Source of truth: `.agent/workflows/` is canonical. Codex MUST NOT deviate from workflow steps
 without Director authorization. All coding tasks MUST conclude with a **/loop-critic** or **/multi-agent-audit** cycle using internal subagents before final P5 escalation.

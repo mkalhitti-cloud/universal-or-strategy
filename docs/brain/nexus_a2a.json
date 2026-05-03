@@ -1,14 +1,15 @@
 {
-  "mission": "ADR-019 Sovereign Substrate Repair",
-  "mission_status": "COMPLETE",
-  "build_tag": "1111.003-v28.0-adr019",
+  "mission": "ADR-020 Phase 4 Event Lifecycle Refactoring",
+  "mission_status": "ACTIVE",
+  "milestone": "M8/M9",
+  "build_tag": "Build 982",
   "plan_path": "docs/brain/implementation_plan.md",
-  "last_updated": "2026-04-21T15:04:58.8898888-07:00",
+  "last_updated": "2026-05-02T16:40:00Z",
   "morpheus_mode": true,
   "agent_readiness_target": "LEVEL_5",
-  "phase": "P7",
-  "current_phase": "P7",
-  "status": "COMPLETE",
+  "phase": "P3",
+  "current_phase": "P3_HARDENING",
+  "status": "AWAITING_CONSOLIDATED_DESIGN",
   "agents": {
     "P1_orchestrator": "Antigravity",
     "P2_forensics": "Codex",
@@ -22,162 +23,41 @@
     {
       "phase": "P1_INTAKE",
       "status": "COMPLETE",
-      "timestamp": "2026-04-20T14:00:00Z"
+      "timestamp": "2026-05-02T16:30:00Z"
     },
     {
       "phase": "P2_FORENSICS",
       "status": "COMPLETE",
-      "timestamp": "2026-04-20T14:30:00Z"
+      "timestamp": "2026-05-02T16:35:00Z"
     },
     {
       "phase": "P3_ARCHITECT",
       "status": "COMPLETE",
-      "timestamp": "2026-04-20T18:14:00Z"
+      "timestamp": "2026-05-01T18:00:00Z"
     },
     {
       "phase": "P4_ADJUDICATION",
-      "status": "COMPLETE",
-      "timestamp": "2026-04-21T14:43:14.4832571-07:00"
+      "status": "FAILED",
+      "timestamp": "2026-05-02T23:50:00Z",
+      "reason": "Type 2 Resource Leaks & Institutional Gaps"
     },
     {
-      "phase": "P5_ENGINEERING",
-      "status": "COMPLETE",
-      "timestamp": "2026-04-21T14:43:14.4832571-07:00"
-    },
-    {
-      "phase": "P6_VALIDATION",
-      "status": "COMPLETE",
-      "timestamp": "2026-04-21T14:43:14.4832571-07:00"
-    },
-    {
-      "phase": "P7_SENTINEL",
-      "status": "COMPLETE",
-      "timestamp": "2026-04-21T15:04:58.8898888-07:00"
+      "phase": "P3_HARDENING",
+      "status": "ACTIVE",
+      "timestamp": "2026-05-03T00:02:00Z"
     }
   ],
   "active_agent": {
-    "name": "Gemini CLI (P6 Validator)",
-    "phase": "P6",
-    "started_at": "2026-04-21T14:43:14.4832571-07:00",
-    "timeout_at": "",
-    "status": "COMPLETE"
+    "name": "Claude (P3 Architect)",
+    "phase": "P3_HARDENING",
+    "started_at": "2026-05-03T00:02:00Z",
+    "status": "DESIGNING_CONSOLIDATED_PLAN_V28.2"
   },
+
   "p3_handoff": {
     "plan_validated": true,
     "pre_handoff_test_result": "PASS",
-    "pre_handoff_tool_used": "Arena",
+    "pre_handoff_tool_used": "Manual Audit",
     "ready_for_p4": true
-  },
-  "p5_handoff": {
-    "files_modified": [
-      {
-        "path": "src/V12_002.Symmetry.cs",
-        "line_ranges": [
-          "6",
-          "16-35",
-          "44-45",
-          "47-89",
-          "122-124",
-          "135",
-          "155",
-          "157",
-          "172",
-          "205-208",
-          "210-217",
-          "219-223",
-          "227",
-          "230",
-          "244"
-        ]
-      },
-      {
-        "path": "src/V12_002.Symmetry.Follower.cs",
-        "line_ranges": [
-          "36-40",
-          "127-131"
-        ]
-      },
-      {
-        "path": "src/V12_002.Symmetry.Replace.cs",
-        "line_ranges": [
-          "58",
-          "103",
-          "127-130",
-          "132-133",
-          "135-140",
-          "142",
-          "146",
-          "187-188",
-          "220-223",
-          "242",
-          "245-248",
-          "250",
-          "252-253"
-        ]
-      },
-      {
-        "path": "src/V12_002.Orders.Callbacks.Propagation.cs",
-        "line_ranges": [
-          "125-127"
-        ]
-      },
-      {
-        "path": "src/V12_002.SIMA.Shadow.cs",
-        "line_ranges": [
-          "88-91",
-          "93-99"
-        ]
-      },
-      {
-        "path": "src/V12_002.Orders.Callbacks.AccountOrders.cs",
-        "line_ranges": [
-          "244",
-          "330-331"
-        ]
-      },
-      {
-        "path": "src/V12_002.cs",
-        "line_ranges": [
-          "44",
-          "224-226",
-          "228-232"
-        ]
-      }
-    ],
-    "baseline_tests": "N/A",
-    "post_edit_tests": "dotnet build Linting.csproj PASS (0 errors, 0 warnings)",
-    "baseline_amal_alloc": "WAIVED_BY_DIRECTOR",
-    "post_edit_amal_alloc": "WAIVED_BY_DIRECTOR",
-    "deploy_sync": "PENDING_NT8_F5",
-    "ascii_gate": "PENDING",
-    "ready_for_p6": true
-  },
-  "p6_verdict": {
-    "status": "PASS_WITH_DIRECTOR_WAIVER",
-    "failed_phase": "",
-    "failure_evidence": "",
-    "logic_tests": "PASS",
-    "amal_gate": "WAIVED_BY_DIRECTOR",
-    "stress_test": "NOT_RUN",
-    "dna_grep": "PASS",
-    "timestamp": "2026-04-21T14:43:14.4832571-07:00",
-    "routing": "Director presses F5 in NinjaTrader 8."
-  },
-  "forensic_signoff": [
-    "Aquinas (T2)",
-    "Schrodinger (T3)"
-  ],
-  "amal_waiver_path": "docs/artifacts/audits/amal_waiver.md",
-  "gate_flow": [
-    "P1 Intake (COMPLETE)",
-    "P2 Forensics (COMPLETE)",
-    "P3 Architecture (COMPLETE)",
-    "P4 Adjudication (COMPLETE)",
-    "P5 Engineering (COMPLETE)",
-    "P6 Validation (COMPLETE)",
-    "P7 Sentinel (COMPLETE)"
-  ],
-  "last_event": "P7 sentinel closeout recorded. ADR-019 mission brief closed; NT8 banner confirmed.",
-  "adr019_closed": "2026-04-21T14:52:00-07:00",
-  "nt8_banner_confirmed": "1111.003-v28.0-adr019"
+  }
 }
