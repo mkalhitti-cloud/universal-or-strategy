@@ -6,7 +6,7 @@ obj/
 # Zero-Waste Discovery Rule: .agent/rules/zero_waste_discovery.md
 
 # AI System Plumbing (Claude Code / MCP / Antigravity)
-.agent/
+.agent/*
 !.agent/workflows/
 !.agent/skills/
 .agents/
