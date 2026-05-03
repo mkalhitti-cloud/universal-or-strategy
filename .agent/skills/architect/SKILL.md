@@ -255,50 +255,59 @@ No Director approval required for skill-only edits.
 
 ---
 
-## P1 → P3 Intake Prompt Template (Antigravity uses this to brief Claude)
+---
 
-Whenever Antigravity (P1) issues a new architect brief, it MUST include these sections
-in the following order. Antigravity is BANNED from prescribing implementation paths.
+## P1 -> P3 ARCHITECT BRIEF ($claudecloud Standard)
+
+Whenever Antigravity (P1) issues a new architect brief, it MUST follow this "Platinum Standard" format. Antigravity is BANNED from prescribing implementation paths.
 
 ```markdown
-## P1 → P3 ARCHITECT BRIEF | [MISSION NAME]
+You are the V12 ARCHITECT (Claude). You are in PLAN-ONLY mode. Do NOT edit src/ files.
+Produce the complete content of docs/brain/implementation_plan.md. The Director will commit it.
 
-**FROM:** Antigravity (P1 Orchestrator)
-**TO:** Claude (P3 Architect)
-**BUILD TAG:** [tag]
-**NEXUS STATE:** [phase from nexus_a2a.json]
+MISSION: [Mission Name]
+BUILD_TAG: [tag]
+REPO: https://github.com/[owner]/[repo]
+BRANCH: [branch_name]
 
-### MONITOR TOOL — V12 STANDARD
+=== STEP 1: READ THESE CONTEXT FILES ===
 
-[Paste Monitor protocol block from §I above verbatim]
+[List context files as raw.githubusercontent.com URLs]
 
-### STEP 0 — CONTEXT RECOVERY
+=== STEP 2: READ SOURCE FILES ===
 
-[List of files to read]
+[List source files with line numbers and raw.githubusercontent.com URLs]
 
-### STEP 1 — ULTRATHINK
+=== KNOWN FACTS (do not re-derive these) ===
 
-[Invoke Triple-Agent UltraThink. Name Agent B: Ralph Wiggum.]
+- [Fact 1]
+- [Fact 2]
 
-### STEP 2 — ULTRAPLAN VERDICT
+=== THE [PATTERN_NAME] PATTERN (apply this pattern) ===
 
-[Require structured verdict before any code edits]
+BROKEN:
+    [Broken Code Snippet]
 
-### FORENSIC FINDINGS
+FIXED:
+    [Fixed Code Snippet]
 
-[Evidence only — no prescribed solutions. Detective-style facts and Logical Proof of Failure.]
+=== OUTPUT REQUIREMENTS ===
 
-### MANDATE
+Write the complete docs/brain/implementation_plan.md containing:
 
-[What the Director authorized. Execution permission: GRANTED/DENIED.]
+1. Header block with BUILD_TAG, date, author (ARCHITECT), phase name.
+2. For EACH violation/site:
+   a. File path and exact line number
+   b. The exact BROKEN code block copied from the source file
+   c. The exact FIXED code block
+   d. One-line verification grep the Engineer can run to confirm the fix
+3. A Director's Handoff Block at the end formatted as a code block for the Engineer.
 
-### SKILLS + WORKFLOWS
+=== HARD CONSTRAINTS ===
 
-[List from §IV above, tailored to this mission]
-
-### DIRECTOR HANDOFF BLOCK
-
-[Paste handoff_template.md verbatim]
+- Zero lock(stateLock) in any new code
+- ASCII-only strings -- no Unicode, curly quotes, em-dashes, or arrows
+- Minimal surgical change
 ```
 
 ---

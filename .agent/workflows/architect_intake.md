@@ -24,28 +24,55 @@ The ORCHESTRATOR (Antigravity) runs this workflow. The ARCHITECT MUST NOT receiv
 
 ## Phase 2: Handoff to Claude (ARCHITECT)
 
-Send Claude the following structured block (copy-paste ready):
+Send Claude the following structured block (copy-paste ready), following the **$claudecloud Standard** defined in `.agent/skills/architect/SKILL.md`:
 
-```
-ARCHITECT INTAKE — [Mission ID] — [Date]
+```markdown
+You are the V12 ARCHITECT (Claude). You are in PLAN-ONLY mode. Do NOT edit src/ files.
+Produce the complete content of docs/brain/implementation_plan.md. The Director will commit it.
 
-FORENSIC EVIDENCE:
-[Paste Logical Proof of Failure here]
+MISSION: [Mission Name]
+BUILD_TAG: [tag]
+REPO: https://github.com/mkalhitti-cloud/universal-or-strategy
+BRANCH: [branch_name]
 
-OBSERVED vs EXPECTED:
-[State what happened vs what should happen]
+=== STEP 1: READ THESE CONTEXT FILES ===
 
-CONSTRAINTS (non-negotiable):
-- No internal locks (lock(stateLock) BANNED)
-- [Any other permanent DNA rules]
+[List context files as raw.githubusercontent.com URLs]
 
-IN-SCOPE FILES:
-- [file1.cs]
-- [file2.cs]
+=== STEP 2: READ SOURCE FILES ===
 
-Your task: Verify the evidence. Propose a structural repair. Write ALL code inside implementation_plan.md.
-Do NOT write to src/. End with a Director's Handoff Block for the ENGINEER.
-MANDATORY: You must end your response with the exact line: "Pre-Handoff Validation: [tool used] -- [result]" to pass the Morpheus Autonomous Gate.
+[List source files with line numbers and raw.githubusercontent.com URLs]
+
+=== KNOWN FACTS (do not re-derive these) ===
+
+- [Fact 1]
+- [Fact 2]
+
+=== THE [PATTERN_NAME] PATTERN (apply this pattern) ===
+
+BROKEN:
+    [Broken Code Snippet]
+
+FIXED:
+    [Fixed Code Snippet]
+
+=== OUTPUT REQUIREMENTS ===
+
+Write the complete docs/brain/implementation_plan.md containing:
+
+1. Header block with BUILD_TAG, date, author (ARCHITECT), phase name.
+2. For EACH violation/site:
+   a. File path and exact line number
+   b. The exact BROKEN code block copied from the source file
+   c. The exact FIXED code block
+   d. One-line verification grep the Engineer can run to confirm the fix
+3. A Director's Handoff Block at the end formatted as a code block for the Engineer.
+
+=== HARD CONSTRAINTS ===
+
+- Zero lock(stateLock) in any new code
+- ASCII-only strings -- no Unicode, curly quotes, em-dashes, or arrows
+- Minimal surgical change
 ```
 
 ---

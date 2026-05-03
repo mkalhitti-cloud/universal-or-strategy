@@ -125,8 +125,14 @@
 - Define "done" before starting. Strong criteria let you loop independently.
 - Weak criteria ("make it work") require constant clarification -- avoid them.
 
-## Graphify Protocols (Universal Knowledge Layer)
+## Section 14: $claudecloud Protocol Hardening (Permanent Standard)
 
-- **Check First**: Before deep architectural exploration, always check for `graphify-out/graph.json` or `graphify-out/GRAPH_REPORT.md`.
-- **Update**: Use `graphify update .` to refresh the repo knowledge graph after major structural changes.
-- **Efficiency**: Use the graph to navigate codebase relationships with 71x fewer tokens than raw file reading.
+**All architectural planning sessions involving Claude (ARCHITECT) via the Cloud UI ($claudecloud) MUST use the Platinum Standard prompt format.**
+
+- **Mandatory Metadata**: Every prompt MUST begin with MISSION, BUILD_TAG, REPO, and BRANCH.
+- **Self-Contained Retrieval**: Use `raw.githubusercontent.com` URLs for all context and source files to ensure Claude can access the current codebase state without local inode dependency.
+- **Pattern-Driven Design**: Explicitly define the BROKEN vs. FIXED code patterns for the current mission.
+- **PLAN-ONLY Enforcement**: Explicitly state Claude is in PLAN-ONLY mode and BANNED from `src/` edits.
+- **Structured Deliverables**: Mandate the exact structure of `docs/brain/implementation_plan.md` and the Director's Handoff Block.
+
+> Refer to `.agent/skills/architect/SKILL.md` for the current Platinum Standard template.

@@ -1,0 +1,141 @@
+name: Jules Forensic Auditor (Google AI Studio)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  jules-audit:
+    name: Jules 1.5 Pro (Forensic Audit)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract PR diff
+        id: diff
+        run: |
+          git diff origin/${{ github.event.pull_request.base.ref }}...HEAD > pr.diff
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Google AI SDK
+        run: npm install @google/generative-ai
+
+      - name: Run Jules Forensic Audit
+        id: jules_audit
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          cat << 'EOF' > jules_audit.js
+          const fs = require('fs');
+          const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+          async function run() {
+            try {
+              if (!process.env.GEMINI_API_KEY) {
+                throw new Error("GEMINI_API_KEY secret is missing. Please add it to GitHub Repository Secrets.");
+              }
+
+              const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+              
+              // Jules typically uses the Pro variant for deeper forensic analysis
+              const modelsToTry = [
+                "gemini-3.1-pro-preview",
+                "gemini-3.0-pro-preview",
+                "gemini-3.0-flash"
+              ];
+              
+              let lastError;
+              let text = "";
+
+              for (const modelId of modelsToTry) {
+                try {
+                  console.log(`Attempting forensic audit with model: ${modelId}`);
+                  const model = genAI.getGenerativeModel({ model: modelId });
+                  
+                  let diffContent = fs.readFileSync('pr.diff', 'utf8');
+                  let geminiMdContent = '';
+                  try {
+                    geminiMdContent = fs.readFileSync('GEMINI.md', 'utf8');
+                  } catch (e) {}
+
+                  // SECURITY: Truncate oversized diffs
+                  const MAX_DIFF_CHARS = 100000;
+                  if (diffContent.length > MAX_DIFF_CHARS) {
+                    diffContent = diffContent.substring(0, MAX_DIFF_CHARS) + '\n... [TRUNCATED at 100KB]';
+                  }
+
+                  const prompt = 'You are the Jules Forensic Auditor (LPF Specialist) performing a Triple-Threat Adversarial Audit.\n'
+                    + 'Your mandate is to find the "Logical Proof of Failure" (LPF), verify GEMINI.md compliance, and identify load-race condition loopholes.\n\n'
+                    + 'Institutional Standards (GEMINI.md):\n'
+                    + geminiMdContent + '\n\n'
+                    + 'PR DIFF:\n'
+                    + diffContent + '\n\n'
+                    + 'TRIPLE-THREAT AUDIT MANDATE:\n'
+                    + '1. PILLAR I (LPF): Identify the fundamental logical flaw that WILL cause failure. Be adversarial.\n'
+                    + '2. PILLAR II (COMPLIANCE): Does the code follow GEMINI.md? (Zero-Locks, FSM-Replace, ASCII-Only).\n'
+                    + '3. PILLAR III (LOAD-RACE): Find the loophole that will cause a crash or race condition under heavy load (e.g., ghost orders, semaphore leaks).\n\n'
+                    + 'Provide a list of "Forensic Findings" grouped by Pillar and a Final Verdict: PASS or REVISION REQUIRED.\n\n'
+                    + 'Be the Red Team. If you can break the logic, do it.';
+
+                  // Implement Exponential Backoff for 429s
+                  let result;
+                  let retries = 3;
+                  for (let i = 0; i < retries; i++) {
+                    try {
+                      result = await model.generateContent(prompt);
+                      break; 
+                    } catch (err) {
+                      if (err.message.includes("429") && i < retries - 1) {
+                        const delay = Math.pow(2, i) * 5000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                      }
+                      throw err;
+                    }
+                  }
+
+                  const response = await result.response;
+                  text = response.text();
+                  console.log(`Success with ${modelId}`);
+                  break;
+                } catch (e) {
+                  console.log(`Error with ${modelId}: ${e.message}`);
+                  lastError = e;
+                  continue;
+                }
+              }
+
+              if (!text) throw new Error("Jules failed to initialize. Error: " + (lastError ? lastError.message : "Unknown"));
+              fs.writeFileSync('review.txt', text);
+            } catch (error) {
+              console.error('Critical Failure:', error);
+              fs.writeFileSync('review.txt', "### Jules Auditor Critical Failure\n\n" + error.message);
+            }
+          }
+          run();
+          EOF
+          node jules_audit.js
+
+      - name: Post Jules Forensic Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reviewText = fs.readFileSync('review.txt', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: "### Jules Forensic Auditor (LPF Specialist)\n\n" + reviewText
+            });

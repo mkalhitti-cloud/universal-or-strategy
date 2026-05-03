@@ -5,7 +5,7 @@ Welcome, Agent. You are operating within the **V12 Universal OR Strategy** repos
 ## 1. Agent Hierarchy (The Director's Gate)
 
 - **ORCHESTRATOR (P1)**: Central Switchboard (Antigravity). Controls context and cross-agent routing.
-- **ARCHITECT (P3)**: Strategic Design (**Claude Opus 4.7**). **PLAN-ONLY**. Authored plans reside in `docs/brain/implementation_plan.md`.
+- **ARCHITECT (P3)**: Strategic Design (**Claude Opus 4.7**). **PLAN-ONLY**. Authored plans reside in `docs/brain/implementation_plan.md`. Sessions via the Cloud UI ($claudecloud) MUST use the **Platinum Standard** prompt format (see `.agent/skills/architect/SKILL.md`).
 - **ENGINEER (P4)**: Implementation (Codex/Jules). Executes surgical edits to `src/`.
 - **FORENSICS (P2/P5)**: Diagnosis (P2) and Adversarial Audit (P5).
 

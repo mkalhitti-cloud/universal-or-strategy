@@ -1,0 +1,155 @@
+name: Gemini Standards Auditor (Google AI Studio)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  gemini-audit:
+    name: Gemini 1.5 Pro (Standards Audit)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract PR diff
+        id: diff
+        run: |
+          git diff origin/${{ github.event.pull_request.base.ref }}...HEAD > pr.diff
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Google AI SDK
+        run: npm install @google/generative-ai
+
+      - name: Run Gemini Standards Audit
+        id: gemini_audit
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          cat << 'EOF' > gemini_audit.js
+          const fs = require('fs');
+          const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+          async function run() {
+            try {
+              if (!process.env.GEMINI_API_KEY) {
+                throw new Error("GEMINI_API_KEY secret is missing. Please add it to GitHub Repository Secrets.");
+              }
+
+              const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+              
+              // Standard Model List (User-Specified 3.x Models)
+              const modelsToTry = [
+                "gemini-3.1-pro-preview",
+                "gemini-3.0-pro-preview",
+                "gemini-3.0-flash"
+              ];
+              
+              let lastError;
+              let text = "";
+
+              for (const modelId of modelsToTry) {
+                try {
+                  console.log(`Attempting audit with model: ${modelId}`);
+                  const model = genAI.getGenerativeModel({ model: modelId });
+                  
+                  let diffContent = fs.readFileSync('pr.diff', 'utf8');
+                  let geminiMdContent = '';
+                  try {
+                    geminiMdContent = fs.readFileSync('GEMINI.md', 'utf8');
+                  } catch (e) {
+                    console.log('GEMINI.md not found, proceeding without it.');
+                  }
+
+                  // SECURITY: Truncate oversized diffs
+                  const MAX_DIFF_CHARS = 100000;
+                  if (diffContent.length > MAX_DIFF_CHARS) {
+                    diffContent = diffContent.substring(0, MAX_DIFF_CHARS) + '\n... [TRUNCATED at 100KB]';
+                  }
+
+                  const prompt = 'You are the Gemini Standards Auditor (Antigravity Auto-Auditor) performing a Triple-Threat Adversarial Audit.\n'
+                    + 'Your mandate is to verify GEMINI.md compliance, find the "Logical Proof of Failure" (LPF), and identify load-race condition loopholes.\n\n'
+                    + 'Institutional Standards (GEMINI.md):\n'
+                    + geminiMdContent + '\n\n'
+                    + 'PR DIFF:\n'
+                    + diffContent + '\n\n'
+                    + 'TRIPLE-THREAT AUDIT MANDATE:\n'
+                    + '1. PILLAR I (LPF): Identify the fundamental logical flaw that WILL cause failure. Be adversarial.\n'
+                    + '2. PILLAR II (COMPLIANCE): Does the code follow GEMINI.md? (Zero-Locks, FSM-Replace, ASCII-Only).\n'
+                    + '3. PILLAR III (LOAD-RACE): Find the loophole that will cause a crash or race condition under heavy load (e.g., ghost orders, semaphore leaks).\n\n'
+                    + 'Provide a list of specific violations grouped by Pillar and a Final Verdict: PASS or FAIL.\n\n'
+                    + 'Be uncompromising. Safety first.';
+
+                  // Implement Exponential Backoff for 429s
+                  let result;
+                  let retries = 3;
+                  for (let i = 0; i < retries; i++) {
+                    try {
+                      result = await model.generateContent(prompt);
+                      break; 
+                    } catch (err) {
+                      if (err.message.includes("429") && i < retries - 1) {
+                        const delay = Math.pow(2, i) * 5000; // 5s, 10s...
+                        console.log(`429 Quota Exceeded. Retrying in ${delay/1000}s...`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                      }
+                      throw err;
+                    }
+                  }
+
+                  const response = await result.response;
+                  text = response.text();
+                  console.log(`Success with ${modelId}`);
+                  break;
+                } catch (e) {
+                  console.log(`Error with ${modelId}: ${e.message}`);
+                  lastError = e;
+                  if (e.message.includes("404") || e.message.includes("not found")) continue;
+                  if (e.message.includes("429") || e.message.includes("quota")) continue;
+                  continue;
+                }
+              }
+
+              if (!text) {
+                throw new Error("All Gemini 3.x models failed or were unavailable. Last error: " + (lastError ? lastError.message : "Unknown"));
+              }
+
+              fs.writeFileSync('review.txt', text);
+            } catch (error) {
+              console.error('Critical Failure:', error);
+              fs.writeFileSync(
+                'review.txt',
+                "Warning: **Gemini Auditor Critical Failure**: " + error.message +
+                  "\n\n**Recommendation**: Ensure 'GEMINI_API_KEY' is correctly set in GitHub Secrets using the Vertex AI key from pumpgoldfun account."
+              );
+              process.exit(0);
+            }
+          }
+          run();
+          EOF
+          node gemini_audit.js
+
+      - name: Post Gemini Review Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reviewText = fs.readFileSync('review.txt', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: "### Antigravity Auto-Auditor (Gemini AI Studio)\n\n" + reviewText
+            });
+
