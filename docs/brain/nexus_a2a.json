@@ -2,14 +2,14 @@
   "mission": "ADR-020 Phase 4 Event Lifecycle Refactoring",
   "mission_status": "ACTIVE",
   "milestone": "M8/M9",
-  "build_tag": "Build 982",
+  "build_tag": "Build-982-Phase2-RAII",
   "plan_path": "docs/brain/implementation_plan.md",
-  "last_updated": "2026-05-02T16:40:00Z",
+  "last_updated": "2026-05-03T22:52:00Z",
   "morpheus_mode": true,
   "agent_readiness_target": "LEVEL_5",
   "phase": "P3",
-  "current_phase": "P3_HARDENING",
-  "status": "AWAITING_CONSOLIDATED_DESIGN",
+  "current_phase": "P3_PLAN_COMPLETE",
+  "status": "AWAITING_DIRECTOR_APPROVAL",
   "agents": {
     "P1_orchestrator": "Antigravity",
     "P2_forensics": "Codex",
@@ -31,9 +31,10 @@
       "timestamp": "2026-05-02T16:35:00Z"
     },
     {
-      "phase": "P3_ARCHITECT",
-      "status": "COMPLETE",
-      "timestamp": "2026-05-01T18:00:00Z"
+      "phase": "P3_ARCHITECT_V1",
+      "status": "FAILED",
+      "timestamp": "2026-05-01T18:00:00Z",
+      "reason": "Null Fix -- empty try/finally, no actual cleanup"
     },
     {
       "phase": "P4_ADJUDICATION",
@@ -42,22 +43,34 @@
       "reason": "Type 2 Resource Leaks & Institutional Gaps"
     },
     {
-      "phase": "P3_HARDENING",
-      "status": "ACTIVE",
-      "timestamp": "2026-05-03T00:02:00Z"
+      "phase": "ARENA_RETRO_AUDIT",
+      "status": "COMPLETE",
+      "timestamp": "2026-05-03T00:02:00Z",
+      "verdict": "2/2 FAIL -- Null Fix confirmed by Codex and Claude Sonnet"
+    },
+    {
+      "phase": "P3_HARDENING_V2",
+      "status": "COMPLETE",
+      "timestamp": "2026-05-03T22:52:00Z",
+      "authored_by": "Claude Sonnet 4.6 (as P3 Architect)",
+      "note": "Full BROKEN/FIXED proofs for 4 forensic sites. 3 phantom blocks scoped for removal. 2 real RAII fixes. 2 confirmed-clean sites documented."
     }
   ],
   "active_agent": {
-    "name": "Claude (P3 Architect)",
-    "phase": "P3_HARDENING",
-    "started_at": "2026-05-03T00:02:00Z",
-    "status": "DESIGNING_CONSOLIDATED_PLAN_V28.2"
+    "name": "Antigravity (P1 Orchestrator)",
+    "phase": "P1_AWAITING_DIRECTOR_APPROVAL",
+    "started_at": "2026-05-03T22:52:00Z",
+    "status": "PLAN_READY_FOR_DIRECTOR_GATE"
   },
-
   "p3_handoff": {
     "plan_validated": true,
-    "pre_handoff_test_result": "PASS",
-    "pre_handoff_tool_used": "Manual Audit",
-    "ready_for_p4": true
+    "plan_author": "Claude Sonnet 4.6",
+    "plan_version": "v2_phase2_raii",
+    "sites_addressed": 4,
+    "phantom_blocks_to_remove": 3,
+    "real_raii_fixes": 2,
+    "confirmed_clean_sites": 2,
+    "ready_for_p5": false,
+    "director_gate_required": true
   }
 }

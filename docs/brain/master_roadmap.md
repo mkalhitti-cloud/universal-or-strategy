@@ -75,15 +75,15 @@
 - [ ] Push `feature/phase-4-event-lifecycle` to GitHub
 - [ ] Confirm commit SHA visible on GitHub (needed for Arena AI prompt)
 
-### Step 2 -- P6 Validation (Gemini CLI fresh session)
+### Step 2 -- P6 Validation ✅ PASSED (2026-05-04)
 
 Verify the Build-982-Phase2-RAII surgical edits are clean before Phase 4 begins.
 
-- [ ] `ClearDispatchSyncPending` present at 2 locations in `AccountOrders.cs` (~lines 361, 581)
-- [ ] Zero `try { }` empty blocks across `src/*.cs`
-- [ ] Zero `lock(` in `src/*.cs`
-- [ ] `_repairInFlight.TryRemove` inside `finally` block in `REAPER.Repair.cs`
-- [ ] **Sign-off**: P6 PASS or report discrepancies
+- [x] `ClearDispatchSyncPending` present at 2 call sites in `AccountOrders.cs` (lines 361, 581) -- 4 total text matches; 2 are definition/comment, 2 are call sites. CORRECT.
+- [x] Zero `try { }` empty blocks across `src/*.cs`
+- [x] Zero `lock(` in `src/*.cs` -- 3 false positives (`Block(`, `Lock (` string literals) confirmed not real locks.
+- [x] `_repairInFlight.TryRemove` inside `finally` block in `REAPER.Repair.cs` line 223
+- [x] **Sign-off**: **P6 PASS** (Gemini CLI, 2026-05-04T10:37)
 
 ### Step 3 -- P3 Architecture Review (Antigravity)
 
@@ -132,8 +132,8 @@ User pastes the Codex engineering brief (produced in Step 3) into Codex manually
 | **P4** | Adjudicator | Red Team Arena Audit | ❌ FAILED (Type 2 Leaks found) |
 | **P4-RETRO** | Arena Retro Audit | Null Fix confirmed 2/2 FAIL | ✅ COMPLETE |
 | **P5** | Engineer (Codex) | Build-982-Phase2-RAII Surgical Execution | ✅ COMPLETE |
-| **P6** | Validator | Post-Surgery Verification | ⚪ NEXT -- Step 2 above |
-| **P3-V3** | Architect (Phase 4) | Event Lifecycle Dispatcher Plan | ⚪ Step 3 above |
+| **P6** | Validator | Post-Surgery Verification | ✅ **PASS** (2026-05-04) |
+| **P3-V3** | Architect (Phase 4) | Event Lifecycle Dispatcher Plan | 🟡 IN PROGRESS -- Step 3 |
 | **P4-PHASE4** | Arena Red Team | Phase 4 Plan Audit | ⚪ Step 4 above |
 | **P5-PHASE4** | Engineer (Codex) | Phase 4 Implementation | ⚪ Step 5 above |
 | **P7** | Sentinel | GitHub Merge to main | ⚪ Step 6 above |

@@ -121,9 +121,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (_processedCommandIds.TryAdd(commandId, nowUtc))
                 {
-                    try { }
-                    finally { }
-
                     return true;
                 }
 

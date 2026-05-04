@@ -136,3 +136,12 @@
 - **Structured Deliverables**: Mandate the exact structure of `docs/brain/implementation_plan.md` and the Director's Handoff Block.
 
 > Refer to `.agent/skills/architect/SKILL.md` for the current Platinum Standard template.
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)

@@ -357,6 +357,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                         Print("[FSM] Master filled during cancel wait -- routing "
                             + fsm.SignalName + " to repair instead of replace.");
                         _followerReplaceSpecs.TryRemove(fsm.SignalName, out _);
+                        string masterFilledExpKey = ExpKey(acctName);
+                        ClearDispatchSyncPending(masterFilledExpKey);
                         _reaperRepairQueue.Enqueue(acctName);
                         ProcessReaperRepairQueue();
                         return;

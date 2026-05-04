@@ -576,6 +576,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         private readonly ConcurrentQueue<FleetDispatchRequest> _pendingFleetDispatches
             = new ConcurrentQueue<FleetDispatchRequest>();
         private volatile int _pendingFleetDispatchCount = 0;
+        private long _dispatchInvocationCount = 0;
+        private long _dispatchPeakElapsedTicks = 0;
+        private long _dispatchTotalElapsedTicks = 0;
 
         // REAP-01: UTC ticks captured each time expectedPositions is set to a non-zero value.
         // REAPER uses this to suppress false "Critical Desync" alerts within a 5-second grace window
