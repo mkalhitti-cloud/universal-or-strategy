@@ -434,6 +434,9 @@ private void OnStateChangeRealtime()
         });
     }
 
+    // V10.3: Subscribe to external signals for multi-chart sync
+    // SignalBroadcaster.OnExternalCommand += HandleExternalSignal;
+
     if (ChartControl != null)
     {
         ChartControl.Dispatcher.InvokeAsync(() =>
