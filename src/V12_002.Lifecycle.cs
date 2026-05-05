@@ -65,19 +65,27 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
 
                 int actorDrained = 0;
+                int actorOverflow = 0;
                 while (actorDrained < 50 && _cmdQueue.TryDequeue(out StrategyCommand cmd))
                 {
-                    // D4: Guard -- discard queued commands during teardown; still dequeue to clear the queue.
-                    if (!_isTerminating)
+                    try { cmd.Execute(this); }
+                    catch (Exception exCmd)
                     {
-                        try { cmd.Execute(this); }
-                        catch (Exception ex) { Print("[SHUTDOWN_ERROR] Actor cmd failed: " + ex.Message); }
+                        Print("[SHUTDOWN] Actor cmd failed during drain: " + exCmd.ToString());
                     }
                     actorDrained++;
                 }
-                Print(string.Format("[SHUTDOWN] Drained {0} IPC cmds and {1} Actor cmds.", ipcDrained, actorDrained));
+                StrategyCommand overflowCmd;
+                while (_cmdQueue.TryDequeue(out overflowCmd))
+                    actorOverflow++;
+
+                Print(string.Format("[SHUTDOWN] Drained {0} IPC cmds, {1} Actor cmds. Overflow discarded: {2}.",
+                    ipcDrained, actorDrained, actorOverflow));
             }
-            catch (Exception ex) { Print("[SHUTDOWN_ERROR] DrainQueuesForShutdown: " + ex.Message); }
+            catch (Exception exOuter)
+            {
+                Print("[SHUTDOWN] DrainQueuesForShutdown outer exception: " + exOuter.ToString());
+            }
         }
 
         #endregion
@@ -271,7 +279,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             catch (Exception _mmioEx)
             {
                 _photonMmioMirror = null;
-                Print("[PHOTON MMIO] mirror unavailable (hot path unaffected): " + _mmioEx.Message);
+                Print("[PHOTON MMIO] mirror unavailable (hot path unaffected): " + _mmioEx.ToString());
             }
 
             // V14.2 Sovereign Photon [ADR-011]: Pre-allocate execution ID dedup rings
@@ -484,17 +492,24 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (_photonMmioMirror != null)
             {
                 try { _photonMmioMirror.Dispose(); }
-                catch (Exception ex) { Print("[SHUTDOWN_ERROR] MMIO mirror dispose failed: " + ex.Message); }
+                catch (Exception ex) { Print("[SHUTDOWN_ERROR] MMIO mirror dispose failed: " + ex.ToString()); }
                 _photonMmioMirror = null;
             }
 
             // V12.Phase7 [C-08]: Clear ALL static SignalBroadcaster event handlers on termination.
             // Static events survive instance disposal -- without this, dead instance handlers accumulate
             // and fire into garbage-collected strategy contexts on reload, causing phantom order submissions.
-            SignalBroadcaster.ClearAllSubscribers();
-
-            // V12.Phase7 [GAP-4]: Dispose SIMA toggle semaphore to release OS handle.
-            _simaToggleSem?.Dispose();
+            try
+            {
+                SignalBroadcaster.ClearAllSubscribers();
+            }
+            finally
+            {
+                // V12.Phase7 [GAP-4]: Dispose SIMA toggle semaphore to release OS handle.
+                // In finally block: guaranteed to run even if ClearAllSubscribers throws.
+                try { _simaToggleSem?.Dispose(); }
+                catch (Exception exSem) { Print("[SHUTDOWN] SemaphoreSlim dispose failed: " + exSem.ToString()); }
+            }
 
             // Clear references
             activePositions?.Clear();
@@ -545,7 +560,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 // Re-adopt working orders after reconnect; runs on strategy thread via TriggerCustomEvent
                 Print("[BUILD 948] Reconnected -- scheduling working order re-adoption.");
-                try { Enqueue(ctx => ctx.HydrateWorkingOrdersFromBroker()); } catch { }
+                try { Enqueue(ctx => ctx.HydrateWorkingOrdersFromBroker()); }
+                catch (Exception exReconnect)
+                {
+                    Print("[B983-D6] CRITICAL: Reconnect re-adoption Enqueue failed: " + exReconnect.ToString()
+                        + " -- orders may not be re-adopted. Manual intervention required.");
+                }
             }
         }
 

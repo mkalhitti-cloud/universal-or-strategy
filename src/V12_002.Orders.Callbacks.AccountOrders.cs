@@ -423,14 +423,21 @@ namespace NinjaTrader.NinjaScript.Strategies
                 PositionInfo cancelledFollowerPos;
                 if (activePositions.TryGetValue(matchedEntry, out cancelledFollowerPos) && cancelledFollowerPos != null)
                 {
-                    string cancelAcctKey = cancelledFollowerPos.ExecutingAccount != null
-                        ? cancelledFollowerPos.ExecutingAccount.Name : Account.Name;
-                    int cancelDelta = (cancelledFollowerPos.Direction == MarketPosition.Long)
-                        ? -cancelledFollowerPos.TotalContracts : cancelledFollowerPos.TotalContracts;
-                    DeltaExpectedPositionLocked(ExpKey(cancelAcctKey), cancelDelta);
-                    // B957/D2: Release the SIMA dispatch-sync barrier for this account. Without this, the barrier
-                    // remains permanently blocked after a follower cancel, starving future dispatches.
-                    _dispatchSyncPendingExpKeys.TryRemove(ExpKey(cancelAcctKey), out _); // [B967-FIX-02]
+                    if (cancelledFollowerPos.ExecutingAccount == null)
+                    {
+                        Print("[B983-D2] HandleMatchedFollowerOrder: ExecutingAccount null for " + matchedEntry
+                            + " -- skipping ExpKey delta and sync barrier ops to avoid master domain bleed.");
+                    }
+                    else
+                    {
+                        string cancelAcctKey = cancelledFollowerPos.ExecutingAccount.Name;
+                        int cancelDelta = (cancelledFollowerPos.Direction == MarketPosition.Long)
+                            ? -cancelledFollowerPos.TotalContracts : cancelledFollowerPos.TotalContracts;
+                        DeltaExpectedPositionLocked(ExpKey(cancelAcctKey), cancelDelta);
+                        // B957/D2: Release the SIMA dispatch-sync barrier for this account. Without this, the barrier
+                        // remains permanently blocked after a follower cancel, starving future dispatches.
+                        _dispatchSyncPendingExpKeys.TryRemove(ExpKey(cancelAcctKey), out _); // [B967-FIX-02]
+                    }
                 }
                 Print(string.Format("[SIMA] Follower entry cancelled: {0} on {1}. Reaper monitoring.", matchedEntry, acctName));
                 Draw.TextFixed(this, "SIMA_DESYNC_" + acctName, "(!) FOLLOWER DESYNC: " + acctName, TextPosition.TopLeft, Brushes.Red, new SimpleFont("Arial", 11), Brushes.Transparent, Brushes.Transparent, 50);
