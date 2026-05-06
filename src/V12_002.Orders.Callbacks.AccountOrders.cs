@@ -63,74 +63,85 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             // Build 1000: Master account managed order tracking
             if (acct == this.Account && order.Instrument != null && order.Instrument.FullName == Instrument.FullName)
-            {
-                if (order.OrderState == OrderState.Filled || order.OrderState == OrderState.PartFilled)
-                {
-                    if (order.Name.StartsWith("Stop_"))
-                    {
-                        // Clear naked-position grace for master when stop fills/exists
-                        _nakedPositionFirstSeen.TryRemove(Account.Name, out _);
-
-                        var mExpKey = ExpKey(Account.Name);
-                        Enqueue(ctx => ctx.SetExpectedPositionLocked(mExpKey, 0));
-                    }
-                    else if (order.Name.StartsWith("T") && order.Name.Contains("_"))
-                    {
-                        int filledQty = order.Filled;
-                        var mExpKey = ExpKey(Account.Name);
-                        Enqueue(ctx => 
-                        {
-                            if (ctx.expectedPositions != null && ctx.expectedPositions.TryGetValue(mExpKey, out int currentExp))
-                            {
-                                int newExp = 0;
-                                if (currentExp > 0)
-                                    newExp = Math.Max(0, currentExp - filledQty);
-                                else if (currentExp < 0)
-                                    newExp = Math.Min(0, currentExp + filledQty);
-                                    
-                                ctx.SetExpectedPositionLocked(mExpKey, newExp);
-                            }
-                        });
-                    }
-                }
-            }
+                ProcessAccountOrder_UpdateMasterExpected(order);
             // Build 1104.1: Fleet account expectedPositions tracking (symmetric with Master at line 65)
             // Without this, expectedPositions stays stale after fleet stop/target fills,
             // causing REAPER to see Expected != Actual and trigger false flattens.
             else if (IsFleetAccount(acct))
+                ProcessAccountOrder_UpdateFleetExpected(order, acct);
+
+            ProcessAccountOrder_EnqueueTerminalUpdate(sender, e, order);
+        }
+
+        private void ProcessAccountOrder_UpdateMasterExpected(Order order)
+        {
+            if (order.OrderState == OrderState.Filled || order.OrderState == OrderState.PartFilled)
             {
-                if (order.OrderState == OrderState.Filled || order.OrderState == OrderState.PartFilled)
+                if (order.Name.StartsWith("Stop_"))
                 {
-                    if (order.Name.StartsWith("Stop_"))
+                    // Clear naked-position grace for master when stop fills/exists
+                    _nakedPositionFirstSeen.TryRemove(Account.Name, out _);
+
+                    var mExpKey = ExpKey(Account.Name);
+                    Enqueue(ctx => ctx.SetExpectedPositionLocked(mExpKey, 0));
+                }
+                else if (order.Name.StartsWith("T") && order.Name.Contains("_"))
+                {
+                    int filledQty = order.Filled;
+                    var mExpKey = ExpKey(Account.Name);
+                    Enqueue(ctx =>
                     {
-                        // Fleet stop filled: position closing. Zero expectedPositions.
-                        _nakedPositionFirstSeen.TryRemove(acct.Name, out _);
-                        var fExpKey = ExpKey(acct.Name);
-                        Enqueue(ctx => ctx.SetExpectedPositionLocked(fExpKey, 0));
-                    }
-                    else if (order.Name.StartsWith("T") && order.Name.Contains("_"))
-                    {
-                        // Fleet target filled: delta-decrement expectedPositions.
-                        int fFilledQty = order.Filled;
-                        var fExpKey = ExpKey(acct.Name);
-                        Enqueue(ctx =>
+                        if (ctx.expectedPositions != null && ctx.expectedPositions.TryGetValue(mExpKey, out int currentExp))
                         {
-                            if (ctx.expectedPositions != null && ctx.expectedPositions.TryGetValue(fExpKey, out int fCurrentExp))
-                            {
-                                int fNewExp;
-                                if (fCurrentExp > 0)
-                                    fNewExp = Math.Max(0, fCurrentExp - fFilledQty);
-                                else if (fCurrentExp < 0)
-                                    fNewExp = Math.Min(0, fCurrentExp + fFilledQty);
-                                else
-                                    fNewExp = 0;
-                                ctx.SetExpectedPositionLocked(fExpKey, fNewExp);
-                            }
-                        });
-                    }
+                            int newExp = 0;
+                            if (currentExp > 0)
+                                newExp = Math.Max(0, currentExp - filledQty);
+                            else if (currentExp < 0)
+                                newExp = Math.Min(0, currentExp + filledQty);
+
+                            ctx.SetExpectedPositionLocked(mExpKey, newExp);
+                        }
+                    });
                 }
             }
+        }
 
+        private void ProcessAccountOrder_UpdateFleetExpected(Order order, Account acct)
+        {
+            if (order.OrderState == OrderState.Filled || order.OrderState == OrderState.PartFilled)
+            {
+                if (order.Name.StartsWith("Stop_"))
+                {
+                    // Fleet stop filled: position closing. Zero expectedPositions.
+                    _nakedPositionFirstSeen.TryRemove(acct.Name, out _);
+                    var fExpKey = ExpKey(acct.Name);
+                    Enqueue(ctx => ctx.SetExpectedPositionLocked(fExpKey, 0));
+                }
+                else if (order.Name.StartsWith("T") && order.Name.Contains("_"))
+                {
+                    // Fleet target filled: delta-decrement expectedPositions.
+                    int fFilledQty = order.Filled;
+                    var fExpKey = ExpKey(acct.Name);
+                    Enqueue(ctx =>
+                    {
+                        if (ctx.expectedPositions != null && ctx.expectedPositions.TryGetValue(fExpKey, out int fCurrentExp))
+                        {
+                            int fNewExp;
+                            if (fCurrentExp > 0)
+                                fNewExp = Math.Max(0, fCurrentExp - fFilledQty);
+                            else if (fCurrentExp < 0)
+                                fNewExp = Math.Min(0, fCurrentExp + fFilledQty);
+                            else
+                                fNewExp = 0;
+                            ctx.SetExpectedPositionLocked(fExpKey, fNewExp);
+                        }
+                    });
+                }
+            }
+        }
+
+        private void ProcessAccountOrder_EnqueueTerminalUpdate(object sender, OrderEventArgs e, Order order)
+        {
             if (order.OrderState != OrderState.Cancelled && order.OrderState != OrderState.Rejected &&
                 order.OrderState != OrderState.Unknown)
             {
@@ -317,128 +328,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                 }
 
-                // Build 947 FSM: if this cancel was our PendingCancel, submit replacement instead of DESYNC
-                FollowerReplaceSpec fsm;
-                if (_followerReplaceSpecs.TryGetValue(matchedEntry, out fsm)
-                    && fsm.State == FollowerReplaceState.PendingCancel
-                    && fsm.CancellingOrderId == order.OrderId)
-                {
-                    // Fill-during-gap guard: if master already has a live filled position, let REAPER handle
-                    PositionInfo masterPos = null;
-                    bool masterFilled = false;
+                if (HandleMatchedFollower_PendingCancelReplace(matchedEntry, order, acctName))
+                    return;
 
-                    // Phase 10 [B960-AUDIT]: synchronization wrapper removed. Both this path
-                    // via ProcessQueuedAccountOrder via TriggerCustomEvent and PropagateFollowerEntryReplace
-                    // are serialized on the NinjaTrader strategy thread. No concurrent field access is possible.
-                    int qty = 0;
-                    double price = 0;
-                    string acctNameCapture = acctName;
-                    string sigName = fsm.SignalName;
-                    FollowerReplaceSpec fsmCapture = fsm;
+                if (HandleMatchedFollower_TargetReplaceCancel(order))
+                    return;
 
-                    masterFilled = !string.IsNullOrEmpty(fsm.MasterSignalName)
-                        && activePositions.TryGetValue(fsm.MasterSignalName, out masterPos)
-                        && masterPos != null
-                        && masterPos.EntryFilled
-                        && masterPos.RemainingContracts > 0;
-
-                    if (!masterFilled)
-                    {
-                        qty             = fsm.PendingQty;
-                        price           = fsm.PendingPrice;
-                        acctNameCapture = fsm.AccountName;
-                        sigName         = fsm.SignalName;
-                        fsmCapture      = fsm;
-                        fsm.State       = FollowerReplaceState.Submitting;
-                    }
-
-                    if (masterFilled)
-                    {
-                        Print("[FSM] Master filled during cancel wait -- routing "
-                            + fsm.SignalName + " to repair instead of replace.");
-                        _followerReplaceSpecs.TryRemove(fsm.SignalName, out _);
-                        string masterFilledExpKey = ExpKey(acctName);
-                        ClearDispatchSyncPending(masterFilledExpKey);
-                        _reaperRepairQueue.Enqueue(acctName);
-                        ProcessReaperRepairQueue();
-                        return;
-                    }
-
-                    bool replacementScheduled = false;
-                    try
-                    {
-                        TriggerCustomEvent(o =>
-                        {
-                            // [P2 FSM CONSISTENCY]: Re-read price/qty from spec at execution time.
-                            // ATR tick absorption may have updated PendingPrice/PendingQty after the
-                            // lambda was scheduled -- using stale captures would submit wrong values.
-                            SubmitFollowerReplacement(sigName, acctNameCapture, fsmCapture.PendingPrice, fsmCapture.PendingQty, fsmCapture);
-                            _followerReplaceSpecs.TryRemove(sigName, out _);
-                        }, null);
-                        replacementScheduled = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        Print("[FSM] TriggerCustomEvent failed for " + sigName + ": " + ex.Message);
-                        _followerReplaceSpecs.TryRemove(sigName, out _);
-                    }
-                    if (replacementScheduled)
-                        return; // FSM-controlled replace cancel -- reservation stays live until resubmit completes.
-                } // END of PendingCancel block
-
-                // B957/C1: Check for follower TARGET replace FSM spec before doing delta rollback.
-                // If this cancel was part of a two-phase target replacement, submit the new order
-                // and return -- no delta rollback needed (position remains open, just target moved).
-                {
-                    FollowerTargetReplaceSpec tSpec = null;
-                    string tFsmMatchKey = null;
-                    foreach (var tKvp in _followerTargetReplaceSpecs.ToArray())
-                    {
-                        if (tKvp.Value.CancellingOrderId == order.OrderId)
-                        {
-                            tSpec = tKvp.Value;
-                            tFsmMatchKey = tKvp.Key;
-                            break;
-                        }
-                    }
-                    if (tSpec != null && tFsmMatchKey != null)
-                    {
-                        _followerTargetReplaceSpecs.TryRemove(tFsmMatchKey, out _);
-                        FollowerTargetReplaceSpec captured = tSpec;
-                        string capturedKey = tFsmMatchKey;
-                        try
-                        {
-                            TriggerCustomEvent(o => SubmitFollowerTargetReplacement(capturedKey, captured), null);
-                        }
-                        catch (Exception tFsmEx)
-                        {
-                            Print("[FSM_TGT] TriggerCustomEvent failed for " + capturedKey + ": " + tFsmEx.Message);
-                        }
-                        return; // FSM-controlled target cancel -- skip delta rollback, not a real desync
-                    }
-                }
-
-                // A2-3: Direction-aware delta rollback on CONFIRMED cancel -- deferred from SymmetryGuardCascadeFollowerCleanup
-                // to prevent REAPER desync on microsecond fill race (Build 960 audit fix).
-                PositionInfo cancelledFollowerPos;
-                if (activePositions.TryGetValue(matchedEntry, out cancelledFollowerPos) && cancelledFollowerPos != null)
-                {
-                    if (cancelledFollowerPos.ExecutingAccount == null)
-                    {
-                        Print("[B983-D2] HandleMatchedFollowerOrder: ExecutingAccount null for " + matchedEntry
-                            + " -- skipping ExpKey delta and sync barrier ops to avoid master domain bleed.");
-                    }
-                    else
-                    {
-                        string cancelAcctKey = cancelledFollowerPos.ExecutingAccount.Name;
-                        int cancelDelta = (cancelledFollowerPos.Direction == MarketPosition.Long)
-                            ? -cancelledFollowerPos.TotalContracts : cancelledFollowerPos.TotalContracts;
-                        DeltaExpectedPositionLocked(ExpKey(cancelAcctKey), cancelDelta);
-                        // B957/D2: Release the SIMA dispatch-sync barrier for this account. Without this, the barrier
-                        // remains permanently blocked after a follower cancel, starving future dispatches.
-                        _dispatchSyncPendingExpKeys.TryRemove(ExpKey(cancelAcctKey), out _); // [B967-FIX-02]
-                    }
-                }
+                HandleMatchedFollower_DeltaRollback(matchedEntry);
                 Print(string.Format("[SIMA] Follower entry cancelled: {0} on {1}. Reaper monitoring.", matchedEntry, acctName));
                 Draw.TextFixed(this, "SIMA_DESYNC_" + acctName, "(!) FOLLOWER DESYNC: " + acctName, TextPosition.TopLeft, Brushes.Red, new SimpleFont("Arial", 11), Brushes.Transparent, Brushes.Transparent, 50);
             }
@@ -448,58 +344,210 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Follower stop cancels arrive via OnAccountOrderUpdate (not OnOrderUpdate), so
                 // HandleOrderCancelled never fires for them. Match pendingStopReplacements here.
                 // This block is in the else branch because stop orders are not in entryOrders.
-                if (order.Name.StartsWith("Stop_") || order.Name.StartsWith("S_"))
-                {
-                    foreach (var _psr in pendingStopReplacements.ToArray())
-                    {
-                        if (_psr.Value.OldOrder == order
-                            || (_psr.Value.OldOrder != null && _psr.Value.OldOrder.OrderId == order.OrderId))
-                        {
-                            PositionInfo _rPos;
-                            // Build 955: Move guard inside lock -- check and use same atomic snapshot.
-                            if (activePositions.TryGetValue(_psr.Key, out _rPos))
-                            {
-                                int _rQty;
-                                _rQty = _rPos.RemainingContracts;
-                                if (_rQty > 0)
-                                {
-                                    CreateNewStopOrder(_psr.Key, _rQty, _psr.Value.StopPrice, _psr.Value.Direction);
-                                    if (_psr.Value.BracketRestorationNeeded && _psr.Value.CapturedTargets != null)
-                                    {
-                                        TargetSnapshot[] _snap = _psr.Value.CapturedTargets;
-                                        string _rKey = _psr.Key;
-                                        TriggerCustomEvent(o => RestoreCascadedTargets(_rKey, _snap), null);
-                                    }
-                                } // if (_rQty > 0)
-                            } // if (activePositions.TryGetValue)
-                            if (pendingStopReplacements.TryRemove(_psr.Key, out _)) Interlocked.Decrement(ref pendingReplacementCount);
-                            return;
-                        }
-                    }
-                }
-                // A2-2: Deferred PendingCleanup purge -- follower stop terminal (Build 960 audit fix).
-                if (order.Name.StartsWith("Stop_") || order.Name.StartsWith("S_"))
-                {
-                    foreach (var _sc in stopOrders.ToArray())
-                    {
-                        if (_sc.Value == order)
-                        {
-                            PositionInfo _scPos;
-                            if (activePositions.TryGetValue(_sc.Key, out _scPos) && _scPos != null
-                                && _scPos.PendingCleanup && _scPos.RemainingContracts <= 0)
-                            {
-                                stopOrders.TryRemove(_sc.Key, out _);
-                                activePositions.TryRemove(_sc.Key, out _);
-                                SymmetryGuardForgetEntry(_sc.Key);
-                                Print("[A2-2] Deferred PendingCleanup purge (follower stop terminal): " + _sc.Key);
-                            }
-                            break;
-                        }
-                    }
-                }
+                if (HandleMatchedFollower_StopReplacement(order))
+                    return;
+
+                HandleMatchedFollower_PendingCleanupPurge(order);
 
                 Print(string.Format("[SIMA] Follower order terminal: {0} on {1} ({2}) | Id={3}", order.Name, acctName, reason, order.OrderId));
                 RemoveGhostOrderRef(order, reason);
+            }
+        }
+
+        private bool HandleMatchedFollower_PendingCancelReplace(string matchedEntry, Order order, string acctName)
+        {
+            // Build 947 FSM: if this cancel was our PendingCancel, submit replacement instead of DESYNC
+            FollowerReplaceSpec fsm;
+            if (_followerReplaceSpecs.TryGetValue(matchedEntry, out fsm)
+                && fsm.State == FollowerReplaceState.PendingCancel
+                && fsm.CancellingOrderId == order.OrderId)
+            {
+                // Fill-during-gap guard: if master already has a live filled position, let REAPER handle
+                PositionInfo masterPos = null;
+                bool masterFilled = false;
+
+                // Phase 10 [B960-AUDIT]: synchronization wrapper removed. Both this path
+                // via ProcessQueuedAccountOrder via TriggerCustomEvent and PropagateFollowerEntryReplace
+                // are serialized on the NinjaTrader strategy thread. No concurrent field access is possible.
+                int qty = 0;
+                double price = 0;
+                string acctNameCapture = acctName;
+                string sigName = fsm.SignalName;
+                FollowerReplaceSpec fsmCapture = fsm;
+
+                masterFilled = !string.IsNullOrEmpty(fsm.MasterSignalName)
+                    && activePositions.TryGetValue(fsm.MasterSignalName, out masterPos)
+                    && masterPos != null
+                    && masterPos.EntryFilled
+                    && masterPos.RemainingContracts > 0;
+
+                if (!masterFilled)
+                {
+                    qty             = fsm.PendingQty;
+                    price           = fsm.PendingPrice;
+                    acctNameCapture = fsm.AccountName;
+                    sigName         = fsm.SignalName;
+                    fsmCapture      = fsm;
+                    fsm.State       = FollowerReplaceState.Submitting;
+                }
+
+                if (masterFilled)
+                {
+                    Print("[FSM] Master filled during cancel wait -- routing "
+                        + fsm.SignalName + " to repair instead of replace.");
+                    _followerReplaceSpecs.TryRemove(fsm.SignalName, out _);
+                    string masterFilledExpKey = ExpKey(acctName);
+                    ClearDispatchSyncPending(masterFilledExpKey);
+                    _reaperRepairQueue.Enqueue(acctName);
+                    ProcessReaperRepairQueue();
+                    return true;
+                }
+
+                bool replacementScheduled = false;
+                try
+                {
+                    TriggerCustomEvent(o =>
+                    {
+                        // [P2 FSM CONSISTENCY]: Re-read price/qty from spec at execution time.
+                        // ATR tick absorption may have updated PendingPrice/PendingQty after the
+                        // lambda was scheduled -- using stale captures would submit wrong values.
+                        SubmitFollowerReplacement(sigName, acctNameCapture, fsmCapture.PendingPrice, fsmCapture.PendingQty, fsmCapture);
+                        _followerReplaceSpecs.TryRemove(sigName, out _);
+                    }, null);
+                    replacementScheduled = true;
+                }
+                catch (Exception ex)
+                {
+                    Print("[FSM] TriggerCustomEvent failed for " + sigName + ": " + ex.Message);
+                    _followerReplaceSpecs.TryRemove(sigName, out _);
+                }
+                if (replacementScheduled)
+                    return true; // FSM-controlled replace cancel -- reservation stays live until resubmit completes.
+            }
+
+            return false;
+        }
+
+        private bool HandleMatchedFollower_TargetReplaceCancel(Order order)
+        {
+            // B957/C1: Check for follower TARGET replace FSM spec before doing delta rollback.
+            // If this cancel was part of a two-phase target replacement, submit the new order
+            // and return -- no delta rollback needed (position remains open, just target moved).
+            FollowerTargetReplaceSpec tSpec = null;
+            string tFsmMatchKey = null;
+            foreach (var tKvp in _followerTargetReplaceSpecs.ToArray())
+            {
+                if (tKvp.Value.CancellingOrderId == order.OrderId)
+                {
+                    tSpec = tKvp.Value;
+                    tFsmMatchKey = tKvp.Key;
+                    break;
+                }
+            }
+            if (tSpec != null && tFsmMatchKey != null)
+            {
+                _followerTargetReplaceSpecs.TryRemove(tFsmMatchKey, out _);
+                FollowerTargetReplaceSpec captured = tSpec;
+                string capturedKey = tFsmMatchKey;
+                try
+                {
+                    TriggerCustomEvent(o => SubmitFollowerTargetReplacement(capturedKey, captured), null);
+                }
+                catch (Exception tFsmEx)
+                {
+                    Print("[FSM_TGT] TriggerCustomEvent failed for " + capturedKey + ": " + tFsmEx.Message);
+                }
+                return true; // FSM-controlled target cancel -- skip delta rollback, not a real desync
+            }
+
+            return false;
+        }
+
+        private void HandleMatchedFollower_DeltaRollback(string matchedEntry)
+        {
+            // A2-3: Direction-aware delta rollback on CONFIRMED cancel -- deferred from SymmetryGuardCascadeFollowerCleanup
+            // to prevent REAPER desync on microsecond fill race (Build 960 audit fix).
+            PositionInfo cancelledFollowerPos;
+            if (activePositions.TryGetValue(matchedEntry, out cancelledFollowerPos) && cancelledFollowerPos != null)
+            {
+                if (cancelledFollowerPos.ExecutingAccount == null)
+                {
+                    Print("[B983-D2] HandleMatchedFollowerOrder: ExecutingAccount null for " + matchedEntry
+                        + " -- skipping ExpKey delta and sync barrier ops to avoid master domain bleed.");
+                }
+                else
+                {
+                    string cancelAcctKey = cancelledFollowerPos.ExecutingAccount.Name;
+                    int cancelDelta = (cancelledFollowerPos.Direction == MarketPosition.Long)
+                        ? -cancelledFollowerPos.TotalContracts : cancelledFollowerPos.TotalContracts;
+                    DeltaExpectedPositionLocked(ExpKey(cancelAcctKey), cancelDelta);
+                    // B957/D2: Release the SIMA dispatch-sync barrier for this account. Without this, the barrier
+                    // remains permanently blocked after a follower cancel, starving future dispatches.
+                    _dispatchSyncPendingExpKeys.TryRemove(ExpKey(cancelAcctKey), out _); // [B967-FIX-02]
+                }
+            }
+        }
+
+        private bool HandleMatchedFollower_StopReplacement(Order order)
+        {
+            // Build 950: Follower stop replacement -- mirrors HandleOrderCancelled master path.
+            // Follower stop cancels arrive via OnAccountOrderUpdate (not OnOrderUpdate), so
+            // HandleOrderCancelled never fires for them. Match pendingStopReplacements here.
+            // This block is in the else branch because stop orders are not in entryOrders.
+            if (order.Name.StartsWith("Stop_") || order.Name.StartsWith("S_"))
+            {
+                foreach (var _psr in pendingStopReplacements.ToArray())
+                {
+                    if (_psr.Value.OldOrder == order
+                        || (_psr.Value.OldOrder != null && _psr.Value.OldOrder.OrderId == order.OrderId))
+                    {
+                        PositionInfo _rPos;
+                        // Build 955: Move guard inside lock -- check and use same atomic snapshot.
+                        if (activePositions.TryGetValue(_psr.Key, out _rPos))
+                        {
+                            int _rQty;
+                            _rQty = _rPos.RemainingContracts;
+                            if (_rQty > 0)
+                            {
+                                CreateNewStopOrder(_psr.Key, _rQty, _psr.Value.StopPrice, _psr.Value.Direction);
+                                if (_psr.Value.BracketRestorationNeeded && _psr.Value.CapturedTargets != null)
+                                {
+                                    TargetSnapshot[] _snap = _psr.Value.CapturedTargets;
+                                    string _rKey = _psr.Key;
+                                    TriggerCustomEvent(o => RestoreCascadedTargets(_rKey, _snap), null);
+                                }
+                            } // if (_rQty > 0)
+                        } // if (activePositions.TryGetValue)
+                        if (pendingStopReplacements.TryRemove(_psr.Key, out _)) Interlocked.Decrement(ref pendingReplacementCount);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private void HandleMatchedFollower_PendingCleanupPurge(Order order)
+        {
+            // A2-2: Deferred PendingCleanup purge -- follower stop terminal (Build 960 audit fix).
+            if (order.Name.StartsWith("Stop_") || order.Name.StartsWith("S_"))
+            {
+                foreach (var _sc in stopOrders.ToArray())
+                {
+                    if (_sc.Value == order)
+                    {
+                        PositionInfo _scPos;
+                        if (activePositions.TryGetValue(_sc.Key, out _scPos) && _scPos != null
+                            && _scPos.PendingCleanup && _scPos.RemainingContracts <= 0)
+                        {
+                            stopOrders.TryRemove(_sc.Key, out _);
+                            activePositions.TryRemove(_sc.Key, out _);
+                            SymmetryGuardForgetEntry(_sc.Key);
+                            Print("[A2-2] Deferred PendingCleanup purge (follower stop terminal): " + _sc.Key);
+                        }
+                        break;
+                    }
+                }
             }
         }
 
@@ -513,37 +561,15 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 string masterEntryName;
                 string[] dispatchFollowers;
-                if (IsMasterReplaceCascadeCancellation(order, snapshot, out masterEntryName, out dispatchFollowers))
-                {
-                    Print(string.Format("[FSM] Suppressing cascade teardown for master replace cancel: {0}", masterEntryName));
-                    RemoveGhostOrderRef(order, reason);
+                if (ExecuteFollowerCascade_SuppressMasterReplace(order, reason, snapshot, out masterEntryName, out dispatchFollowers))
                     return;
-                }
 
                 string orderSignal = order.Name;
                 Dictionary<string, PositionInfo> snapshotByKey = new Dictionary<string, PositionInfo>();
                 foreach (var kvp in snapshot)
                     snapshotByKey[kvp.Key] = kvp.Value;
 
-                IEnumerable<string> followerKeys = Array.Empty<string>();
-                if (!string.IsNullOrEmpty(masterEntryName) && dispatchFollowers != null && dispatchFollowers.Length > 0)
-                {
-                    followerKeys = dispatchFollowers;
-                }
-                else
-                {
-                    // [BUILD 984] [FIX-B]: Delimiter-anchored match replaces bidirectional .Contains().
-                    // Bidirectional .Contains() caused accidental cascade of unrelated positions:
-                    // e.g. signal "OR" matched "Fleet_Apex_RETEST_OR_1" incidentally.
-                    // Anchoring on underscores prevents substring contamination across signal families.
-                    followerKeys = snapshot
-                        .Where(kvp => kvp.Value != null && kvp.Value.IsFollower
-                            && (kvp.Key == orderSignal
-                                || kvp.Key.Contains("_" + orderSignal + "_")
-                                || kvp.Key.EndsWith("_" + orderSignal)))
-                        .Select(kvp => kvp.Key)
-                        .ToArray();
-                }
+                IEnumerable<string> followerKeys = ExecuteFollowerCascade_ResolveFollowers(orderSignal, masterEntryName, dispatchFollowers, snapshot);
 
                 foreach (string followerKey in followerKeys)
                 {
@@ -566,42 +592,82 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
 
                     if (!cascadePos.EntryFilled)
-                    {
-                        Print(string.Format("[GHOST_FIX] SIMA CASCADE: Master cancel of {0} triggers follower teardown for {1} on {2}",
-                            !string.IsNullOrEmpty(masterEntryName) ? masterEntryName : orderSignal, followerKey, cascadeAcctName));
-                        CleanupPosition(followerKey);
-
-                        if (cascadePos.ExecutingAccount != null)
-                        {
-                            int rollbackDelta = (cascadePos.Direction == MarketPosition.Long) ? -cascadePos.TotalContracts : cascadePos.TotalContracts;
-                            int currentExp = 0;
-                            expectedPositions.TryGetValue(ExpKey(cascadeAcctName), out currentExp);
-                            if (currentExp == 0)
-                            {
-                                Print(string.Format("[GHOST_FIX] SKIP cascade delta for {0}: expectedPositions already 0 (purge-race guard). Delta suppressed.",
-                                    cascadeAcctName));
-                            }
-                            else
-                            {
-                                DeltaExpectedPositionLocked(ExpKey(cascadeAcctName), rollbackDelta);
-                            }
-                            ClearDispatchSyncPending(ExpKey(cascadeAcctName));
-                            try { RemoveDrawObject("SIMA_DESYNC_" + cascadeAcctName); } catch { }
-                        }
-                    }
+                        ExecuteFollowerCascade_CleanupUnfilled(masterEntryName, orderSignal, followerKey, cascadePos);
                     else
-                    {
-                        Print(string.Format("[DEAD-01] CASCADE-FILLED: Master cancel {0} -- follower {1} on {2} is FILLED. Issuing emergency flatten.",
-                            !string.IsNullOrEmpty(masterEntryName) ? masterEntryName : orderSignal, followerKey, cascadeAcctName));
-                        if (cascadePos.ExecutingAccount != null)
-                        {
-                            Account filledFollowerAcct = cascadePos.ExecutingAccount;
-                            TriggerCustomEvent(o => EmergencyFlattenSingleFleetAccount(filledFollowerAcct), null);
-                        }
-                    }
+                        ExecuteFollowerCascade_EmergencyFlattenFilled(masterEntryName, orderSignal, followerKey, cascadePos);
                 }
             }
             RemoveGhostOrderRef(order, reason);
+        }
+
+        private bool ExecuteFollowerCascade_SuppressMasterReplace(Order order, string reason, KeyValuePair<string, PositionInfo>[] snapshot, out string masterEntryName, out string[] dispatchFollowers)
+        {
+            if (IsMasterReplaceCascadeCancellation(order, snapshot, out masterEntryName, out dispatchFollowers))
+            {
+                Print(string.Format("[FSM] Suppressing cascade teardown for master replace cancel: {0}", masterEntryName));
+                RemoveGhostOrderRef(order, reason);
+                return true;
+            }
+
+            return false;
+        }
+
+        private IEnumerable<string> ExecuteFollowerCascade_ResolveFollowers(string orderSignal, string masterEntryName, string[] dispatchFollowers, KeyValuePair<string, PositionInfo>[] snapshot)
+        {
+            if (!string.IsNullOrEmpty(masterEntryName) && dispatchFollowers != null && dispatchFollowers.Length > 0)
+                return dispatchFollowers;
+
+            // [BUILD 984] [FIX-B]: Delimiter-anchored match replaces bidirectional .Contains().
+            // Bidirectional .Contains() caused accidental cascade of unrelated positions:
+            // e.g. signal "OR" matched "Fleet_Apex_RETEST_OR_1" incidentally.
+            // Anchoring on underscores prevents substring contamination across signal families.
+            return snapshot
+                .Where(kvp => kvp.Value != null && kvp.Value.IsFollower
+                    && (kvp.Key == orderSignal
+                        || kvp.Key.Contains("_" + orderSignal + "_")
+                        || kvp.Key.EndsWith("_" + orderSignal)))
+                .Select(kvp => kvp.Key)
+                .ToArray();
+        }
+
+        private void ExecuteFollowerCascade_CleanupUnfilled(string masterEntryName, string orderSignal, string followerKey, PositionInfo cascadePos)
+        {
+            string cascadeAcctName = cascadePos.ExecutingAccount != null ? cascadePos.ExecutingAccount.Name : "NULL";
+
+            Print(string.Format("[GHOST_FIX] SIMA CASCADE: Master cancel of {0} triggers follower teardown for {1} on {2}",
+                !string.IsNullOrEmpty(masterEntryName) ? masterEntryName : orderSignal, followerKey, cascadeAcctName));
+            CleanupPosition(followerKey);
+
+            if (cascadePos.ExecutingAccount != null)
+            {
+                int rollbackDelta = (cascadePos.Direction == MarketPosition.Long) ? -cascadePos.TotalContracts : cascadePos.TotalContracts;
+                int currentExp = 0;
+                expectedPositions.TryGetValue(ExpKey(cascadeAcctName), out currentExp);
+                if (currentExp == 0)
+                {
+                    Print(string.Format("[GHOST_FIX] SKIP cascade delta for {0}: expectedPositions already 0 (purge-race guard). Delta suppressed.",
+                        cascadeAcctName));
+                }
+                else
+                {
+                    DeltaExpectedPositionLocked(ExpKey(cascadeAcctName), rollbackDelta);
+                }
+                ClearDispatchSyncPending(ExpKey(cascadeAcctName));
+                try { RemoveDrawObject("SIMA_DESYNC_" + cascadeAcctName); } catch { }
+            }
+        }
+
+        private void ExecuteFollowerCascade_EmergencyFlattenFilled(string masterEntryName, string orderSignal, string followerKey, PositionInfo cascadePos)
+        {
+            string cascadeAcctName = cascadePos.ExecutingAccount != null ? cascadePos.ExecutingAccount.Name : "NULL";
+
+            Print(string.Format("[DEAD-01] CASCADE-FILLED: Master cancel {0} -- follower {1} on {2} is FILLED. Issuing emergency flatten.",
+                !string.IsNullOrEmpty(masterEntryName) ? masterEntryName : orderSignal, followerKey, cascadeAcctName));
+            if (cascadePos.ExecutingAccount != null)
+            {
+                Account filledFollowerAcct = cascadePos.ExecutingAccount;
+                TriggerCustomEvent(o => EmergencyFlattenSingleFleetAccount(filledFollowerAcct), null);
+            }
         }
 
         private void ProcessQueuedAccountOrder(QueuedAccountOrderUpdate item)
