@@ -27,8 +27,8 @@ jobs:
         id: jules_audit
         env:
           JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
-          REPO: ${{ github.repository }}
-          BRANCH: ${{ github.head_ref }}
+          REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          BRANCH: ${{ github.event.pull_request.head.ref || github.head_ref || github.ref_name }}
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           cat << 'EOF' > jules_audit.js

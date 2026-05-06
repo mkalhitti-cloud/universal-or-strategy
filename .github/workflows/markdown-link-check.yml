@@ -7,8 +7,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check Links
-        uses: tcort/markdown-link-check@v3.12.0
+        uses: JustinBeckwith/link-check@v1.0.10
         with:
-          use-quiet-mode: 'yes'
-          use-verbose-mode: 'yes'
-          config-file: '.github/mlc_config.json'
+          configFile: '.github/mlc_config.json'
