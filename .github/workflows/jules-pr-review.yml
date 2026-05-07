@@ -134,23 +134,24 @@ jobs:
               process.exit(1);
             }
 
-            // Polling Logic
+            // Polling Logic via Activities Endpoint
             const pollOptions = {
               hostname: 'jules.googleapis.com',
-              path: `/v1alpha/${sessionName}`,
+              path: `/v1alpha/${sessionName}/activities?pageSize=100`,
               method: 'GET',
               headers: { 'x-goog-api-key': apiKey }
             };
 
             let finished = false;
-            let sessionData = null;
+            let isFailed = false;
+            let finalSummary = "Audit complete. Check session URL for details.";
             let attempts = 0;
-            const maxAttempts = 40; // ~20 minutes
+            const maxAttempts = 60; // 60 minutes
 
             while (!finished && attempts < maxAttempts) {
               attempts++;
               process.stdout.write('.');
-              sessionData = await new Promise((resolve) => {
+              const activitiesData = await new Promise((resolve) => {
                 https.get(pollOptions, (res) => {
                   let body = '';
                   res.on('data', (chunk) => body += chunk);
@@ -158,11 +159,30 @@ jobs:
                 });
               });
 
-              if (sessionData.state === 'COMPLETED' || sessionData.state === 'FAILED') {
-                finished = true;
-                console.log(`\nSession state: ${sessionData.state}`);
-              } else {
-                await new Promise(r => setTimeout(r, 30000));
+              if (activitiesData && activitiesData.activities) {
+                // Extract the latest progress description to use as a summary
+                for (const act of activitiesData.activities) {
+                  if (act.progressUpdated && act.progressUpdated.description) {
+                    finalSummary = act.progressUpdated.description;
+                  }
+                }
+                
+                // Check for completion markers
+                const completedAct = activitiesData.activities.find(a => a.sessionCompleted);
+                const failedAct = activitiesData.activities.find(a => a.sessionFailed || (a.progressUpdated && a.progressUpdated.title && a.progressUpdated.title.toLowerCase().includes('failed')));
+                
+                if (completedAct) {
+                  finished = true;
+                  console.log(`\nSession state: COMPLETED`);
+                } else if (failedAct) {
+                  finished = true;
+                  isFailed = true;
+                  console.log(`\nSession state: FAILED`);
+                }
+              }
+
+              if (!finished) {
+                await new Promise(r => setTimeout(r, 60000));
               }
             }
 
@@ -171,15 +191,14 @@ jobs:
               process.exit(1);
             }
 
-            if (sessionData.state === 'FAILED') {
+            if (isFailed) {
               console.error('Jules audit failed.');
               process.exit(1);
             }
 
             // Post Comment to GitHub
-            const findings = sessionData.summary || "Audit complete. Check session URL for details.";
             const commentData = JSON.stringify({
-              body: `### Jules Forensic Audit Result\n\n${findings}\n\n[View Full Session](${sessionUrl})`
+              body: `### Jules Forensic Audit Result\n\n${finalSummary}\n\n[View Full Session](${sessionUrl})`
             });
 
             const commentOptions = {
