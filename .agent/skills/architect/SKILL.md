@@ -131,6 +131,33 @@ For any repair involving more than 3 files, complex state machines, or high-perf
 
 ---
 
+## VII. Implementation Plan Standards (Superpower Quality)
+
+Every implementation plan must adhere to these high-fidelity standards to ensure successful P5 Execution:
+
+### 1. Bite-Sized Task Granularity
+Each step must be a single, focused action (2-5 minutes of work).
+- **Correct**: "Step 1: Write failing test for `OnExecutionUpdate`" -> **verify**: `dotnet test`.
+- **Incorrect**: "Implement and test the order reconciliation logic" (too broad).
+
+### 2. No Placeholders
+Every step must contain the actual content the Engineer needs. **PLAN FAILURES**:
+- "TBD", "TODO", "implement later", "fill in details".
+- "Add appropriate error handling" (show the actual `try/catch` or `if` block).
+- "Write tests for the above" (provide the actual test code block).
+- "Similar to Task N" (repeat the logic; the Engineer may be working out of sequence).
+
+### 3. TDD Integration
+Plan steps should follow the **Red-Green-Refactor** pattern:
+- **Red**: Write a failing test block (or a `grep` audit that proves failure).
+- **Green**: Provide the surgical C# implementation block.
+- **Refactor**: Verify against DNA rules (no locks, ASCII check).
+
+### 4. No Omissions
+If a step changes code, show the **COMPLETE** function or block. Never use `...` to omit existing code, as this leads to implementation errors in the Engineer session.
+
+---
+
 ## Workflow (Run Every Session)
 
 ### Step 0 — Context Recovery (new sessions only)
