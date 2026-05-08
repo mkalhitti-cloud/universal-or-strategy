@@ -234,91 +234,23 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (ipcCommandQueue == null || ipcCommandQueue.IsEmpty) return;
 
             int drainedCount = 0;
-            while (drainedCount < IpcMaxCommandsPerDrain && ipcCommandQueue.TryDequeue(out string command))
+            while (ProcessIpc_DrainOneCommand(ref drainedCount, out string command))
             {
-                if (Interlocked.Decrement(ref ipcQueuedCommandCount) < 0)
-                    Interlocked.Exchange(ref ipcQueuedCommandCount, 0);
-                drainedCount++;
                 try
                 {
-                    if (string.IsNullOrWhiteSpace(command) || command.Length > IpcMaxCommandLength)
-                    {
-                        Print($"V12 IPC REJECT: malformed/oversize command '{command}'");
+                    if (!ProcessIpc_ParseAction(command, out string[] parts, out string action, out long senderTicks))
                         continue;
-                    }
 
-                    string[] parts = command.Split('|');
-                    if (parts.Length == 0 || string.IsNullOrWhiteSpace(parts[0]))
-                    {
-                        Print($"V12 IPC REJECT: empty action in '{command}'");
-                        continue;
-                    }
-                    string action = parts[0].Trim().ToUpperInvariant();
-                    long senderTicks = 0;
-                    for (int i = 1; i < parts.Length; i++)
-                    {
-                        if (parts[i].StartsWith("ts=", StringComparison.OrdinalIgnoreCase))
-                        {
-                            long.TryParse(parts[i].Substring(3), out senderTicks);
-                            break;
-                        }
-                    }
                     if (!MetadataGuardCommandTimestamp(senderTicks, action))
                         continue;
 
-                    if (!IsAllowedIpcAction(action))
-                    {
-                        Interlocked.Increment(ref _ipcAllowlistRejectCount);
-                        Print($"V12 IPC REJECT: action '{action}' is not allowed");
+                    if (!ProcessIpc_ValidateAllowlist(action))
                         continue;
-                    }
-                    string targetSymbol = parts.Length > 1 ? parts[1] : "Global";
 
-                    // V12.9: Global commands bypass symbol filter entirely -- these are account/fleet-level, not instrument-level
-                    // [1102Z-F] MOVE_TARGET and LOCK_50 use parts[1] for parameters (not symbol), so they must bypass
-                    // the symbol filter. Each handler internally filters by activePositions so only charts with live
-                    // positions act. This is the correct fix for the "For Me? False [target=T1]" rejection.
-                    bool isGlobalCommand = action == "TOGGLE_ACCOUNT" || action == "SET_SIMA" ||
-                                           action == "GET_FLEET" || action == "DIAG_FLEET" || action == "CANCEL_ALL" ||
-                                           action == "FLATTEN" || action == "SYNC_ALL" || action == "MKT_SYNC" ||
-                                           action == "REQUEST_FLEET_STATE" || action == "RESET_MEMORY" ||
-                                           action == "DIAG_IPC" ||
-                                           action.StartsWith("MOVE_TARGET") || action == "LOCK_50" || // [1102Z-F]
-                                           action == "SET_TARGETS" || action == "SET_TRAIL" ||        // [Build 945] numeric parts[1] bypasses symbol filter
-                                           action == "SET_CIT"     || action == "BE_CUSTOM";          // [Build 945] numeric parts[1] bypasses symbol filter
-
-                    // V10.3: Robust Symbol Matching (Matches MGC to GC/MGC, MES to ES/MES, etc.)
-                    string mySym = Instrument.MasterInstrument.Name.ToUpperInvariant();
-                    string myFull = Instrument.FullName.ToUpperInvariant();
-                    string target = targetSymbol.Trim().ToUpperInvariant();
-
-                    bool isForMe = isGlobalCommand ||  // V12.9: SIMA/Fleet commands always pass through
-                                   target == "GLOBAL" ||
-                                   target == "ALL" ||  // V12.13: Universal broadcast target (FLATTEN|ALL, REQUEST_FLEET_STATE|ALL)
-                                   target == "ON" || target == "OFF" ||  // V12.4: Mode toggle commands (SET_RMA_MODE|ON)
-                                   target == "RMA" || target == "ORB" || target == "OR" || target == "MOMO" || // V12.6: Mode-switch keywords are global
-                                   mySym == target ||
-                                   mySym.StartsWith(target) || // "MES" matches "MES 03-26"
-                                   target.StartsWith(mySym) || // "GC" matches "GC/MGC"
-                                   myFull.Contains(target) ||
-                                   (target == "MES" && mySym.Contains("ES")) || // Robustness for MES/ES
-                                   (target == "MYM" && mySym.Contains("YM")) || // Robustness for MYM/YM
-                                   (target == "MGC" && mySym.Contains("GC"));   // Robustness for MGC/GC
-
-                    // V12.2: Global IPC Diagnostic Log
-                    Print(string.Format("V12 IPC: Received '{0}' for '{1}'. For Me? {2} (My Symbol: {3}){4}",
-                        action, target, isForMe, mySym, isGlobalCommand ? " [GLOBAL CMD]" : ""));
-
-                    if (!isForMe)
-                    {
-                        // Quiet ignore if it's clearly for another instrument
+                    if (!ProcessIpc_MatchSymbol(action, parts))
                         continue;
-                    }
 
-                    string queuedAction = action;
-                    string[] queuedParts = parts;
-                    long queuedSenderTicks = senderTicks;
-                    Enqueue(ctx => ctx.ProcessIpcCommandCore(queuedAction, queuedParts, queuedSenderTicks));
+                    ProcessIpc_EnqueueCore(action, parts, senderTicks);
                 }
                 catch (Exception ex)
                 {
@@ -330,6 +262,120 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 try { TriggerCustomEvent(o => ProcessIpcCommands(), null); } catch { }
             }
+        }
+
+        private bool ProcessIpc_DrainOneCommand(ref int drainedCount, out string command)
+        {
+            command = null;
+            if (drainedCount >= IpcMaxCommandsPerDrain)
+                return false;
+
+            if (!ipcCommandQueue.TryDequeue(out command))
+                return false;
+
+            if (Interlocked.Decrement(ref ipcQueuedCommandCount) < 0)
+                Interlocked.Exchange(ref ipcQueuedCommandCount, 0);
+            drainedCount++;
+            return true;
+        }
+
+        private bool ProcessIpc_ParseAction(string command, out string[] parts, out string action, out long senderTicks)
+        {
+            parts = null;
+            action = null;
+            senderTicks = 0;
+
+            if (string.IsNullOrWhiteSpace(command) || command.Length > IpcMaxCommandLength)
+            {
+                Print($"V12 IPC REJECT: malformed/oversize command '{command}'");
+                return false;
+            }
+
+            parts = command.Split('|');
+            if (parts.Length == 0 || string.IsNullOrWhiteSpace(parts[0]))
+            {
+                Print($"V12 IPC REJECT: empty action in '{command}'");
+                return false;
+            }
+            action = parts[0].Trim().ToUpperInvariant();
+            for (int i = 1; i < parts.Length; i++)
+            {
+                if (parts[i].StartsWith("ts=", StringComparison.OrdinalIgnoreCase))
+                {
+                    long.TryParse(parts[i].Substring(3), out senderTicks);
+                    break;
+                }
+            }
+
+            return true;
+        }
+
+        private bool ProcessIpc_ValidateAllowlist(string action)
+        {
+            if (!IsAllowedIpcAction(action))
+            {
+                Interlocked.Increment(ref _ipcAllowlistRejectCount);
+                Print($"V12 IPC REJECT: action '{action}' is not allowed");
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool ProcessIpc_MatchSymbol(string action, string[] parts)
+        {
+            string targetSymbol = parts.Length > 1 ? parts[1] : "Global";
+
+            // V12.9: Global commands bypass symbol filter entirely -- these are account/fleet-level, not instrument-level
+            // [1102Z-F] MOVE_TARGET and LOCK_50 use parts[1] for parameters (not symbol), so they must bypass
+            // the symbol filter. Each handler internally filters by activePositions so only charts with live
+            // positions act. This is the correct fix for the "For Me? False [target=T1]" rejection.
+            bool isGlobalCommand = action == "TOGGLE_ACCOUNT" || action == "SET_SIMA" ||
+                                   action == "GET_FLEET" || action == "DIAG_FLEET" || action == "CANCEL_ALL" ||
+                                   action == "FLATTEN" || action == "SYNC_ALL" || action == "MKT_SYNC" ||
+                                   action == "REQUEST_FLEET_STATE" || action == "RESET_MEMORY" ||
+                                   action == "DIAG_IPC" ||
+                                   action.StartsWith("MOVE_TARGET") || action == "LOCK_50" || // [1102Z-F]
+                                   action == "SET_TARGETS" || action == "SET_TRAIL" ||        // [Build 945] numeric parts[1] bypasses symbol filter
+                                   action == "SET_CIT"     || action == "BE_CUSTOM";          // [Build 945] numeric parts[1] bypasses symbol filter
+
+            // V10.3: Robust Symbol Matching (Matches MGC to GC/MGC, MES to ES/MES, etc.)
+            string mySym = Instrument.MasterInstrument.Name.ToUpperInvariant();
+            string myFull = Instrument.FullName.ToUpperInvariant();
+            string target = targetSymbol.Trim().ToUpperInvariant();
+
+            bool isForMe = isGlobalCommand ||  // V12.9: SIMA/Fleet commands always pass through
+                           target == "GLOBAL" ||
+                           target == "ALL" ||  // V12.13: Universal broadcast target (FLATTEN|ALL, REQUEST_FLEET_STATE|ALL)
+                           target == "ON" || target == "OFF" ||  // V12.4: Mode toggle commands (SET_RMA_MODE|ON)
+                           target == "RMA" || target == "ORB" || target == "OR" || target == "MOMO" || // V12.6: Mode-switch keywords are global
+                           mySym == target ||
+                           mySym.StartsWith(target) || // "MES" matches "MES 03-26"
+                           target.StartsWith(mySym) || // "GC" matches "GC/MGC"
+                           myFull.Contains(target) ||
+                           (target == "MES" && mySym.Contains("ES")) || // Robustness for MES/ES
+                           (target == "MYM" && mySym.Contains("YM")) || // Robustness for MYM/YM
+                           (target == "MGC" && mySym.Contains("GC"));   // Robustness for MGC/GC
+
+            // V12.2: Global IPC Diagnostic Log
+            Print(string.Format("V12 IPC: Received '{0}' for '{1}'. For Me? {2} (My Symbol: {3}){4}",
+                action, target, isForMe, mySym, isGlobalCommand ? " [GLOBAL CMD]" : ""));
+
+            if (!isForMe)
+            {
+                // Quiet ignore if it's clearly for another instrument
+                return false;
+            }
+
+            return true;
+        }
+
+        private void ProcessIpc_EnqueueCore(string action, string[] parts, long senderTicks)
+        {
+            string queuedAction = action;
+            string[] queuedParts = parts;
+            long queuedSenderTicks = senderTicks;
+            Enqueue(ctx => ctx.ProcessIpcCommandCore(queuedAction, queuedParts, queuedSenderTicks));
         }
 
         private void ProcessIpcCommandCore(string action, string[] parts, long senderTicks)

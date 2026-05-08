@@ -128,6 +128,13 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <summary>Build 945: Config sub-handler -- target values and types (T1-T5, COUNT, CIT).</summary>
         private bool TryApplyConfigTargets(string key, string val)
         {
+            if (TryApplyConfigTarget_Value(key, val)) return true;
+            if (TryApplyConfigTarget_Type(key, val)) return true;
+            return TryApplyConfigTarget_Count(key, val);
+        }
+
+        private bool TryApplyConfigTarget_Value(string key, string val)
+        {
             if (key == "T1") { if (double.TryParse(val, out double v)) Target1Value = v; return true; }
             if (key == "CIT") { ChaseIfTouchPoints = val; return true; }
             if (key == "T2") {
@@ -166,20 +173,30 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 return true;
             }
+            return false;
+        }
+
+        private bool TryApplyConfigTarget_Type(string key, string val)
+        {
             if (key == "T1TYPE") { if (TryParseTargetMode(val, out var parsed)) T1Type = parsed; return true; }
             if (key == "T2TYPE") { if (TryParseTargetMode(val, out var parsed)) T2Type = parsed; return true; }
             if (key == "T3TYPE") { if (TryParseTargetMode(val, out var parsed)) T3Type = parsed; return true; }
             if (key == "T4TYPE") { if (TryParseTargetMode(val, out var parsed)) T4Type = parsed; return true; }
             if (key == "T5TYPE") { if (TryParseTargetMode(val, out var parsed)) T5Type = parsed; return true; }
-            if (key == "COUNT") {
-                if (int.TryParse(val, out int v)) {
-                    // FIX-B [Build 1102Z]: Clamp + lock to prevent IPC race with SIMA dispatch loop.
-                    int clamped = Math.Max(1, Math.Min(5, v));
-                    activeTargetCount = clamped;
-                }
-                return true;
-            }
             return false;
+        }
+
+        private bool TryApplyConfigTarget_Count(string key, string val)
+        {
+            if (key != "COUNT")
+                return false;
+
+            if (int.TryParse(val, out int v)) {
+                // FIX-B [Build 1102Z]: Clamp + lock to prevent IPC race with SIMA dispatch loop.
+                int clamped = Math.Max(1, Math.Min(5, v));
+                activeTargetCount = clamped;
+            }
+            return true;
         }
 
         /// <summary>Build 945: Config sub-handler -- risk parameters (STR, MAX).</summary>

@@ -1,44 +1,117 @@
-# MISSION: B985 Phase 5 Distributed Pipeline Forensic Repair
-**REPO:** universal-or-strategy
-**BUILD TAG:** B985-CI-REPAIR
-**BRANCH:** Current
+# Implementation Plan: Phase 5 Session 5 - Signals/Trend Refactor
 
-## 1. STRATEGIC ANALYSIS & PROOF OF FAILURE
-**Qwen & GLM (OpenCode) Failure:**
-The `anomalyco/opencode` action expects a rigid custom provider configuration structure in `opencode.json`. Furthermore, local testing confirms that the provided "free tier" API keys for DashScope (Qwen) and Zhipu (GLM) are returning HTTP 401 (Invalid Key) and HTTP 429 (Insufficient Balance) errors. Per Director's orders, since these models fail to operate on the free tier, their respective workflows will be purged to clean the CI pipeline.
+**MISSION**: Phase 5 - Signals/Trend Refactor
+**BUILD_TAG**: 1111.006-v28.0-b984-complete
+**REPO**: universal-or-strategy
+**BRANCH**: main
 
-**Jules AI (Sovereign Auditor) Failure:**
-The script in `.github/workflows/jules-pr-review.yml` has a hardcoded timeout of ~20 minutes (`maxAttempts = 40` at `30000`ms intervals). Jules forensic audits, particularly those traversing entire branches via `githubRepoContext`, can exceed this window and are being prematurely terminated. Since the Jules account is Pro-tier and active, repairing this is the primary focus.
+## 1. STRATEGIC ANALYSIS & OBJECTIVE
 
-## 2. STRUCTURAL REPAIR PLAN
+The `src/V12_002.Entries.Trend.cs` file contains three god-functions in the
+Signals/Trend subgraph. This session executes verbatim private extractions
+to reduce cyclomatic complexity while preserving all rollback transactionality,
+SIMA dispatch, and E1/E2 partnership logic exactly.
 
-### Phase 1: Purge Broken "Free" Workflows
-We will delete the workflows and configurations for the AI models that are failing authentication/billing checks.
-1. **Remove `opencode.json`**: Delete the file from the repository root.
-2. **Remove `.github/workflows/qwen-review.yml`**: Delete the Qwen workflow.
-3. **Remove `.github/workflows/glm-review.yml`**: Delete the GLM workflow.
+**Primary Objective**:
+- T1: Extract `ExecuteTRENDEntry` (lines 58-289) into 6 private sub-handlers.
+- T2: Extract `ExecuteTRENDManualEntry` (lines 361-445) into 4 private sub-handlers.
+- T3: Extract `CreateTRENDPosition` (lines 291-344) into 2 private sub-handlers.
 
-### Phase 2: Jules AI Timeout Mitigation
-1. **Modify `.github/workflows/jules-pr-review.yml`**:
-   - Change the polling interval from `30000`ms to `60000`ms (60 seconds).
-   - Increase `maxAttempts` from `40` to `60` (providing a 60-minute timeout window at 60 seconds per poll).
-   - This prevents the premature termination of deep architectural audits while reducing API spam.
+## 2. EXTRACTION PROTOCOL (V12 DNA)
 
-## 3. BMad V12 DNA & ASCII COMPLIANCE
-- All edits to the YAML files will strictly adhere to the ASCII-only string requirement. 
-- There will be no `lock()` statements or non-ASCII characters introduced in any of the workflow scripts.
+- **Verbatim-Body**: Copy-paste exact logic bodies. Zero mutations.
+- **Visibility**: All new sub-handlers MUST be `private`.
+- **ASCII Compliance**: Zero non-ASCII characters in string literals.
+- **Lock-Free**: `lock()` is BANNED. Actor/Enqueue only.
+- **Atomic Sync**: Run `deploy-sync.ps1` after ALL tickets are done.
+- **No public surface**: Zero new public methods anywhere.
 
-## 4. DIRECTOR'S HANDOFF BLOCK (For P5 ENGINEER)
+## 3. TICKET BACKLOG
+
+---
+
+### T1: Extract ExecuteTRENDEntry
+
+**File**: `src/V12_002.Entries.Trend.cs`
+**Line range**: 58-289
+**Handlers**:
+- `ExecuteTREND_Preflight` -- IsOrderAllowed, isFlattenRunning, contracts<=0, BarsInProgress, !TRENDEnabled, EMA null checks
+- `ExecuteTREND_ResolveDirection` -- currentPrice, ema9Value/ema15Value, direction determination
+- `ExecuteTREND_CalculateLegs` -- ATR mults, stop distances, qty split (floor/remainder), timestamp/names, CreateTRENDPosition calls, ApplyTargetLadderGuard
+- `ExecuteTREND_SubmitLeg1` -- AddExpectedPositionDelta E1, SubmitOrderUnmanaged E1, null-rollback, Enqueue activePositions+entryOrders
+- `ExecuteTREND_SubmitLeg2` -- linkedTRENDEntries link, AddExpectedPositionDelta E2, SubmitOrderUnmanaged E2, null-rollback (TryRemove both + CancelOrderSafe(entryOrder1)), Enqueue activePositions+entryOrders
+- `ExecuteTREND_DispatchSima` -- if(EnableSIMA) ExecuteSmartDispatchEntry("TREND",...,entry1Name,entry2Name), DeactivateTRENDMode()
+
+**CRITICAL CONSTRAINTS**:
+1. Preflight block lives ABOVE the try{...}catch in the original. ExecuteTREND_Preflight
+   MUST be called from the parent BEFORE the try block begins.
+2. The try-catch wrapper STAYS in the parent method.
+3. ExecuteSmartDispatchEntry receives TWO entry-name args (entry1Name AND entry2Name).
+   Both MUST be passed through to ExecuteTREND_DispatchSima.
+4. E2-null rollback MUST call TryRemove on both entry1Name and entry2Name in
+   linkedTRENDEntries, then CancelOrderSafe(entryOrder1).
+
+**Acceptance criteria**:
+- Compiles clean with zero build errors.
+- ASCII-only gate passes.
+- Zero new lock() calls introduced.
+- Parent CC drops below 50.
+- No new public API surface.
+
+---
+
+### T2: Extract ExecuteTRENDManualEntry
+
+**File**: `src/V12_002.Entries.Trend.cs`
+**Line range**: 361-445
+**Handlers**:
+- `ExecuteTRENDManual_Preflight` -- IsOrderAllowed, isFlattenRunning, contracts<=0, currentATR<=0
+- `ExecuteTRENDManual_BuildPosition` -- entryPrice round, stopDistance/stopPrice, GetTargetDistribution, signalName/entryName, CreateTRENDPosition, ApplyTargetLadderGuard
+- `ExecuteTRENDManual_SubmitEntry` -- AddExpectedPositionDelta, SubmitOrderUnmanaged, null-rollback, Enqueue activePositions+entryOrders
+- `ExecuteTRENDManual_DispatchSima` -- if(EnableSIMA) ExecuteSmartDispatchEntry("TREND_MNL",...)
+
+**Acceptance criteria**:
+- Compiles clean. ASCII gate passes. Zero lock() calls.
+- Parent CC drops below 50. No new public methods.
+
+---
+
+### T3: Extract CreateTRENDPosition
+
+**File**: `src/V12_002.Entries.Trend.cs`
+**Line range**: 291-344
+**Handlers**:
+- `CreateTRENDPosition_CalculateTargets` -- CalculateTargetPrice x5, GetTargetDistribution, Print
+- `CreateTRENDPosition_BuildInfo` -- new PositionInfo { all fields }, return tPos
+
+**Acceptance criteria**:
+- Compiles clean. ASCII gate passes. Zero lock() calls.
+- Parent CC drops below 50. No new public methods.
+
+---
+
+## 4. VERIFICATION SEQUENCE (FINAL STEP - after ALL tickets)
 
 ```text
-@ENGINEER (Codex/Jules) - P5 Surgical Execution
+1. Self-audit:
+   - grep src/ for lock(  -- must be zero hits
+   - check_ascii.py or ASCII scan -- must pass
+2. powershell -File .\deploy-sync.ps1  -- must EXIT 0
+3. dotnet build .\Linting.csproj       -- must succeed with zero new errors
+4. dotnet test .\Testing.csproj        -- must pass all tests
+5. Report all results before session ends.
+```
 
-Please execute the following structural repairs:
+## 5. DIRECTOR'S HANDOFF BLOCK (For P5 ENGINEER - Codex)
 
-1. Delete the following files from the repository to purge the broken CI pipelines:
-   - `opencode.json`
-   - `.github/workflows/qwen-review.yml`
-   - `.github/workflows/glm-review.yml`
-2. In `.github/workflows/jules-pr-review.yml`, update the `maxAttempts` variable in the polling loop to `60` and change the `setTimeout` interval from `30000` to `60000` (60 seconds) to allow for a 60-minute timeout window with less aggressive polling.
-3. Once edits are complete, run `powershell -File .\deploy-sync.ps1` and verify the ASCII gate passes.
+```text
+@ENGINEER (Codex) - P5 Surgical Execution
+
+Execute tickets T1, T2, T3 IN ORDER from src/V12_002.Entries.Trend.cs.
+Complete and verify each ticket before starting the next.
+After each ticket confirm: compiles? ASCII clean? Zero new lock() calls?
+CC reduced? No new public methods?
+
+See Section 3 for precise line ranges, handler names, and constraints.
+After all three tickets: run full verification sequence from Section 4.
 ```

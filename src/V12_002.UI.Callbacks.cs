@@ -208,91 +208,23 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         private void OnChartClick(object sender, MouseButtonEventArgs e)
         {
-            // Check if Shift is held OR RMA/MOMO button mode is active
-            bool shiftHeld = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
-            bool rmaActive = (RMAEnabled && (shiftHeld || isRMAModeActive));
-            bool momoActive = (MOMOEnabled && isMOMOModeActive);
-
-            if (!rmaActive && !momoActive) return;
+            if (!HandleChartClick_ValidateMode(out bool rmaActive, out bool momoActive)) return;
 
             try
             {
                 if (ChartControl == null || ChartPanel == null) return;
 
                 double currentPrice = lastKnownPrice > 0 ? lastKnownPrice : Close[0];
-
-                // ###################################################################
-                // V12.4: ChartPanel-based price conversion (PROVEN WORKING)
-                // ChartPanel.H includes time axis - effective price area is ~67% of height
-                // ###################################################################
-                Point mouseInPanel = e.GetPosition(ChartPanel as System.Windows.IInputElement);
-
-                // Build 1102Z: UI Safety Fence -- Ignore clicks outside the actual price plotting area
-                // This prevents trades from triggering when clicking on the side panel, price axis, or scrollbars.
-                if (mouseInPanel.X < 0 || mouseInPanel.X > ChartPanel.W || mouseInPanel.Y < 0 || mouseInPanel.Y > ChartPanel.H)
-                {
+                if (!HandleChartClick_ConvertPrice(e, momoActive, currentPrice, out double clickPrice))
                     return;
-                }
-
-                double panelHeight = ChartPanel.H;
-                double maxPrice = ChartPanel.MaxValue;
-                double minPrice = ChartPanel.MinValue;
-                double priceRange = maxPrice - minPrice;
-
-                // CRITICAL: ChartPanel.H includes time axis at bottom
-                // The actual price plotting area is approximately 67% of total panel height
-                double effectivePriceHeight = panelHeight * 0.667;
-
-                // Clamp Y to valid range
-                double yInPanel = mouseInPanel.Y;
-                if (yInPanel < 0) yInPanel = 0;
-                if (yInPanel > effectivePriceHeight) yInPanel = effectivePriceHeight;
-
-                // Convert: Y=0 is top (maxPrice), Y=effectivePriceHeight is bottom (minPrice)
-                double yRatio = yInPanel / effectivePriceHeight;
-                double clickPrice = maxPrice - (yRatio * priceRange);
-
-                string modeLabel = momoActive ? "MOMO" : "RMA";
-                Print(string.Format("{0} v12.4 CLICK: x={1:F1}, y={2:F1}, w={3:F1}, h={4:F1}, ratio={5:F3}, price={6:F2} (Market={7:F2})",
-                    modeLabel, mouseInPanel.X, mouseInPanel.Y, ChartPanel.W, panelHeight, yRatio, clickPrice, currentPrice));
-
-                // Round to tick size
-                clickPrice = Instrument.MasterInstrument.RoundToTickSize(clickPrice);
-
-                // Validate price is within chart range
-                if (clickPrice < minPrice - priceRange || clickPrice > maxPrice + priceRange)
-                {
-                    Print(string.Format("{0}: Click price {1:F2} outside valid range [{2:F2} - {3:F2}]",
-                        modeLabel, clickPrice, minPrice, maxPrice));
-                    return;
-                }
 
                 if (momoActive)
                 {
-                    // MOMO uses a fixed-points stop: Math.Min(MOMOStopPoints, MaximumStop)
-                    double momoStopDist = Math.Min(MOMOStopPoints, MaximumStop);
-                    int momoContracts   = CalculatePositionSize(momoStopDist);
-                    double capturedMomoPrice = clickPrice; int capturedMomoContracts = momoContracts;
-                    Enqueue(ctx => ctx.ExecuteMOMOEntry(capturedMomoPrice, capturedMomoContracts));
+                    HandleChartClick_ExecuteMomo(clickPrice);
                 }
                 else
                 {
-                    MarketPosition direction = (clickPrice > currentPrice) ? MarketPosition.Short : MarketPosition.Long;
-                    double rmaStopDist = CalculateATRStopDistance(RMAStopATRMultiplier);
-                    int rmaContracts   = CalculatePositionSize(rmaStopDist);
-                    double capturedRmaPrice = clickPrice; MarketPosition capturedDir = direction; int capturedRmaContracts = rmaContracts;
-                    Enqueue(ctx => ctx.ExecuteRMAEntryV2(capturedRmaPrice, capturedDir, capturedRmaContracts));
-
-                    if (isRMAButtonClicked)
-                    {
-                        isRMAButtonClicked = false;
-                        isRMAModeActive = false;
-                        ClearClickTraderBorderIfInactive();
-
-                        // V12.43: Lightweight deactivation -- only signal mode change, don't clobber config
-                        SendResponseToRemote("SET_RMA_MODE|OFF");
-                        Print("V12.43: RMA auto-deactivated after entry (lightweight signal, no CONFIG clobber)");
-                    }
+                    HandleChartClick_ExecuteRma(clickPrice, currentPrice);
                 }
 
                 e.Handled = true;
@@ -301,6 +233,105 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 Print("ERROR OnChartClick: " + ex.Message);
             }
+        }
+
+        private bool HandleChartClick_ValidateMode(out bool rmaActive, out bool momoActive)
+        {
+            // Check if Shift is held OR RMA/MOMO button mode is active
+            bool shiftHeld = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
+            rmaActive = (RMAEnabled && (shiftHeld || isRMAModeActive));
+            momoActive = (MOMOEnabled && isMOMOModeActive);
+
+            return rmaActive || momoActive;
+        }
+
+        private bool HandleChartClick_ConvertPrice(
+            MouseButtonEventArgs e,
+            bool momoActive,
+            double currentPrice,
+            out double clickPrice)
+        {
+            clickPrice = 0;
+
+            // ###################################################################
+            // V12.4: ChartPanel-based price conversion (PROVEN WORKING)
+            // ChartPanel.H includes time axis - effective price area is ~67% of height
+            // ###################################################################
+            Point mouseInPanel = e.GetPosition(ChartPanel as System.Windows.IInputElement);
+
+            // Build 1102Z: UI Safety Fence -- Ignore clicks outside the actual price plotting area
+            // This prevents trades from triggering when clicking on the side panel, price axis, or scrollbars.
+            if (mouseInPanel.X < 0 || mouseInPanel.X > ChartPanel.W || mouseInPanel.Y < 0 || mouseInPanel.Y > ChartPanel.H)
+            {
+                return false;
+            }
+
+            double panelHeight = ChartPanel.H;
+            double maxPrice = ChartPanel.MaxValue;
+            double minPrice = ChartPanel.MinValue;
+            double priceRange = maxPrice - minPrice;
+
+            // CRITICAL: ChartPanel.H includes time axis at bottom
+            // The actual price plotting area is approximately 67% of total panel height
+            double effectivePriceHeight = panelHeight * 0.667;
+
+            // Clamp Y to valid range
+            double yInPanel = mouseInPanel.Y;
+            if (yInPanel < 0) yInPanel = 0;
+            if (yInPanel > effectivePriceHeight) yInPanel = effectivePriceHeight;
+
+            // Convert: Y=0 is top (maxPrice), Y=effectivePriceHeight is bottom (minPrice)
+            double yRatio = yInPanel / effectivePriceHeight;
+            clickPrice = maxPrice - (yRatio * priceRange);
+
+            string modeLabel = momoActive ? "MOMO" : "RMA";
+            Print(string.Format("{0} v12.4 CLICK: x={1:F1}, y={2:F1}, w={3:F1}, h={4:F1}, ratio={5:F3}, price={6:F2} (Market={7:F2})",
+                modeLabel, mouseInPanel.X, mouseInPanel.Y, ChartPanel.W, panelHeight, yRatio, clickPrice, currentPrice));
+
+            // Round to tick size
+            clickPrice = Instrument.MasterInstrument.RoundToTickSize(clickPrice);
+
+            // Validate price is within chart range
+            if (clickPrice < minPrice - priceRange || clickPrice > maxPrice + priceRange)
+            {
+                Print(string.Format("{0}: Click price {1:F2} outside valid range [{2:F2} - {3:F2}]",
+                    modeLabel, clickPrice, minPrice, maxPrice));
+                return false;
+            }
+
+            return true;
+        }
+
+        private void HandleChartClick_ExecuteMomo(double clickPrice)
+        {
+            // MOMO uses a fixed-points stop: Math.Min(MOMOStopPoints, MaximumStop)
+            double momoStopDist = Math.Min(MOMOStopPoints, MaximumStop);
+            int momoContracts   = CalculatePositionSize(momoStopDist);
+            double capturedMomoPrice = clickPrice; int capturedMomoContracts = momoContracts;
+            Enqueue(ctx => ctx.ExecuteMOMOEntry(capturedMomoPrice, capturedMomoContracts));
+        }
+
+        private void HandleChartClick_ExecuteRma(double clickPrice, double currentPrice)
+        {
+            MarketPosition direction = (clickPrice > currentPrice) ? MarketPosition.Short : MarketPosition.Long;
+            double rmaStopDist = CalculateATRStopDistance(RMAStopATRMultiplier);
+            int rmaContracts   = CalculatePositionSize(rmaStopDist);
+            double capturedRmaPrice = clickPrice; MarketPosition capturedDir = direction; int capturedRmaContracts = rmaContracts;
+            Enqueue(ctx => ctx.ExecuteRMAEntryV2(capturedRmaPrice, capturedDir, capturedRmaContracts));
+
+            if (isRMAButtonClicked)
+                HandleChartClick_DeactivateRma();
+        }
+
+        private void HandleChartClick_DeactivateRma()
+        {
+            isRMAButtonClicked = false;
+            isRMAModeActive = false;
+            ClearClickTraderBorderIfInactive();
+
+            // V12.43: Lightweight deactivation -- only signal mode change, don't clobber config
+            SendResponseToRemote("SET_RMA_MODE|OFF");
+            Print("V12.43: RMA auto-deactivated after entry (lightweight signal, no CONFIG clobber)");
         }
 
         private void OnKeyDown(object sender, KeyEventArgs e)
@@ -377,17 +408,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                         continue;
                     }
 
-                    if (!TryResolveTargetContext(pos, targetType, out int targetNumber, out var targetOrders, out int targetContracts, out bool targetFilled))
-                    {
-                        Print(string.Format("{0} ACTION: Invalid target identifier", targetType));
+                    if (!ExecuteTarget_ValidateContext(pos, entryName, targetType, out int targetNumber, out var targetOrders, out int targetContracts))
                         continue;
-                    }
-
-                    if (targetContracts <= 0)
-                    {
-                        Print(string.Format("{0} ACTION: No contracts assigned for {1}", targetType, entryName));
-                        continue;
-                    }
 
                     if (IsRunnerTarget(targetNumber) && action != "market" && action != "cancel")
                     {
@@ -396,88 +418,32 @@ namespace NinjaTrader.NinjaScript.Strategies
                         continue;
                     }
 
-                    if (targetFilled)
-                    {
-                        Print(string.Format("{0} ACTION: {1} already filled for {2}", targetType, targetType, entryName));
-                        continue;
-                    }
-
                     double currentPrice = lastKnownPrice > 0 ? lastKnownPrice : Close[0];
 
                     switch (action)
                     {
                         case "market":
-                            // Fill target at market NOW
-                            // V8.30: Thread-safe removal
-                            if (targetOrders.TryGetValue(entryName, out var existingOrder))
-                            {
-                                if (existingOrder != null && !IsOrderTerminal(existingOrder.OrderState))
-                                    CancelOrderSafe(existingOrder, pos);
-                                else
-                                    targetOrders.TryRemove(entryName, out _);
-                            }
-
-                            Order marketOrder = SubmitExitOrderForPosition(
-                                pos, targetContracts, OrderType.Market, 0, targetType + "_Market_" + entryName);
-
-                            if (marketOrder != null)
-                                Print(string.Format("? {0} MARKET FILL: {1} - Closing {2} contracts at market", targetType, entryName, targetContracts));
-                            else
-                                Print(string.Format("ERROR {0} MARKET FILL FAILED: {1} - Could not close {2} contracts", targetType, entryName, targetContracts));
+                            ExecuteTarget_Market(entryName, pos, targetType, targetOrders, targetContracts);
                             break;
 
                         case "1point":
-                            // V8.18: Absolute profit target (Entry + 1 point)
-                            double newPrice1pt = pos.Direction == MarketPosition.Long
-                                ? pos.EntryPrice + 1.0
-                                : pos.EntryPrice - 1.0;
-                            newPrice1pt = Instrument.MasterInstrument.RoundToTickSize(newPrice1pt);
-
-                            Print(string.Format("? {0} -> 1 POINT PROFIT: {1} - New target @ {2:F2} (Entry was {3:F2})",
-                                targetType, entryName, newPrice1pt, pos.EntryPrice));
-
-                            MoveTargetOrder(entryName, pos, targetType, newPrice1pt, targetContracts);
+                            ExecuteTarget_OnePoint(entryName, pos, targetType, targetContracts);
                             break;
 
                         case "2point":
-                            // V8.18: Absolute profit target (Entry + 2 points)
-                            double newPrice2pt = pos.Direction == MarketPosition.Long
-                                ? pos.EntryPrice + 2.0
-                                : pos.EntryPrice - 2.0;
-                            newPrice2pt = Instrument.MasterInstrument.RoundToTickSize(newPrice2pt);
-
-                            Print(string.Format("? {0} -> 2 POINTS PROFIT: {1} - New target @ {2:F2} (Entry was {3:F2})",
-                                targetType, entryName, newPrice2pt, pos.EntryPrice));
-
-                            MoveTargetOrder(entryName, pos, targetType, newPrice2pt, targetContracts);
+                            ExecuteTarget_TwoPoint(entryName, pos, targetType, targetContracts);
                             break;
 
                         case "marketprice":
-                            // Move target to current market price (instant fill)
-                            double marketPrice = Instrument.MasterInstrument.RoundToTickSize(currentPrice);
-                            MoveTargetOrder(entryName, pos, targetType, marketPrice, targetContracts);
-                            Print(string.Format("? {0} -> MARKET PRICE: {1} - New target @ {2:F2}", targetType, entryName, marketPrice));
+                            ExecuteTarget_MarketPrice(entryName, pos, targetType, targetContracts, currentPrice);
                             break;
 
                         case "breakeven":
-                            // Move target to breakeven (entry price)
-                            MoveTargetOrder(entryName, pos, targetType, pos.EntryPrice, targetContracts);
-                            Print(string.Format("? {0} -> BREAKEVEN: {1} - New target @ {2:F2}", targetType, entryName, pos.EntryPrice));
+                            ExecuteTarget_Breakeven(entryName, pos, targetType, targetContracts);
                             break;
 
                         case "cancel":
-                            // Cancel target order - let contracts run
-                            // V8.30: Thread-safe removal
-                            if (targetOrders.TryGetValue(entryName, out var cancelOrder))
-                            {
-                                if (cancelOrder != null && !IsOrderTerminal(cancelOrder.OrderState))
-                                {
-                                    CancelOrderSafe(cancelOrder, pos);
-                                    Print(string.Format("? {0} CANCELLED: {1} - {2} contracts will run with stop", targetType, entryName, targetContracts));
-                                }
-                                else
-                                    targetOrders.TryRemove(entryName, out _);
-                            }
+                            ExecuteTarget_Cancel(entryName, pos, targetType, targetOrders, targetContracts);
                             break;
                     }
                 }
@@ -488,58 +454,235 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        private bool ExecuteTarget_ValidateContext(
+            PositionInfo pos,
+            string entryName,
+            string targetType,
+            out int targetNumber,
+            out ConcurrentDictionary<string, Order> targetOrders,
+            out int targetContracts)
+        {
+            targetNumber = 0;
+            targetOrders = null;
+            targetContracts = 0;
+
+            if (!TryResolveTargetContext(pos, targetType, out targetNumber, out targetOrders, out targetContracts, out bool targetFilled))
+            {
+                Print(string.Format("{0} ACTION: Invalid target identifier", targetType));
+                return false;
+            }
+
+            if (targetContracts <= 0)
+            {
+                Print(string.Format("{0} ACTION: No contracts assigned for {1}", targetType, entryName));
+                return false;
+            }
+
+            if (targetFilled)
+            {
+                Print(string.Format("{0} ACTION: {1} already filled for {2}", targetType, targetType, entryName));
+                return false;
+            }
+
+            return true;
+        }
+
+        private void ExecuteTarget_Market(
+            string entryName,
+            PositionInfo pos,
+            string targetType,
+            ConcurrentDictionary<string, Order> targetOrders,
+            int targetContracts)
+        {
+            // Fill target at market NOW
+            // V8.30: Thread-safe removal
+            if (targetOrders.TryGetValue(entryName, out var existingOrder))
+            {
+                if (existingOrder != null && !IsOrderTerminal(existingOrder.OrderState))
+                    CancelOrderSafe(existingOrder, pos);
+                else
+                    targetOrders.TryRemove(entryName, out _);
+            }
+
+            Order marketOrder = SubmitExitOrderForPosition(
+                pos, targetContracts, OrderType.Market, 0, targetType + "_Market_" + entryName);
+
+            if (marketOrder != null)
+                Print(string.Format("? {0} MARKET FILL: {1} - Closing {2} contracts at market", targetType, entryName, targetContracts));
+            else
+                Print(string.Format("ERROR {0} MARKET FILL FAILED: {1} - Could not close {2} contracts", targetType, entryName, targetContracts));
+        }
+
+        private void ExecuteTarget_OnePoint(string entryName, PositionInfo pos, string targetType, int targetContracts)
+        {
+            // V8.18: Absolute profit target (Entry + 1 point)
+            double newPrice1pt = pos.Direction == MarketPosition.Long
+                ? pos.EntryPrice + 1.0
+                : pos.EntryPrice - 1.0;
+            newPrice1pt = Instrument.MasterInstrument.RoundToTickSize(newPrice1pt);
+
+            Print(string.Format("? {0} -> 1 POINT PROFIT: {1} - New target @ {2:F2} (Entry was {3:F2})",
+                targetType, entryName, newPrice1pt, pos.EntryPrice));
+
+            MoveTargetOrder(entryName, pos, targetType, newPrice1pt, targetContracts);
+        }
+
+        private void ExecuteTarget_TwoPoint(string entryName, PositionInfo pos, string targetType, int targetContracts)
+        {
+            // V8.18: Absolute profit target (Entry + 2 points)
+            double newPrice2pt = pos.Direction == MarketPosition.Long
+                ? pos.EntryPrice + 2.0
+                : pos.EntryPrice - 2.0;
+            newPrice2pt = Instrument.MasterInstrument.RoundToTickSize(newPrice2pt);
+
+            Print(string.Format("? {0} -> 2 POINTS PROFIT: {1} - New target @ {2:F2} (Entry was {3:F2})",
+                targetType, entryName, newPrice2pt, pos.EntryPrice));
+
+            MoveTargetOrder(entryName, pos, targetType, newPrice2pt, targetContracts);
+        }
+
+        private void ExecuteTarget_MarketPrice(
+            string entryName,
+            PositionInfo pos,
+            string targetType,
+            int targetContracts,
+            double currentPrice)
+        {
+            // Move target to current market price (instant fill)
+            double marketPrice = Instrument.MasterInstrument.RoundToTickSize(currentPrice);
+            MoveTargetOrder(entryName, pos, targetType, marketPrice, targetContracts);
+            Print(string.Format("? {0} -> MARKET PRICE: {1} - New target @ {2:F2}", targetType, entryName, marketPrice));
+        }
+
+        private void ExecuteTarget_Breakeven(string entryName, PositionInfo pos, string targetType, int targetContracts)
+        {
+            // Move target to breakeven (entry price)
+            MoveTargetOrder(entryName, pos, targetType, pos.EntryPrice, targetContracts);
+            Print(string.Format("? {0} -> BREAKEVEN: {1} - New target @ {2:F2}", targetType, entryName, pos.EntryPrice));
+        }
+
+        private void ExecuteTarget_Cancel(
+            string entryName,
+            PositionInfo pos,
+            string targetType,
+            ConcurrentDictionary<string, Order> targetOrders,
+            int targetContracts)
+        {
+            // Cancel target order - let contracts run
+            // V8.30: Thread-safe removal
+            if (targetOrders.TryGetValue(entryName, out var cancelOrder))
+            {
+                if (cancelOrder != null && !IsOrderTerminal(cancelOrder.OrderState))
+                {
+                    CancelOrderSafe(cancelOrder, pos);
+                    Print(string.Format("? {0} CANCELLED: {1} - {2} contracts will run with stop", targetType, entryName, targetContracts));
+                }
+                else
+                    targetOrders.TryRemove(entryName, out _);
+            }
+        }
+
         private void MoveTargetOrder(string entryName, PositionInfo pos, string targetType, double newPrice, int quantity)
         {
-            if (!TryParseTargetNumber(targetType, out int targetNumber))
+            if (!MoveTargetOrder_Validate(targetType, quantity, out int targetNumber, out ConcurrentDictionary<string, Order> targetOrders))
                 return;
+
+            Order existingTarget;
+            if (targetOrders.TryGetValue(entryName, out existingTarget) && existingTarget != null)
+            {
+                if (MoveTargetOrder_PrepareFollowerReplace(entryName, pos, targetNumber, newPrice, quantity, existingTarget))
+                    return;
+
+                MoveTargetOrder_CancelExisting(entryName, pos, targetOrders, existingTarget);
+            }
+
+            MoveTargetOrder_SubmitReplacement(entryName, pos, targetType, newPrice, quantity, targetOrders);
+        }
+
+        private bool MoveTargetOrder_Validate(
+            string targetType,
+            int quantity,
+            out int targetNumber,
+            out ConcurrentDictionary<string, Order> targetOrders)
+        {
+            targetNumber = 0;
+            targetOrders = null;
+
+            if (!TryParseTargetNumber(targetType, out targetNumber))
+                return false;
 
             // Runner targets are trail-only: do not submit limit orders.
             if (IsRunnerTarget(targetNumber))
             {
                 Print(string.Format("MoveTargetOrder SKIPPED: {0} is configured as Runner (trail-only)", targetType));
-                return;
+                return false;
             }
 
-            if (quantity <= 0) return;
+            if (quantity <= 0) return false;
 
-            ConcurrentDictionary<string, Order> targetOrders = GetTargetOrdersDictionary(targetNumber);
-            if (targetOrders == null) return;
+            targetOrders = GetTargetOrdersDictionary(targetNumber);
+            return targetOrders != null;
+        }
 
-            Order existingTarget;
-            if (targetOrders.TryGetValue(entryName, out existingTarget) && existingTarget != null)
+        private bool MoveTargetOrder_PrepareFollowerReplace(
+            string entryName,
+            PositionInfo pos,
+            int targetNumber,
+            double newPrice,
+            int quantity,
+            Order existingTarget)
+        {
+            if (IsOrderTerminal(existingTarget.OrderState))
+                return false;
+
+            if (pos == null || !pos.IsFollower || pos.ExecutingAccount == null)
+                return false;
+
+            OrderAction exitAct = pos.Direction == MarketPosition.Long
+                ? OrderAction.Sell : OrderAction.BuyToCover;
+            string targetOrderName = "T" + targetNumber + "_" + entryName;
+            var tSpec = new FollowerTargetReplaceSpec
             {
-                if (IsOrderTerminal(existingTarget.OrderState))
-                {
-                    targetOrders.TryRemove(entryName, out _);
-                }
-                else if (pos != null && pos.IsFollower && pos.ExecutingAccount != null)
-                {
-                    OrderAction exitAct = pos.Direction == MarketPosition.Long
-                        ? OrderAction.Sell : OrderAction.BuyToCover;
-                    string targetOrderName = "T" + targetNumber + "_" + entryName;
-                    var tSpec = new FollowerTargetReplaceSpec
-                    {
-                        EntryName = entryName,
-                        TargetNum = targetNumber,
-                        NewTargetPrice = newPrice,
-                        Quantity = quantity,
-                        ExitAction = exitAct,
-                        TargetAccount = pos.ExecutingAccount,
-                        CancellingOrderId = existingTarget.OrderId
-                    };
-                    _followerTargetReplaceSpecs[targetOrderName] = tSpec;
-                    StampReaperMoveGrace();
-                    pos.ExecutingAccount.Cancel(new[] { existingTarget });
-                    Print(string.Format("[UI_TGT] Follower target replace queued: T{0} {1} on {2} -> {3:F2}",
-                        targetNumber, entryName, pos.ExecutingAccount.Name, newPrice));
-                    return;
-                }
-                else if (targetOrders.TryRemove(entryName, out existingTarget))
-                {
-                    CancelOrderSafe(existingTarget, pos);
-                }
-            }
+                EntryName = entryName,
+                TargetNum = targetNumber,
+                NewTargetPrice = newPrice,
+                Quantity = quantity,
+                ExitAction = exitAct,
+                TargetAccount = pos.ExecutingAccount,
+                CancellingOrderId = existingTarget.OrderId
+            };
+            _followerTargetReplaceSpecs[targetOrderName] = tSpec;
+            StampReaperMoveGrace();
+            pos.ExecutingAccount.Cancel(new[] { existingTarget });
+            Print(string.Format("[UI_TGT] Follower target replace queued: T{0} {1} on {2} -> {3:F2}",
+                targetNumber, entryName, pos.ExecutingAccount.Name, newPrice));
+            return true;
+        }
 
+        private void MoveTargetOrder_CancelExisting(
+            string entryName,
+            PositionInfo pos,
+            ConcurrentDictionary<string, Order> targetOrders,
+            Order existingTarget)
+        {
+            if (IsOrderTerminal(existingTarget.OrderState))
+            {
+                targetOrders.TryRemove(entryName, out _);
+            }
+            else if (targetOrders.TryRemove(entryName, out existingTarget))
+            {
+                CancelOrderSafe(existingTarget, pos);
+            }
+        }
+
+        private void MoveTargetOrder_SubmitReplacement(
+            string entryName,
+            PositionInfo pos,
+            string targetType,
+            double newPrice,
+            int quantity,
+            ConcurrentDictionary<string, Order> targetOrders)
+        {
             // Submit new target order at new price
             Order newTargetOrder = SubmitExitOrderForPosition(pos, quantity, OrderType.Limit, newPrice, targetType + "_" + entryName);
 
@@ -656,81 +799,27 @@ namespace NinjaTrader.NinjaScript.Strategies
                     switch (action)
                     {
                         case "market":
-                            // Close runner at market
-                            Order runnerMarketOrder = SubmitExitOrderForPosition(
-                                pos, runnerContracts, OrderType.Market, 0, "Runner_Market_" + entryName);
-
-                            if (runnerMarketOrder != null)
-                                Print(string.Format("? RUNNER MARKET CLOSE: {0} - Closing {1} contracts at market", entryName, runnerContracts));
-                            else
-                                Print(string.Format("ERROR RUNNER MARKET CLOSE FAILED: {0} - Could not close {1} contracts", entryName, runnerContracts));
+                            ExecuteRunner_Market(entryName, pos, runnerContracts);
                             break;
 
                         case "stop1pt":
-                            // V8.19: Absolute profit lock (Entry + 1 point)
-                            double newStop1pt = pos.Direction == MarketPosition.Long
-                                ? pos.EntryPrice + 1.0
-                                : pos.EntryPrice - 1.0;
-                            newStop1pt = Instrument.MasterInstrument.RoundToTickSize(newStop1pt);
-
-                            // Safety: Only move if it's better than current stop or entry-relative profit-lock
-                            UpdateStopOrder(entryName, pos, newStop1pt, pos.CurrentTrailLevel);
-                            Print(string.Format("? RUNNER STOP -> 1 PT PROFIT LOCK: {0} - Stop @ {1:F2} (Entry was {2:F2})", entryName, newStop1pt, pos.EntryPrice));
+                            ExecuteRunner_StopOnePoint(entryName, pos);
                             break;
 
                         case "stop2pt":
-                            // V8.19: Absolute profit lock (Entry + 2 points)
-                            double newStop2pt = pos.Direction == MarketPosition.Long
-                                ? pos.EntryPrice + 2.0
-                                : pos.EntryPrice - 2.0;
-                            newStop2pt = Instrument.MasterInstrument.RoundToTickSize(newStop2pt);
-
-                            UpdateStopOrder(entryName, pos, newStop2pt, pos.CurrentTrailLevel);
-                            Print(string.Format("? RUNNER STOP -> 2 PT PROFIT LOCK: {0} - Stop @ {1:F2} (Entry was {2:F2})", entryName, newStop2pt, pos.EntryPrice));
+                            ExecuteRunner_StopTwoPoint(entryName, pos);
                             break;
 
                         case "stopbe":
-                            // [Build 1102I] Use correct BE stop formula: EntryPrice +/- BreakEvenOffsetTicks.
-                            // Guard checks vs full beStopTarget, not raw entry, to prevent partial-offset execution.
-                            double beStopTarget = pos.Direction == MarketPosition.Long
-                                ? pos.EntryPrice + (BreakEvenOffsetTicks * Instrument.MasterInstrument.TickSize)
-                                : pos.EntryPrice - (BreakEvenOffsetTicks * Instrument.MasterInstrument.TickSize);
-                            beStopTarget = Instrument.MasterInstrument.RoundToTickSize(beStopTarget);
-                            bool beViable = pos.Direction == MarketPosition.Long
-                                ? currentPrice >= beStopTarget
-                                : currentPrice <= beStopTarget;
-                            if (!beViable)
-                            {
-                                pos.ManualBreakevenArmed     = true;
-                                pos.ManualBreakevenTriggered = false;
-                                Print(string.Format("? BE SHIELD: {0} price {1:F2} not at BE level {2:F2} -- armed for auto-trigger",
-                                    entryName, currentPrice, beStopTarget));
-                                break;
-                            }
-                            UpdateStopOrder(entryName, pos, beStopTarget, 1);
-                            // [Build 1102K] Mark triggered so ManageTrailingStops armed path does not re-fire.
-                            pos.ManualBreakevenTriggered = true;
-                            Print(string.Format("? RUNNER STOP -> BREAKEVEN: {0} - Stop @ {1:F2} (Entry +/- {2} ticks)",
-                                entryName, beStopTarget, BreakEvenOffsetTicks));
+                            ExecuteRunner_Breakeven(entryName, pos, currentPrice);
                             break;
 
                         case "lock50":
-                            // Lock 50% of current profit
-                            double unrealizedProfit = pos.Direction == MarketPosition.Long
-                                ? currentPrice - pos.EntryPrice
-                                : pos.EntryPrice - currentPrice;
-                            double lock50Stop = pos.Direction == MarketPosition.Long
-                                ? pos.EntryPrice + (unrealizedProfit * 0.5)
-                                : pos.EntryPrice - (unrealizedProfit * 0.5);
-                            lock50Stop = Instrument.MasterInstrument.RoundToTickSize(lock50Stop);
-                            UpdateStopOrder(entryName, pos, lock50Stop, pos.CurrentTrailLevel);
-                            Print(string.Format("? RUNNER LOCK 50%: {0} - Stop @ {1:F2} (profit: {2:F2})", entryName, lock50Stop, unrealizedProfit));
+                            ExecuteRunner_Lock50(entryName, pos, currentPrice);
                             break;
 
                         case "disabletrail":
-                            // Disable trailing - keep stop where it is
-                            pos.CurrentTrailLevel = 999; // Set to high number to prevent further trailing
-                            Print(string.Format("? RUNNER TRAILING DISABLED: {0} - Stop fixed @ {1:F2}", entryName, pos.CurrentStopPrice));
+                            ExecuteRunner_DisableTrail(entryName, pos);
                             break;
                     }
                 }
@@ -739,6 +828,90 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 Print(string.Format("ERROR ExecuteRunnerAction ({0}): {1}", action, ex.Message));
             }
+        }
+
+        private void ExecuteRunner_Market(string entryName, PositionInfo pos, int runnerContracts)
+        {
+            // Close runner at market
+            Order runnerMarketOrder = SubmitExitOrderForPosition(
+                pos, runnerContracts, OrderType.Market, 0, "Runner_Market_" + entryName);
+
+            if (runnerMarketOrder != null)
+                Print(string.Format("? RUNNER MARKET CLOSE: {0} - Closing {1} contracts at market", entryName, runnerContracts));
+            else
+                Print(string.Format("ERROR RUNNER MARKET CLOSE FAILED: {0} - Could not close {1} contracts", entryName, runnerContracts));
+        }
+
+        private void ExecuteRunner_StopOnePoint(string entryName, PositionInfo pos)
+        {
+            // V8.19: Absolute profit lock (Entry + 1 point)
+            double newStop1pt = pos.Direction == MarketPosition.Long
+                ? pos.EntryPrice + 1.0
+                : pos.EntryPrice - 1.0;
+            newStop1pt = Instrument.MasterInstrument.RoundToTickSize(newStop1pt);
+
+            // Safety: Only move if it's better than current stop or entry-relative profit-lock
+            UpdateStopOrder(entryName, pos, newStop1pt, pos.CurrentTrailLevel);
+            Print(string.Format("? RUNNER STOP -> 1 PT PROFIT LOCK: {0} - Stop @ {1:F2} (Entry was {2:F2})", entryName, newStop1pt, pos.EntryPrice));
+        }
+
+        private void ExecuteRunner_StopTwoPoint(string entryName, PositionInfo pos)
+        {
+            // V8.19: Absolute profit lock (Entry + 2 points)
+            double newStop2pt = pos.Direction == MarketPosition.Long
+                ? pos.EntryPrice + 2.0
+                : pos.EntryPrice - 2.0;
+            newStop2pt = Instrument.MasterInstrument.RoundToTickSize(newStop2pt);
+
+            UpdateStopOrder(entryName, pos, newStop2pt, pos.CurrentTrailLevel);
+            Print(string.Format("? RUNNER STOP -> 2 PT PROFIT LOCK: {0} - Stop @ {1:F2} (Entry was {2:F2})", entryName, newStop2pt, pos.EntryPrice));
+        }
+
+        private void ExecuteRunner_Breakeven(string entryName, PositionInfo pos, double currentPrice)
+        {
+            // [Build 1102I] Use correct BE stop formula: EntryPrice +/- BreakEvenOffsetTicks.
+            // Guard checks vs full beStopTarget, not raw entry, to prevent partial-offset execution.
+            double beStopTarget = pos.Direction == MarketPosition.Long
+                ? pos.EntryPrice + (BreakEvenOffsetTicks * Instrument.MasterInstrument.TickSize)
+                : pos.EntryPrice - (BreakEvenOffsetTicks * Instrument.MasterInstrument.TickSize);
+            beStopTarget = Instrument.MasterInstrument.RoundToTickSize(beStopTarget);
+            bool beViable = pos.Direction == MarketPosition.Long
+                ? currentPrice >= beStopTarget
+                : currentPrice <= beStopTarget;
+            if (!beViable)
+            {
+                pos.ManualBreakevenArmed     = true;
+                pos.ManualBreakevenTriggered = false;
+                Print(string.Format("? BE SHIELD: {0} price {1:F2} not at BE level {2:F2} -- armed for auto-trigger",
+                    entryName, currentPrice, beStopTarget));
+                return;
+            }
+            UpdateStopOrder(entryName, pos, beStopTarget, 1);
+            // [Build 1102K] Mark triggered so ManageTrailingStops armed path does not re-fire.
+            pos.ManualBreakevenTriggered = true;
+            Print(string.Format("? RUNNER STOP -> BREAKEVEN: {0} - Stop @ {1:F2} (Entry +/- {2} ticks)",
+                entryName, beStopTarget, BreakEvenOffsetTicks));
+        }
+
+        private void ExecuteRunner_Lock50(string entryName, PositionInfo pos, double currentPrice)
+        {
+            // Lock 50% of current profit
+            double unrealizedProfit = pos.Direction == MarketPosition.Long
+                ? currentPrice - pos.EntryPrice
+                : pos.EntryPrice - currentPrice;
+            double lock50Stop = pos.Direction == MarketPosition.Long
+                ? pos.EntryPrice + (unrealizedProfit * 0.5)
+                : pos.EntryPrice - (unrealizedProfit * 0.5);
+            lock50Stop = Instrument.MasterInstrument.RoundToTickSize(lock50Stop);
+            UpdateStopOrder(entryName, pos, lock50Stop, pos.CurrentTrailLevel);
+            Print(string.Format("? RUNNER LOCK 50%: {0} - Stop @ {1:F2} (profit: {2:F2})", entryName, lock50Stop, unrealizedProfit));
+        }
+
+        private void ExecuteRunner_DisableTrail(string entryName, PositionInfo pos)
+        {
+            // Disable trailing - keep stop where it is
+            pos.CurrentTrailLevel = 999; // Set to high number to prevent further trailing
+            Print(string.Format("? RUNNER TRAILING DISABLED: {0} - Stop fixed @ {1:F2}", entryName, pos.CurrentStopPrice));
         }
         #endregion
 

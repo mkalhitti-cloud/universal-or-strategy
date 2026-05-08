@@ -2,8 +2,8 @@
 
 ## Build-984-SourceHardening | 12 Repairs CONFIRMED LIVE -- COMPLIANCE PASS
 
-**Last Synced**: 2026-05-06T01:12:00Z
-**Protocol**: V14 Alpha | **Current Build**: 1111.005-v28.0-b984
+**Last Synced**: 2026-05-07T23:40:00Z
+**Protocol**: V14 Alpha | **Current Build**: 1111.006-v28.0-b984-complete
 **Status**: 🟢 **READY FOR MERGE** (StyleCop & ASCII Gates PASS)
 **Active Branch**: `build-984-source-hardening` | **Last Stable PR**: #76
 
@@ -43,7 +43,8 @@
 | **Phase 1** | Foundation (Monolith Partition -- 20+ partial files) | ✅ DONE |
 | **Phase 2** | Command Routing (IPC TCP + FSM + OCO Fix) | ✅ DONE |
 | **Phase 3** | Strategy Patterns (RAII + Resource Leak Remediation) | ✅ DONE |
-| **Phase 4** | Event Lifecycle Dispatcher (ADR-020) | ✅ DONE -- Extraction confirmed live (2026-05-05) |
+| **Phase 4** | Event Lifecycle Dispatcher (ADR-020) | ✅ DONE |
+| **Phase 5** | Modularization (StickyState + Trend + UI/Photon IO Subgraphs) | ✅ DONE |
 
 ---
 
@@ -151,11 +152,13 @@
 
 | Signal | Status |
 | :--- | :--- |
-| **Compilation** | [OK] `1111.005-v28.0-b984` -- CLEAN (NinjaTrader live confirmed 2026-05-05) |
+| **Compilation** | [OK] `1111.006-v28.0-b984-complete` -- CLEAN (NinjaTrader live confirmed 2026-05-07, three sessions) |
 | **ASCII Gate** | [PASS] Zero non-ASCII violations |
-| **Lock Audit** | [PASS] Zero `lock()` in `src/*.cs` (hardened regex) |
-| **B984 Hardening** | [DONE] 11 repairs live (F-01 to F-12, F-09 waived), commit 159fb9a |
-| **Phase 4 Extraction** | [DONE] 5 handlers live in `V12_002.Lifecycle.cs` (confirmed 2026-05-05) |
+| **Lock Audit** | [PASS] Zero executable `lock()` in `src/*.cs` (hardened regex) |
+| **StickyState Refactor** | [DONE] K0-K4 extractions live in `V12_002.StickyState.cs` (2026-05-07) |
+| **Trend Refactor (T1-T3)** | [DONE] T1/T2/T3 extractions live in `V12_002.Entries.Trend.cs` (2026-05-07) |
+| **UI/Photon IO Refactor (U1-U15)** | [DONE] U1-U15 extractions live across 7 UI/IPC files (2026-05-07) |
+| **Phase 5 Status** | [COMPLETE] All three subgraphs done. God-function extraction mission closed. |
 | **RAII Leak Fix** | [DONE] `ClearDispatchSyncPending` injected (2 occurrences) |
 | **Hard Links** | [SYNCED] `deploy-sync.ps1` EXIT 0 |
 | **Risk Audit** | [PASS] Cases 1-7 pass, 8-9 idle (no live positions) |

@@ -68,7 +68,15 @@ namespace NinjaTrader.NinjaScript.Strategies
         private string SerializeStickyState()
         {
             var sb = new StringBuilder(1024);
+            SerializeSticky_WriteHeaderConfig(sb);
+            SerializeSticky_WriteFleetAnchor(sb);
+            SerializeSticky_WriteModeProfiles(sb);
+            SerializeSticky_WritePositions(sb);
+            return sb.ToString();
+        }
 
+        private void SerializeSticky_WriteHeaderConfig(StringBuilder sb)
+        {
             // Header
             sb.AppendLine("# V12 StickyState v1");
             sb.AppendLine("# Symbol: " + (Instrument != null ? Instrument.FullName : "unknown"));
@@ -103,7 +111,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             sb.AppendLine("TRMA=" + (isTrendRmaMode ? "1" : "0"));
             sb.AppendLine("RRMA=" + (isRetestRmaMode ? "1" : "0"));
             sb.AppendLine();
+        }
 
+        private void SerializeSticky_WriteFleetAnchor(StringBuilder sb)
+        {
             // [FLEET]
             sb.AppendLine("[FLEET]");
             sb.AppendLine("LEADER=" + (_stickyLeaderAccount ?? ""));
@@ -119,7 +130,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             sb.AppendLine("TYPE=" + AnchorTypeToString(currentRmaAnchor));
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "MNL_PRICE={0}", cachedMnlPrice));
             sb.AppendLine();
+        }
 
+        private void SerializeSticky_WriteModeProfiles(StringBuilder sb)
+        {
             // Build 1106: [CONFIG_*] -- per-mode profile snapshots
             string activeMode = "OR";
             if (isRMAModeActive) activeMode = "RMA";
@@ -149,7 +163,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "MAX={0}", p.MaxRisk));
                 sb.AppendLine();
             }
+        }
 
+        private void SerializeSticky_WritePositions(StringBuilder sb)
+        {
             // [POSITIONS] -- trailing stop state for active positions
             sb.AppendLine("[POSITIONS]");
             sb.AppendLine("# key|extremePrice|trailLevel|beArmed|beTriggered|initialTargetCount");
@@ -169,8 +186,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                         pi.InitialTargetCount));
                 }
             }
-
-            return sb.ToString();
         }
 
         // Build 1106: Captures current global config into a mode-specific profile.
@@ -267,7 +282,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             try
             {
-                string[] lines = System.IO.File.ReadAllLines(_stickyStatePath, Encoding.UTF8);
+                string[] lines = LoadStickyState_ReadLines();
                 string section = "";
                 int appliedCount = 0;
 
@@ -284,30 +299,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                         continue;
                     }
 
-                    if (section == "CONFIG")
-                    {
-                        appliedCount += ApplyStickyConfig(line) ? 1 : 0;
-                    }
-                    else if (section.StartsWith("CONFIG_") && section.Length > 7)
-                    {
-                        // Build 1106: Per-mode profile section (e.g., CONFIG_OR, CONFIG_RMA)
-                        string profileMode = section.Substring(7);
-                        appliedCount += ApplyStickyModeProfile(profileMode, line) ? 1 : 0;
-                    }
-                    else if (section == "FLEET")
-                    {
-                        appliedCount += ApplyStickyFleet(line) ? 1 : 0;
-                    }
-                    else if (section == "ANCHOR")
-                    {
-                        appliedCount += ApplyStickyAnchor(line) ? 1 : 0;
-                    }
-                    // [POSITIONS] deferred to EnrichTrailStateFromSticky()
+                    appliedCount += LoadStickyState_DispatchSection(section, line);
                 }
 
-                Print(string.Format("[STICKY] Loaded {0} settings from {1}", appliedCount,
-                    System.IO.Path.GetFileName(_stickyStatePath)));
-                return appliedCount > 0;
+                return LoadStickyState_LogOutcome(appliedCount);
             }
             catch (Exception ex)
             {
@@ -316,13 +311,58 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        private string[] LoadStickyState_ReadLines()
+        {
+            return System.IO.File.ReadAllLines(_stickyStatePath, Encoding.UTF8);
+        }
+
+        private int LoadStickyState_DispatchSection(string section, string line)
+        {
+            if (section == "CONFIG")
+            {
+                return ApplyStickyConfig(line) ? 1 : 0;
+            }
+            else if (section.StartsWith("CONFIG_") && section.Length > 7)
+            {
+                // Build 1106: Per-mode profile section (e.g., CONFIG_OR, CONFIG_RMA)
+                string profileMode = section.Substring(7);
+                return ApplyStickyModeProfile(profileMode, line) ? 1 : 0;
+            }
+            else if (section == "FLEET")
+            {
+                return ApplyStickyFleet(line) ? 1 : 0;
+            }
+            else if (section == "ANCHOR")
+            {
+                return ApplyStickyAnchor(line) ? 1 : 0;
+            }
+
+            // [POSITIONS] deferred to EnrichTrailStateFromSticky()
+            return 0;
+        }
+
+        private bool LoadStickyState_LogOutcome(int appliedCount)
+        {
+            Print(string.Format("[STICKY] Loaded {0} settings from {1}", appliedCount,
+                System.IO.Path.GetFileName(_stickyStatePath)));
+            return appliedCount > 0;
+        }
+
         private bool ApplyStickyConfig(string line)
         {
             int eq = line.IndexOf('=');
             if (eq < 1) return false;
             string key = line.Substring(0, eq).ToUpperInvariant();
             string val = line.Substring(eq + 1);
+            if (ApplyStickyConfig_ModeSafetyGate(key, val)) return true;
+            if (ApplyStickyConfig_TargetValues(key, val)) return true;
+            if (ApplyStickyConfig_TargetTypes(key, val)) return true;
+            if (ApplyStickyConfig_RiskAndFlags(key, val)) return true;
+            return false;
+        }
 
+        private bool ApplyStickyConfig_ModeSafetyGate(string key, string val)
+        {
             switch (key)
             {
                 case "MODE":
@@ -334,6 +374,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                         Print(string.Format("[STICKY] MODE on disk was {0} -- forced to OR (safety gate)", val));
                     return true;
 
+                default: return false;
+            }
+        }
+
+        private bool ApplyStickyConfig_TargetValues(string key, string val)
+        {
+            switch (key)
+            {
                 case "COUNT":
                     if (int.TryParse(val, out int cnt))
                         activeTargetCount = Math.Max(1, Math.Min(5, cnt));
@@ -360,12 +408,28 @@ namespace NinjaTrader.NinjaScript.Strategies
                         Target5Value = t5;
                     return true;
 
+                default: return false;
+            }
+        }
+
+        private bool ApplyStickyConfig_TargetTypes(string key, string val)
+        {
+            switch (key)
+            {
                 case "T1TYPE": T1Type = ParseTargetMode(val); return true;
                 case "T2TYPE": T2Type = ParseTargetMode(val); return true;
                 case "T3TYPE": T3Type = ParseTargetMode(val); return true;
                 case "T4TYPE": T4Type = ParseTargetMode(val); return true;
                 case "T5TYPE": T5Type = ParseTargetMode(val); return true;
 
+                default: return false;
+            }
+        }
+
+        private bool ApplyStickyConfig_RiskAndFlags(string key, string val)
+        {
+            switch (key)
+            {
                 case "STR":
                     if (double.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out double str))
                     {
@@ -408,6 +472,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 _modeProfiles[mode] = profile;
             }
 
+            if (ApplyStickyModeProfile_TargetValues(key, val, profile)) return true;
+            if (ApplyStickyModeProfile_TargetTypes(key, val, profile)) return true;
+            if (ApplyStickyModeProfile_Risk(key, val, profile)) return true;
+            return false;
+        }
+
+        private bool ApplyStickyModeProfile_TargetValues(string key, string val, ModeConfigProfile profile)
+        {
             switch (key)
             {
                 case "COUNT":
@@ -434,11 +506,29 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (double.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out double t5))
                         profile.T5 = t5;
                     return true;
+
+                default: return false;
+            }
+        }
+
+        private bool ApplyStickyModeProfile_TargetTypes(string key, string val, ModeConfigProfile profile)
+        {
+            switch (key)
+            {
                 case "T1TYPE": profile.T1Type = ParseTargetMode(val); return true;
                 case "T2TYPE": profile.T2Type = ParseTargetMode(val); return true;
                 case "T3TYPE": profile.T3Type = ParseTargetMode(val); return true;
                 case "T4TYPE": profile.T4Type = ParseTargetMode(val); return true;
                 case "T5TYPE": profile.T5Type = ParseTargetMode(val); return true;
+
+                default: return false;
+            }
+        }
+
+        private bool ApplyStickyModeProfile_Risk(string key, string val, ModeConfigProfile profile)
+        {
+            switch (key)
+            {
                 case "STR":
                     if (double.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out double str))
                         profile.StopMult = str;
@@ -447,6 +537,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (double.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out double max))
                         profile.MaxRisk = max;
                     return true;
+
                 default: return false;
             }
         }

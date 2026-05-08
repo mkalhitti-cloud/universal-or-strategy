@@ -1,17 +1,17 @@
 {
-  "mission": "Build-984 Source Hardening -- 12 Deferred Arena Findings (V12_002.Lifecycle.cs)",
+  "mission": "B984-COMPLETE Phase 5 - Session 5 (SIMA Subgraph Extraction)",
   "mission_status": "ACTIVE",
   "milestone": "M3",
-  "build_tag": "1111.004-v28.0-pr75-repairs",
-  "branch": "build-984-source-hardening",
-  "pr": "#76",
+  "build_tag": "1111.006-v28.0-b984-complete",
+  "branch": "main",
+  "pr": "#94",
   "plan_path": "docs/brain/implementation_plan.md",
-  "last_updated": "2026-05-05T18:13:00Z",
+  "last_updated": "2026-05-07T23:40:00Z",
   "morpheus_mode": true,
   "agent_readiness_target": "LEVEL_5",
-  "phase": "P3",
-  "current_phase": "B984_P3_WORKFLOW_HARDENING",
-  "status": "PR_INTELLIGENCE_SUITE_EXTENDED_QWEN_GLM_PRAGENT",
+  "phase": "P5",
+  "current_phase": "P5_SESSION_5_SIMA_SUBGRAPH",
+  "status": "SIMA_ENGINE_MODULARIZATION_GOD_FUNCTION_PARTITIONING",
   "agents": {
     "P1_orchestrator": "Antigravity",
     "P2_forensics": "Codex",
@@ -25,132 +25,50 @@
     {
       "phase": "P1_INTAKE",
       "status": "COMPLETE",
-      "timestamp": "2026-05-02T16:30:00Z"
+      "timestamp": "2026-05-06T18:00:00Z"
     },
     {
-      "phase": "P2_FORENSICS",
+      "phase": "P5_SESSION_1_CI_REPAIR",
       "status": "COMPLETE",
-      "timestamp": "2026-05-02T16:35:00Z"
+      "timestamp": "2026-05-07T22:00:00Z"
     },
     {
-      "phase": "P3_ARCHITECT_V1",
-      "status": "FAILED",
-      "timestamp": "2026-05-01T18:00:00Z",
-      "reason": "Null Fix -- empty try/finally, no actual cleanup"
-    },
-    {
-      "phase": "P4_ADJUDICATION",
-      "status": "FAILED",
-      "timestamp": "2026-05-02T23:50:00Z",
-      "reason": "Type 2 Resource Leaks & Institutional Gaps"
-    },
-    {
-      "phase": "ARENA_RETRO_AUDIT",
+      "phase": "P5_SESSION_4_STICKYSTATE_KERNEL",
       "status": "COMPLETE",
-      "timestamp": "2026-05-03T00:02:00Z",
-      "reason": "Null Fix confirmed 2/2 FAIL -- plan rejected"
+      "timestamp": "2026-05-07T23:30:00Z"
     },
     {
-      "phase": "P3_ARCHITECT_V2_RAII",
+      "phase": "P5_SESSION_5_TREND_T1_T3",
       "status": "COMPLETE",
-      "timestamp": "2026-05-03T02:00:00Z"
+      "timestamp": "2026-05-08T00:26:00Z"
     },
     {
-      "phase": "P5_ENGINEER_RAII",
+      "phase": "P5_SESSION_6_UI_PHOTON_IO_U1_U15",
       "status": "COMPLETE",
-      "timestamp": "2026-05-04T10:00:00Z"
+      "timestamp": "2026-05-08T01:09:00Z"
     },
     {
-      "phase": "P6_VALIDATOR_RAII",
-      "status": "PASS",
-      "timestamp": "2026-05-04T10:37:00Z",
-      "agent": "Gemini CLI"
-    },
-    {
-      "phase": "P5_PR76_REPAIRS",
-      "status": "COMPLETE",
-      "timestamp": "2026-05-05T00:00:00Z",
-      "details": "D1/D2/D3/D6 confirmed live. BUILD_TAG bumped to pr75-repairs."
-    },
-    {
-      "phase": "P4_PHASE4_ARENA_AUDIT",
-      "status": "PASS",
-      "timestamp": "2026-05-04T17:30:00Z",
-      "details": "12 findings triaged as pre-existing source defects. Path A approved. All 7 extraction checklist items PASS."
-    },
-    {
-      "phase": "P5_PHASE4_EXTRACTION",
-      "status": "CONFIRMED_LIVE",
-      "timestamp": "2026-05-05T18:10:00Z",
-      "details": "ProcessOnStateChange extracted into 5 handlers. Verified in live src/V12_002.Lifecycle.cs lines 93/220/302/404/451."
-    },
-    {
-      "phase": "B984_P1_DECLARATION",
-      "status": "COMPLETE",
-      "timestamp": "2026-05-05T18:12:00Z",
-      "details": "Phase 4 declared complete by Director. Build-984 Source Hardening opened. 12 deferred findings scope confirmed."
-    },
-    {
-      "phase": "B984_P3_WORKFLOW_HARDENING",
-      "status": "COMPLETE",
-      "timestamp": "2026-05-06T03:30:00Z",
-      "details": "Installed and configured 6-pillar CI suite: Dependency Review, OSV-Scanner, Codecov, MLC, Stale, Release Drafter. Secrets configured."
-    },
-    {
-      "phase": "B984_P3_PR_INTELLIGENCE_SUITE",
-      "status": "COMPLETE",
-      "timestamp": "2026-05-06T17:38:00Z",
-      "details": "Installed Qwen Code Review, GLM OpenCode Review, and CodiumAI PR-Agent with V12 DNA (.pr_agent.toml)."
-    },
-    {
-      "phase": "B984_P7_SENTINEL_MERGE",
-      "status": "COMPLETE",
-      "timestamp": "2026-05-06T17:53:00Z",
-      "details": "PR #80 Admin Merged into main. Redundant Jules PRs closed. Branch cleanup complete."
+      "phase": "PHASE_5_GOD_FUNCTION_EXTRACTION",
+      "status": "CLOSED",
+      "timestamp": "2026-05-08T01:09:00Z"
     }
   ],
   "current_blockers": [],
   "open_findings": {
-    "source": "Phase 4 Arena Audit (Codex 5.3, 2026-05-04)",
-    "count": 12,
-    "triage": "ALL pre-existing source defects in V12_002.Lifecycle.cs",
-    "known_confirmed": [
-      {
-        "id": "F-01",
-        "severity": "MEDIUM",
-        "location": "V12_002.Lifecycle.cs:263-268 (OnStateChangeConfigure)",
-        "description": "FleetDispatchSlot layout invariant -- throws InvalidOperationException cold on Configure if struct padding changes"
-      },
-      {
-        "id": "F-02",
-        "severity": "HIGH",
-        "location": "V12_002.Lifecycle.cs:345 (OnStateChangeDataLoaded)",
-        "description": "BarsArray[1] accessed without guard -- NullReferenceException if AddDataSeries did not complete in Configure"
-      },
-      {
-        "id": "F-03",
-        "severity": "LOW",
-        "location": "V12_002.Lifecycle.cs:295-297 (OnStateChangeConfigure)",
-        "description": "AddDataSeries ordering concern -- called after other state setup, NT8 doc recommends SetDefaults"
-      },
-      {
-        "id": "F-04",
-        "severity": "LOW",
-        "location": "V12_002.Lifecycle.cs:327-342 (OnStateChangeDataLoaded)",
-        "description": "Silent target count override -- ConfiguredTargetCount mutated in backward-compat path without logging"
-      },
-      {
-        "id": "F-05 to F-12",
-        "severity": "TBD",
-        "location": "V12_002.Lifecycle.cs (various handlers)",
-        "description": "8 additional pre-existing defects identified by Arena auditor. To be formally catalogued by Claude (P3 Architect)."
-      }
+    "source": "Phase 5 Refactor Audit (Antigravity, 2026-05-07)",
+    "count": 5,
+    "triage": "SIMA Engine God Functions requiring partition",
+    "targets": [
+      "ExecuteSmartDispatchEntry (CC=471)",
+      "HydrateWorkingOrdersFromBroker",
+      "HydrateFSMsFromWorkingOrders",
+      "EnumerateApexAccounts",
+      "HydrateExpectedPositionsFromBroker"
     ]
   },
   "previous_missions": {
-    "Build-982-Phase2-RAII": "COMPLETE",
-    "Build-983-Phase3-PR75-Repairs": "COMPLETE",
-    "Build-983-Phase4-Dispatcher": "COMPLETE"
+    "Build-984-Source-Hardening": "COMPLETE",
+    "Phase-1-Monolith-Partition": "COMPLETE"
   },
-  "nexus_relay_timestamp": "2026-05-05T18:13:00Z"
+  "nexus_relay_timestamp": "2026-05-07T22:19:00Z"
 }
