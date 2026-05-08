@@ -38,44 +38,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private void ManageTrailingStops()
         {
-            DateTime now = DateTime.Now;
-
-            // V8.30: Adaptive throttle calculation - adjusts based on tick frequency
-            tickCountInLastSecond++;
-            if ((now - lastTickCountReset).TotalSeconds >= 1)
-            {
-                // Adjust throttle based on tick frequency
-                if (tickCountInLastSecond > 50)
-                    adaptiveThrottleMs = Math.Min(500, adaptiveThrottleMs + 50); // Increase throttle under load
-                else if (tickCountInLastSecond < 20)
-                    adaptiveThrottleMs = Math.Max(100, adaptiveThrottleMs - 25); // Decrease throttle when calm
-
-                tickCountInLastSecond = 0;
-                lastTickCountReset = now;
-            }
-
-            // V8.30: Use adaptive throttle instead of fixed 100ms
-            if ((now - lastStopManagementTime).TotalMilliseconds < adaptiveThrottleMs)
-                return;
-
-            lastStopManagementTime = now;
-
-            // V8.30: Clean up stale pending replacements (5-second timeout)
-            CleanupStalePendingReplacements();
-
-            // V8.30: Circuit breaker check - pause trailing when too many pending replacements
-            if (circuitBreakerActive)
-            {
-                if ((now - circuitBreakerActivatedTime).TotalSeconds > 2)
-                {
-                    circuitBreakerActive = false;
-                    Print("V8.30: Circuit breaker RESET - trailing stops resumed");
-                }
-                else
-                {
-                    return; // Skip trailing stop updates while circuit breaker is active
-                }
-            }
+            bool _shouldExit;
+            ManageTrail_AdaptiveThrottleTick(out _shouldExit);
+            if (_shouldExit) return;
 
             // V8.30: Thread-safe snapshot iteration - prevents "Collection was modified" exception
             var positionSnapshot = activePositions.ToArray();
@@ -448,6 +413,48 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             // Build 1105: Shadow Mode auto-propagation (runs after fleet sync)
             ShadowEngineCheck();
+        }
+
+        private void ManageTrail_AdaptiveThrottleTick(out bool shouldExit)
+        {
+            shouldExit = false;
+            DateTime now = DateTime.Now;
+
+            // V8.30: Adaptive throttle calculation - adjusts based on tick frequency
+            tickCountInLastSecond++;
+            if ((now - lastTickCountReset).TotalSeconds >= 1)
+            {
+                // Adjust throttle based on tick frequency
+                if (tickCountInLastSecond > 50)
+                    adaptiveThrottleMs = Math.Min(500, adaptiveThrottleMs + 50); // Increase throttle under load
+                else if (tickCountInLastSecond < 20)
+                    adaptiveThrottleMs = Math.Max(100, adaptiveThrottleMs - 25); // Decrease throttle when calm
+
+                tickCountInLastSecond = 0;
+                lastTickCountReset = now;
+            }
+
+            // V8.30: Use adaptive throttle instead of fixed 100ms
+            if ((now - lastStopManagementTime).TotalMilliseconds < adaptiveThrottleMs) { shouldExit = true; return; }
+
+            lastStopManagementTime = now;
+
+            // V8.30: Clean up stale pending replacements (5-second timeout)
+            CleanupStalePendingReplacements();
+
+            // V8.30: Circuit breaker check - pause trailing when too many pending replacements
+            if (circuitBreakerActive)
+            {
+                if ((now - circuitBreakerActivatedTime).TotalSeconds > 2)
+                {
+                    circuitBreakerActive = false;
+                    Print("V8.30: Circuit breaker RESET - trailing stops resumed");
+                }
+                else
+                {
+                    shouldExit = true; return; // Skip trailing stop updates while circuit breaker is active
+                }
+            }
         }
 
         // V8.30: Clean up stale pending replacements that are older than 5 seconds
