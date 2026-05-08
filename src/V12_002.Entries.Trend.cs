@@ -57,7 +57,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         private void ExecuteTRENDEntry(int contracts)
         {
-            if (!ExecuteTREND_Preflight(contracts)) return;
+            if (!ExecuteTREND_Preflight(contracts))
+            {
+                return;
+            }
 
             // V11: Trend RMA (9/15 Split) Mode
             if (isTrendRmaMode)
@@ -75,18 +78,14 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             try
             {
-                // V8.2: Simple check for enough bars
-                if (CurrentBar < 20)
-                {
-                    Print("Cannot execute TREND entry - not enough bars (CurrentBar=" + CurrentBar + ")");
-                    return;
-                }
-
                 MarketPosition direction;
                 double currentPrice;
                 double ema9Value;
                 double ema15Value;
-                if (!ExecuteTREND_ResolveDirection(out currentPrice, out ema9Value, out ema15Value, out direction)) return;
+                if (!ExecuteTREND_ResolveDirection(out currentPrice, out ema9Value, out ema15Value, out direction))
+                {
+                    return;
+                }
 
                 int totalContracts;
                 int entry1Qty;
@@ -117,8 +116,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                     out pos2);
 
                 Order entryOrder1;
-                if (!ExecuteTREND_SubmitLeg1(direction, entry1Qty, entry1Price, entry1Name, pos1, out entryOrder1)) return;
-                if (!ExecuteTREND_SubmitLeg2(direction, entry2Qty, entry2Price, entry1Name, entry2Name, pos2, entryOrder1)) return;
+                if (!ExecuteTREND_SubmitLeg1(direction, entry1Qty, entry1Price, entry1Name, pos1, out entryOrder1))
+                {
+                    return;
+                }
+                if (!ExecuteTREND_SubmitLeg2(direction, entry2Qty, entry2Price, entry1Name, entry2Name, pos2, entryOrder1))
+                {
+                    return;
+                }
 
                 Print(string.Format("TREND ORDERS PLACED: {0} Total={1} contracts",
                     direction == MarketPosition.Long ? "LONG" : "SHORT", totalContracts));
@@ -137,9 +142,15 @@ namespace NinjaTrader.NinjaScript.Strategies
         private bool ExecuteTREND_Preflight(int contracts)
         {
             // V12.Phase7 [C-09]: Compliance enforcement gate.
-            if (!IsOrderAllowed()) return false;
+            if (!IsOrderAllowed())
+            {
+                return false;
+            }
             // V12.Phase6 [FLATTEN-GUARD]: Prevent order submission during active flatten
-            if (isFlattenRunning) return false;
+            if (isFlattenRunning)
+            {
+                return false;
+            }
 
             if (contracts <= 0)
             {
@@ -262,7 +273,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 MaxRiskAmount, e1StopDist, e2StopDist, weightedStopDist, totalContracts));
             Print(string.Format("TREND SPLIT: E1Qty={0} (1/3) | E2Qty={1} (2/3)", entry1Qty, entry2Qty));
 
-            string timestamp = DateTime.Now.ToString("HHmmssffff");
+            string timestamp = DateTime.UtcNow.ToString("HHmmssffff", CultureInfo.InvariantCulture);
             string trendGroupId = "TREND_" + timestamp;
             entry1Name = trendGroupId + "_E1";
             entry2Name = trendGroupId + "_E2";
@@ -525,7 +536,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         private void ExecuteTRENDManualEntry(double manualPrice, MarketPosition direction, int contracts)
         {
-            if (!ExecuteTRENDManual_Preflight(contracts)) return;
+            if (!ExecuteTRENDManual_Preflight(contracts))
+            {
+                return;
+            }
 
             try
             {
@@ -552,7 +566,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                     out entryName,
                     out pos);
 
-                if (!ExecuteTRENDManual_SubmitEntry(direction, contracts, entryPrice, entryName, pos)) return;
+                if (!ExecuteTRENDManual_SubmitEntry(direction, contracts, entryPrice, entryName, pos))
+                {
+                    return;
+                }
 
                 Print(string.Format("V12.27 TREND_MANUAL: {0} {1}@{2:F2} LIMIT | Stop: {3:F2} | 100% Risk",
                     direction, contracts, entryPrice, stopPrice));
@@ -569,9 +586,15 @@ namespace NinjaTrader.NinjaScript.Strategies
         private bool ExecuteTRENDManual_Preflight(int contracts)
         {
             // V12.Phase7 [C-09]: Compliance enforcement gate.
-            if (!IsOrderAllowed()) return false;
+            if (!IsOrderAllowed())
+            {
+                return false;
+            }
             // V12.Phase6 [FLATTEN-GUARD]: Prevent order submission during active flatten
-            if (isFlattenRunning) return false;
+            if (isFlattenRunning)
+            {
+                return false;
+            }
 
             if (contracts <= 0)
             {
@@ -616,10 +639,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             GetTargetDistribution(contracts, out t1Qty, out t2Qty, out t3Qty, out t4Qty, out t5Qty);
 
             string signalName = direction == MarketPosition.Long ? "TrendMnlLong" : "TrendMnlShort";
-            entryName = signalName + "_" + DateTime.Now.ToString("HHmmssffff");
+            entryName = signalName + "_" + DateTime.UtcNow.ToString("HHmmssffff", CultureInfo.InvariantCulture);
 
             pos = CreateTRENDPosition(entryName, direction, entryPrice, stopPrice,
-                contracts, true, "TMNL_" + DateTime.Now.Ticks, true);
+                contracts, true, "TMNL_" + DateTime.UtcNow.Ticks, true);
 
             // Build 1102Y-V3 [LG-01]: Enforce staircase rule.
             ApplyTargetLadderGuard(pos);

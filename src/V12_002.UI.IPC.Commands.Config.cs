@@ -101,20 +101,34 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             // V12 PRO: Parse the full config sync from side panel
             if (parts.Length <= 2)
+            {
                 return;
+            }
 
             string configMode = parts[1];
             string configContent = parts[2];
             string[] settingsItems = configContent.Split(';');
             foreach (string setting in settingsItems)
             {
-                if (string.IsNullOrEmpty(setting)) continue;
+                if (string.IsNullOrEmpty(setting))
+                {
+                    continue;
+                }
                 string[] kv = setting.Split(':');
-                if (kv.Length < 2) continue;
+                if (kv.Length < 2)
+                {
+                    continue;
+                }
                 string key = kv[0].ToUpperInvariant();
                 string val = kv[1];
-                if (TryApplyConfigTargets(key, val)) continue;
-                if (TryApplyConfigRisk(key, val, configMode)) continue;
+                if (TryApplyConfigTargets(key, val))
+                {
+                    continue;
+                }
+                if (TryApplyConfigRisk(key, val, configMode))
+                {
+                    continue;
+                }
                 TryApplyConfigMode(key, val);
             }
             // Build 1106: Update current mode's profile cache so mode-switch remembers these values
@@ -128,48 +142,101 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <summary>Build 945: Config sub-handler -- target values and types (T1-T5, COUNT, CIT).</summary>
         private bool TryApplyConfigTargets(string key, string val)
         {
-            if (TryApplyConfigTarget_Value(key, val)) return true;
-            if (TryApplyConfigTarget_Type(key, val)) return true;
+            if (TryApplyConfigTarget_Value(key, val))
+            {
+                return true;
+            }
+            if (TryApplyConfigTarget_Type(key, val))
+            {
+                return true;
+            }
             return TryApplyConfigTarget_Count(key, val);
         }
 
         private bool TryApplyConfigTarget_Value(string key, string val)
         {
-            if (key == "T1") { if (double.TryParse(val, out double v)) Target1Value = v; return true; }
-            if (key == "CIT") { ChaseIfTouchPoints = val; return true; }
-            if (key == "T2") {
-                if (double.TryParse(val, out double v)) {
+            if (key == "T1")
+            {
+                if (double.TryParse(val, out double v))
+                {
                     string vmReason;
                     if (!ValidateIpcMultiplier(v, out vmReason))
+                    {
+                        Print($"[IPC REJECT] T1 value {v} rejected: {vmReason}");
+                    }
+                    else
+                    {
+                        Target1Value = v;
+                    }
+                }
+                return true;
+            }
+            if (key == "CIT")
+            {
+                ChaseIfTouchPoints = val;
+                return true;
+            }
+            if (key == "T2")
+            {
+                if (double.TryParse(val, out double v))
+                {
+                    string vmReason;
+                    if (!ValidateIpcMultiplier(v, out vmReason))
+                    {
                         Print($"[IPC REJECT] T2 value {v} rejected: {vmReason}");
-                    else Target2Value = v;
+                    }
+                    else
+                    {
+                        Target2Value = v;
+                    }
                 }
                 return true;
             }
-            if (key == "T3") {
-                if (double.TryParse(val, out double v)) {
+            if (key == "T3")
+            {
+                if (double.TryParse(val, out double v))
+                {
                     string vmReason;
                     if (!ValidateIpcMultiplier(v, out vmReason))
+                    {
                         Print($"[IPC REJECT] T3 value {v} rejected: {vmReason}");
-                    else Target3Value = v;
+                    }
+                    else
+                    {
+                        Target3Value = v;
+                    }
                 }
                 return true;
             }
-            if (key == "T4") {
-                if (double.TryParse(val, out double v)) {
+            if (key == "T4")
+            {
+                if (double.TryParse(val, out double v))
+                {
                     string vmReason;
                     if (!ValidateIpcMultiplier(v, out vmReason))
+                    {
                         Print($"[IPC REJECT] T4 value {v} rejected: {vmReason}");
-                    else Target4Value = v;
+                    }
+                    else
+                    {
+                        Target4Value = v;
+                    }
                 }
                 return true;
             }
-            if (key == "T5") {
-                if (double.TryParse(val, out double v)) {
+            if (key == "T5")
+            {
+                if (double.TryParse(val, out double v))
+                {
                     string vmReason;
                     if (!ValidateIpcMultiplier(v, out vmReason))
+                    {
                         Print($"[IPC REJECT] T5 value {v} rejected: {vmReason}");
-                    else Target5Value = v;
+                    }
+                    else
+                    {
+                        Target5Value = v;
+                    }
                 }
                 return true;
             }
@@ -178,20 +245,58 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private bool TryApplyConfigTarget_Type(string key, string val)
         {
-            if (key == "T1TYPE") { if (TryParseTargetMode(val, out var parsed)) T1Type = parsed; return true; }
-            if (key == "T2TYPE") { if (TryParseTargetMode(val, out var parsed)) T2Type = parsed; return true; }
-            if (key == "T3TYPE") { if (TryParseTargetMode(val, out var parsed)) T3Type = parsed; return true; }
-            if (key == "T4TYPE") { if (TryParseTargetMode(val, out var parsed)) T4Type = parsed; return true; }
-            if (key == "T5TYPE") { if (TryParseTargetMode(val, out var parsed)) T5Type = parsed; return true; }
+            if (key == "T1TYPE")
+            {
+                if (TryParseTargetMode(val, out var parsed))
+                {
+                    T1Type = parsed;
+                }
+                return true;
+            }
+            if (key == "T2TYPE")
+            {
+                if (TryParseTargetMode(val, out var parsed))
+                {
+                    T2Type = parsed;
+                }
+                return true;
+            }
+            if (key == "T3TYPE")
+            {
+                if (TryParseTargetMode(val, out var parsed))
+                {
+                    T3Type = parsed;
+                }
+                return true;
+            }
+            if (key == "T4TYPE")
+            {
+                if (TryParseTargetMode(val, out var parsed))
+                {
+                    T4Type = parsed;
+                }
+                return true;
+            }
+            if (key == "T5TYPE")
+            {
+                if (TryParseTargetMode(val, out var parsed))
+                {
+                    T5Type = parsed;
+                }
+                return true;
+            }
             return false;
         }
 
         private bool TryApplyConfigTarget_Count(string key, string val)
         {
             if (key != "COUNT")
+            {
                 return false;
+            }
 
-            if (int.TryParse(val, out int v)) {
+            if (int.TryParse(val, out int v))
+            {
                 // FIX-B [Build 1102Z]: Clamp + lock to prevent IPC race with SIMA dispatch loop.
                 int clamped = Math.Max(1, Math.Min(5, v));
                 activeTargetCount = clamped;
@@ -202,17 +307,30 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <summary>Build 945: Config sub-handler -- risk parameters (STR, MAX).</summary>
         private bool TryApplyConfigRisk(string key, string val, string configMode)
         {
-            if (key == "STR") {
-                if (double.TryParse(val, out double v)) {
+            if (key == "STR")
+            {
+                if (double.TryParse(val, out double v))
+                {
                     string vmReason;
                     if (!ValidateIpcMultiplier(v, out vmReason))
+                    {
                         Print($"[IPC REJECT] STR multiplier {v} rejected: {vmReason}");
-                    else if (configMode == "RMA") RMAStopATRMultiplier = v; else StopMultiplier = v;
+                    }
+                    else if (configMode == "RMA")
+                    {
+                        RMAStopATRMultiplier = v;
+                    }
+                    else
+                    {
+                        StopMultiplier = v;
+                    }
                 }
                 return true;
             }
-            if (key == "MAX") {
-                if (double.TryParse(val, out double v)) {
+            if (key == "MAX")
+            {
+                if (double.TryParse(val, out double v))
+                {
                     MaxRiskAmount = v;
                     RiskPerTrade = v;
                 }
@@ -224,8 +342,16 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <summary>Build 945: Config sub-handler -- mode flags (TRMA, RRMA).</summary>
         private bool TryApplyConfigMode(string key, string val)
         {
-            if (key == "TRMA") { isTrendRmaMode = (val == "1"); return true; }
-            if (key == "RRMA") { isRetestRmaMode = (val == "1"); return true; }
+            if (key == "TRMA")
+            {
+                isTrendRmaMode = (val == "1");
+                return true;
+            }
+            if (key == "RRMA")
+            {
+                isRetestRmaMode = (val == "1");
+                return true;
+            }
             return false;
         }
 

@@ -25,6 +25,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         private ConcurrentQueue<string> _reaperRepairQueue = new ConcurrentQueue<string>();
         // V12.Phase8.2: Prevents double-repair for the same account while an order is in-flight
         private readonly ConcurrentDictionary<string, byte> _repairInFlight = new ConcurrentDictionary<string, byte>(); // [Build 968]
+        // [Phase 5 Repair] Mirrors _repairInFlight to dedupe flatten enqueues across audit cycles.
+        private readonly ConcurrentDictionary<string, byte> _reaperFlattenInFlight = new ConcurrentDictionary<string, byte>();
 
         // Build 1102R: Queue for naked-position emergency stop requests (background -> strategy thread)
         private ConcurrentQueue<(string AccountName, MarketPosition Direction, int Qty)> _reaperNakedStopQueue
@@ -67,7 +69,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         private bool IsReaperFillGraceActive(string expKey)
         {
             if (_accountFillGraceTicks.TryGetValue(expKey, out long stampTicks))
+            {
                 return stampTicks > 0 && (DateTime.UtcNow.Ticks - stampTicks) < ReaperFillGraceTicks;
+            }
             // Fallback: check legacy global stamp (covers master account path)
             long globalStamp = Interlocked.Read(ref _lastExpectedPositionSetTicks);
             return globalStamp > 0 && (DateTime.UtcNow.Ticks - globalStamp) < ReaperFillGraceTicks;
@@ -79,7 +83,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             limitPoints = 0;
             double atrLimit = CalculateATRStopDistance(RMAStopATRMultiplier);
             if (atrLimit <= 0)
+            {
                 atrLimit = MinimumStop;
+            }
 
             double fenceLimit = (RepairTickFence > 0 && tickSize > 0)
                 ? RepairTickFence * tickSize
@@ -110,7 +116,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         private void StopReaperAudit()
         {
-            if (_reaperTimer == null) return;
+            if (_reaperTimer == null)
+            {
+                return;
+            }
 
             _reaperTimer.Stop();
             _reaperTimer.Elapsed -= OnReaperTimerElapsed;
@@ -126,8 +135,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         private void OnReaperTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             // V12.Phase8 [F-05]: Skip auditing while a flatten is actively running
-            if (isFlattenRunning || !_orderAdoptionComplete || State != State.Realtime) 
+            if (isFlattenRunning || !_orderAdoptionComplete || State != State.Realtime)
+            {
                 return;
+            }
 
             try
             {

@@ -24,7 +24,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (IsFleetAccount(acct))
                 {
                     auditedCount++;
-                    if (AuditSingleFleetAccount(acct, shouldLog)) activeCount++;
+                    if (AuditSingleFleetAccount(acct, shouldLog))
+                    {
+                        activeCount++;
+                    }
                 }
             }
 
@@ -33,15 +36,22 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (!masterAudited)
             {
                 auditedCount++;
-                if (AuditMasterAccountIfNeeded(shouldLog)) activeCount++;
+                if (AuditMasterAccountIfNeeded(shouldLog))
+                {
+                    activeCount++;
+                }
             }
 
             if (shouldLog)
             {
                 if (activeCount == 0)
+                {
                     Print($"[REAPER] Heartbeat: All {auditedCount} accounts flat.");
+                }
                 else
+                {
                     Print($"[REAPER] Heartbeat: {activeCount}/{auditedCount} accounts with positions.");
+                }
                 lastReaperLog = DateTime.UtcNow;
             }
         }
@@ -50,7 +60,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         // Returns true if the account has non-zero state (for heartbeat counter).
         private bool AuditSingleFleetAccount(Account acct, bool shouldLog)
         {
-            Position pos = acct.Positions.FirstOrDefault(p => p.Instrument.FullName == Instrument.FullName);
+            Position pos;
             int actualQty;
             int expectedQty;
             string expectedKey;
@@ -68,7 +78,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 out syncPending,
                 out inFillGrace,
                 out hasState,
-                out accountFsms);
+                out accountFsms,
+                out pos);
 
             if (expectedQty != actualQty)
             {
@@ -77,7 +88,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // GHOST-FIX-3: Skip repair for Master -- it uses no FollowerBracketFSM -- repair path not applicable.
                     if (acct.Name == Account.Name)
                     {
-                        if (shouldLog) Print($"[REAPER] {acct.Name} is the Master account -- skipping follower repair.");
+                        if (shouldLog)
+                        {
+                            Print($"[REAPER] {acct.Name} is the Master account -- skipping follower repair.");
+                        }
                         return hasState;
                     }
 
@@ -123,8 +137,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                             if (graceElapsed < 10.0)
                             {
                                 if (shouldLog)
+                                {
                                     Print(string.Format("[REAPER] {0}: Position Pass grace ({1:F1}s/10s) -- deferring critical desync. Stop replace in progress.",
                                         acct.Name, graceElapsed));
+                                }
                                 return hasState; // Defer -- check again next audit cycle
                             }
                             // Grace expired -- clear entry and fall through to critical desync
@@ -134,26 +150,33 @@ namespace NinjaTrader.NinjaScript.Strategies
                         }
                     }
 
-                    if (shouldLog) Print($"[REAPER] * CRITICAL DESYNC on {acct.Name}: Expected={expectedQty}, Actual={actualQty}");
+                    if (shouldLog)
+                    {
+                        Print($"[REAPER] * CRITICAL DESYNC on {acct.Name}: Expected={expectedQty}, Actual={actualQty}");
+                    }
                     if (AutoFlattenDesync)
                     {
-                        if (shouldLog) Print($"[REAPER] * QUEUING FLATTEN for {acct.Name} - Emergency Re-sync!");
+                        if (shouldLog)
+                        {
+                            Print($"[REAPER] * QUEUING FLATTEN for {acct.Name} - Emergency Re-sync!");
+                        }
                         if (EnqueueReaperFlattenCandidate(acct))
                         {
                             try { TriggerCustomEvent(o => ProcessReaperFlattenQueue(), null); }
                             catch (Exception _flatTriggerEx)
                             {
-                                string _discarded;
-                                _reaperFlattenQueue.TryDequeue(out _discarded);
+                                _reaperFlattenInFlight.TryRemove(acct.Name + "_" + Instrument.FullName, out _);
                                 Print("[REAPER] TriggerCustomEvent failed for flatten of "
                                     + acct.Name + ": " + _flatTriggerEx.Message
-                                    + " -- dequeued, will re-detect next cycle");
+                                    + " -- in-flight cleared, will re-detect next cycle");
                             }
                         }
                     }
                 }
                 else if (shouldLog)
+                {
                     Print($"[REAPER] Minor Desync on {acct.Name}: Expected={expectedQty}, Actual={actualQty}");
+                }
             }
 
             // --- NAKED POSITION AUDIT (Build 1102R) ---------------------------------
@@ -174,7 +197,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                 }
                 else
+                {
                     _nakedPositionFirstSeen.TryRemove(acct.Name, out _);
+                }
             }
 
             return hasState;
@@ -184,12 +209,14 @@ namespace NinjaTrader.NinjaScript.Strategies
             Account acct, bool shouldLog,
             out int actualQty, out int expectedQty, out string expectedKey,
             out bool syncPending, out bool inFillGrace, out bool hasState,
-            out List<FollowerBracketFSM> accountFsms)
+            out List<FollowerBracketFSM> accountFsms, out Position pos)
         {
-            Position pos = acct.Positions.FirstOrDefault(p => p.Instrument.FullName == Instrument.FullName);
+            pos = acct.Positions.FirstOrDefault(p => p.Instrument.FullName == Instrument.FullName);
             actualQty = 0;
             if (pos != null && pos.MarketPosition != MarketPosition.Flat)
+            {
                 actualQty = pos.MarketPosition == MarketPosition.Long ? pos.Quantity : -pos.Quantity;
+            }
 
             // Build 1105: FSM is the SOLE authority for follower expected position.
             accountFsms = _followerBrackets.Values.Where(f => f.AccountName == acct.Name).ToList();
@@ -218,7 +245,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             // Build 999: If Position Pass failed on reconnect but FSM has since been created (replace cycle completed), clear grace.
             if (fsmExpectedQty != 0)
+            {
                 _positionPassFailedFirstSeen.TryRemove(acct.Name, out _);
+            }
 
             // AUTHORITY: Use FSM state from now on
             expectedKey = ExpKey(acct.Name);
@@ -230,7 +259,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             hasState = expectedQty != 0 || actualQty != 0;
             if (shouldLog && hasState)
+            {
                 Print($"[REAPER] {acct.Name}: Expected={expectedQty}, Actual={actualQty}");
+            }
         }
 
         private bool EnqueueReaperRepairCandidate(Account acct, bool shouldLog, int expectedQty, List<FollowerBracketFSM> accountFsms, out string repairKey)
@@ -246,7 +277,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (!hasWorkingEntry)
                 {
-                    if (shouldLog) Print($"[REAPER] * REPAIR CANDIDATE: {acct.Name} is Flat, expected={expectedQty}. Enqueuing repair.");
+                    if (shouldLog)
+                    {
+                        Print($"[REAPER] * REPAIR CANDIDATE: {acct.Name} is Flat, expected={expectedQty}. Enqueuing repair.");
+                    }
                     // A3-2: Mark in-flight BEFORE TriggerCustomEvent to block double-enqueue in next audit cycle (Build 960 audit fix)
                     _repairInFlight.TryAdd(repairKey, 0); // [Build 968]
                     _reaperRepairQueue.Enqueue(acct.Name);
@@ -254,13 +288,20 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
             else if (shouldLog)
+            {
                 Print($"[REAPER] {acct.Name} repair already in-flight -- skipping.");
+            }
 
             return false;
         }
 
         private bool EnqueueReaperFlattenCandidate(Account acct)
         {
+            string flattenKey = acct.Name + "_" + Instrument.FullName;
+            if (!_reaperFlattenInFlight.TryAdd(flattenKey, 0))
+            {
+                return false;
+            }
             _reaperFlattenQueue.Enqueue(acct.Name);
             return true;
         }
@@ -330,7 +371,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             foreach (var kvp in _followerBrackets.ToArray())
             {
                 FollowerBracketFSM fsm = kvp.Value;
-                if (fsm == null || fsm.AccountName != accountName) continue;
+                if (fsm == null || fsm.AccountName != accountName)
+                {
+                    continue;
+                }
 
                 FollowerBracketFSM removedFsm;
                 if (TryTerminateFollowerBracket(kvp.Key, out removedFsm))
@@ -347,7 +391,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             Position masterPos = Account.Positions.FirstOrDefault(p => p.Instrument.FullName == Instrument.FullName);
             int masterActualQty = 0;
             if (masterPos != null && masterPos.MarketPosition != MarketPosition.Flat)
+            {
                 masterActualQty = masterPos.MarketPosition == MarketPosition.Long ? masterPos.Quantity : -masterPos.Quantity;
+            }
 
             int masterExpectedQty = 0;
             string masterExpectedKey = ExpKey(Account.Name);
@@ -356,26 +402,33 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             bool hasState = masterExpectedQty != 0 || masterActualQty != 0;
             if (shouldLog && hasState)
+            {
                 Print($"[REAPER] {Account.Name} (Master): Expected={masterExpectedQty}, Actual={masterActualQty}");
+            }
 
             if (masterExpectedQty != masterActualQty)
             {
                 if (masterActualQty == 0 && masterExpectedQty != 0)
                 {
-                    if (shouldLog) Print($"[REAPER] {Account.Name} (Master) is Flat (Target/Stop hit). Expected was {masterExpectedQty}.");
+                    if (shouldLog)
+                    {
+                        Print($"[REAPER] {Account.Name} (Master) is Flat (Target/Stop hit). Expected was {masterExpectedQty}.");
+                    }
                 }
                 else if (AuditMaster_CheckExpectedActual(shouldLog, masterActualQty, masterExpectedQty))
                 {
-                    if (shouldLog) Print($"[REAPER] QUEUING FLATTEN for {Account.Name} (Master) - Emergency Re-sync!");
+                    if (shouldLog)
+                    {
+                        Print($"[REAPER] QUEUING FLATTEN for {Account.Name} (Master) - Emergency Re-sync!");
+                    }
                     if (EnqueueReaperMasterFlatten())
                     {
                         try { TriggerCustomEvent(o => ProcessReaperFlattenQueue(), null); }
                         catch (Exception _mFlatTriggerEx)
                         {
-                            string _mDiscarded;
-                            _reaperFlattenQueue.TryDequeue(out _mDiscarded);
+                            _reaperFlattenInFlight.TryRemove(Account.Name + "_" + Instrument.FullName, out _);
                             Print("[REAPER] TriggerCustomEvent failed for master flatten: "
-                                + _mFlatTriggerEx.Message + " -- dequeued, will re-detect next cycle");
+                                + _mFlatTriggerEx.Message + " -- in-flight cleared, will re-detect next cycle");
                         }
                     }
                 }
@@ -413,7 +466,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                 }
                 else
+                {
                     _nakedPositionFirstSeen.TryRemove(Account.Name, out _);
+                }
             }
 
             return hasState;
@@ -431,23 +486,34 @@ namespace NinjaTrader.NinjaScript.Strategies
                  (Math.Sign(masterActualQty) != Math.Sign(masterExpectedQty) && masterExpectedQty != 0));
 
             if (inFillGrace && shouldLog)
+            {
                 Print($"[REAPER] {Account.Name} (Master): Fill grace active -- desync check suppressed.");
+            }
 
             if (isCriticalDesync)
             {
                 if (shouldLog)
                     Print($"[REAPER] CRITICAL DESYNC on {Account.Name} (Master): Expected={masterExpectedQty}, Actual={masterActualQty}");
                 if (AutoFlattenDesync)
+                {
                     return true;
+                }
             }
             else if (shouldLog)
+            {
                 Print($"[REAPER] Minor Desync on {Account.Name} (Master): Expected={masterExpectedQty}, Actual={masterActualQty}");
+            }
 
             return false;
         }
 
         private bool EnqueueReaperMasterFlatten()
         {
+            string flattenKey = Account.Name + "_" + Instrument.FullName;
+            if (!_reaperFlattenInFlight.TryAdd(flattenKey, 0))
+            {
+                return false;
+            }
             _reaperFlattenQueue.Enqueue(Account.Name);
             return true;
         }
@@ -501,6 +567,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     Print($"[REAPER] [X] MARSHAL-FLATTEN FAILED for {accountName}: {ex.Message}");
                 }
+                finally
+                {
+                    _reaperFlattenInFlight.TryRemove(accountName + "_" + Instrument.FullName, out _);
+                }
             }
         }
 
@@ -541,7 +611,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (ordersToCancel.Count > 0)
             {
                 foreach (Order orderToCancel in ordersToCancel)
+                {
                     CancelOrderOnAccount(orderToCancel, targetAcct);
+                }
                 Print($"[REAPER] Emergency Cancel: {ordersToCancel.Count} orders on {accountName}");
             }
         }
@@ -551,7 +623,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             // 2. Proactively close positions via unmanaged market orders
             foreach (Position position in targetAcct.Positions)
             {
-                if (position.Instrument.FullName != Instrument.FullName || position.MarketPosition == MarketPosition.Flat) continue;
+                if (position.Instrument.FullName != Instrument.FullName || position.MarketPosition == MarketPosition.Flat)
+                {
+                    continue;
+                }
 
                 int qty = position.Quantity;
                 string signalName = "ReaperFlatten_" + position.MarketPosition.ToString();
@@ -560,9 +635,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     // Master Account
                     if (position.MarketPosition == MarketPosition.Long)
+                    {
                         SubmitOrderUnmanaged(0, OrderAction.Sell, OrderType.Market, qty, 0, 0, "", signalName);
+                    }
                     else
+                    {
                         SubmitOrderUnmanaged(0, OrderAction.BuyToCover, OrderType.Market, qty, 0, 0, "", signalName);
+                    }
                 }
                 else
                 {
