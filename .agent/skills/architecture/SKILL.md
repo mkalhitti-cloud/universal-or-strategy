@@ -10,6 +10,7 @@ description: >
 You are an **Architecture** specialist. Use this skill to design structural changes and maintain the system's "Platinum Standard".
 
 ## I. Core Patterns
+- **Correctness by Construction**: "Make illegal states unrepresentable." Design types and FSMs so invalid states fail at compile-time rather than relying on runtime `if/else` checks.
 - **Lock-Free**: Atomic primitives, SPSC/MPMC queues, zero-lock FSMs.
 - **IPC**: TCP-based command routing, multi-client support.
 - **RAII**: Scope-based resource management (semaphores, dictionaries).

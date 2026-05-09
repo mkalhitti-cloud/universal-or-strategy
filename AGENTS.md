@@ -11,6 +11,7 @@ Welcome, Agent. You are operating within the **V12 Universal OR Strategy** repos
 
 ## 2. Architectural Mandates (THE PLATINUM STANDARD)
 
+- **Correctness by Construction ("Make illegal states unrepresentable")**: Structure types, enums, and data models so that it is mathematically impossible for the compiler to allow an invalid state. Do not rely on runtime if/else guards for weird edge cases—design the architecture so the edge case literally cannot exist.
 - **Lock-Free Actor Pattern**: Legacy `lock(stateLock)` blocks are **STRICTLY BANNED**. All state mutations must use the FSM/Actor `Enqueue` model or atomic primitives.
 - **ASCII-Only Compliance**: NEVER use Unicode, emoji, or curly quotes in C# string literals.
 - **Hard-Link Integrity**: Every `src/` modification MUST be followed by `powershell -File .\deploy-sync.ps1` to re-synchronize NinjaTrader hard links.

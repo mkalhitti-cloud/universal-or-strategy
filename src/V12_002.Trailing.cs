@@ -66,179 +66,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (ManageTrail_RunPerTradeBranches(entryName, pos)) continue;
 
-                double profitPoints = pos.Direction == MarketPosition.Long
-                    ? pos.ExtremePriceSinceEntry - pos.EntryPrice
-                    : pos.EntryPrice - pos.ExtremePriceSinceEntry;
-
-                double newStopPrice = pos.CurrentStopPrice;
-                int newTrailLevel = pos.CurrentTrailLevel;
-
                 // Standard TREND/RETEST are EMA-only; point-based BE/T1/T2/T3 is RMA-only for these trade types.
                 bool isTrendOrRetestTrade = pos.IsTRENDTrade || pos.IsRetestTrade;
                 bool allowPointBasedTrailing = !isTrendOrRetestTrade || pos.IsRMATrade;
                 if (!allowPointBasedTrailing)
                     continue;
-
-                // MANUAL BREAKEVEN - Check FIRST before automatic trailing
-                // This allows user to "arm" breakeven early and it auto-triggers when price reaches threshold
-                if (pos.ManualBreakevenArmed && !pos.ManualBreakevenTriggered)
-                {
-                    double beThreshold = pos.EntryPrice + (BreakEvenOffsetTicks * tickSize);
-                    bool thresholdReached = false;
-
-                    if (pos.Direction == MarketPosition.Long)
-                    {
-                        thresholdReached = Close[0] >= beThreshold;
-                    }
-                    else // Short
-                    {
-                        beThreshold = pos.EntryPrice - (BreakEvenOffsetTicks * tickSize);
-                        thresholdReached = Close[0] <= beThreshold;
-                    }
-
-                    if (thresholdReached)
-                    {
-                        // Move stop to breakeven + buffer
-                        double manualBEStop = pos.Direction == MarketPosition.Long
-                            ? pos.EntryPrice + (BreakEvenOffsetTicks * tickSize)
-                            : pos.EntryPrice - (BreakEvenOffsetTicks * tickSize);
-
-                        // Only move if it's better than current stop
-                        bool shouldMove = pos.Direction == MarketPosition.Long
-                            ? manualBEStop > pos.CurrentStopPrice
-                            : manualBEStop < pos.CurrentStopPrice;
-
-                        if (shouldMove)
-                        {
-                            newStopPrice = manualBEStop;
-                            newTrailLevel = 1; // Same as automatic breakeven
-                            pos.ManualBreakevenTriggered = true;
-                            Print(string.Format("? MANUAL BREAKEVEN TRIGGERED: {0} -> Stop moved to {1:F2} (Entry + {2} tick)", 
-                                entryName, manualBEStop, BreakEvenOffsetTicks));
-                        }
-                    }
-                }
-
-                // v5.13 FREQUENCY CONTROL: Determine if we should check trailing based on current level
-                // BE (level 0-1) and T3 (level 4) = every tick
-                // T1 (level 2) and T2 (level 3) = every OTHER tick
-                
-                bool shouldCheckTrailing = true; // Default: check every tick
-                
-                // Determine current active level based on profit
-                if (profitPoints >= Trail3TriggerPoints && pos.T1Filled && pos.T2Filled)
-                {
-                    // At T3 level (5+ points) - Check EVERY tick
-                    shouldCheckTrailing = true;
-                }
-                else if (profitPoints >= Trail2TriggerPoints && pos.T1Filled)
-                {
-                    // At T2 level (4-4.99 points) - Check every OTHER tick
-                    shouldCheckTrailing = (pos.TicksSinceEntry % 2 == 0);
-                }
-                else if (profitPoints >= Trail1TriggerPoints)
-                {
-                    // At T1 level (3-3.99 points) - Check every OTHER tick
-                    shouldCheckTrailing = (pos.TicksSinceEntry % 2 == 0);
-                }
-                else
-                {
-                    // At BE level or below (0-2.99 points) - Check EVERY tick
-                    shouldCheckTrailing = true;
-                }
-
-                // Only proceed with trailing logic if frequency check passes
-                if (!shouldCheckTrailing)
-                    continue;
-
-                // Trail 3 (highest priority) - At 5 points, trail by 1 point
-                // V8.22: Strictly profit based (no target dependencies)
-                if (profitPoints >= Trail3TriggerPoints)
-                {
-                    double trail3Stop = pos.Direction == MarketPosition.Long
-                        ? pos.ExtremePriceSinceEntry - Trail3DistancePoints
-                        : pos.ExtremePriceSinceEntry + Trail3DistancePoints;
-
-                    if (pos.Direction == MarketPosition.Long && trail3Stop > pos.CurrentStopPrice)
-                    {
-                        newStopPrice = trail3Stop;
-                        newTrailLevel = 4; // Level 4 = Trail 3
-                    }
-                    else if (pos.Direction == MarketPosition.Short && trail3Stop < pos.CurrentStopPrice)
-                    {
-                        newStopPrice = trail3Stop;
-                        newTrailLevel = 4;
-                    }
-                }
-                // Trail 2 - At 4 points, trail by 1.5 points
-                else if (profitPoints >= Trail2TriggerPoints && pos.CurrentTrailLevel < 3)
-                {
-                    double trail2Stop = pos.Direction == MarketPosition.Long
-                        ? pos.ExtremePriceSinceEntry - Trail2DistancePoints
-                        : pos.ExtremePriceSinceEntry + Trail2DistancePoints;
-
-                    if (pos.Direction == MarketPosition.Long && trail2Stop > pos.CurrentStopPrice)
-                    {
-                        newStopPrice = trail2Stop;
-                        newTrailLevel = 3; // Level 3 = Trail 2
-                    }
-                    else if (pos.Direction == MarketPosition.Short && trail2Stop < pos.CurrentStopPrice)
-                    {
-                        newStopPrice = trail2Stop;
-                        newTrailLevel = 3;
-                    }
-                }
-                // Trail 1 - At 3 points, trail by 2 points
-                else if (profitPoints >= Trail1TriggerPoints && pos.CurrentTrailLevel < 2)
-                {
-                    double trail1Stop = pos.Direction == MarketPosition.Long
-                        ? pos.ExtremePriceSinceEntry - Trail1DistancePoints
-                        : pos.ExtremePriceSinceEntry + Trail1DistancePoints;
-
-                    if (pos.Direction == MarketPosition.Long && trail1Stop > pos.CurrentStopPrice)
-                    {
-                        newStopPrice = trail1Stop;
-                        newTrailLevel = 2; // Level 2 = Trail 1
-                    }
-                    else if (pos.Direction == MarketPosition.Short && trail1Stop < pos.CurrentStopPrice)
-                    {
-                        newStopPrice = trail1Stop;
-                        newTrailLevel = 2;
-                    }
-                }
-                // Break-even - At 2 points, move to BE +1 tick
-                else if (profitPoints >= BreakEvenTriggerPoints && pos.CurrentTrailLevel < 1)
-                {
-                    double beStop = pos.Direction == MarketPosition.Long
-                        ? pos.EntryPrice + (BreakEvenOffsetTicks * tickSize)
-                        : pos.EntryPrice - (BreakEvenOffsetTicks * tickSize);
-
-                    if (pos.Direction == MarketPosition.Long && beStop > pos.CurrentStopPrice)
-                    {
-                        newStopPrice = beStop;
-                        newTrailLevel = 1;
-                        // [Build 1102J] Prevent the ManualBreakevenArmed path from re-firing redundantly.
-                        pos.ManualBreakevenTriggered = true;
-                    }
-                    else if (pos.Direction == MarketPosition.Short && beStop < pos.CurrentStopPrice)
-                    {
-                        newStopPrice = beStop;
-                        newTrailLevel = 1;
-                        // [Build 1102J] Prevent the ManualBreakevenArmed path from re-firing redundantly.
-                        pos.ManualBreakevenTriggered = true;
-                    }
-                }
-
-                // V8.21: Check if stop price actually changed by more than 1 tick before updating
-                // This prevents redundant "micro-updates" that saturate the order system
-                if (Math.Abs(newStopPrice - pos.CurrentStopPrice) < tickSize * 0.9)
-                    continue;
-
-                // Update stop if needed
-                if (newStopPrice != pos.CurrentStopPrice)
-                {
-                    UpdateStopOrder(entryName, pos, newStopPrice, newTrailLevel);
-                }
+                double _newStopPrice = pos.CurrentStopPrice;
+                int _newTrailLevel = pos.CurrentTrailLevel;
+                ManageTrail_RunPointBasedTrailing(entryName, pos, ref _newStopPrice, ref _newTrailLevel);
             }
 
             // V12.10: FLEET SYMMETRY SYNC PASS
@@ -462,6 +297,185 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             return false;
+        }
+
+        private void ManageTrail_RunPointBasedTrailing(string entryName, PositionInfo pos, ref double newStopPrice, ref int newTrailLevel)
+        {
+            double profitPoints = ManageTrail_CalculateProfitPoints(pos);
+
+            // MANUAL BREAKEVEN - Check FIRST before automatic trailing
+            // This allows user to "arm" breakeven early and it auto-triggers when price reaches threshold
+            ManageTrail_EvaluateManualBreakeven(entryName, pos, ref newStopPrice, ref newTrailLevel);
+
+            // v5.13 FREQUENCY CONTROL: Determine if we should check trailing based on current level
+            // BE (level 0-1) and T3 (level 4) = every tick
+            // T1 (level 2) and T2 (level 3) = every OTHER tick
+            if (!ManageTrail_ShouldCheckPointBasedTrailing(pos, profitPoints))
+            {
+                return;
+            }
+
+            // Trail 3/2/1/Break-even cascade
+            // V8.22: Strictly profit based (no target dependencies)
+            ManageTrail_ApplyPointBasedCascade(pos, profitPoints, ref newStopPrice, ref newTrailLevel);
+
+            // V8.21: Check if stop price actually changed by more than 1 tick before updating
+            // This prevents redundant "micro-updates" that saturate the order system
+            if (!ManageTrail_ShouldUpdatePointBasedStop(pos, newStopPrice))
+            {
+                return;
+            }
+
+            UpdateStopOrder(entryName, pos, newStopPrice, newTrailLevel);
+        }
+
+        private double ManageTrail_CalculateProfitPoints(PositionInfo pos)
+        {
+            return pos.Direction == MarketPosition.Long
+                ? pos.ExtremePriceSinceEntry - pos.EntryPrice
+                : pos.EntryPrice - pos.ExtremePriceSinceEntry;
+        }
+
+        private void ManageTrail_EvaluateManualBreakeven(string entryName, PositionInfo pos, ref double newStopPrice, ref int newTrailLevel)
+        {
+            if (!pos.ManualBreakevenArmed || pos.ManualBreakevenTriggered)
+            {
+                return;
+            }
+
+            double beOffset = BreakEvenOffsetTicks * tickSize;
+            double beThreshold = pos.Direction == MarketPosition.Long
+                ? pos.EntryPrice + beOffset
+                : pos.EntryPrice - beOffset;
+
+            bool thresholdReached = pos.Direction == MarketPosition.Long
+                ? Close[0] >= beThreshold
+                : Close[0] <= beThreshold;
+
+            if (!thresholdReached)
+            {
+                return;
+            }
+
+            // Move stop to breakeven + buffer
+            double manualBEStop = beThreshold;
+
+            // Only move if it's better than current stop
+            bool shouldMove = pos.Direction == MarketPosition.Long
+                ? manualBEStop > pos.CurrentStopPrice
+                : manualBEStop < pos.CurrentStopPrice;
+
+            if (!shouldMove)
+            {
+                return;
+            }
+
+            newStopPrice = manualBEStop;
+            newTrailLevel = 1; // Same as automatic breakeven
+            pos.ManualBreakevenTriggered = true;
+            Print(string.Format("? MANUAL BREAKEVEN TRIGGERED: {0} -> Stop moved to {1:F2} (Entry + {2} tick)",
+                entryName, manualBEStop, BreakEvenOffsetTicks));
+        }
+
+        private bool ManageTrail_ShouldCheckPointBasedTrailing(PositionInfo pos, double profitPoints)
+        {
+            if (profitPoints >= Trail3TriggerPoints && pos.T1Filled && pos.T2Filled)
+            {
+                return true;
+            }
+
+            if (profitPoints >= Trail2TriggerPoints && pos.T1Filled)
+            {
+                return pos.TicksSinceEntry % 2 == 0;
+            }
+
+            if (profitPoints >= Trail1TriggerPoints)
+            {
+                return pos.TicksSinceEntry % 2 == 0;
+            }
+
+            return true;
+        }
+
+        private void ManageTrail_ApplyPointBasedCascade(PositionInfo pos, double profitPoints, ref double newStopPrice, ref int newTrailLevel)
+        {
+            if (profitPoints >= Trail3TriggerPoints)
+            {
+                double trail3Stop = pos.Direction == MarketPosition.Long
+                    ? pos.ExtremePriceSinceEntry - Trail3DistancePoints
+                    : pos.ExtremePriceSinceEntry + Trail3DistancePoints;
+                ManageTrail_TryApplyDirectionalStop(pos, trail3Stop, 4, ref newStopPrice, ref newTrailLevel); // Level 4 = Trail 3
+                return;
+            }
+
+            if (profitPoints >= Trail2TriggerPoints && pos.CurrentTrailLevel < 3)
+            {
+                double trail2Stop = pos.Direction == MarketPosition.Long
+                    ? pos.ExtremePriceSinceEntry - Trail2DistancePoints
+                    : pos.ExtremePriceSinceEntry + Trail2DistancePoints;
+                ManageTrail_TryApplyDirectionalStop(pos, trail2Stop, 3, ref newStopPrice, ref newTrailLevel); // Level 3 = Trail 2
+                return;
+            }
+
+            if (profitPoints >= Trail1TriggerPoints && pos.CurrentTrailLevel < 2)
+            {
+                double trail1Stop = pos.Direction == MarketPosition.Long
+                    ? pos.ExtremePriceSinceEntry - Trail1DistancePoints
+                    : pos.ExtremePriceSinceEntry + Trail1DistancePoints;
+                ManageTrail_TryApplyDirectionalStop(pos, trail1Stop, 2, ref newStopPrice, ref newTrailLevel); // Level 2 = Trail 1
+                return;
+            }
+
+            if (profitPoints >= BreakEvenTriggerPoints && pos.CurrentTrailLevel < 1)
+            {
+                ManageTrail_ApplyBreakEvenCandidate(pos, ref newStopPrice, ref newTrailLevel);
+            }
+        }
+
+        private void ManageTrail_TryApplyDirectionalStop(PositionInfo pos, double candidateStop, int trailLevel, ref double newStopPrice, ref int newTrailLevel)
+        {
+            if (pos.Direction == MarketPosition.Long && candidateStop > pos.CurrentStopPrice)
+            {
+                newStopPrice = candidateStop;
+                newTrailLevel = trailLevel;
+            }
+            else if (pos.Direction == MarketPosition.Short && candidateStop < pos.CurrentStopPrice)
+            {
+                newStopPrice = candidateStop;
+                newTrailLevel = trailLevel;
+            }
+        }
+
+        private void ManageTrail_ApplyBreakEvenCandidate(PositionInfo pos, ref double newStopPrice, ref int newTrailLevel)
+        {
+            double beStop = pos.Direction == MarketPosition.Long
+                ? pos.EntryPrice + (BreakEvenOffsetTicks * tickSize)
+                : pos.EntryPrice - (BreakEvenOffsetTicks * tickSize);
+
+            if (pos.Direction == MarketPosition.Long && beStop > pos.CurrentStopPrice)
+            {
+                newStopPrice = beStop;
+                newTrailLevel = 1;
+                // [Build 1102J] Prevent the ManualBreakevenArmed path from re-firing redundantly.
+                pos.ManualBreakevenTriggered = true;
+            }
+            else if (pos.Direction == MarketPosition.Short && beStop < pos.CurrentStopPrice)
+            {
+                newStopPrice = beStop;
+                newTrailLevel = 1;
+                // [Build 1102J] Prevent the ManualBreakevenArmed path from re-firing redundantly.
+                pos.ManualBreakevenTriggered = true;
+            }
+        }
+
+        private bool ManageTrail_ShouldUpdatePointBasedStop(PositionInfo pos, double newStopPrice)
+        {
+            if (Math.Abs(newStopPrice - pos.CurrentStopPrice) < tickSize * 0.9)
+            {
+                return false;
+            }
+
+            return newStopPrice != pos.CurrentStopPrice;
         }
 
         // V8.30: Clean up stale pending replacements that are older than 5 seconds
