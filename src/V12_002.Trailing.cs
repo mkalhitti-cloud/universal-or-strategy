@@ -80,68 +80,70 @@ namespace NinjaTrader.NinjaScript.Strategies
             // When SIMA is enabled, force followers to match the Leader's trail level.
             // Followers calculate stops relative to their OWN entry prices but are triggered
             // by the Leader's profit progress. This prevents slippage-induced desync.
-            if (EnableSIMA)
-            {
-                // Phase 1: Find the highest trail level among leader positions, by direction
-                int leaderLongMaxLevel = 0;
-                int leaderShortMaxLevel = 0;
-
-                foreach (var kvp in positionSnapshot)
-                {
-                    PositionInfo ldr = kvp.Value;
-                    if (ldr.IsFollower || !ldr.EntryFilled || !ldr.BracketSubmitted) continue;
-
-                    if (ldr.Direction == MarketPosition.Long)
-                        leaderLongMaxLevel = Math.Max(leaderLongMaxLevel, ldr.CurrentTrailLevel);
-                    else if (ldr.Direction == MarketPosition.Short)
-                        leaderShortMaxLevel = Math.Max(leaderShortMaxLevel, ldr.CurrentTrailLevel);
-                }
-
-                // V12.12: Diagnostic -- log leader trail levels for fleet sync visibility
-                if (leaderLongMaxLevel > 0 || leaderShortMaxLevel > 0)
-                    Print($"[SIMA] Fleet Sync: Leader trail levels -- Long={leaderLongMaxLevel}, Short={leaderShortMaxLevel}");
-
-                // Phase 2: Sync lagging followers UP to the leader's level
-                if (leaderLongMaxLevel > 0 || leaderShortMaxLevel > 0)
-                {
-                    foreach (var kvp in positionSnapshot)
-                    {
-                        string entryName2 = kvp.Key;
-                        PositionInfo fol = kvp.Value;
-
-                        if (!fol.IsFollower) continue;
-                        if (!fol.EntryFilled || !fol.BracketSubmitted) continue;
-                        if (!activePositions.ContainsKey(entryName2)) continue;
-
-                        int targetLevel = (fol.Direction == MarketPosition.Long)
-                            ? leaderLongMaxLevel
-                            : leaderShortMaxLevel;
-
-                        // V12.12: Guard -- skip if no leader exists for this direction (targetLevel==0)
-                        if (targetLevel == 0) continue;
-
-                        // Only sync UP -- never regress a follower already at a higher level
-                        if (fol.CurrentTrailLevel >= targetLevel) continue;
-
-                        double syncStopPrice = CalculateStopForLevel(fol, targetLevel);
-
-                        // Only move if it's a more protective stop
-                        bool isBetter = (fol.Direction == MarketPosition.Long)
-                            ? syncStopPrice > fol.CurrentStopPrice
-                            : syncStopPrice < fol.CurrentStopPrice;
-
-                        if (isBetter)
-                        {
-                            UpdateStopOrder(entryName2, fol, syncStopPrice, targetLevel);
-                            Print(string.Format("FLEET SYNC: {0} synced to Level {1} -> Stop {2:F2} (Leader advanced)",
-                                entryName2, targetLevel, syncStopPrice));
-                        }
-                    }
-                }
-            }
+            if (EnableSIMA) ManageTrail_RunFleetSymmetrySync(positionSnapshot);
 
             // Build 1105: Shadow Mode auto-propagation (runs after fleet sync)
             ShadowEngineCheck();
+        }
+
+        private void ManageTrail_RunFleetSymmetrySync(KeyValuePair<string, PositionInfo>[] positionSnapshot)
+        {
+            int leaderLongMaxLevel = 0;
+            int leaderShortMaxLevel = 0;
+
+            // Phase 1: Find the highest trail level among leader positions, by direction
+            foreach (var kvp in positionSnapshot)
+            {
+                PositionInfo ldr = kvp.Value;
+                if (ldr.IsFollower || !ldr.EntryFilled || !ldr.BracketSubmitted) continue;
+
+                if (ldr.Direction == MarketPosition.Long)
+                    leaderLongMaxLevel = Math.Max(leaderLongMaxLevel, ldr.CurrentTrailLevel);
+                else if (ldr.Direction == MarketPosition.Short)
+                    leaderShortMaxLevel = Math.Max(leaderShortMaxLevel, ldr.CurrentTrailLevel);
+            }
+
+            // V12.12: Diagnostic -- log leader trail levels for fleet sync visibility
+            if (leaderLongMaxLevel > 0 || leaderShortMaxLevel > 0)
+                Print($"[SIMA] Fleet Sync: Leader trail levels -- Long={leaderLongMaxLevel}, Short={leaderShortMaxLevel}");
+
+            // Phase 2: Sync lagging followers UP to the leader's level
+            if (leaderLongMaxLevel > 0 || leaderShortMaxLevel > 0)
+            {
+                foreach (var kvp in positionSnapshot)
+                {
+                    string entryName2 = kvp.Key;
+                    PositionInfo fol = kvp.Value;
+
+                    if (!fol.IsFollower) continue;
+                    if (!fol.EntryFilled || !fol.BracketSubmitted) continue;
+                    if (!activePositions.ContainsKey(entryName2)) continue;
+
+                    int targetLevel = (fol.Direction == MarketPosition.Long)
+                        ? leaderLongMaxLevel
+                        : leaderShortMaxLevel;
+
+                    // V12.12: Guard -- skip if no leader exists for this direction (targetLevel==0)
+                    if (targetLevel == 0) continue;
+
+                    // Only sync UP -- never regress a follower already at a higher level
+                    if (fol.CurrentTrailLevel >= targetLevel) continue;
+
+                    double syncStopPrice = CalculateStopForLevel(fol, targetLevel);
+
+                    // Only move if it's a more protective stop
+                    bool isBetter = (fol.Direction == MarketPosition.Long)
+                        ? syncStopPrice > fol.CurrentStopPrice
+                        : syncStopPrice < fol.CurrentStopPrice;
+
+                    if (isBetter)
+                    {
+                        UpdateStopOrder(entryName2, fol, syncStopPrice, targetLevel);
+                        Print(string.Format("FLEET SYNC: {0} synced to Level {1} -> Stop {2:F2} (Leader advanced)",
+                            entryName2, targetLevel, syncStopPrice));
+                    }
+                }
+            }
         }
 
         private void ManageTrail_AdaptiveThrottleTick(out bool shouldExit)
