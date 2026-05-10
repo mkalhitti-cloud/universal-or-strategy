@@ -46,8 +46,8 @@ After EVERY use of this workflow, the executing agent MUST perform a post-use au
 1. **Did the pipe execution succeed?** Adjust the PowerShell syntax if it failed due to quoting or encoding issues.
 2. **Did Gemini CLI fully grasp the context?** If it missed details, refine the handoff brief structure.
 
-**If no gap found, state:** `workflow(gemini_pipe): no gaps identified -- workflow correct as written.`
+**If no gap found, state:** `workflow(handoff_gemini): no gaps identified -- workflow correct as written.`
 
 Skipping the audit is a protocol violation. No Director approval needed for self-improvement edits.
 
-**Commit format:** `workflow(gemini_pipe): [what was fixed and why]`
+**Commit format:** `workflow(handoff_gemini): [what was fixed and why]`
