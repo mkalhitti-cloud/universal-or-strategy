@@ -11,3 +11,6 @@ STRICT RULE: C# string literals must be ASCII-only. Flag any Unicode, emojis, or
 STRICT RULE: The `lock(stateLock)` pattern is BANNED. Ensure all state mutations use the Enqueue/FSM model.
 STRICT RULE: Verify that any order replacement uses the two-phase Replace FSM pattern.
 """
+
+[github_action_config]
+auto_review = true

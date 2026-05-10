@@ -25,10 +25,10 @@
 
 ## 🕹️ Director Commands ($)
 
-- **$PLAN_AUDIT**: Use `read_terminal` on the active Claude/Antigravity PID to ingest- **Engineer**: Implementation of surgical C# edits and performance optimizations.
+- **$PLAN_AUDIT**: Use `read_terminal` on the active Claude/Antigravity PID to ingest the plan before recommending approval to the Director.
+- **Engineer**: Implementation of surgical C# edits and performance optimizations.
 - **Frontend Design (V12.15)**: High-fidelity dashboard and overlay development.
 - **Forensics**: Strategic diagnosis and logic audits.
-  before recommending approval to the Director.
 - **$MISSION**: Initialize a new project phase via a Mission Brief artifact.
 - **$AUDIT**: Trigger the `/audit` skill to scan the `src/` directory.
 

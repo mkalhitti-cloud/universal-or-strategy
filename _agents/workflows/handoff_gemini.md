@@ -19,15 +19,14 @@ Use this workflow to delegate a task or handoff execution to the Gemini CLI (BAC
 
 ## Phase 2: Execute the Pipe Prompt
 
-To execute the Gemini CLI using the Traycer-style pipe prompt method in PowerShell, read the prompt file and pipe it into the `gemini` command.
+To execute the Gemini CLI, use `Start-Process` to spawn a visible interactive terminal (just like Traycer). This prevents `node-pty` attach crashes in headless environments.
 
 ```powershell
 # // turbo
-$promptContent = Get-Content docs/brain/gemini_mission_brief.md -Raw
-gemini -p $promptContent
+Start-Process powershell -ArgumentList "-NoExit -File .\scripts\run_gemini_brief.ps1"
 ```
 
-*(Note: The global protocol requires `gemini -p "<prompt>"`. By reading it into a variable and passing it as an argument, we avoid shell escaping issues and length limits that occur with raw inline strings.)*
+*(Note: The `run_gemini_brief.ps1` script handles reading the raw file into the `gemini -p` command.)*
 
 ---
 

@@ -53,7 +53,7 @@ jobs:
       - name: Finish SonarCloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        # Finish scan even if build failed
+        if: success() || failure()
         continue-on-error: true
         run: |
           dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"

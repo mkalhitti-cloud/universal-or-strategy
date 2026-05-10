@@ -40,6 +40,7 @@ diff.txt
 gh_log.txt
 help.txt
 test-vertex.js
+artifacts/rdp_ocr*.txt
 
 # Persistent ignores
 tmp/

@@ -64,6 +64,7 @@ jobs:
               }
               prNumber = event.issue.number;
               try {
+                if (!/^\d+$/.test(prNumber)) throw new Error('Invalid PR number');
                 branch = execSync(`gh pr view ${prNumber} --json headRefName -q .headRefName`, { encoding: 'utf8' }).trim();
                 console.log(`Resolved PR branch for #${prNumber}: ${branch}`);
               } catch (e) {
@@ -269,6 +270,11 @@ Post all findings as a detailed PR comment.`;
               console.error(`Error posting comment: ${e.message}`);
             }
           }
+
+          run();
+          EOF
+          node jules_audit.js
+  }
 
           run();
           EOF
