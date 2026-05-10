@@ -22,7 +22,7 @@ To execute the Rovo Dev CLI using the Traycer-style pipe prompt method in PowerS
 ```powershell
 # // turbo
 $promptContent = Get-Content docs/brain/rovo_mission_brief.md -Raw
-acli rovodev "$promptContent"
+acli rovodev run "$promptContent"
 ```
 
 *(Note: Verify the exact argument flag required for Rovo Dev in your environment, similar to Codex or Gemini.)*
