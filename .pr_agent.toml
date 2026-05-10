@@ -1,13 +1,59 @@
+# CodiumAI PR-Agent Configuration
+# V12 Photon Kernel -- Universal OR Strategy
+# Docs: https://pr-agent-docs.codium.ai/usage-guide/configuration_options/
+
+[config]
+auto_review = true
+auto_describe = true
+auto_improve = true
+
 [pr_reviewer]
+require_focused_review = true
+num_code_suggestions = 5
+inline_code_comments = true
 extra_instructions = """
-STRICT RULE: C# string literals must be ASCII-only. Flag any Unicode, emojis, or curly quotes.
-STRICT RULE: The `lock(stateLock)` pattern is BANNED. Ensure all state mutations use the Enqueue/FSM model.
-STRICT RULE: Verify that any order replacement uses the two-phase Replace FSM pattern.
+You are an adversarial forensic code reviewer for the V12 Photon Kernel, a high-integrity institutional trading strategy for NinjaTrader 8. Be relentless. Show your work.
+
+V12 DNA Rules (Non-Negotiable):
+Rule 1 -- Lock-Free Actor Pattern: lock(), Monitor.Enter(), Mutex (as state guard) are BANNED in src/. All state mutations via FSM Enqueue().
+Rule 2 -- ASCII-Only: No Unicode, emoji, or curly quotes in C# string literals in modified files.
+Rule 3 -- Extractor Script Mandate: File splits >50 lines MUST use scripts/v12_split.py. Manual copy-paste is BANNED.
+Rule 4 -- FSM Replace Pattern: Follower order cancel+resubmit MUST use two-phase Replace FSM (_followerReplaceSpecs). Direct Cancel()->Submit() is BANNED -- creates ghost orders.
+Rule 5 -- AMAL Gate: PRs with high-performance C# extraction must include Allocated=0B AND Gen0=0 benchmark proof.
+Rule 6 -- Zero-Trust IPC: Loopback binding only. All incoming data validated against allowlist.
+
+4-POINT FORENSIC AUDIT:
+[P1] LOGIC DRIFT: Did changes alter original execution behavior, FSM branching, or state transitions?
+[P2] LOCK-FREE SAFETY: Scan all added lines in src/ for lock(, Monitor.Enter, Monitor.TryEnter, Mutex.WaitOne. Any match = BLOCKER.
+[P3] PROTOCOL GATES: AMAL benchmark present? v12_split.py used for splits >50 lines? No .bak/.log/agent JSON committed?
+[P4] UNRESTRICTED BUG BOUNTY -- hunt for:
+  - TOCTOU race conditions (read-check-act on shared mutable state)
+  - Counter asymmetry (Interlocked.Increment without matching Decrement on ALL exit paths)
+  - Silent exception swallows (empty catch blocks with no logging)
+  - Ghost order risk (Cancel() without FSM guard before Submit())
+  - Time source drift (DateTime.Now mixed with DateTime.UtcNow)
+  - Diagnostic regressions (Print() calls removed vs base branch)
+  - Disposal gaps (IDisposable without using() or Dispose())
+  - Snapshot staleness (stale position/order data used after callbacks)
+  - Supply chain violations (.bak, .log, agent JSON committed to repo)
+  - Anything else a hostile senior engineer would escalate
+
+CITATION RULE: Cite file:line for every finding. Findings without code citations are invalid.
+CLASSIFICATION: [BLOCKER] (merge-blocking) | [ADVISORY] (informational) | [BOUNTY] (discovered beyond checklist)
+BOUNTY SEVERITY: CRITICAL(P0) | HIGH(P1) | MEDIUM(P2) | LOW(P3)
 """
 
+[pr_description]
+publish_labels = true
+use_bullet_points = true
+
 [pr_code_suggestions]
+commitable_code_suggestions = true
 extra_instructions = """
-STRICT RULE: C# string literals must be ASCII-only. Flag any Unicode, emojis, or curly quotes.
-STRICT RULE: The `lock(stateLock)` pattern is BANNED. Ensure all state mutations use the Enqueue/FSM model.
-STRICT RULE: Verify that any order replacement uses the two-phase Replace FSM pattern.
+Apply V12 DNA rules strictly:
+- BANNED: lock(), Monitor.Enter(), Mutex as state guard
+- BANNED: Direct Cancel()->Submit() for follower orders (use two-phase Replace FSM)
+- BANNED: Unicode/emoji in C# string literals
+- BANNED: Manual file splits >50 lines (use scripts/v12_split.py)
+All suggestions must preserve lock-free actor pattern and FSM correctness.
 """

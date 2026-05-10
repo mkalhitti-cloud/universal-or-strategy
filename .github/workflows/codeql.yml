@@ -2,9 +2,10 @@ name: CodeQL
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "dev"]
   pull_request:
-    branches: ["main"]
+    # CodeQL runs on ALL PRs regardless of target branch for maximum coverage.
+    # Previously limited to main -- expanded to catch vulnerabilities in feature branches before merge.
   schedule:
     - cron: "0 6 * * 1"
 
@@ -21,6 +22,9 @@ jobs:
       matrix:
         include:
           - language: csharp
+            # build-mode: none -- NinjaTrader proprietary assemblies are unavailable in hosted CI.
+            # autobuild would fail. none provides partial static analysis without type resolution.
+            # Trade-off: interprocedural data flow across NinjaTrader API calls is not tracked.
             build-mode: none
 
     steps:
@@ -32,6 +36,11 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+          # security-extended adds ~200 additional queries beyond the default security suite.
+          # Covers: SQL injection, path traversal, insecure deserialization, crypto weaknesses.
+          queries: security-extended
 
       - name: Analyze
         uses: github/codeql-action/analyze@7fc6561ed893d15cec696e062df840b21db27eb0
+        with:
+          category: "/language:${{ matrix.language }}"

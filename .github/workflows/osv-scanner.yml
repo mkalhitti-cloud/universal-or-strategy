@@ -7,14 +7,34 @@ on:
 
 permissions:
   contents: read
+  security-events: write  # Required to upload SARIF to GitHub Security tab
 
 jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
       - name: Run OSV-Scanner
+        id: osv_scan
+        continue-on-error: true  # Generate SARIF even on findings
         uses: google/osv-scanner-action/osv-scanner-action@v1.9.1
         with:
-          scan-args: ./
+          scan-args: |-
+            --format=sarif
+            --output=osv-results.sarif
+            ./
+
+      - name: Upload OSV findings to GitHub Security tab
+        if: always() && hashFiles('osv-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@7fc6561ed893d15cec696e062df840b21db27eb0
+        with:
+          sarif_file: osv-results.sarif
+          category: osv-scanner
+
+      - name: Fail on vulnerabilities
+        if: steps.osv_scan.outcome == 'failure'
+        run: |
+          echo "OSV Scanner found vulnerabilities. Check the Security tab for details."
+          exit 1

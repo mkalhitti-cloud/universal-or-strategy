@@ -3,10 +3,6 @@ name: CodiumAI PR-Agent
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    branches:
-      - main
-      - dev
-      - build-984-hardening
   issue_comment:
     types: [created]
 
@@ -22,8 +18,9 @@ jobs:
         uses: actions/checkout@v4
         
       - name: CodiumAI PR-Agent
-        uses: The-PR-Agent/pr-agent@main
+        uses: The-PR-Agent/pr-agent@6e6ef3fb8a40f3e7e94c180b14ec19e8f26ad83a  # pinned: 2024-12-stable
         continue-on-error: true
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CONFIG_PATH: .pr_agent.toml

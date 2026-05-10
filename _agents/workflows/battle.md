@@ -149,3 +149,24 @@ workflow(battle): harden Phase 3 -- explicit ANTI-REGRESSION RULE to mandate ver
 ```
 
 workflow(battle): no gaps identified -- workflow correct as written.
+
+---
+
+## Phase 6: Arena PR Review Protocol ($arenaprreview)
+
+When the task is to perform an adversarial Pull Request review (using Arena AI models), you MUST use the **Platinum Standard `$arenaprreview` Prompt** format below. This guarantees an uncompromising forensic HTML terminal splash page, forces models to fetch `.diff` files directly from GitHub, and enforces an Unrestricted Bug Bounty for zero-days outside our checklists.
+
+**Official `$arenaprreview` Template:**
+Located at: `_agents/workflows/arena_pr_review_prompt.md`
+
+**Core Elements Required in every `$arenaprreview`:**
+1. **Header Metadata**: MISSION, REPO, BRANCH, PR LINK.
+2. **Context & Task**: Instruct models to fetch the diff via appending `.diff` to the PR link.
+3. **Evaluation Parameters**:
+   - Parameter 1: Logic Drift
+   - Parameter 2: Lock-Free Safety
+   - Parameter 3: Protocol Configuration
+   - **Parameter 4: Unrestricted Bug Bounty** (Must challenge the model to find unhandled race conditions, memory leaks, and logic flaws not listed).
+4. **HTML Terminal Output Mandate**: Instruct the model: `You MUST render your entire response as a single, raw HTML terminal splash page. Do not use Markdown wrapping (no ```html blocks).`
+
+Always supply this exact prompt structure when setting up a PR review in Arena.
