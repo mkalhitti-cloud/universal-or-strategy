@@ -116,7 +116,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             foreach (var kvp in activePositions.ToArray())
             {
-                if (kvp.Value.ExecutingAccount?.Name == flatAcctName
+                if (kvp.Value.ExecutingAccount != null
+                    && kvp.Value.ExecutingAccount.Name == flatAcctName
                     && !kvp.Value.EntryFilled)
                 {
                     return true;
