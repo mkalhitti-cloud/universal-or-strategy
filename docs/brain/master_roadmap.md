@@ -2,10 +2,10 @@
 
 ## Build-984-SourceHardening | 12 Repairs CONFIRMED LIVE -- COMPLIANCE PASS
 
-**Last Synced**: 2026-05-08T00:00:00Z
-**Protocol**: V14 Alpha | **Current Build**: 1111.006-phase-6-t0
-**Status**: 🟢 **READY FOR MERGE** (StyleCop & ASCII Gates PASS)
-**Active Branch**: `build-984-source-hardening` | **Last Stable PR**: #76
+**Last Synced**: 2026-05-10T00:00:00Z
+**Protocol**: V15.4 | **Current Build**: 1111.006-phase-6-complete
+**Status**: 🟢 **READY FOR MERGE** (Phase 6 Complete)
+**Active Branch**: `phase-6-sima-extraction` | **Last Stable PR**: #76
 
 ---
 
@@ -45,7 +45,7 @@
 | **Phase 3** | Strategy Patterns (RAII + Resource Leak Remediation) | ✅ DONE |
 | **Phase 4** | Event Lifecycle Dispatcher (ADR-020) | ✅ DONE |
 | **Phase 5** | Modularization (StickyState + Trend + UI/Photon IO Subgraphs) | ✅ DONE |
-| **Phase 6** | Hot Path Execution Hardening (T1/T2/T3 god-function extraction) | 🟡 IN PROGRESS |
+| **Phase 6** | Hot Path Execution Hardening (T1/T2/T3 god-function extraction) | ✅ DONE |
 
 ---
 
@@ -125,19 +125,19 @@
 ---
 
 ## CURRENT MISSION: PHASE 6 -- HOT PATH EXECUTION HARDENING
-**Status**: 🟡 IN PROGRESS (V15.4 Protocol Active)
-**Build**: `1111.006-phase-6-t0` | **Epic**: SIMA Subgraph Extraction
+**Status**: ✅ COMPLETE (V15.4 Protocol Active)
+**Build**: `1111.006-phase-6-complete` | **Epic**: SIMA Subgraph Extraction
 
 Phase 6 is a discrete milestone bridging M5 (Zero-Allocation Hot Path) and M7 (Concurrency Hardening). It focuses on extracting three primary god-functions: `ManageTrailingStops` (151 CYC), `ProcessOnExecutionUpdate` (120 CYC), and `ExecuteSmartDispatchEntry` (100 CYC).
 
 ### Recursive Protocol (V15.4) Status:
 1. **Stage 0 (Forensic Intake)**: ✅ COMPLETE (`docs/brain/forensics_report.md`)
-2. **Stage 1 (Vision/Spec)**: 🟡 READY FOR HANDOFF
-3. **Stage 2 (Arch Planning)**: ⚪ PENDING
-4. **Stage 3 (DNA Audit)**: ⚪ PENDING
-5. **Stage 4 (Execution)**: ⚪ PENDING (Bob Shell configured)
-6. **Stage 5 (Verification)**: ⚪ PENDING
-7. **Stage 6 (Sign-off)**: ⚪ PENDING
+2. **Stage 1 (Vision/Spec)**: ✅ COMPLETE
+3. **Stage 2 (Arch Planning)**: ✅ COMPLETE
+4. **Stage 3 (DNA Audit)**: ✅ COMPLETE
+5. **Stage 4 (Execution)**: ✅ COMPLETE
+6. **Stage 5 (Verification)**: ✅ COMPLETE
+7. **Stage 6 (Sign-off)**: ✅ COMPLETE
 
 ### References
 
@@ -152,8 +152,8 @@ Phase 6 is a discrete milestone bridging M5 (Zero-Allocation Hot Path) and M7 (C
 - [x] T3.A: ProcessOnExecutionUpdate Partition
 - [x] T3.B: ExecuteSmartDispatchEntry: Extract BuildFollowerOrders
 - [x] T3.C: ExecuteSmartDispatchEntry: Extract PublishMarketBracketToPhoton (LOC target: <=160)
-- [ ] T3.D: ExecuteSmartDispatchEntry: Extract PublishLimitEntryToPhoton
-- [ ] T4: Final Integration & Regression Test (Gate: Evaluate Photon transport consolidation and zero-allocation hardening for stagedTargets and ordersToSubmit buffers)
+- [x] T3.D: ExecuteSmartDispatchEntry: Extract PublishLimitEntryToPhoton
+- [x] T4: Final Integration & Regression Test (Gate: Evaluate Photon transport consolidation and zero-allocation hardening for stagedTargets and ordersToSubmit buffers)
 
 ---
 
@@ -192,7 +192,7 @@ Phase 6 is a discrete milestone bridging M5 (Zero-Allocation Hot Path) and M7 (C
 | **StickyState Refactor** | [DONE] K0-K4 extractions live in `V12_002.StickyState.cs` (2026-05-07) |
 | **Trend Refactor (T1-T3)** | [DONE] T1/T2/T3 extractions live in `V12_002.Entries.Trend.cs` (2026-05-07) |
 | **UI/Photon IO Refactor (U1-U15)** | [DONE] U1-U15 extractions live across 7 UI/IPC files (2026-05-07) |
-| **Phase 5 Status** | [COMPLETE] All three subgraphs done. God-function extraction mission closed. |
+| **Phase 6 Status** | [COMPLETE] SIMA Subgraph Extraction finished. |
 | **RAII Leak Fix** | [DONE] `ClearDispatchSyncPending` injected (2 occurrences) |
 | **Hard Links** | [SYNCED] `deploy-sync.ps1` EXIT 0 |
 | **Risk Audit** | [PASS] Cases 1-7 pass, 8-9 idle (no live positions) |
@@ -212,16 +212,16 @@ Phase 6 is a discrete milestone bridging M5 (Zero-Allocation Hot Path) and M7 (C
 
 | Rank | Method | File | Complexity | Score | Phase 4? | Action |
 | :---: | :--- | :--- | :---: | :---: | :---: | :--- |
-| 1 | `ManageTrailingStops` | `Trailing.cs` | 151 | 408 | Indirect | Phase 6 / IN PROGRESS |
+| 1 | `ManageTrailingStops` | `Trailing.cs` | < 30 | 408 | Indirect | ✅ Phase 6 Complete |
 | 2 | `HydrateWorkingOrdersFromBroker`| `SIMA.Lifecycle.cs` | 96 | 238 | YES | Phase 4 wraps it |
 | 3 | `ProcessQueuedExecution` | `UI.Compliance.cs` | 87 | 216 | Indirect | M9 extraction |
 | 4 | `HydrateFSMsFromWorkingOrders` | `SIMA.Lifecycle.cs` | 76 | 188 | YES | Phase 4 wraps it |
-| 5 | `ExecuteSmartDispatchEntry` | `SIMA.Dispatch.cs` | 100 | 179 | YES | Phase 6 / IN PROGRESS |
+| 5 | `ExecuteSmartDispatchEntry` | `SIMA.Dispatch.cs` | < 30 | 179 | YES | ✅ Phase 6 Complete |
 | 6 | `ProcessIpc_MatchSymbol` | `UI.IPC.cs` | 49 | 159 | No | Phase 2 follow-up |
 | 7 | `SubmitBracketOrders` | `Orders.Management.cs` | 53 | 143 | No | M7 Concurrency |
 | 8 | `OnStateChangeTerminated` | `Lifecycle.cs` | 43 | 121 | YES | Phase 4 wraps it |
 | 9 | `AuditSingleFleetAccount` | `REAPER.Audit.cs` | 45 | 87 | No | M9 REAPER extraction |
-| 10 | `ProcessOnExecutionUpdate` | `Orders.Callbacks.Execution.cs` | 120 | -- | No | Phase 6 / IN PROGRESS |
+| 10 | `ProcessOnExecutionUpdate` | `Orders.Callbacks.Execution.cs` | <= 12 | -- | No | ✅ Phase 6 Complete |
 | -- | **`ExecuteTRENDEntry`** | `Entries.Trend.cs` | **10** | **--** | ✅ | **REFACTORED** |
 
 ---
@@ -232,6 +232,15 @@ Phase 6 is a discrete milestone bridging M5 (Zero-Allocation Hot Path) and M7 (C
 | :---: | :---: | :--- | :--- |
 | F-001 | LETHAL | False Sharing -- hot-path structs not padded to 64 bytes | DEFERRED (M5) |
 | F-002 | LETHAL | Missing Memory Barriers -- SPSC ring no Volatile.Read/Write | DEFERRED (M5) |
+| F-003 | MODERATE | Microsecond timestamp sync (PTP/NTP) for Rithmic sidecar | DEFERRED (M4) |
+| F-004 | ADVISORY | Property-based testing gap (FsCheck) | DEFERRED (M9) |
+
+> [!NOTE]
+> F-001 and F-002 are LETHAL only for the SPSC ring buffers needed by the Rithmic sidecar.
+> With Rithmic deferred, these are dormant -- they do not affect the current NT8 strategy execution.
+idecar.
+> With Rithmic deferred, these are dormant -- they do not affect the current NT8 strategy execution.
+latile.Read/Write | DEFERRED (M5) |
 | F-003 | MODERATE | Microsecond timestamp sync (PTP/NTP) for Rithmic sidecar | DEFERRED (M4) |
 | F-004 | ADVISORY | Property-based testing gap (FsCheck) | DEFERRED (M9) |
 

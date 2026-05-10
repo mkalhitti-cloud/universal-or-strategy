@@ -17,7 +17,7 @@ flowchart TD
             subgraph S1_SIMA ["S1: SIMA Core (~669 CYC)"]
                 SIMA_Main["V12_002.SIMA.cs <br/>(1342 LOC, 45 CYC)"]
                 SIMA_LC["V12_002.SIMA.Lifecycle.cs <br/>(883 LOC, 96 CYC)"]
-                SIMA_Disp["V12_002.SIMA.Dispatch.cs <br/>(648 LOC, 100 CYC)"]
+                SIMA_Disp["V12_002.SIMA.Dispatch.cs <br/>(680 LOC, < 30 CYC)"]
                 SIMA_Fleet["V12_002.SIMA.Fleet.cs <br/>(389 LOC, 48 CYC)"]
                 SIMA_Exec["V12_002.SIMA.Execution.cs <br/>(570 LOC, 42 CYC)"]
                 SIMA_Flat["V12_002.SIMA.Flatten.cs <br/>(351 LOC, 35 CYC)"]
@@ -30,10 +30,10 @@ flowchart TD
             end
 
             subgraph S2_EXECUTION ["S2: Execution Engine (~1627 CYC)"]
-                Exec_Logic["V12_002.Orders.Callbacks.Execution.cs <br/>(479 LOC, 120 CYC)"]
+                Exec_Logic["V12_002.Orders.Callbacks.Execution.cs <br/>(443 LOC, <= 12 CYC)"]
                 Exec_Account["V12_002.Orders.Callbacks.AccountOrders.cs <br/>(710 LOC, 85 CYC)"]
                 Exec_Prop["V12_002.Orders.Callbacks.Propagation.cs <br/>(627 LOC, 75 CYC)"]
-                Trailing_Main["V12_002.Trailing.cs <br/>(457 LOC, 151 CYC)"]
+                Trailing_Main["V12_002.Trailing.cs <br/>(411 LOC, < 30 CYC)"]
                 Trailing_BE["V12_002.Trailing.Breakeven.cs <br/>(385 LOC, 25 CYC)"]
                 Trailing_Stop["V12_002.Trailing.StopUpdate.cs <br/>(353 LOC, 28 CYC)"]
                 Sym_Main["V12_002.Symmetry.cs <br/>(265 LOC, 30 CYC)"]
@@ -151,26 +151,30 @@ flowchart TD
     classDef ultraComplexity fill:#f33,stroke:#333,stroke-width:4px,color:#fff;
     classDef stable fill:#9f9,stroke:#333,stroke-width:1px;
 
-    class UI_Call,Exec_Logic,SIMA_LC,SIMA_Disp,Trailing_Main ultraComplexity
+    class UI_Call,SIMA_LC ultraComplexity
     class SIMA_Main,OR_Main,REAPER_Audit,Exec_Account,UI_Comp highComplexity
     class Trend_Main,REAPER_Repair,Telemetry,StructuredLog stable
 ```
 
-## 📊 Technical Debt & Complexity Heatmap (Phase 5/6 Status)
+## [OPT] Technical Debt & Complexity Heatmap (Phase 6 Complete)
 
 | Rank | Symbol | File | Complexity (CYC) | Status |
 | :--- | :--- | :--- | :---: | :--- |
-| 1 | `ManageTrailingStops` | `V12_002.Trailing.cs` | 151 | 🔴 **CRITICAL** (M5 Target) |
-| 2 | `OnOrderUpdate` | `V12_002.Orders.Callbacks.Execution.cs` | 120 | 🔴 **CRITICAL** (Hardening) |
+| 1 | `ManageTrailingStops` | `V12_002.Trailing.cs` | < 30 | 🟢 **OPTIMIZED** (Phase 6) |
+| 2 | `ProcessOnExecutionUpdate (cluster)` | `V12_002.Orders.Callbacks.Execution.cs` | <= 12 | 🟢 **OPTIMIZED** (Phase 6) |
 | 3 | `OnAccountOrderUpdate` | `V12_002.UI.Callbacks.cs` | 110 | 🔴 **CRITICAL** (Hardening) |
-| 4 | `ExecuteSmartDispatchEntry` | `V12_002.SIMA.Dispatch.cs` | 100 | 🔴 **CRITICAL** (Hardening) |
+| 4 | `ExecuteSmartDispatchEntry` | `V12_002.SIMA.Dispatch.cs` | < 30 | 🟢 **OPTIMIZED** (Phase 6) |
 | 5 | `HydrateWorkingOrdersFromBroker` | `V12_002.SIMA.Lifecycle.cs` | 96 | 🔴 **CRITICAL** (Hardening) |
+| 6 | `OnOrderUpdate (cluster)` | `V12_002.Orders.Callbacks.cs` | < 30 | 🟢 **OPTIMIZED** (Phase 6) |
 | -- | `ExecuteTRENDEntry` | `V12_002.Entries.Trend.cs` | **10** | 🟢 **OPTIMIZED** (Phase 5 Part 1) |
 
 ## 🛡️ Sovereign Hardening Status
 - **Lock Audit**: `(?<!\w)lock\s*\(` Case-sensitive check: **PASS** (Zero hits).
 - **ASCII Integrity**: Zero non-ASCII string literals in strategy source: **PASS**.
 - **Deployment**: `deploy-sync.ps1` hard-link synchronization: **ACTIVE**.
+
+## ⚠️ Infrastructure Debt (Deferred to Phase 7)
+- **Photon Transport Consolidation**: `Dispatch_PublishMarketBracketToPhoton` mixes order creation with transport concerns. Zero-allocation hardening and transport consolidation are deferred to Phase 7 (M7) to maintain scope.
 
 > [!NOTE]
 > `ExecuteTRENDEntry` was successfully extracted from a 120+ complexity God-function into a lean 10-complexity entry point during Phase 5.
@@ -186,3 +190,4 @@ flowchart TD
 
 ---
 *Generated for the V12 Universal OR Strategy | Photon Kernel Architecture*
+tecture*

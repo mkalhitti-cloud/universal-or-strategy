@@ -44,7 +44,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public partial class V12_002 : Strategy
     {
-        public const string BUILD_TAG = "1111.006-phase-6-t3d";  // PR76 confirmed: D1 drain overflow log, D2 ExpKey null guard, D3 semaphore finally, D6 reconnect catch
+        public const string BUILD_TAG = "1111.006-phase-6-complete";  // PR76 confirmed: D1 drain overflow log, D2 ExpKey null guard, D3 semaphore finally, D6 reconnect catch
 
         public class UILiveTargetSnapshot
         {

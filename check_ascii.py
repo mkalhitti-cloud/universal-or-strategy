@@ -9,7 +9,9 @@ files = [
     'src/V12_002.SIMA.Lifecycle.cs',
     'src/V12_002.SIMA.Flatten.cs',
     'src/V12_002.UI.IPC.Commands.Fleet.cs',
-    'src/V12_002.Orders.Callbacks.Execution.cs'
+    'src/V12_002.Orders.Callbacks.Execution.cs',
+    'src/V12_002.Trailing.cs',
+    'src/V12_002.SIMA.Dispatch.cs'
 ]
 
 for f in files:
