@@ -151,9 +151,9 @@ Phase 6 is a discrete milestone bridging M5 (Zero-Allocation Hot Path) and M7 (C
 - [x] T2.A: ManageTrailingStops Extraction (Hotspot #1)
 - [x] T3.A: ProcessOnExecutionUpdate Partition
 - [x] T3.B: ExecuteSmartDispatchEntry: Extract BuildFollowerOrders
-- [ ] T3.C: ExecuteSmartDispatchEntry: Extract PublishMarketBracketToPhoton
+- [x] T3.C: ExecuteSmartDispatchEntry: Extract PublishMarketBracketToPhoton (LOC target: <=160)
 - [ ] T3.D: ExecuteSmartDispatchEntry: Extract PublishLimitEntryToPhoton
-- [ ] T4: Final Integration & Regression Test
+- [ ] T4: Final Integration & Regression Test (Gate: Evaluate Photon transport consolidation and zero-allocation hardening for stagedTargets and ordersToSubmit buffers)
 
 ---
 

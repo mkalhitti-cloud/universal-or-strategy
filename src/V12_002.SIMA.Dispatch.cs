@@ -136,212 +136,22 @@ namespace NinjaTrader.NinjaScript.Strategies
                         // V12.7: Submit only entry for Limit; market entries include stop + non-runner targets.
                         if (isMarketEntry)
                         {
-                            var ordersToSubmit = new List<Order> { entry };
-                            OrderAction exitAction = action == OrderAction.Buy ? OrderAction.Sell : OrderAction.BuyToCover;
-                            double validatedStop = ValidateStopPrice(fleetPos.Direction, fleetPos.CurrentStopPrice);
-
-                            string stopSig = SymmetryTrim("Stop_" + fleetEntryName, 40);
-                            Order stop = acct.CreateOrder(
-                                Instrument,
-                                exitAction,
-                                OrderType.StopMarket,
-                                TimeInForce.Gtc,
-                                Math.Max(1, fleetPos.TotalContracts),
-                                0,
-                                validatedStop,
+                            Dispatch_PublishMarketBracketToPhoton(
+                                acct,
+                                action,
+                                entry,
+                                fleetPos,
+                                fleetEntryName,
+                                expectedKey,
                                 ocoId,
-                                stopSig,
-                                null);
-
-                            ordersToSubmit.Add(stop);
-
-                            int nonRunnerLimitQty = 0;
-                            int runnerQty = 0;
-                            var stagedTargets = new List<StagedTarget>(5);
-
-                            // V12.Phase8.3: Use activeTargetCount from dashboard to restrict number of targets submitted
-                            // FIX-B [Build 1102Z]: Use dispatchTargetCount snapshot (captured before loop) -- not live global.
-                            for (int targetNum = 1; targetNum <= dispatchTargetCount; targetNum++)
-                            {
-                                int targetQty = GetTargetContracts(fleetPos, targetNum);
-                                if (targetQty <= 0) continue;
-
-                                if (IsRunnerTarget(targetNum))
-                                {
-                                    runnerQty += targetQty;
-                                    continue;
-                                }
-
-                                double targetPrice = GetTargetPrice(fleetPos, targetNum);
-                                if (targetPrice <= 0)
-                                {
-                                    dispatchLog.AppendLine(string.Format("[SIMA TARGET_SKIP] T{0} for {1} has qty={2} but invalid price={3:F2}; skipped",
-                                        targetNum, fleetEntryName, targetQty, targetPrice));
-                                    continue;
-                                }
-
-                                string targetSig = SymmetryTrim("T" + targetNum + "_" + fleetEntryName, 40);
-                                Order target = acct.CreateOrder(
-                                    Instrument,
-                                    exitAction,
-                                    OrderType.Limit,
-                                    TimeInForce.Gtc,
-                                    targetQty,
-                                    targetPrice,
-                                    0,
-                                    ocoId,
-                                    targetSig,
-                                    null);
-
-                                // V12.Phase8 [F-01/F-02]: Stage target orders locally; commit after Submit.
-                                stagedTargets.Add(new StagedTarget { Num = targetNum, Price = targetPrice, Order = target });
-
-                                ordersToSubmit.Add(target);
-                                nonRunnerLimitQty += targetQty;
-                            }
-
-                            // Build 935: Register local dictionaries before reserve/submit so REAPER never
-                            // observes Expected!=0 without entry/stop/targets tracking state.
-                            // B966: Enqueue NOT applied here -- ordering invariant requires dict registration
-                            // to happen BEFORE AddExpectedPositionDeltaLocked (L495). Deferring via Enqueue
-                            // from within an existing drain would break this ordering. ConcurrentDictionary
-                            // single-writes are thread-safe; PumpFleetDispatch runs on strategy thread via
-                            // TriggerCustomEvent so no background thread access occurs at this point.
-                            activePositions[fleetEntryName] = fleetPos;
-                            entryOrders[fleetEntryName] = entry;
-                            stopOrders[fleetEntryName] = stop;
-                            foreach (var st in stagedTargets)
-                            {
-                                var targetDict = GetTargetOrdersDictionary(st.Num);
-                                if (targetDict != null)
-                                    targetDict[fleetEntryName] = st.Order;
-                            }
-                            registeredForCleanup = true;
-                            MarkDispatchSyncPending(expectedKey);
-                            syncPending = true;
-
-                            // Phase 6 [FSM-P1]: Proactive FSM -- eliminates Gap of Unknowing
-                            // between enqueue and PumpFleetDispatch. State = PendingSubmit until
-                            // pump promotes to Submitted after successful acct.Submit().
-                            if (!_followerBrackets.ContainsKey(fleetEntryName))
-                            {
-                                var proFsm = new FollowerBracketFSM
-                                {
-                                    AccountName = acct.Name,
-                                    EntryName = fleetEntryName,
-                                    State = FollowerBracketState.PendingSubmit,
-                                    RemainingContracts = followerQty,
-                                    EntryOrder = entry,
-                                    ExpectedEntryPrice = entry.LimitPrice > 0 ? entry.LimitPrice : 0,
-                                    StopOrder = stop,
-                                    ExpectedStopPrice = stop != null ? stop.StopPrice : 0,
-                                    OcoGroupId = ocoId,
-                                    LastUpdateUtc = DateTime.UtcNow
-                                };
-                                foreach (var st in stagedTargets)
-                                {
-                                    if (st.Num >= 1 && st.Num <= 5)
-                                    {
-                                        proFsm.Targets[st.Num - 1] = st.Order;
-                                        proFsm.ExpectedTargetPrices[st.Num - 1] = st.Price;
-                                    }
-                                }
-                                _followerBrackets.TryAdd(fleetEntryName, proFsm);
-                            }
-
-                            // Build 935: Reserve follower-sized expected quantity only.
-                            reservedDelta = (action == OrderAction.Buy) ? followerQty : -followerQty;
-                            AddExpectedPositionDeltaLocked(expectedKey, reservedDelta);
-
-                            // V14.2 [ADR-012]: Zero-allocation dispatch via PhotonPool + SPSC ring
-                            int _poolSlotIndex = -1;
-                            Order[] _proxyOrders = null;
-                            {
-                                var _claimed = _photonPool.Claim();
-                                if (_claimed.Orders != null)
-                                {
-                                    _proxyOrders = _claimed.Orders;
-                                    _poolSlotIndex = _claimed.SlotIndex;
-                                }
-                                else
-                                {
-                                    Print("[PHOTON] Pool exhausted -- fallback to heap alloc");
-                                    _proxyOrders = new Order[MaxOrdersPerSlot];
-                                    _poolSlotIndex = -1;
-                                }
-                            }
-
-                            int _orderIdx = 0;
-                            _proxyOrders[_orderIdx++] = entry;
-                            _proxyOrders[_orderIdx++] = stop;
-                            foreach (var _st in stagedTargets)
-                                _proxyOrders[_orderIdx++] = _st.Order;
-
-                            // v28.0 blittable slot + sideband-first publish
-                            if (_poolSlotIndex >= 0)
-                            {
-                                _photonSideband[_poolSlotIndex].Account        = acct;
-                                _photonSideband[_poolSlotIndex].FleetEntryName = fleetEntryName;
-                                _photonSideband[_poolSlotIndex].ExpectedKey    = expectedKey;
-                                Thread.MemoryBarrier(); // sideband writes visible before ring publish
-                            }
-
-                            FleetDispatchSlot _slot = new FleetDispatchSlot
-                            {
-                                EntryPrice    = entryPrice,
-                                StopPrice     = stopPrice,
-                                SignalTicks   = DateTime.UtcNow.Ticks,
-                                PoolSlotIndex = _poolSlotIndex,
-                                OrderCount    = _orderIdx,
-                                Quantity      = followerQty,
-                                TargetCount   = dispatchTargetCount,
-                                Action        = (int)action,
-                                ReservedDelta = reservedDelta
-                            };
-                            _slot.Shadow = ComputeFleetDispatchShadow(ref _slot, _photonShadowSalt);
-
-                            Interlocked.Increment(ref _pendingFleetDispatchCount);
-
-                            if (_poolSlotIndex >= 0 && _photonDispatchRing.TryEnqueue(ref _slot))
-                            {
-                                // Success: slot in ring, pool + sideband linked by PoolSlotIndex.
-                                // MMIO mirror is a best-effort write-through -- never blocks or fails hot path.
-                                if (_photonMmioMirror != null)
-                                {
-                                    try { _photonMmioMirror.TryPublish(ref _slot); } catch { }
-                                }
-                            }
-                            else
-                            {
-                                // Ring full or pool exhausted -- fallback to ConcurrentQueue
-                                if (_poolSlotIndex >= 0)
-                                {
-                                    // Pool succeeded but ring full -- release pool, clear sideband, heap-copy
-                                    Print("[PHOTON] Ring full -- fallback to ConcurrentQueue");
-                                    Order[] legacyOrders = new Order[_orderIdx];
-                                    Array.Copy(_proxyOrders, legacyOrders, _orderIdx);
-                                    _photonPool.ReleaseByIndex(_poolSlotIndex);
-                                    _photonSideband[_poolSlotIndex] = default(FleetDispatchSideband);
-                                    _proxyOrders = legacyOrders;
-                                }
-                                _pendingFleetDispatches.Enqueue(new FleetDispatchRequest
-                                {
-                                    Account = acct,
-                                    Orders = _proxyOrders,
-                                    FleetEntryName = fleetEntryName,
-                                    ExpectedKey = expectedKey,
-                                    ReservedDelta = reservedDelta,
-                                    SignalTicks = DateTime.UtcNow.Ticks
-                                });
-                            }
-                            syncPending         = false;
-                            reservedDelta       = 0;
-                            registeredForCleanup = false;
-
-                            dispatchLog.AppendLine(string.Format("  QUEUE | {0,-28} | Market+{1}orders | PENDING",
-                                acct.Name, ordersToSubmit.Count));
-                            dispatchLog.AppendLine(string.Format("[SIMA STOP_AUDIT] QUEUED {0}: StopQty={1} NonRunnerLimits={2} RunnerQty={3}",
-                                fleetEntryName, fleetPos.TotalContracts, nonRunnerLimitQty, runnerQty));
+                                followerQty,
+                                entryPrice,
+                                stopPrice,
+                                dispatchTargetCount,
+                                dispatchLog,
+                                ref syncPending,
+                                ref reservedDelta,
+                                ref registeredForCleanup);
                         }
                         else
                         {
@@ -679,6 +489,231 @@ namespace NinjaTrader.NinjaScript.Strategies
             };
 
             return true;
+        }
+
+        private void Dispatch_PublishMarketBracketToPhoton(
+            Account acct,
+            OrderAction action,
+            Order entry,
+            PositionInfo fleetPos,
+            string fleetEntryName,
+            string expectedKey,
+            string ocoId,
+            int followerQty,
+            double entryPrice,
+            double stopPrice,
+            int dispatchTargetCount,
+            StringBuilder dispatchLog,
+            ref bool syncPending,
+            ref int reservedDelta,
+            ref bool registeredForCleanup)
+        {
+            var ordersToSubmit = new List<Order> { entry };
+            OrderAction exitAction = action == OrderAction.Buy ? OrderAction.Sell : OrderAction.BuyToCover;
+            double validatedStop = ValidateStopPrice(fleetPos.Direction, fleetPos.CurrentStopPrice);
+
+            string stopSig = SymmetryTrim("Stop_" + fleetEntryName, 40);
+            Order stop = acct.CreateOrder(
+                Instrument,
+                exitAction,
+                OrderType.StopMarket,
+                TimeInForce.Gtc,
+                Math.Max(1, fleetPos.TotalContracts),
+                0,
+                validatedStop,
+                ocoId,
+                stopSig,
+                null);
+
+            ordersToSubmit.Add(stop);
+
+            int nonRunnerLimitQty = 0;
+            int runnerQty = 0;
+            var stagedTargets = new List<StagedTarget>(5);
+
+            // V12.Phase8.3: Use activeTargetCount from dashboard to restrict number of targets submitted
+            // FIX-B [Build 1102Z]: Use dispatchTargetCount snapshot (captured before loop) -- not live global.
+            for (int targetNum = 1; targetNum <= dispatchTargetCount; targetNum++)
+            {
+                int targetQty = GetTargetContracts(fleetPos, targetNum);
+                if (targetQty <= 0) continue;
+
+                if (IsRunnerTarget(targetNum))
+                {
+                    runnerQty += targetQty;
+                    continue;
+                }
+
+                double targetPrice = GetTargetPrice(fleetPos, targetNum);
+                if (targetPrice <= 0)
+                {
+                    dispatchLog.AppendLine(string.Format("[SIMA TARGET_SKIP] T{0} for {1} has qty={2} but invalid price={3:F2}; skipped",
+                        targetNum, fleetEntryName, targetQty, targetPrice));
+                    continue;
+                }
+
+                string targetSig = SymmetryTrim("T" + targetNum + "_" + fleetEntryName, 40);
+                Order target = acct.CreateOrder(
+                    Instrument,
+                    exitAction,
+                    OrderType.Limit,
+                    TimeInForce.Gtc,
+                    targetQty,
+                    targetPrice,
+                    0,
+                    ocoId,
+                    targetSig,
+                    null);
+
+                // V12.Phase8 [F-01/F-02]: Stage target orders locally; commit after Submit.
+                stagedTargets.Add(new StagedTarget { Num = targetNum, Price = targetPrice, Order = target });
+
+                ordersToSubmit.Add(target);
+                nonRunnerLimitQty += targetQty;
+            }
+
+            // Build 935: Register local dictionaries before reserve/submit so REAPER never
+            // observes Expected!=0 without entry/stop/targets tracking state.
+            // B966: Enqueue NOT applied here -- ordering invariant requires dict registration
+            // to happen BEFORE AddExpectedPositionDeltaLocked (L495). Deferring via Enqueue
+            // from within an existing drain would break this ordering. ConcurrentDictionary
+            // single-writes are thread-safe; PumpFleetDispatch runs on strategy thread via
+            // TriggerCustomEvent so no background thread access occurs at this point.
+            activePositions[fleetEntryName] = fleetPos;
+            entryOrders[fleetEntryName] = entry;
+            stopOrders[fleetEntryName] = stop;
+            foreach (var st in stagedTargets)
+            {
+                var targetDict = GetTargetOrdersDictionary(st.Num);
+                if (targetDict != null)
+                    targetDict[fleetEntryName] = st.Order;
+            }
+            registeredForCleanup = true;
+            MarkDispatchSyncPending(expectedKey);
+            syncPending = true;
+
+            // Phase 6 [FSM-P1]: Proactive FSM -- eliminates Gap of Unknowing
+            // between enqueue and PumpFleetDispatch. State = PendingSubmit until
+            // pump promotes to Submitted after successful acct.Submit().
+            if (!_followerBrackets.ContainsKey(fleetEntryName))
+            {
+                var proFsm = new FollowerBracketFSM
+                {
+                    AccountName = acct.Name,
+                    EntryName = fleetEntryName,
+                    State = FollowerBracketState.PendingSubmit,
+                    RemainingContracts = followerQty,
+                    EntryOrder = entry,
+                    ExpectedEntryPrice = entry.LimitPrice > 0 ? entry.LimitPrice : 0,
+                    StopOrder = stop,
+                    ExpectedStopPrice = stop != null ? stop.StopPrice : 0,
+                    OcoGroupId = ocoId,
+                    LastUpdateUtc = DateTime.UtcNow
+                };
+                foreach (var st in stagedTargets)
+                {
+                    if (st.Num >= 1 && st.Num <= 5)
+                    {
+                        proFsm.Targets[st.Num - 1] = st.Order;
+                        proFsm.ExpectedTargetPrices[st.Num - 1] = st.Price;
+                    }
+                }
+                _followerBrackets.TryAdd(fleetEntryName, proFsm);
+            }
+
+            // Build 935: Reserve follower-sized expected quantity only.
+            reservedDelta = (action == OrderAction.Buy) ? followerQty : -followerQty;
+            AddExpectedPositionDeltaLocked(expectedKey, reservedDelta);
+
+            // V14.2 [ADR-012]: Zero-allocation dispatch via PhotonPool + SPSC ring
+            int _poolSlotIndex = -1;
+            Order[] _proxyOrders = null;
+            {
+                var _claimed = _photonPool.Claim();
+                if (_claimed.Orders != null)
+                {
+                    _proxyOrders = _claimed.Orders;
+                    _poolSlotIndex = _claimed.SlotIndex;
+                }
+                else
+                {
+                    Print("[PHOTON] Pool exhausted -- fallback to heap alloc");
+                    _proxyOrders = new Order[MaxOrdersPerSlot];
+                    _poolSlotIndex = -1;
+                }
+            }
+
+            int _orderIdx = 0;
+            _proxyOrders[_orderIdx++] = entry;
+            _proxyOrders[_orderIdx++] = stop;
+            foreach (var _st in stagedTargets)
+                _proxyOrders[_orderIdx++] = _st.Order;
+
+            FleetDispatchSlot _slot = new FleetDispatchSlot
+            {
+                EntryPrice    = entryPrice,
+                StopPrice     = stopPrice,
+                SignalTicks   = DateTime.UtcNow.Ticks,
+                PoolSlotIndex = _poolSlotIndex,
+                OrderCount    = _orderIdx,
+                Quantity      = followerQty,
+                TargetCount   = dispatchTargetCount,
+                Action        = (int)action,
+                ReservedDelta = reservedDelta
+            };
+            _slot.Shadow = ComputeFleetDispatchShadow(ref _slot, _photonShadowSalt);
+
+            Interlocked.Increment(ref _pendingFleetDispatchCount);
+
+            // v28.0 blittable slot + sideband-first publish
+            if (_poolSlotIndex >= 0)
+            {
+                _photonSideband[_poolSlotIndex].Account        = acct;
+                _photonSideband[_poolSlotIndex].FleetEntryName = fleetEntryName;
+                _photonSideband[_poolSlotIndex].ExpectedKey    = expectedKey;
+                Thread.MemoryBarrier(); // sideband writes visible before ring publish
+            }
+
+            if (_poolSlotIndex >= 0 && _photonDispatchRing.TryEnqueue(ref _slot))
+            {
+                // Success: slot in ring, pool + sideband linked by PoolSlotIndex.
+                // MMIO mirror is a best-effort write-through -- never blocks or fails hot path.
+                if (_photonMmioMirror != null)
+                {
+                    try { _photonMmioMirror.TryPublish(ref _slot); } catch { }
+                }
+            }
+            else
+            {
+                // Ring full or pool exhausted -- fallback to ConcurrentQueue
+                if (_poolSlotIndex >= 0)
+                {
+                    // Pool succeeded but ring full -- release pool, clear sideband, heap-copy
+                    Print("[PHOTON] Ring full -- fallback to ConcurrentQueue");
+                    Order[] legacyOrders = new Order[_orderIdx];
+                    Array.Copy(_proxyOrders, legacyOrders, _orderIdx);
+                    _photonPool.ReleaseByIndex(_poolSlotIndex);
+                    _photonSideband[_poolSlotIndex] = default(FleetDispatchSideband);
+                    _proxyOrders = legacyOrders;
+                }
+                _pendingFleetDispatches.Enqueue(new FleetDispatchRequest
+                {
+                    Account = acct,
+                    Orders = _proxyOrders,
+                    FleetEntryName = fleetEntryName,
+                    ExpectedKey = expectedKey,
+                    ReservedDelta = reservedDelta,
+                    SignalTicks = DateTime.UtcNow.Ticks
+                });
+            }
+            syncPending         = false;
+            reservedDelta       = 0;
+            registeredForCleanup = false;
+
+            dispatchLog.AppendLine(string.Format("  QUEUE | {0,-28} | Market+{1}orders | PENDING",
+                acct.Name, ordersToSubmit.Count));
+            dispatchLog.AppendLine(string.Format("[SIMA STOP_AUDIT] QUEUED {0}: StopQty={1} NonRunnerLimits={2} RunnerQty={3}",
+                fleetEntryName, fleetPos.TotalContracts, nonRunnerLimitQty, runnerQty));
         }
 
 
