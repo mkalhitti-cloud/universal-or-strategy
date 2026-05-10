@@ -6,11 +6,12 @@ Use this workflow to delegate a task or handoff execution to the Gemini CLI (BAC
 
 ---
 
-## Phase 1: Prepare the Handoff Brief
+## Phase 1: Prepare the Autonomous Mission Brief
 
-1. **Synthesize Context**: Gather all relevant forensic findings, logical proofs, architectural constraints, and task requirements.
-2. **Write the Prompt File**: Save the complete prompt into a dedicated markdown file (e.g., `docs/brain/gemini_handoff_brief.md`).
+1. **Define the Mission**: Outline the high-level objective (e.g., "Check the PR audit status, gather the findings from GitHub Actions, and generate a final report"). You do NOT need to gather the data yourself.
+2. **Write the Prompt File**: Save the mission instructions into a dedicated markdown file (e.g., `docs/brain/gemini_mission_brief.md`).
    - Keep it strictly instructional for headless execution.
+   - Instruct Gemini to use its own tools to gather necessary context (e.g., "Use the `gh` CLI to check the PR status").
    - Restate specific V12 DNA constraints (e.g., "No lock() statements", "ASCII compliance only").
    - Explicitly instruct Gemini on the expected output artifact (e.g., "Write the results to `docs/brain/gemini_analysis.md`").
 
@@ -22,7 +23,7 @@ To execute the Gemini CLI using the Traycer-style pipe prompt method in PowerShe
 
 ```powershell
 # // turbo
-$promptContent = Get-Content docs/brain/gemini_handoff_brief.md -Raw
+$promptContent = Get-Content docs/brain/gemini_mission_brief.md -Raw
 gemini -p $promptContent
 ```
 
