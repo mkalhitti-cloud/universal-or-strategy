@@ -155,111 +155,19 @@ namespace NinjaTrader.NinjaScript.Strategies
                         }
                         else
                         {
-                            // V12.Phantom-Fix [FIX-1]: Register tracking dicts BEFORE updating expectedPositions.
-                            // REAPER runs on a background thread; if it fires between the expectedPositions
-                            // update and the dict commit (the old T1->T3 race), it observes non-zero expected
-                            // with no entry in entryOrders -> hasWorkingEntry=false -> phantom repair queued.
-                            // Registering dicts first guarantees REAPER always finds the blocking entry.
-                            // B966: Enqueue NOT applied -- ordering invariant: dict BEFORE expectedPositions update (Phantom-Fix).
-                            // ConcurrentDictionary single-writes are thread-safe here.
-                            activePositions[fleetEntryName] = fleetPos;
-                            entryOrders[fleetEntryName] = entry; // V12.3: Track entry for CIT chase
-                            registeredForCleanup = true;
-                            MarkDispatchSyncPending(expectedKey);
-                            syncPending = true;
-
-                            // Phase 6 [FSM-P1]: Proactive FSM for limit entry (entry-only, no brackets).
-                            if (!_followerBrackets.ContainsKey(fleetEntryName))
-                            {
-                                var proFsm = new FollowerBracketFSM
-                                {
-                                    AccountName = acct.Name,
-                                    EntryName = fleetEntryName,
-                                    State = FollowerBracketState.PendingSubmit,
-                                    RemainingContracts = followerQty,
-                                    EntryOrder = entry,
-                                    ExpectedEntryPrice = entry.LimitPrice > 0 ? entry.LimitPrice : 0,
-                                    LastUpdateUtc = DateTime.UtcNow
-                                };
-                                _followerBrackets.TryAdd(fleetEntryName, proFsm);
-                            }
-
-                            reservedDelta = (action == OrderAction.Buy) ? followerQty : -followerQty;
-                            AddExpectedPositionDeltaLocked(expectedKey, reservedDelta);
-
-                            int _poolSlotIndexLmt = -1;
-                            Order[] _proxyOrdersLmt = null;
-                            {
-                                var _claimedLmt = _photonPool.Claim();
-                                if (_claimedLmt.Orders != null)
-                                {
-                                    _proxyOrdersLmt = _claimedLmt.Orders;
-                                    _poolSlotIndexLmt = _claimedLmt.SlotIndex;
-                                }
-                                else
-                                {
-                                    _proxyOrdersLmt = new Order[MaxOrdersPerSlot];
-                                    _poolSlotIndexLmt = -1;
-                                }
-                            }
-                            _proxyOrdersLmt[0] = entry;
-
-                            if (_poolSlotIndexLmt >= 0)
-                            {
-                                _photonSideband[_poolSlotIndexLmt].Account        = acct;
-                                _photonSideband[_poolSlotIndexLmt].FleetEntryName = fleetEntryName;
-                                _photonSideband[_poolSlotIndexLmt].ExpectedKey    = expectedKey;
-                                Thread.MemoryBarrier();
-                            }
-
-                            FleetDispatchSlot _slotLmt = new FleetDispatchSlot
-                            {
-                                EntryPrice    = entry.LimitPrice > 0 ? entry.LimitPrice : 0,
-                                StopPrice     = 0,
-                                SignalTicks   = DateTime.UtcNow.Ticks,
-                                PoolSlotIndex = _poolSlotIndexLmt,
-                                OrderCount    = 1,
-                                Quantity      = followerQty,
-                                TargetCount   = 0,
-                                Action        = (int)action,
-                                ReservedDelta = reservedDelta
-                            };
-                            _slotLmt.Shadow = ComputeFleetDispatchShadow(ref _slotLmt, _photonShadowSalt);
-
-                            Interlocked.Increment(ref _pendingFleetDispatchCount);
-
-                            if (_poolSlotIndexLmt >= 0 && _photonDispatchRing.TryEnqueue(ref _slotLmt))
-                            {
-                                if (_photonMmioMirror != null)
-                                {
-                                    try { _photonMmioMirror.TryPublish(ref _slotLmt); } catch { }
-                                }
-                            }
-                            else
-                            {
-                                if (_poolSlotIndexLmt >= 0)
-                                {
-                                    Order[] legacyOrdersLmt = new Order[] { entry };
-                                    _photonPool.ReleaseByIndex(_poolSlotIndexLmt);
-                                    _photonSideband[_poolSlotIndexLmt] = default(FleetDispatchSideband);
-                                    _proxyOrdersLmt = legacyOrdersLmt;
-                                }
-                                _pendingFleetDispatches.Enqueue(new FleetDispatchRequest
-                                {
-                                    Account = acct,
-                                    Orders = _proxyOrdersLmt,
-                                    FleetEntryName = fleetEntryName,
-                                    ExpectedKey = expectedKey,
-                                    ReservedDelta = reservedDelta,
-                                    SignalTicks = DateTime.UtcNow.Ticks
-                                });
-                            }
-                            syncPending         = false;
-                            reservedDelta       = 0;
-                            registeredForCleanup = false;
-
-                            dispatchLog.AppendLine(string.Format("  QUEUE | {0,-28} | Limit        | PENDING",
-                                acct.Name));
+                            Dispatch_PublishLimitEntryToPhoton(
+                                acct,
+                                action,
+                                entry,
+                                fleetPos,
+                                fleetEntryName,
+                                expectedKey,
+                                ocoId,
+                                followerQty,
+                                dispatchLog,
+                                ref syncPending,
+                                ref reservedDelta,
+                                ref registeredForCleanup);
                         }
 
                         rmaCount++;
@@ -714,6 +622,127 @@ namespace NinjaTrader.NinjaScript.Strategies
                 acct.Name, ordersToSubmit.Count));
             dispatchLog.AppendLine(string.Format("[SIMA STOP_AUDIT] QUEUED {0}: StopQty={1} NonRunnerLimits={2} RunnerQty={3}",
                 fleetEntryName, fleetPos.TotalContracts, nonRunnerLimitQty, runnerQty));
+        }
+
+        private void Dispatch_PublishLimitEntryToPhoton(
+            Account acct,
+            OrderAction action,
+            Order entry,
+            PositionInfo fleetPos,
+            string fleetEntryName,
+            string expectedKey,
+            string ocoId,
+            int followerQty,
+            StringBuilder dispatchLog,
+            ref bool syncPending,
+            ref int reservedDelta,
+            ref bool registeredForCleanup)
+        {
+            // V12.Phantom-Fix [FIX-1]: Register tracking dicts BEFORE updating expectedPositions.
+            // REAPER runs on a background thread; if it fires between the expectedPositions
+            // update and the dict commit (the old T1->T3 race), it observes non-zero expected
+            // with no entry in entryOrders -> hasWorkingEntry=false -> phantom repair queued.
+            // Registering dicts first guarantees REAPER always finds the blocking entry.
+            // B966: Enqueue NOT applied -- ordering invariant: dict BEFORE expectedPositions update (Phantom-Fix).
+            // ConcurrentDictionary single-writes are thread-safe here.
+            activePositions[fleetEntryName] = fleetPos;
+            entryOrders[fleetEntryName] = entry; // V12.3: Track entry for CIT chase
+            registeredForCleanup = true;
+            MarkDispatchSyncPending(expectedKey);
+            syncPending = true;
+
+            // Phase 6 [FSM-P1]: Proactive FSM for limit entry (entry-only, no brackets).
+            if (!_followerBrackets.ContainsKey(fleetEntryName))
+            {
+                var proFsm = new FollowerBracketFSM
+                {
+                    AccountName = acct.Name,
+                    EntryName = fleetEntryName,
+                    State = FollowerBracketState.PendingSubmit,
+                    RemainingContracts = followerQty,
+                    EntryOrder = entry,
+                    ExpectedEntryPrice = entry.LimitPrice > 0 ? entry.LimitPrice : 0,
+                    LastUpdateUtc = DateTime.UtcNow
+                };
+                _followerBrackets.TryAdd(fleetEntryName, proFsm);
+            }
+
+            reservedDelta = (action == OrderAction.Buy) ? followerQty : -followerQty;
+            AddExpectedPositionDeltaLocked(expectedKey, reservedDelta);
+
+            int _poolSlotIndexLmt = -1;
+            Order[] _proxyOrdersLmt = null;
+            {
+                var _claimedLmt = _photonPool.Claim();
+                if (_claimedLmt.Orders != null)
+                {
+                    _proxyOrdersLmt = _claimedLmt.Orders;
+                    _poolSlotIndexLmt = _claimedLmt.SlotIndex;
+                }
+                else
+                {
+                    _proxyOrdersLmt = new Order[MaxOrdersPerSlot];
+                    _poolSlotIndexLmt = -1;
+                }
+            }
+            _proxyOrdersLmt[0] = entry;
+
+            if (_poolSlotIndexLmt >= 0)
+            {
+                _photonSideband[_poolSlotIndexLmt].Account        = acct;
+                _photonSideband[_poolSlotIndexLmt].FleetEntryName = fleetEntryName;
+                _photonSideband[_poolSlotIndexLmt].ExpectedKey    = expectedKey;
+                Thread.MemoryBarrier();
+            }
+
+            FleetDispatchSlot _slotLmt = new FleetDispatchSlot
+            {
+                EntryPrice    = entry.LimitPrice > 0 ? entry.LimitPrice : 0,
+                StopPrice     = 0,
+                SignalTicks   = DateTime.UtcNow.Ticks,
+                PoolSlotIndex = _poolSlotIndexLmt,
+                OrderCount    = 1,
+                Quantity      = followerQty,
+                TargetCount   = 0,
+                Action        = (int)action,
+                ReservedDelta = reservedDelta
+            };
+            _slotLmt.Shadow = ComputeFleetDispatchShadow(ref _slotLmt, _photonShadowSalt);
+
+            Interlocked.Increment(ref _pendingFleetDispatchCount);
+
+            if (_poolSlotIndexLmt >= 0 && _photonDispatchRing.TryEnqueue(ref _slotLmt))
+            {
+                if (_photonMmioMirror != null)
+                {
+                    try { _photonMmioMirror.TryPublish(ref _slotLmt); } catch { }
+                }
+            }
+            else
+            {
+                if (_poolSlotIndexLmt >= 0)
+                {
+                    Order[] legacyOrdersLmt = new Order[] { entry };
+                    _photonPool.ReleaseByIndex(_poolSlotIndexLmt);
+                    _photonSideband[_poolSlotIndexLmt] = default(FleetDispatchSideband);
+                    _proxyOrdersLmt = legacyOrdersLmt;
+                }
+                _pendingFleetDispatches.Enqueue(new FleetDispatchRequest
+                {
+                    Account = acct,
+                    Orders = _proxyOrdersLmt,
+                    FleetEntryName = fleetEntryName,
+                    ExpectedKey = expectedKey,
+                    ReservedDelta = reservedDelta,
+                    SignalTicks = DateTime.UtcNow.Ticks
+                });
+            }
+            syncPending         = false;
+            reservedDelta       = 0;
+            registeredForCleanup = false;
+
+            dispatchLog.AppendLine(string.Format("  QUEUE | {0,-28} | Limit        | PENDING",
+                acct.Name));
         }
 
 
