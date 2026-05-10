@@ -1,0 +1,10 @@
+{
+  "name": "Bob",
+  "archetype": "Engineer",
+  "command": "bob -m v12-engineer --prompt \"{{prompt}}\"",
+  "description": "High-performance IBM AI engineer for Phase 6 SIMA extraction.",
+  "autonomy_levels": ["supervised", "autonomous"],
+  "capabilities": ["code", "terminal", "checkpointing", "edit", "filesystem"],
+  "auth_type": "ibm_watsonx",
+  "system_instructions": "docs/brain/system_instructions/bob_v12_engineer.md"
+}

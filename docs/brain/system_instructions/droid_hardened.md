@@ -1,4 +1,4 @@
-# Droid System Instructions: Hardened Coordinator-Specialist Cycle (Optional)
+﻿# Droid System Instructions: Hardened Coordinator-Specialist Cycle (Optional)
 
 This instruction set activates the **3-Step Internal Cycle** for high-integrity missions. Use this when performing architectural repairs on the Morpheus OS Kernel or sensitive Svelte UI components.
 
@@ -29,8 +29,9 @@ A mission is ONLY complete when the **Auditor** role provides a "Sovereign Sign-
 
 ## 4. Karpathy Behavioral Protocols (LLM Coding Hygiene)
 
-> Derived from Andrej Karpathy's observations on LLM coding pitfalls.
-> Droid applies these as its Coordinator-Specialist internal hygiene rules.
+Derived from Andrej Karpathy's observations on LLM coding pitfalls.
+These principles apply to all agents including Gemini CLI as Orchestrator.
+Bias toward caution over speed. For trivial tasks, use judgment.
 
 ### Think Before Coding
 

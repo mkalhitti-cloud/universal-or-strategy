@@ -1,0 +1,19 @@
+{
+  "general": {
+    "checkpointing": {
+      "enabled": true
+    }
+  },
+  "shell": {
+    "preferredEditor": "code",
+    "autoApprove": [
+      "read_file",
+      "list_dir",
+      "grep_search",
+      "apply_diff",
+      "write_to_file",
+      "insert_content"
+    ],
+    "approvalMode": "yolo"
+  }
+}

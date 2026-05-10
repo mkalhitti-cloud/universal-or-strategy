@@ -125,8 +125,19 @@
 ---
 
 ## CURRENT MISSION: PHASE 6 -- HOT PATH EXECUTION HARDENING
+**Status**: 🟡 IN PROGRESS (V15.4 Protocol Active)
+**Build**: `1111.006-phase-6-t0` | **Epic**: SIMA Subgraph Extraction
 
 Phase 6 is a discrete milestone bridging M5 (Zero-Allocation Hot Path) and M7 (Concurrency Hardening). It focuses on extracting three primary god-functions: `ManageTrailingStops` (151 CYC), `ProcessOnExecutionUpdate` (120 CYC), and `ExecuteSmartDispatchEntry` (100 CYC).
+
+### Recursive Protocol (V15.4) Status:
+1. **Stage 0 (Forensic Intake)**: ✅ COMPLETE (`docs/brain/forensics_report.md`)
+2. **Stage 1 (Vision/Spec)**: 🟡 READY FOR HANDOFF
+3. **Stage 2 (Arch Planning)**: ⚪ PENDING
+4. **Stage 3 (DNA Audit)**: ⚪ PENDING
+5. **Stage 4 (Execution)**: ⚪ PENDING (Bob Shell configured)
+6. **Stage 5 (Verification)**: ⚪ PENDING
+7. **Stage 6 (Sign-off)**: ⚪ PENDING
 
 ### References
 
@@ -136,17 +147,17 @@ Phase 6 is a discrete milestone bridging M5 (Zero-Allocation Hot Path) and M7 (C
 
 ### Ticket Sequence
 
-- [x] T0
-- [ ] T1.A
-- [ ] T1.B
-- [ ] T1.C
-- [ ] T1.D
-- [ ] T2.A
-- [ ] T3.A
-- [ ] T3.B
-- [ ] T3.C
-- [ ] T3.D
-- [ ] T4
+- [x] T0: Setup V15.4 Environment & Forensic Intake
+- [ ] T1.A: Decouple SIMA State (expectedPositions, _followerBrackets)
+- [ ] T1.B: Extract SIMA Engine (ProcessFleetSlot, PumpFleetDispatch)
+- [ ] T1.C: Extract Fleet Management (ShouldSkipFleetAccount, GetSortedAccountFleet)
+- [ ] T1.D: SIMA Lifecycle Decoupling
+- [ ] T2.A: ManageTrailingStops Extraction (Hotspot #1)
+- [ ] T3.A: ProcessOnExecutionUpdate Partition
+- [ ] T3.B: Execution Registry Extraction
+- [ ] T3.C: Callback Sanitization
+- [ ] T3.D: Order ID Map Optimization
+- [ ] T4: Final Integration & Regression Test
 
 ---
 

@@ -9,6 +9,7 @@ To enable full integration of the V12 agent stack within the Multica managed sub
 | **Claude**     | `claude`                | `claude` | Claude Code CLI                                          |
 | **Codex**      | `codex`                 | `codex`  | Codex CLI                                                |
 | **Gemini**     | `gemini`                | `gemini` | Gemini CLI                                               |
+| **Bob**        | `bob`                   | `ibm`    | Bob Shell CLI                                            |
 
 ## Infrastructure Mappings
 

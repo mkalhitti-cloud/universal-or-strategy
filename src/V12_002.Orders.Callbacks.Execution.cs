@@ -71,34 +71,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 string flatExpKey = ExpKey(flatAcctName);
                 bool hasSyncPending = IsDispatchSyncPending(flatExpKey);
-                bool hasPendingEntry = false;
-                foreach (var kvp in entryOrders.ToArray())
-                {
-                    var ord = kvp.Value;
-                    if (ord != null
-                        && !IsOrderTerminal(ord.OrderState)
-                        && activePositions.TryGetValue(kvp.Key, out var pos)
-                        && pos.ExecutingAccount != null
-                        && pos.ExecutingAccount.Name == flatAcctName)
-                    {
-                        hasPendingEntry = true;
-                        break;
-                    }
-                }
+                bool hasPendingEntry = HasPendingEntryForAcct(flatAcctName);
 
                 bool hasActivePositionForAcct = false;
                 if (!hasPendingEntry)
                 {
-                    foreach (var kvp in activePositions.ToArray())
-                    {
-                        if (kvp.Value.ExecutingAccount != null
-                            && kvp.Value.ExecutingAccount.Name == flatAcctName
-                            && !kvp.Value.EntryFilled)
-                        {
-                            hasActivePositionForAcct = true;
-                            break;
-                        }
-                    }
+                    hasActivePositionForAcct = HasUnfilledActivePositionForAcct(flatAcctName);
                 }
 
                 if (hasPendingEntry || hasActivePositionForAcct || hasSyncPending)
@@ -114,6 +92,39 @@ namespace NinjaTrader.NinjaScript.Strategies
                     Print($"[OnPositionUpdate] expectedPositions cleared for {flatExpKey} (position flat)");
                 }
             }
+        }
+
+        private bool HasPendingEntryForAcct(string flatAcctName)
+        {
+            foreach (var kvp in entryOrders.ToArray())
+            {
+                var ord = kvp.Value;
+                if (ord != null
+                    && !IsOrderTerminal(ord.OrderState)
+                    && activePositions.TryGetValue(kvp.Key, out var pos)
+                    && pos.ExecutingAccount != null
+                    && pos.ExecutingAccount.Name == flatAcctName)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool HasUnfilledActivePositionForAcct(string flatAcctName)
+        {
+            foreach (var kvp in activePositions.ToArray())
+            {
+                if (kvp.Value.ExecutingAccount != null
+                    && kvp.Value.ExecutingAccount.Name == flatAcctName
+                    && !kvp.Value.EntryFilled)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private bool HandleFlatPosition_ReconcileOrphans()
@@ -398,12 +409,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         {
                             // Position fully closed, cancel stop
                             // A2-2: Defer activePositions.TryRemove to broker-confirmed stop terminal state (Build 960)
-                            RequestStopCancelLifecycleSafe(entryName);
-                            PositionInfo closedPos;
-                            if (activePositions.TryGetValue(entryName, out closedPos) && closedPos != null)
-                                closedPos.PendingCleanup = true; // B957/A: stateLock guards PositionInfo field writes
-                            else
-                                SymmetryGuardForgetEntry(entryName); // already gone -- clean up now
+                            ProcessOnExecution_FinalizeFullClose(entryName);
                         }
 
                         // V12.1101E [F-07]: Clear target ref only after broker confirms Filled.
@@ -440,21 +446,28 @@ namespace NinjaTrader.NinjaScript.Strategies
                         {
                             // Position fully closed by trim, cancel stop
                             Print(string.Format("TRIM FLATTEN: Position {0} fully closed. Cancelling stop.", entryName));
-                            // A2-2: Defer activePositions.TryRemove to broker-confirmed stop terminal state (Build 960)
-                            RequestStopCancelLifecycleSafe(entryName);
-
-                            // Also clean up any pending replacements
-                            if (pendingStopReplacements.TryRemove(entryName, out _))
-                            {
-                                Interlocked.Decrement(ref pendingReplacementCount);
-                            }
-
-                            PositionInfo trimPos;
-                            if (activePositions.TryGetValue(entryName, out trimPos) && trimPos != null)
-                                trimPos.PendingCleanup = true; // B957/A: stateLock guards PositionInfo field writes
-                            else
-                                SymmetryGuardForgetEntry(entryName); // already gone -- clean up now
+                            ProcessOnExecution_FinalizeFullClose(entryName);
                         }
+                    }
+                }
+
+        private void ProcessOnExecution_FinalizeFullClose(string entryName)
+                {
+                    // Phase 6 T2.A: deliberate Target/Trim full-close parity hardening.
+                    RequestStopCancelLifecycleSafe(entryName);
+
+                    if (pendingStopReplacements.TryRemove(entryName, out _))
+                    {
+                        Interlocked.Decrement(ref pendingReplacementCount);
+                    }
+
+                    if (activePositions.TryGetValue(entryName, out var localPos) && localPos != null)
+                    {
+                        localPos.PendingCleanup = true; // B957/A: stateLock guards PositionInfo field writes
+                    }
+                    else
+                    {
+                        SymmetryGuardForgetEntry(entryName); // already gone -- clean up now
                     }
                 }
 

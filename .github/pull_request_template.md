@@ -19,6 +19,8 @@
 - [ ] **Lock-Free Audit**: `grep -r "lock(" src/` — zero matches in strategy files
 - [ ] **Lint Pass**: `powershell -File .\scripts\lint.ps1` — LINT PASS confirmed
 - [ ] **Build Readiness**: `powershell -File .\scripts\build_readiness.ps1` — Build PASS
+- [ ] **AMAL Gate**: `python scripts/amal_harness.py` — PASSED (Allocated = 0 B)
+- [ ] **Bob Shell Audit**: Used `v12-engineer` mode with `checkpointing: true`
 - [ ] **Deploy Sync**: `powershell -File .\deploy-sync.ps1` — hard links re-established
 - [ ] **BUILD_TAG Banner**: Verified in NinjaTrader Output window after F5 compile
 
@@ -33,13 +35,13 @@
 
 <!-- Paste the relevant output from LogicAudit, AMAL harness, or stress test -->
 
+### AMAL Benchmark Summary:
 ```
-[paste audit output here]
+[paste AMAL output: Allocated = 0 B, Mean Latency < Baseline]
 ```
 
-## Agent Audit Sign-off
-
-<!-- P5 adversarial review required before merge for any src/ changes -->
+## Agent Audit & Checkpoint
+**Bob Checkpoint ID**: <!-- Paste checkpoint ID or 'N/A' -->
 
 - [ ] Gemini Standards Auditor review posted
 - [ ] SonarCloud quality gate: PASSED

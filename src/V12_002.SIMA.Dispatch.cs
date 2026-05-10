@@ -96,49 +96,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                     return;
                 }
 
-                List<AccountRankInfo> fleet = GetSortedAccountFleet();
-
-                // V12.Audit [Q3-002]: Snapshot fleet active state under stateLock to prevent UI race.
-                // The UI/IPC thread can toggle activeFleetAccounts between TryGetValue and Submit,
-                // so we capture a consistent set of active account names once before the dispatch loop.
-                HashSet<string> activeAccountSnapshot;
-                // FIX-B [Build 1102Z]: Snapshot activeTargetCount atomically with the fleet snapshot.
-                // The IPC SET_TARGET_COUNT command writes activeTargetCount on the TCP listener thread,
-                // so a live read inside the fleet loop (line below) can produce a different bound for
-                // different accounts. Capturing once here ensures all fleet accounts submit identical
-                // target counts for this dispatch.
-                int dispatchTargetCount;
-                activeAccountSnapshot = new HashSet<string>(
-                    activeFleetAccounts
-                        .Where(kvp => kvp.Value)
-                        .Select(kvp => kvp.Key));
-                dispatchTargetCount = Math.Max(1, Math.Min(5, activeTargetCount));
-
-                // V12.2: Log fleet state for diagnostics
-                int activeCount = activeAccountSnapshot.Count;
-                Print($"[DISPATCH] Fleet: {fleet.Count} total accounts | {activeCount} ACTIVE in Fleet Manager");
-
-                if (fleet.Count == 0)
-                {
-                    Print("[DISPATCH] [ERR] NO APEX ACCOUNTS DETECTED - Check AccountPrefix setting");
-                    return;
-                }
-
-                if (activeCount == 0)
-                {
-                    Print("[DISPATCH] [ERR] NO ACCOUNTS ENABLED - Toggle accounts ON in Fleet Manager panel");
-                }
+                Dispatch_ResolveFleetSnapshot(
+                    tradeType, action, quantity, entryPrice, masterEntryNames,
+                    out var fleet, out var activeAccountSnapshot, out var dispatchTargetCount, out var symmetryDispatchId);
+                if (fleet.Count == 0) return;
 
                 int rmaCount = 0;
-                string symmetryDispatchId = SymmetryGuardBeginDispatch(tradeType, action, quantity, entryPrice);
-                if (masterEntryNames != null)
-                {
-                    foreach (string masterEntryName in masterEntryNames)
-                    {
-                        if (!string.IsNullOrEmpty(masterEntryName))
-                            SymmetryGuardRegisterMasterEntry(symmetryDispatchId, masterEntryName);
-                    }
-                }
 
                 // [Phase 7.2 LATENCY] T_LoopStart + batch log buffer (flushed once after loop).
                 long tLoopStartTicks = sw.ElapsedTicks;
@@ -156,102 +119,19 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // Build 935 [SIMA-B935-001]: Inactive + H-13 + consistency lock delegated to ShouldSkipFleetAccount.
                     if (ShouldSkipFleetAccount(acct, fleet[i], activeAccountSnapshot, dispatchLog)) continue;
 
-                    // V12: Followers ALWAYS use RMA multipliers for point-based trails (User Req)
-                    bool useRmaForFollower = true;
-                    MarketPosition followerDirection = action == OrderAction.Buy ? MarketPosition.Long : MarketPosition.Short;
-
-                    // [LEAK-01]: Use centralized ATR calculator (ceiling + min/max guards, fleet-ready).
-                    double stopDist = CalculateATRStopDistance(RMAStopATRMultiplier);
-
-                    double stopPrice = (action == OrderAction.Buy) ? entryPrice - stopDist : entryPrice + stopDist;
-                    // Universal Ladder: T(n)Type dropdown drives all target pricing.
-                    double t1TargetPrice = CalculateTargetPrice(followerDirection, entryPrice, 1);
-                    double t2TargetPrice = CalculateTargetPrice(followerDirection, entryPrice, 2);
-                    double t3TargetPrice = CalculateTargetPrice(followerDirection, entryPrice, 3);
-                    double t4TargetPrice = CalculateTargetPrice(followerDirection, entryPrice, 4);
-                    double t5TargetPrice = CalculateTargetPrice(followerDirection, entryPrice, 5);
-
-                    // Rounding
-                    stopPrice = Instrument.MasterInstrument.RoundToTickSize(stopPrice);
-
-                    // V1102Q [PARITY-01]: Scale quantity for Micro accounts (e.g. ES->MES 10x parity)
-                    // [923A-P2c-OVF]: checked{} prevents silent int overflow on parity multiply (cf. Callbacks.cs same pattern)
-                    int followerQty;
-                    try
-                    {
-                        followerQty = checked((int)Math.Max(1L, (long)quantity * FleetParityMultiplier));
-                    }
-                    catch (OverflowException)
-                    {
-                        Print(string.Format("[923A-OVF] SIMA parity overflow qty={0} x mult={1} -- clamping to maxContracts ({2})", quantity, FleetParityMultiplier, maxContracts));
-                        followerQty = maxContracts;
-                    }
-
-                    // V12.40 FLEET PARITY: Use same distribution as Master (applied to scaled quantity)
-                    // FIX-B [Build 1102Z]: Pass dispatchTargetCount snapshot so all fleet accounts use the same
-                    // target count regardless of any IPC update that may arrive mid-dispatch.
-                    int ft1, ft2, ft3, ft4, ft5;
-                    GetTargetDistribution(followerQty, out ft1, out ft2, out ft3, out ft4, out ft5, dispatchTargetCount);
-
-                    string ocoId = tradeType + "_" + DateTime.Now.Ticks + "_" + i;
-                    string fleetEntryName = "Fleet_" + acct.Name + "_" + tradeType + "_" + i;
-                    string expectedKey = ExpKey(acct.Name);
                     int reservedDelta = 0;
                     bool registeredForCleanup = false;
                     bool syncPending = false;
+                    string fleetEntryName = null;
+                    string expectedKey = null;
                     try
                     {
-                        SymmetryGuardRegisterFollower(symmetryDispatchId, fleetEntryName);
-
-                        // V12.3: Entry uses caller-specified order type (Limit for RMA, Market for MOMO/TREND)
-                        // [FIX-PP-01]: For StopMarket/StopLimit entries the activation price lives in stopPrice,
-                        // not limitPrice. Passing stopPx=0 caused the follower to fire immediately at market.
-                        double limitPx = (entryOrderType == OrderType.Limit || entryOrderType == OrderType.StopLimit) ? entryPrice : 0;
-                        double stopPx  = (entryOrderType == OrderType.StopMarket || entryOrderType == OrderType.StopLimit) ? entryPrice : 0;
+                        bool _builtOk = Dispatch_BuildFollowerOrders(
+                            tradeType, action, quantity, entryPrice, entryOrderType, acct, i, symmetryDispatchId, dispatchTargetCount, dispatchLog,
+                            out PositionInfo fleetPos, out Order entry, out fleetEntryName, out expectedKey, out string ocoId, out int followerQty, out int ft1, out int ft2, out int ft3, out int ft4, out int ft5,
+                            out double stopPrice, out double t1TargetPrice, out double t2TargetPrice, out double t3TargetPrice, out double t4TargetPrice, out double t5TargetPrice);
+                        if (!_builtOk) continue;
                         bool isMarketEntry = (entryOrderType == OrderType.Market);
-                        // StopMarket stays isMarketEntry=false: bracket handled by SymmetryGuardOnFollowerFill anchor flow.
-                        Order entry = acct.CreateOrder(Instrument, action, entryOrderType, TimeInForce.Gtc, followerQty, limitPx, stopPx, ocoId, fleetEntryName, null);
-                        if (entry == null)
-                        {
-                            dispatchLog.AppendLine($"[DISPATCH] Entry create failed on {acct.Name} for {fleetEntryName}");
-                            continue;
-                        }
-
-                        // V12.1: Track follower position for active trailing/target management
-                        // V12.1101E: Full 5-target distribution mirrors Master
-                        PositionInfo fleetPos = new PositionInfo
-                        {
-                            SignalName = fleetEntryName,
-                            Direction = action == OrderAction.Buy ? MarketPosition.Long : MarketPosition.Short,
-                            TotalContracts = followerQty,
-                            RemainingContracts = followerQty,
-                            EntryPrice = entryPrice,
-                            InitialStopPrice = stopPrice,
-                            CurrentStopPrice = stopPrice,
-                            Target1Price = t1TargetPrice,
-                            Target2Price = t2TargetPrice,
-                            Target3Price = t3TargetPrice,
-                            Target4Price = t4TargetPrice,
-                            Target5Price = t5TargetPrice,
-                            T1Contracts = ft1,
-                            T2Contracts = ft2,
-                            T3Contracts = ft3,
-                            T4Contracts = ft4,
-                            T5Contracts = ft5,
-                            ExecutingAccount = acct,
-                            IsFollower = true,
-                            IsRMATrade = true,          // Enforce Point-Based Trailing for all followers
-                            IsTRENDTrade = (tradeType == "TREND"),
-                            IsRetestTrade = (tradeType == "RETEST"),
-                            EntryOrderType = entryOrderType,
-                            EntryFilled = isMarketEntry, // V12.3: Only true for Market entries; Limit waits for fill
-                            BracketSubmitted = isMarketEntry, // V12.7: Brackets deferred for Limit entries
-                            TicksSinceEntry = 0,
-                            ExtremePriceSinceEntry = entryPrice,
-                            CurrentTrailLevel = 0,
-                            // Build 936 [FIX-2]: Deterministic bracket OCO group ID for broker-native stop+target linking.
-                            OcoGroupId = "V12_" + GetStableHash(fleetEntryName),
-                        };
 
                         // V12.7: Submit only entry for Limit; market entries include stop + non-runner targets.
                         if (isMarketEntry)
@@ -640,6 +520,165 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // V12.Phase8 [F-03]: Always release the SIMA toggle semaphore.
                 _simaToggleSem.Release();
             }
+        }
+
+
+        private void Dispatch_ResolveFleetSnapshot(string tradeType, OrderAction action, int quantity, double entryPrice, string[] masterEntryNames, out List<AccountRankInfo> fleet, out HashSet<string> activeAccountSnapshot, out int dispatchTargetCount, out string symmetryDispatchId)
+        {
+            // V12.Audit [Q3-002]: Snapshot fleet active state under stateLock to prevent UI race.
+            // The UI/IPC thread can toggle activeFleetAccounts between TryGetValue and Submit,
+            // so we capture a consistent set of active account names once before the dispatch loop.
+            // FIX-B [Build 1102Z]: Snapshot activeTargetCount atomically with the fleet snapshot.
+            // The IPC SET_TARGET_COUNT command writes activeTargetCount on the TCP listener thread,
+            // so a live read inside the fleet loop (line below) can produce a different bound for
+            // different accounts. Capturing once here ensures all fleet accounts submit identical
+            // target counts for this dispatch.
+            activeAccountSnapshot = new HashSet<string>(
+                activeFleetAccounts
+                    .Where(kvp => kvp.Value)
+                    .Select(kvp => kvp.Key));
+            dispatchTargetCount = Math.Max(1, Math.Min(5, activeTargetCount));
+
+            fleet = GetSortedAccountFleet();
+            int activeCount = activeAccountSnapshot.Count;
+
+            // V12.2: Log fleet state for diagnostics
+            Print($"[DISPATCH] Fleet: {fleet.Count} total accounts | {activeCount} ACTIVE in Fleet Manager");
+            if (fleet.Count == 0)
+            {
+                Print("[DISPATCH] [ERR] NO APEX ACCOUNTS DETECTED - Check AccountPrefix setting");
+                symmetryDispatchId = null;
+                return;
+            }
+
+            if (activeCount == 0)
+            {
+                Print("[DISPATCH] [ERR] NO ACCOUNTS ENABLED - Toggle accounts ON in Fleet Manager panel");
+            }
+
+            symmetryDispatchId = SymmetryGuardBeginDispatch(tradeType, action, quantity, entryPrice);
+            if (masterEntryNames != null)
+            {
+                foreach (string masterEntryName in masterEntryNames)
+                {
+                    if (!string.IsNullOrEmpty(masterEntryName))
+                        SymmetryGuardRegisterMasterEntry(symmetryDispatchId, masterEntryName);
+                }
+            }
+        }
+
+        private bool Dispatch_BuildFollowerOrders(
+            string tradeType, OrderAction action, int quantity, double entryPrice, OrderType entryOrderType, Account acct, int i, string symmetryDispatchId, int dispatchTargetCount, StringBuilder dispatchLog,
+            out PositionInfo fleetPos, out Order entry, out string fleetEntryName, out string expectedKey, out string ocoId, out int followerQty, out int ft1, out int ft2, out int ft3, out int ft4, out int ft5,
+            out double stopPrice, out double t1TargetPrice, out double t2TargetPrice, out double t3TargetPrice, out double t4TargetPrice, out double t5TargetPrice)
+        {
+            fleetEntryName = "Fleet_" + acct.Name + "_" + tradeType + "_" + i;
+            expectedKey = ExpKey(acct.Name);
+            ocoId = tradeType + "_" + DateTime.Now.Ticks + "_" + i;
+
+            fleetPos = null;
+            entry = null;
+            followerQty = 0;
+            ft1 = 0;
+            ft2 = 0;
+            ft3 = 0;
+            ft4 = 0;
+            ft5 = 0;
+            stopPrice = 0;
+            t1TargetPrice = 0;
+            t2TargetPrice = 0;
+            t3TargetPrice = 0;
+            t4TargetPrice = 0;
+            t5TargetPrice = 0;
+
+            // V12: Followers ALWAYS use RMA multipliers for point-based trails (User Req)
+            bool useRmaForFollower = true;
+            MarketPosition followerDirection = action == OrderAction.Buy ? MarketPosition.Long : MarketPosition.Short;
+
+            // [LEAK-01]: Use centralized ATR calculator (ceiling + min/max guards, fleet-ready).
+            double stopDist = CalculateATRStopDistance(RMAStopATRMultiplier);
+
+            stopPrice = (action == OrderAction.Buy) ? entryPrice - stopDist : entryPrice + stopDist;
+            // Universal Ladder: T(n)Type dropdown drives all target pricing.
+            t1TargetPrice = CalculateTargetPrice(followerDirection, entryPrice, 1);
+            t2TargetPrice = CalculateTargetPrice(followerDirection, entryPrice, 2);
+            t3TargetPrice = CalculateTargetPrice(followerDirection, entryPrice, 3);
+            t4TargetPrice = CalculateTargetPrice(followerDirection, entryPrice, 4);
+            t5TargetPrice = CalculateTargetPrice(followerDirection, entryPrice, 5);
+
+            // Rounding
+            stopPrice = Instrument.MasterInstrument.RoundToTickSize(stopPrice);
+
+            // V1102Q [PARITY-01]: Scale quantity for Micro accounts (e.g. ES->MES 10x parity)
+            // [923A-P2c-OVF]: checked{} prevents silent int overflow on parity multiply (cf. Callbacks.cs same pattern)
+            try
+            {
+                followerQty = checked((int)Math.Max(1L, (long)quantity * FleetParityMultiplier));
+            }
+            catch (OverflowException)
+            {
+                Print(string.Format("[923A-OVF] SIMA parity overflow qty={0} x mult={1} -- clamping to maxContracts ({2})", quantity, FleetParityMultiplier, maxContracts));
+                followerQty = maxContracts;
+            }
+
+            // V12.40 FLEET PARITY: Use same distribution as Master (applied to scaled quantity)
+            // FIX-B [Build 1102Z]: Pass dispatchTargetCount snapshot so all fleet accounts use the same
+            // target count regardless of any IPC update that may arrive mid-dispatch.
+            GetTargetDistribution(followerQty, out ft1, out ft2, out ft3, out ft4, out ft5, dispatchTargetCount);
+
+            SymmetryGuardRegisterFollower(symmetryDispatchId, fleetEntryName);
+
+            // V12.3: Entry uses caller-specified order type (Limit for RMA, Market for MOMO/TREND)
+            // [FIX-PP-01]: For StopMarket/StopLimit entries the activation price lives in stopPrice,
+            // not limitPrice. Passing stopPx=0 caused the follower to fire immediately at market.
+            double limitPx = (entryOrderType == OrderType.Limit || entryOrderType == OrderType.StopLimit) ? entryPrice : 0;
+            double stopPx  = (entryOrderType == OrderType.StopMarket || entryOrderType == OrderType.StopLimit) ? entryPrice : 0;
+            bool isMarketEntry = (entryOrderType == OrderType.Market);
+            // StopMarket stays isMarketEntry=false: bracket handled by SymmetryGuardOnFollowerFill anchor flow.
+            entry = acct.CreateOrder(Instrument, action, entryOrderType, TimeInForce.Gtc, followerQty, limitPx, stopPx, ocoId, fleetEntryName, null);
+            if (entry == null)
+            {
+                dispatchLog.AppendLine($"[DISPATCH] Entry create failed on {acct.Name} for {fleetEntryName}");
+                return false;
+            }
+
+            // V12.1: Track follower position for active trailing/target management
+            // V12.1101E: Full 5-target distribution mirrors Master
+            fleetPos = new PositionInfo
+            {
+                SignalName = fleetEntryName,
+                Direction = action == OrderAction.Buy ? MarketPosition.Long : MarketPosition.Short,
+                TotalContracts = followerQty,
+                RemainingContracts = followerQty,
+                EntryPrice = entryPrice,
+                InitialStopPrice = stopPrice,
+                CurrentStopPrice = stopPrice,
+                Target1Price = t1TargetPrice,
+                Target2Price = t2TargetPrice,
+                Target3Price = t3TargetPrice,
+                Target4Price = t4TargetPrice,
+                Target5Price = t5TargetPrice,
+                T1Contracts = ft1,
+                T2Contracts = ft2,
+                T3Contracts = ft3,
+                T4Contracts = ft4,
+                T5Contracts = ft5,
+                ExecutingAccount = acct,
+                IsFollower = true,
+                IsRMATrade = true,          // Enforce Point-Based Trailing for all followers
+                IsTRENDTrade = (tradeType == "TREND"),
+                IsRetestTrade = (tradeType == "RETEST"),
+                EntryOrderType = entryOrderType,
+                EntryFilled = isMarketEntry, // V12.3: Only true for Market entries; Limit waits for fill
+                BracketSubmitted = isMarketEntry, // V12.7: Brackets deferred for Limit entries
+                TicksSinceEntry = 0,
+                ExtremePriceSinceEntry = entryPrice,
+                CurrentTrailLevel = 0,
+                // Build 936 [FIX-2]: Deterministic bracket OCO group ID for broker-native stop+target linking.
+                OcoGroupId = "V12_" + GetStableHash(fleetEntryName),
+            };
+
+            return true;
         }
 
 

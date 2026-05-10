@@ -8,7 +8,8 @@ files = [
     'src/V12_002.Orders.Callbacks.cs',
     'src/V12_002.SIMA.Lifecycle.cs',
     'src/V12_002.SIMA.Flatten.cs',
-    'src/V12_002.UI.IPC.Commands.Fleet.cs'
+    'src/V12_002.UI.IPC.Commands.Fleet.cs',
+    'src/V12_002.Orders.Callbacks.Execution.cs'
 ]
 
 for f in files:

@@ -1,4 +1,4 @@
-# NinjaScript V12 Project Standards (Jules CLI Mirror)
+﻿# NinjaScript V12 Project Standards (Jules CLI Mirror)
 
 # Jules CLI = BACKUP ENGINEER #2 (identical twin to Gemini CLI)
 
@@ -98,11 +98,11 @@ After EVERY workflow use, Jules MUST perform a post-use audit:
 No Director approval required for workflow-only self-improvement edits.
 Workflow edit must be mirrored to BOTH `_agents/workflows/` and `.agent/workflows/`.
 
-## 🧠 Karpathy Behavioral Protocols (LLM Coding Hygiene)
+## ðŸ§  Karpathy Behavioral Protocols (LLM Coding Hygiene)
 
-> Derived from Andrej Karpathy's observations on LLM coding pitfalls.
-> Jules is P4 backup ENGINEER -- these principles are mandatory before every handoff.
-> Bias toward caution over speed. For trivial tasks, use judgment.
+Derived from Andrej Karpathy's observations on LLM coding pitfalls.
+These principles apply to all agents including Gemini CLI as Orchestrator.
+Bias toward caution over speed. For trivial tasks, use judgment.
 
 ### Think Before Coding
 

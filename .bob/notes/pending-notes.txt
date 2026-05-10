@@ -1,0 +1,4 @@
+{"id":"fde48819-c59b-4b12-954b-4d70e5ce0242","ts":"2026-05-10T00:16:22.448Z","path":"C:\\WSGTA\\universal-or-strategy\\src\\V12_002.Orders.Callbacks.Execution.cs","version":"1.0.0","taskID":"6c63156a-1f5b-4936-8d18-19dd04772d80"}
+{"id":"5763190b-1e9a-4f61-bef0-179a2a57292b","ts":"2026-05-10T00:16:28.549Z","path":"C:\\WSGTA\\universal-or-strategy\\src\\V12_002.Orders.Callbacks.Execution.cs","version":"1.0.0","taskID":"6c63156a-1f5b-4936-8d18-19dd04772d80"}
+{"id":"9aa787d9-e63f-4cf5-9a38-06f6a3ab5c8b","ts":"2026-05-10T00:16:35.352Z","path":"C:\\WSGTA\\universal-or-strategy\\src\\V12_002.Orders.Callbacks.Execution.cs","version":"1.0.0","taskID":"6c63156a-1f5b-4936-8d18-19dd04772d80"}
+{"id":"6948325c-296c-4ae8-ba26-22a044830d29","ts":"2026-05-10T00:17:30.456Z","path":"C:\\WSGTA\\universal-or-strategy\\src\\V12_002.Orders.Callbacks.Execution.cs","version":"1.0.0","taskID":"6c63156a-1f5b-4936-8d18-19dd04772d80"}

@@ -1,4 +1,4 @@
-# NinjaScript V12 Project Standards (Codex Mirror)
+﻿# NinjaScript V12 Project Standards (Codex Mirror)
 
 - **Language**: C# 8.0 / .NET Framework 4.8 (NinjaTrader 8).
 - **No Internal Locks**: `lock(stateLock)` is **BANNED**. All state mutations MUST use `Enqueue(ctx => ...)` by default. Exception: Build 981 direct-write for `stopOrders` during bracket submission.
@@ -6,7 +6,7 @@
 - **Refactoring**: Prefer explicit FirstOrDefault logic for instrument lookups (Reaper parity).
 - **Style**: Use PascalCase for methods, camelCase for local variables. Avoid dense one-liners; prioritize "Metabolic Elegance."
 
-## 🛡️ Protocol Hardening (V12.Phase7)
+## ðŸ›¡ï¸ Protocol Hardening (V12.Phase7)
 
 ### 1. Scope Control
 
@@ -23,7 +23,7 @@
 - **Source Truth**: All primary NinjaScript logic resides in `src/`.
 - **Deployment**: Local builds MUST be synced to `C:\Users\Mohammed Khalid\Documents\NinjaTrader 8\bin\Custom\Strategies\` using the `/deploy` skill.
 
-## 🕹️ Director Commands ($)
+## ðŸ•¹ï¸ Director Commands ($)
 
 - **$PLAN_AUDIT**: Use `read_terminal` on the active Claude/Antigravity PID to ingest- **Engineer**: Implementation of surgical C# edits and performance optimizations.
 - **Frontend Design (V12.15)**: High-fidelity dashboard and overlay development.
@@ -106,10 +106,11 @@ After EVERY workflow use, Codex MUST perform a post-use audit:
 No Director approval required for workflow-only self-improvement edits.
 Workflow edit must be mirrored to BOTH `_agents/workflows/` and `.agent/workflows/`.
 
-## 🧠 Karpathy Behavioral Protocols (LLM Coding Hygiene)
+## ðŸ§  Karpathy Behavioral Protocols (LLM Coding Hygiene)
 
-> Derived from Andrej Karpathy's observations on LLM coding pitfalls.
-> These principles bias toward caution over speed. For trivial tasks, use judgment.
+Derived from Andrej Karpathy's observations on LLM coding pitfalls.
+These principles apply to all agents including Gemini CLI as Orchestrator.
+Bias toward caution over speed. For trivial tasks, use judgment.
 
 ### Think Before Coding
 
