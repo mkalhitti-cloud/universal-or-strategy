@@ -148,15 +148,11 @@ Phase 6 is a discrete milestone bridging M5 (Zero-Allocation Hot Path) and M7 (C
 ### Ticket Sequence
 
 - [x] T0: Setup V15.4 Environment & Forensic Intake
-- [ ] T1.A: Decouple SIMA State (expectedPositions, _followerBrackets)
-- [ ] T1.B: Extract SIMA Engine (ProcessFleetSlot, PumpFleetDispatch)
-- [ ] T1.C: Extract Fleet Management (ShouldSkipFleetAccount, GetSortedAccountFleet)
-- [ ] T1.D: SIMA Lifecycle Decoupling
-- [ ] T2.A: ManageTrailingStops Extraction (Hotspot #1)
-- [ ] T3.A: ProcessOnExecutionUpdate Partition
-- [ ] T3.B: Execution Registry Extraction
-- [ ] T3.C: Callback Sanitization
-- [ ] T3.D: Order ID Map Optimization
+- [x] T2.A: ManageTrailingStops Extraction (Hotspot #1)
+- [x] T3.A: ProcessOnExecutionUpdate Partition
+- [x] T3.B: ExecuteSmartDispatchEntry: Extract BuildFollowerOrders
+- [ ] T3.C: ExecuteSmartDispatchEntry: Extract PublishMarketBracketToPhoton
+- [ ] T3.D: ExecuteSmartDispatchEntry: Extract PublishLimitEntryToPhoton
 - [ ] T4: Final Integration & Regression Test
 
 ---

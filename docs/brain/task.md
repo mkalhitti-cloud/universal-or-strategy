@@ -1,5 +1,5 @@
 # Mission Dashboard: Phase 6 SIMA Subgraph Extraction
-**BUILD_TAG**: 1111.006-phase-6-t3a
+**BUILD_TAG**: 1111.006-phase-6-t3b
 **Repo**: mkalhitti-cloud/universal-or-strategy
 **Branch**: phase-6-sima-extraction
 
@@ -24,7 +24,7 @@
 - [x] **Stage 1**: Vision/Spec (`mini-spec.md`)
 - [x] **Stage 2**: Arch Planning (`implementation_plan.md`)
 - [x] **Stage 3**: DNA & PR Audit (SKIPPED)
-- [x] **Stage 4**: Execution (T3.A Alone)
+- [x] **Stage 4**: Execution (T3.A, T3.B Complete)
 
 ---
 
@@ -40,4 +40,9 @@
 - [x] Slim `ExecuteSmartDispatchEntry` caller.
 - [x] Update BUILD_TAG.
 - [x] **COMPLETE**: Codex executed and verified implementation.
-- [ ] **NEXT**: Director validation (F5 in NT8) and P6 validation.
+
+### [x] P5: SURGICAL IMPLEMENTATION (T3.B)
+- [x] Extract `Dispatch_BuildFollowerOrders` helper.
+- [x] Update BUILD_TAG to `1111.006-phase-6-t3b`.
+- [x] **COMPLETE**: Codex executed and verified implementation.
+- [ ] **NEXT**: T3.C - Extract PublishMarketBracketToPhoton.

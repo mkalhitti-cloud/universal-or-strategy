@@ -2,7 +2,7 @@
   "mission": "Phase 6 - SIMA Subgraph Extraction",
   "mission_status": "ACTIVE",
   "milestone": "M3",
-  "build_tag": "1111.006-phase-6-t3a",
+  "build_tag": "1111.006-phase-6-t3b",
   "branch": "phase-6-sima-extraction",
   "pr": "#TBD",
   "plan_path": "docs/brain/implementation_plan.md",
@@ -11,7 +11,7 @@
   "agent_readiness_target": "LEVEL_5",
   "phase": "P6",
   "current_phase": "VALIDATION_READY",
-  "status": "VALIDATING_T3A",
+  "status": "T3B_COMPLETE",
   "agents": {
     "P1_orchestrator": "Antigravity",
     "P2_forensics": "Codex",
