@@ -1,0 +1,16 @@
+---
+exclude_paths:
+  - "AGENTS.md"
+  - "CLAUDE.md"
+  - "CODEX.md"
+  - "GEMINI.md"
+  - "JULES.md"
+  - "CURSOR.md"
+  - "DROID.md"
+  - ".agent/**"
+  - ".agents/**"
+  - ".bob/**"
+  - ".codex/**"
+  - ".cursor/**"
+  - ".gemini/**"
+  - "Traycerrefactor/**"

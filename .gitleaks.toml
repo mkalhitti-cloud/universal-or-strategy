@@ -4,6 +4,23 @@ title = "Universal OR Strategy gitleaks config"
 useDefault = true
 
 [[allowlists]]
+description = "Ignore agent protocol and instruction files"
+paths = [
+    '''AGENTS\.md$''',
+    '''CLAUDE\.md$''',
+    '''CODEX\.md$''',
+    '''GEMINI\.md$''',
+    '''JULES\.md$''',
+    '''\.agent/.*''',
+    '''\.agents/.*''',
+    '''\.bob/.*''',
+    '''\.codex/.*''',
+    '''\.cursor/.*''',
+    '''\.gemini/.*''',
+    '''Traycerrefactor/.*'''
+]
+
+[[allowlists]]
 description = "Allow documented Sentry project URL in telemetry readme"
 paths = ['''(^|[\\/])docs[\\/]telemetry[\\/]droid_mission_01[\\/]README\.md$''']
 
