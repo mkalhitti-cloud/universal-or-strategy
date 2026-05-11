@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
         
       - name: CodiumAI PR-Agent
-        uses: Codium-ai/pr-agent@1234567890abcdef1234567890abcdef12345678  # v0.25
+        uses: The-PR-Agent/pr-agent@4a6bf4c55a28d72ad4eb428f6e8f1d7e6e486911  # v0.26
         continue-on-error: true
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
