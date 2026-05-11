@@ -4,7 +4,7 @@
   "command": "claude -p \"{{prompt}}\"",
   "description": "Strategic architectural design, forensic auditing, and planning.",
   "autonomy_levels": ["manual", "supervised"],
-  "capabilities": ["file_read", "browser", "context7"],
+  "capabilities": ["file_read", "browser", "context7", "graphify"],
   "auth_type": "anthropic",
   "system_instructions": "docs/brain/system_instructions/claude_architect.md"
 }

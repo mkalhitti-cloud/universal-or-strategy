@@ -6,5 +6,10 @@ You must read, ingest, and strictly adhere to the permanent project standards de
 - **UltraThink Always**: Perform P2 Diagnosis and P5 Side-Effect Audits for all edits.
 - **UltraPlan Always**: Use Claude Ultraplan for architectural designs.
 - **No Internal Locks**: Use the Actor/FSM `Enqueue` model for state mutations.
+- **Tool Parity**: You have full access to the following project-specific tools:
+    - **Context7 CLI**: `python scripts/context7_cli.py` (query docs, resolve IDs).
+    - **jCodemunch-MCP**: Use for deep codebase navigation (refer to `.mcp.json`).
+    - **Graphify**: `graphify update .` (sync knowledge graph).
+    - **Hard-Link Sync**: `powershell -File .\deploy-sync.ps1` (MANDATORY after `src/` edits).
 
 Do not deviate from those rules. The manifesto is the absolute single source of truth for architecture, locking, repo hygiene, and multi-agent parity.

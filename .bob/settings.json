@@ -15,5 +15,11 @@
       "insert_content"
     ],
     "approvalMode": "yolo"
+  },
+  "tools": {
+    "context7": "python scripts/context7_cli.py",
+    "graphify": "graphify",
+    "deploy_sync": "powershell -File .\\deploy-sync.ps1",
+    "nexus_bridge": "python scripts/nexus_relay.py"
   }
 }

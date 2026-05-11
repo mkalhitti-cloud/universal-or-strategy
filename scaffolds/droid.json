@@ -4,7 +4,7 @@
   "command": "droid -m \"{{mission}}\"",
   "description": "Fast, high-context autonomous missions for diagnostics and repo maintenance.",
   "autonomy_levels": ["supervised", "autonomous"],
-  "capabilities": ["file_access", "terminal", "nexus_relay"],
+  "capabilities": ["file_access", "terminal", "nexus_relay", "context7", "graphify"],
   "auth_type": "local",
   "system_instructions": "docs/brain/system_instructions/droid_standard.md"
 }

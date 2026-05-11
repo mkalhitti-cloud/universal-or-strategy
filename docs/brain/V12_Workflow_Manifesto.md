@@ -44,14 +44,21 @@ We leverage a distributed intelligence model to maximize productivity and effici
 | :--- | :--- | :--- | :--- |
 | **P1: Orchestrator** | Antigravity | Central Switchboard | Context management, tool routing, and mission oversight. |
 | **P3: Architect** | Claude Code | PLAN-ONLY | Structural design and implementation plans. **BANNED from `src/` edits.** |
-| **P5: Surgical Engineer** | **IBM Bob CLI** | `v12-engineer` | SIMA extractions, God-Function splits, and complex C# refactors. |
-| **P5: Logic Engineer** | Codex CLI | `codex-rescue` | Logic hardening, Lock-free updates, and concurrent state repairs. |
-| **P5: Utility Specialist** | **Gemini CLI** | `yolo` | **Utility Specialist & Research Hub**. Handles non-`src/` tasks (docs, infra, configs), model-agnostic operations, **Official Web Research**, and **Video Synthesis** to conserve specialized tokens. |
+| **P4: Surgical Engineer** | **IBM Bob CLI** | `v12-engineer` | SIMA extractions, God-Function splits, and complex C# refactors. |
+| **P4: Logic Engineer** | Codex CLI | `codex-rescue` | Logic hardening, Lock-free updates, and concurrent state repairs. |
+| **P4: Utility Specialist** | **Gemini CLI** | `yolo` | **Utility Specialist & Research Hub**. Handles non-`src/` tasks (docs, infra, configs), model-agnostic operations, **Official Web Research**, and **Video Synthesis** to conserve specialized tokens. |
 | **P6: Auditor / Adjudicator** | Jules / **Arena AI** | `/review` / `$battle` | Adversarial audit, PR vetting, and DNA compliance check. |
 
 ---
 
 ## 3. Toolset & Spec Kit Usage
+
+### ⚙️ Unified Tooling Mandate
+To maintain architectural parity, ALL agents (including **Rovo Dev** and **Cursor AI**) must have access to the full project toolset:
+- **jCodemunch-MCP**: Primary suite for codebase navigation and forensic trace.
+- **Context7 CLI**: Specialist tool for deep documentation and API research.
+- **Graphify**: Universal knowledge graph layer.
+- **Nexus Bridge**: Inter-agent state relay.
 
 ### 🛰️ Traycer (Epic & Phase Management)
 *   **Epics**: High-level mission containers (e.g., `Phase 6 Hot Path Extraction`).
