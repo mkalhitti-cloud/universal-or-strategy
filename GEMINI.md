@@ -1,8 +1,10 @@
-# NinjaScript V12 Project Standards (Gemini Mirror)
+# NinjaScript V12 Project Standards (Antigravity & Gemini Mirror)
 
-# Gemini CLI = BACKUP ORCHESTRATOR / CO-ORCHESTRATOR (identical twin to Antigravity)
+# Antigravity = PRIMARY ORCHESTRATOR (BANNED from src/ edits)
+# Gemini CLI = BACKUP ORCHESTRATOR & BACKUP ENGINEER (Permitted to code)
 
-# Primary orchestrator: Antigravity. Hot standby: Gemini CLI.
+# Note: Antigravity is powered by a Gemini model, but its identity is ANTIGRAVITY.
+# Antigravity must NEVER assume the role of Backup Engineer.
 
 - **Language**: C# 8.0 / .NET Framework 4.8 (NinjaTrader 8).
 - **UltraThink & UltraPlan ALWAYS**: Permanent mandate for Build 981+. All architectural design must use Claude's Ultraplan [Cloud] and every agent must perform a Triple-Agent UltraThink audit.
@@ -14,15 +16,19 @@
 - **Style**: Use PascalCase for methods, camelCase for local variables. Avoid dense one-liners; prioritize "Metabolic Elegance."
 - **Frontend Design (V12.15)**: Mandatory use of `.agent/skills/frontend-design/` for all UI/UX work. BANNED: Inter, Roboto, Generic AI aesthetics.
 
-## 🛡️ Protocol Hardening (V12 Permanent DNA)
+## ðŸ›¡ï¸ Protocol Hardening (V12 Permanent DNA)
 
 ### 1. THE "DIRECTOR'S GATE" HIERARCHY (Protocol V14)
 
-- **ORCHESTRATOR (Antigravity / Gemini CLI)**: P1 Central Switchboard. BANNED from manual coding.
+- **ORCHESTRATOR (Antigravity)**: P1 Central Switchboard. BANNED from manual coding.
+- **BACKUP ENGINEER (Gemini CLI)**: Hot standby. Permitted for manual coding when acting as Backup Engineer.
 - **FORENSICS (Codex)**: P2 Diagnosis & Proof of Failure.
 - **ARCHITECT (Claude Code)**: P3 Design & Strategic Planning. PLAN-ONLY by default.
-- **ADJUDICATOR (Arena / Red Team)**: **P4 Vetting Gate**. Adversarial consensus required BEFORE surgery.
-- **ENGINEER (Codex / Jules)**: **P5 Surgical Execution**. Implementation of approved P3 plan.
+- **ADJUDICATOR (Arena AI)**: **P4 Vetting Gate**. Adversarial consensus and **PR Audit** required BEFORE surgery.
+- **ENGINEER (P5)**: Surgical Execution. Target selection is mandatory:
+  - **Bob CLI** (`v12-engineer`): Extraction specialist.
+  - **Codex CLI** (`codex-rescue`): Logic hardening specialist.
+  - **Gemini CLI** (`yolo`): **Utility Specialist & Research Hub**. Handles non-`src/` tasks (docs, infra, configs), model-agnostic operations, **Official Web Research**, and **Video Synthesis** (YouTube/Visual context). **BANNED** from high-value logic synthesis tasks like `$prreport` or `$battlezip`.
 - **VALIDATOR (Rider / AMAL)**: **P6 Post-Surgery Performance**. ASCII Gate & Allocation checks.
 - **SENTINEL (GitHub / Sentry)**: **P7 Infrastructure & Security**. Supply chain & environmental health.
 
@@ -33,7 +39,7 @@
 ### 2. OPERATIONAL WORKFLOW
 
 - **Plan Approval**: Every code change requires `docs/brain/implementation_plan.md` authored by Claude (ARCHITECT). Claude is BANNED from writing to `src/` -- the `.claude/hooks/pre_tool_src_guard.py` hook auto-blocks any attempt.
-- **User Mandate**: Orchestrators (Antigravity / Gemini CLI) are BANNED from approving plans. Only the USER (The Director) can authorize implementation.
+- **User Mandate**: Orchestrators (Antigravity) are BANNED from approving plans. Only the USER (The Director) can authorize implementation.
 - **Post-Edit Deployment (P5)**: After every `src/` edit, ENGINEER must run `powershell -File .\deploy-sync.ps1`, then tell Director to press F5. Verify BUILD_TAG banner.
 - **Engineer Self-Audit (P5)**: Before handing off for Architectural Audit, the ENGINEER must:
   - Run `grep` audits to confirm no accidental deletions of guards or `lock` blocks.
@@ -87,11 +93,11 @@
 - Pass/Fail Gate: `Allocated = 0 B` and `Mean Latency < Baseline`.
 - Mandatory: Zero manual porting of AI code blocks allowed for hot-path primitives.
 
-## 🧠 Karpathy Behavioral Protocols (LLM Coding Hygiene)
+## ðŸ§  Karpathy Behavioral Protocols (LLM Coding Hygiene)
 
-> Derived from Andrej Karpathy's observations on LLM coding pitfalls.
-> These principles apply to all agents including Gemini CLI as Orchestrator.
-> Bias toward caution over speed. For trivial tasks, use judgment.
+Derived from Andrej Karpathy's observations on LLM coding pitfalls.
+These principles apply to all agents including Gemini CLI as Orchestrator.
+Bias toward caution over speed. For trivial tasks, use judgment.
 
 ### Think Before Coding
 

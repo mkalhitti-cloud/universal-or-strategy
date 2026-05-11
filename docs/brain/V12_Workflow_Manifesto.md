@@ -18,7 +18,7 @@ graph TD
     P4 --> P5[P5: Verification & Review]
     P5 --> P6[P6: AMAL Vetting]
     P6 --> P7[P7: Sign-off & Deploy]
-
+    
     P3 -- FAIL --> P2
     P5 -- DRIFT --> P4
     P6 -- REGRESSION --> P4
@@ -32,7 +32,7 @@ graph TD
 *   **P4: Execution**: Surgical implementation using the selected **Engineer CLI**.
 *   **P5: Verification**: Forensic check against the plan.
 *   **P6: AMAL Vetting**: Performance and allocation audit via `scripts/amal_harness.py`.
-*   **P7: Sign-off**: Final synchronization via `deploy-sync.ps1`.      
+*   **P7: Sign-off**: Final synchronization via `deploy-sync.ps1`.
 
 ---
 
@@ -44,10 +44,10 @@ We leverage a distributed intelligence model to maximize productivity and effici
 | :--- | :--- | :--- | :--- |
 | **P1: Orchestrator** | Antigravity | Central Switchboard | Context management, tool routing, and mission oversight. |
 | **P3: Architect** | Claude Code | PLAN-ONLY | Structural design and implementation plans. **BANNED from `src/` edits.** |
-| **P4: Surgical Engineer** | **IBM Bob CLI** | `v12-engineer` | SIMA extractions, God-Function splits, and complex C# refactors. |
-| **P4: Logic Engineer** | Codex CLI | `codex-rescue` | Logic hardening, Lock-free updates, and concurrent state repairs. |
-| **P4: Utility Specialist** | **Gemini CLI** | `yolo` | **Utility Specialist & Research Hub**. Handles non-`src/` tasks (docs, infra, configs), model-agnostic operations, **Official Web Research**, and **Video Synthesis** to conserve specialized tokens. |
-| **P6: Auditor / Adjudicator** | Jules / **Arena AI** | `/review` / `$battle` | Adversarial audit, PR vetting, and DNA compliance check. |     
+| **P5: Surgical Engineer** | **IBM Bob CLI** | `v12-engineer` | SIMA extractions, God-Function splits, and complex C# refactors. |
+| **P5: Logic Engineer** | Codex CLI | `codex-rescue` | Logic hardening, Lock-free updates, and concurrent state repairs. |
+| **P5: Utility Specialist** | **Gemini CLI** | `yolo` | **Utility Specialist & Research Hub**. Handles non-`src/` tasks (docs, infra, configs), model-agnostic operations, **Official Web Research**, and **Video Synthesis** to conserve specialized tokens. |
+| **P6: Auditor / Adjudicator** | Jules / **Arena AI** | `/review` / `$battle` | Adversarial audit, PR vetting, and DNA compliance check. |
 
 ---
 
@@ -94,7 +94,7 @@ After ANY modification to `src/` files, the Engineer MUST:
 ## 5. Standard Commands & Workflows
 
 ### 🛠️ Standard Commands
-*   **Build & Sync**: `powershell -File .\scripts\build_readiness.ps1`  
+*   **Build & Sync**: `powershell -File .\scripts\build_readiness.ps1`
 *   **Lint Audit**: `powershell -File .\scripts\lint.ps1`
 *   **Hard Link Sync**: `powershell -File .\deploy-sync.ps1`
 *   **Sovereign Audit**: `droid /review`
@@ -107,7 +107,7 @@ Click to open the official procedure for each workflow:
 *   [Architect Intake](../../_agents/workflows/architect_intake.md) - Formalizing P0 forensics into P3 designs.
 *   [Architectural Battle](../../_agents/workflows/battle.md) - Compounding intelligence via Arena AI.
 *   [Coordinator](../../.agent/workflows/coordinator.md) - Hierarchical task decomposition.
-*   [Hardened Adjudication](../../_agents/workflows/hardened_adjudicatio.md) - Re-auditing plans after logic drift.
+*   [Hardened Adjudication](../../_agents/workflows/hardened_adjudication.md) - Re-auditing plans after logic drift.
 *   [Loop Critic](../../_agents/workflows/loop_critic.md) - Review & Critique loop until sign-off.
 *   [Mission Validate](../../.agent/workflows/mission-validate.md) - Independent P6 validation.
 *   [Multi-Agent Audit](../../.agent/workflows/multi_agent_audit.md) - Red Team "Adversarial" auditing.
@@ -124,4 +124,4 @@ Click to open the official procedure for each workflow:
 
 ---
 **Document Owner**: Antigravity Orchestrator
-**Last Audit**: 2026-05-10
+**Last Audit**: 2026-05-09

@@ -1,4 +1,4 @@
-# CLAUDE.md - BMad Project Standards & Safety Guide
+﻿# CLAUDE.md - BMad Project Standards & Safety Guide
 
 ## Session Protocol (NON-NEGOTIABLE DEFAULT)
 
@@ -13,13 +13,13 @@
 
 **Universal OR Strategy (V12)**: A high-integrity institutional fleet trading strategy for NinjaTrader 8.
 
-## 🛡️ Zero-Trust Protocols (MANDATORY)
+## ðŸ›¡ï¸ Zero-Trust Protocols (MANDATORY)
 
 1. **IPC Security**: All listeners must bind to Loopback (`127.0.0.1`). Malformed input must be rejected with `V12 IPC REJECT` logs.
 2. **Input Validation**: Never trust incoming network payloads. Use strict UTF-8 decoding and bounded command lengths.
 3. **Fleet Privacy**: Obscure sensitive account names using BMad aliases (`F01`, `F02`, etc.) in all external-facing responses.
 
-## 🦍 Logic Integrity (FLEET SAFETY)
+## ðŸ¦ Logic Integrity (FLEET SAFETY)
 
 1. **No Internal Locks**: Legacy `lock(stateLock)` is BANNED for internal execution. Thread-safety should be managed via either the Actor model or direct atomic writes, depending on the mission requirements.
 2. **Build 981 Protocol**: Direct writes to `stopOrders` are MANDATORY during bracket submission. Enqueue is BANNED for this operation to eliminate tracking latency during shutdown races.
@@ -27,7 +27,7 @@
 4. **REAPER Bounds**: Repairs must be capped by both ATR-volatility and hard tick fences.
 5. **Symmetry Gating**: Follower brackets must wait for the master "Anchor" price before submission.
 
-## 🏷️ Naming Conventions
+## ðŸ·ï¸ Naming Conventions
 
 - **Build Tags**: Must be incremented in `V12_002.Properties.cs` for every production delivery.
 - **Prefixes**: All files and primary classes use `V12_001` (Panel) or `V12_002` (Strategy).
@@ -94,12 +94,12 @@ All workflows are stored in `_agents/workflows/` and `.agent/workflows/` (mirror
 
 | Slash Command        | Workflow File          | Claude Role                                           |
 | -------------------- | ---------------------- | ----------------------------------------------------- |
-| `/architect_intake`  | `architect_intake.md`  | PRIMARY — writes implementation_plan.md               |
-| `/loop_critic`       | `loop_critic.md`       | PRIMARY — issues APPROVED / REVISION REQUIRED verdict |
-| `/multi_agent_audit` | `multi_agent_audit.md` | PRIMARY — structural soundness auditor                |
-| `/coordinator`       | `coordinator.md`       | Participant — structural design subtask               |
-| `/agent_as_tool`     | `agent_as_tool.md`     | Participant — one-shot design review only             |
-| `/battle`            | `battle.md`            | Observer — reads results to inform next plan          |
+| `/architect_intake`  | `architect_intake.md`  | PRIMARY â€” writes implementation_plan.md               |
+| `/loop_critic`       | `loop_critic.md`       | PRIMARY â€” issues APPROVED / REVISION REQUIRED verdict |
+| `/multi_agent_audit` | `multi_agent_audit.md` | PRIMARY â€” structural soundness auditor                |
+| `/coordinator`       | `coordinator.md`       | Participant â€” structural design subtask               |
+| `/agent_as_tool`     | `agent_as_tool.md`     | Participant â€” one-shot design review only             |
+| `/battle`            | `battle.md`            | Observer â€” reads results to inform next plan          |
 
 ### Mandatory Workflow Self-Improvement (NON-NEGOTIABLE)
 
@@ -115,10 +115,11 @@ After EVERY workflow use, Claude MUST perform a post-use audit:
 
 No Director approval required for workflow-only self-improvement edits.
 
-## 🧠 Karpathy Behavioral Protocols (LLM Coding Hygiene)
+## ðŸ§  Karpathy Behavioral Protocols (LLM Coding Hygiene)
 
-> Derived from Andrej Karpathy's observations on LLM coding pitfalls.
-> These principles bias toward caution over speed. For trivial tasks, use judgment.
+Derived from Andrej Karpathy's observations on LLM coding pitfalls.
+These principles apply to all agents including Gemini CLI as Orchestrator.
+Bias toward caution over speed. For trivial tasks, use judgment.
 
 ### Think Before Coding
 
@@ -162,53 +163,53 @@ No Director approval required for workflow-only self-improvement edits.
 ## Code Exploration Policy
 
 Always use jCodemunch-MCP tools for code navigation. Never fall back to Read, Grep, Glob, or Bash for code exploration.
-**Exception:** Use `Read` when you need to edit a file — the agent harness requires a `Read` before `Edit`/`Write` will succeed. Use jCodemunch tools to *find and understand* code, then `Read` only the specific file you're about to modify.
+**Exception:** Use `Read` when you need to edit a file â€” the agent harness requires a `Read` before `Edit`/`Write` will succeed. Use jCodemunch tools to *find and understand* code, then `Read` only the specific file you're about to modify.
 
 **Start any session:**
-1. `resolve_repo { "path": "." }` — confirm the project is indexed. If not: `index_folder { "path": "." }`
-2. `suggest_queries` — when the repo is unfamiliar
+1. `resolve_repo { "path": "." }` â€” confirm the project is indexed. If not: `index_folder { "path": "." }`
+2. `suggest_queries` â€” when the repo is unfamiliar
 
 **Finding code:**
-- symbol by name → `search_symbols` (add `kind=`, `language=`, `file_pattern=`, `decorator=` to narrow)
-- decorator-aware queries → `search_symbols(decorator="X")` to find symbols with a specific decorator (e.g. `@property`, `@route`); combine with set-difference to find symbols *lacking* a decorator (e.g. "which endpoints lack CSRF protection?")
-- string, comment, config value → `search_text` (supports regex, `context_lines`)
-- database columns (dbt/SQLMesh) → `search_columns`
+- symbol by name â†’ `search_symbols` (add `kind=`, `language=`, `file_pattern=`, `decorator=` to narrow)
+- decorator-aware queries â†’ `search_symbols(decorator="X")` to find symbols with a specific decorator (e.g. `@property`, `@route`); combine with set-difference to find symbols *lacking* a decorator (e.g. "which endpoints lack CSRF protection?")
+- string, comment, config value â†’ `search_text` (supports regex, `context_lines`)
+- database columns (dbt/SQLMesh) â†’ `search_columns`
 
 **Reading code:**
-- before opening any file → `get_file_outline` first
-- one or more symbols → `get_symbol_source` (single ID → flat object; array → batch)
-- symbol + its imports → `get_context_bundle`
-- specific line range only → `get_file_content` (last resort)
+- before opening any file â†’ `get_file_outline` first
+- one or more symbols â†’ `get_symbol_source` (single ID â†’ flat object; array â†’ batch)
+- symbol + its imports â†’ `get_context_bundle`
+- specific line range only â†’ `get_file_content` (last resort)
 
 **Repo structure:**
-- `get_repo_outline` → dirs, languages, symbol counts
-- `get_file_tree` → file layout, filter with `path_prefix`
+- `get_repo_outline` â†’ dirs, languages, symbol counts
+- `get_file_tree` â†’ file layout, filter with `path_prefix`
 
 **Relationships & impact:**
-- what imports this file → `find_importers`
-- where is this name used → `find_references`
-- is this identifier used anywhere → `check_references`
-- file dependency graph → `get_dependency_graph`
-- what breaks if I change X → `get_blast_radius`
-- what symbols actually changed since last commit → `get_changed_symbols`
-- find unreachable/dead code → `find_dead_code`
-- class hierarchy → `get_class_hierarchy`
+- what imports this file â†’ `find_importers`
+- where is this name used â†’ `find_references`
+- is this identifier used anywhere â†’ `check_references`
+- file dependency graph â†’ `get_dependency_graph`
+- what breaks if I change X â†’ `get_blast_radius`
+- what symbols actually changed since last commit â†’ `get_changed_symbols`
+- find unreachable/dead code â†’ `find_dead_code`
+- class hierarchy â†’ `get_class_hierarchy`
 
 ## Session-Aware Routing
 
 **Opening move for any task:**
-1. `plan_turn { "repo": "...", "query": "your task description", "model": "<your-model-id>" }` — get confidence + recommended files; the `model` parameter narrows the exposed tool list to match your capabilities at zero extra requests.
+1. `plan_turn { "repo": "...", "query": "your task description", "model": "<your-model-id>" }` â€” get confidence + recommended files; the `model` parameter narrows the exposed tool list to match your capabilities at zero extra requests.
 2. Obey the confidence level:
-   - `high` → go directly to recommended symbols, max 2 supplementary reads
-   - `medium` → explore recommended files, max 5 supplementary reads
-   - `low` → the feature likely doesn't exist. Report the gap to the user. Do NOT search further hoping to find it.
+   - `high` â†’ go directly to recommended symbols, max 2 supplementary reads
+   - `medium` â†’ explore recommended files, max 5 supplementary reads
+   - `low` â†’ the feature likely doesn't exist. Report the gap to the user. Do NOT search further hoping to find it.
 
 **Interpreting search results:**
 - If `search_symbols` returns `negative_evidence` with `verdict: "no_implementation_found"`:
   - Do NOT re-search with different terms hoping to find it
   - Do NOT assume a related file (e.g. auth middleware) implements the missing feature (e.g. CSRF)
   - DO report: "No existing implementation found for X. This would need to be created."
-  - DO check `related_existing` files — they show what's nearby, not what exists
+  - DO check `related_existing` files â€” they show what's nearby, not what exists
 - If `verdict: "low_confidence_matches"`: examine the matches critically before assuming they implement the feature
 
 **After editing files:**
@@ -219,19 +220,19 @@ Always use jCodemunch-MCP tools for code navigation. Never fall back to Read, Gr
 **Token efficiency:**
 - If `_meta` contains `budget_warning`: stop exploring and work with what you have
 - If `auto_compacted: true` appears: results were automatically compressed due to turn budget
-- Use `get_session_context` to check what you've already read — avoid re-reading the same files
+- Use `get_session_context` to check what you've already read â€” avoid re-reading the same files
 
 ## Model-Driven Tool Tiering
 
 Your jcodemunch-mcp server narrows the exposed tool list based on the model you are running as. To avoid wasting requests on primitives when a composite would do, always include `model="<your-model-id>"` in your opening `plan_turn` call.
 
 Replace `<your-model-id>` with your active model:
-- Claude Opus variants → `claude-opus-4-7` (or any `claude-opus-*`)
-- Claude Sonnet variants → `claude-sonnet-4-6`
-- Claude Haiku variants → `claude-haiku-4-5`
-- GPT-4o / GPT-5 / o1 / Llama → use the model id as printed by your runner
+- Claude Opus variants â†’ `claude-opus-4-7` (or any `claude-opus-*`)
+- Claude Sonnet variants â†’ `claude-sonnet-4-6`
+- Claude Haiku variants â†’ `claude-haiku-4-5`
+- GPT-4o / GPT-5 / o1 / Llama â†’ use the model id as printed by your runner
 
-The `model=` parameter rides on the existing `plan_turn` call — it does **not** add a separate tool invocation. If `plan_turn` is not appropriate for a non-code task, call `announce_model(model="...")` once instead.
+The `model=` parameter rides on the existing `plan_turn` call â€” it does **not** add a separate tool invocation. If `plan_turn` is not appropriate for a non-code task, call `announce_model(model="...")` once instead.
 
 ## graphify
 
