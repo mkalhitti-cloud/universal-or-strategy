@@ -140,7 +140,9 @@ _{
                                 if (targetDict != null)                                    targetDict.TryRemove(fleetEntryName, out _);
                             }
                         }
-                        // Phase 6: Clean up proactive FSM on dispatch failure (no-op if not yet created)                        _followerBrackets.TryRemove(fleetEntryName, out _);
+                        // Phase 6: Clean up proactive FSM on dispatch failure (no-op if not yet created)
+                        if (!string.IsNullOrEmpty(fleetEntryName))
+                            _followerBrackets.TryRemove(fleetEntryName, out _);
                         dispatchLog.AppendLine($"[DISPATCH] [X] FAILED on {
 acct.Name}
 : {
