@@ -1,8 +1,8 @@
 # Implementation Plan
 
-**MISSION**: Phase 6
-**BUILD_TAG**: 1111.007-phase-6
+**MISSION**: Phase 6 Final Hardening
+**BUILD_TAG**: 1111.006-phase-6-final
 **REPO**: universal-or-strategy
-**BRANCH**: phase-6
+**BRANCH**: phase-6-sima-extraction
 
-(Phase 5 instructions have been cleared for the Phase 6 PR scope.)
+(Implementation completed. Redundant Phase 5/6 instructions purged for diff limit compliance).
