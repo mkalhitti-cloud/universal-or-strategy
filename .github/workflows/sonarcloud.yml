@@ -41,7 +41,7 @@ jobs:
         continue-on-error: true
         continue-on-error: true
         run: |
-          dotnet-sonarscanner begin /k:"mkalhitti-cloud_universal-or-strategy" /o:"mkalhitti-cloud" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vstest.reportsPaths="**/*.trx" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" /d:sonar.exclusions="AGENTS.md,CLAUDE.md,CODEX.md,GEMINI.md,JULES.md,CURSOR.md,DROID.md,.agent/**,.agents/**,.bob/**,.codex/**,.cursor/**,.gemini/**,Traycerrefactor/**"
+          dotnet-sonarscanner begin /k:"mkalhitti-cloud_universal-or-strategy" /o:"mkalhitti-cloud" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vstest.reportsPaths="**/*.trx" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" /d:sonar.exclusions="docs/**,.github/**,**/*.md,.agent/**,.agents/**,.bob/**,.codex/**,.cursor/**,.gemini/**,Traycerrefactor/**,artifacts/**"
           dotnet build Linting.csproj
         shell: pwsh
 

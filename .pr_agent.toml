@@ -1,6 +1,6 @@
 [pr_reviewer]
-ignore_files = ["AGENTS.md", "CLAUDE.md", "CODEX.md", "GEMINI.md", "JULES.md", "CURSOR.md", "DROID.md"]
-ignore_directories = [".agent", ".agents", ".bob", ".codex", ".cursor", ".gemini", "Traycerrefactor"]
+ignore_files = ["**/*.md", ".github/**", "docs/**"]
+ignore_directories = [".agent", ".agents", ".bob", ".codex", ".cursor", ".gemini", "Traycerrefactor", "artifacts"]
 extra_instructions = """
 STRICT RULE: C# string literals must be ASCII-only. Flag any Unicode, emojis, or curly quotes.
 STRICT RULE: The `lock(stateLock)` pattern is BANNED. Ensure all state mutations use the Enqueue/FSM model.
