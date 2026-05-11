@@ -102,8 +102,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (ord != null
                     && !IsOrderTerminal(ord.OrderState)
                     && activePositions.TryGetValue(kvp.Key, out var pos)
-                    && pos.ExecutingAccount != null
-                    && pos.ExecutingAccount.Name == flatAcctName)
+                    && pos.ExecutingAccount?.Name == flatAcctName)
                 {
                     return true;
                 }
@@ -116,8 +115,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             foreach (var kvp in activePositions.ToArray())
             {
-                if (kvp.Value.ExecutingAccount != null
-                    && kvp.Value.ExecutingAccount.Name == flatAcctName
+                if (kvp.Value.ExecutingAccount?.Name == flatAcctName
                     && !kvp.Value.EntryFilled)
                 {
                     return true;
