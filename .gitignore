@@ -3,6 +3,13 @@ bin/
 obj/
 *.bak*
 *.202*
+__pycache__/
+
+# ...
+artifacts/
+*.patch
+*.diff
+
 # Zero-Waste Discovery Rule: .agent/rules/zero_waste_discovery.md
 
 # AI System Plumbing (Claude Code / MCP / Antigravity)
