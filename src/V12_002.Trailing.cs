@@ -80,11 +80,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             // When SIMA is enabled, force followers to match the Leader's trail level.
             // Followers calculate stops relative to their OWN entry prices but are triggered
             // by the Leader's profit progress. This prevents slippage-induced desync.
-            // [LD-003] Thread-Safety: Use a fresh snapshot for fleet sync to prevent stale stop synchronization.
-            if (EnableSIMA)
-            {
-                var updatedSnapshot = activePositions.ToArray();
-                ManageTrail_RunFleetSymmetrySync(updatedSnapshot);
+            // [LD-003] Thread-Safety: Use a fresh snapshot for fleet sync to prevent stale stop synchronization.
+            if (EnableSIMA)
+            {
+                var updatedSnapshot = activePositions.ToArray();
+                ManageTrail_RunFleetSymmetrySync(updatedSnapshot);
             }
 
             // Build 1105: Shadow Mode auto-propagation (runs after fleet sync)
