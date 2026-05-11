@@ -107,6 +107,31 @@ if (-not $gatePass) {
 Write-Host "ASCII GATE PASS - all source files are clean`n" -ForegroundColor Green
 
 # =============================================================================
+# DIFF SIZE GUARD (Build Protocol v3)
+# Checks the character count of the diff against 'main' to prevent PR bloat.
+# Limit: 150,000 characters (per project mandate).
+# =============================================================================
+Write-Host "--- DIFF GUARD: Checking PR size against main ---" -ForegroundColor Yellow
+if (Get-Command "git" -ErrorAction SilentlyContinue) {
+    try {
+        $diffSize = (git diff main --shortstat | Out-String).Trim()
+        $rawDiff = git diff main
+        $charCount = $rawDiff.Length
+        
+        if ($charCount -gt 150000) {
+            Write-Host "DIFF GUARD FAIL: Current diff against 'main' is $charCount characters." -ForegroundColor Red
+            Write-Host "  Project Limit: 150,000 characters." -ForegroundColor Red
+            Write-Host "  Action: Identify large text artifacts or line-ending desyncs." -ForegroundColor Yellow
+            # git diff main --stat
+            exit 1
+        }
+        Write-Host "DIFF GUARD PASS: Diff size ($charCount chars) is within limits.`n" -ForegroundColor Green
+    } catch {
+        Write-Host "DIFF GUARD SKIP: Could not compare against 'main' (likely missing branch or git error).`n" -ForegroundColor Gray
+    }
+}
+
+# =============================================================================
 # SOVEREIGN DROID AUDIT (P5 Red Team)
 # Automated verification of V12 architectural mandates.
 # =============================================================================
