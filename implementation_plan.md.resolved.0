@@ -1,0 +1,48 @@
+# Regression Testing Plan: Build 1101E (Hardened)
+
+This plan outlines the steps required to verify the Phase 4 Hardening fixes and ensure the strategy is stable for live trading simulation.
+
+## Proposed Changes
+
+### [Regression Testing Suite]
+
+#### [AUDIT] [DIRECTOR_SESSION_LOG](file:///C:/WSGTA/universal-or-strategy/docs/audits/DIRECTOR_SESSION_LOG.md)
+Verify that all "Silent Killers" listed in the log are mapped to specific test cases.
+
+## Verification Plan
+
+### Manual Verification (NinjaTrader Strategy Analyzer / SIM)
+
+#### 1. FFMA Infinite Sizing Stress Test
+- **Goal**: Verify that the strategy aborts entry if the stop distance is zero or negative (preventing division-by-zero contract spikes).
+- **Steps**:
+    1. Load `UniversalORStrategyV12_002_Dev` in NinjaTrader Sim.
+    2. Set `Mode` to `FFMA`.
+    3. Click `MANUAL LONG` or `MANUAL SHORT` with the cursor positioned exactly on the current price (forcing a 0-tick stop distance).
+    4. **Expected Result**: No order should be submitted. Output/Trace window should log a guard abort (if logging exists) or simply fail to fire. No NinjaTrader crash/freeze.
+
+#### 2. MOMO Fleet Symmetry Test
+- **Goal**: Verify that SIMA dispatch uses `StopMarket` orders for fleet followers.
+- **Steps**:
+    1. Open a workspace with a Master account and at least one Fleet account.
+    2. Set `Mode` to `MOMO`.
+    3. Place a MOMO breakout entry.
+    4. Observe the order type submitted for the Fleet account.
+    5. **Expected Result**: The fleet order must be a `StopMarket` order at the same price as the Master's trigger, ensuring equal priority.
+
+#### 3. RMA Config Persistence Test
+- **Goal**: Verify that `TRMA` and `RRMA` flags sync correctly and persist across panel re-syncs.
+- **Steps**:
+    1. Open the V12 Standard Panel.
+    2. Toggle `Trend RMA` and `Retest RMA` to `ON`.
+    3. Click `SYNC ALL` or restart the strategy.
+    4. Re-check the strategy properties in the NinjaTrader UI.
+    5. **Expected Result**: The flags must reflect the panel's state accurately.
+
+#### 4. Compilation & Build Finalization
+- **Goal**: Finalize the build in the local environment.
+- **Steps**:
+    1. Open NinjaTrader.
+    2. Open the NinjaScript Editor.
+    3. Press `F5` to compile.
+    4. **Expected Result**: "Successfully compiled" status message.

@@ -1,0 +1,36 @@
+# UNIVERSAL OR STRATEGY V12.44 - PHASE 7: CONCURRENCY HARDENING
+## DIRECTOR-LEVEL AUDIT & REPAIR PROMPT (OPUS 4.6 RECOMMENDED)
+
+### 🚨 INITIALIZATION
+`claude --model opus-4.6 "ACTING AS FORENSIC ARCHITECT. ATTACH TO C:\WSGTA\universal-or-strategy AND EXECUTE PHASE 7 CONCURRENCY FIX."`
+
+---
+
+### [THE PROBLEM: THREAD RACING]
+My director-level audit identifies that SIMA callbacks ([OnAccountOrderUpdate](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs#531-635) and [OnAccountExecutionUpdate](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.Compliance.cs#371-425) in [src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs)) are firing on background broker threads. 
+- **The Risk**: Data races with `stateLock` and potential UI/Strategy thread freezes during high-volatility fill bursts.
+- **The Goal**: Marshal all SIMA-driven state changes to the **Main Strategy Thread** using NinjaTrader's `TriggerCustomEvent` or `InvokeAsync` pattern.
+
+### [CONTEXT BASELINE]
+- **Files**: 
+    - [src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs) (The Callback Source)
+    - [src/UniversalORStrategyV12_002_Dev.Orders.Management.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Management.cs) (The Action Sink)
+    - [src/UniversalORStrategyV12_002_Dev.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.cs) (The Main Dispatcher)
+- **Hardening Logic**: Reference the "First-Writer-Wins" guard already implemented in [OnOrderUpdate](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs#37-530).
+
+### [PHASE 7 MISSION OBJECTIVES]
+1.  **DIAGNOSE**: Identify every location where an external account event (SIMA) modifies `activePositions`, `pos.RemainingContracts`, or submits a bracket.
+2.  **PLAN**: Design a thread-safe "Event Marshaller." 
+    - Preferred Pattern: `TriggerCustomEvent(callback_delegate, argument_packet)`.
+3.  **IMPLEMENT**:
+    - Wrap the internal logic of [OnAccountOrderUpdate](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs#531-635) and [OnAccountExecutionUpdate](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.Compliance.cs#371-425) so they execute exclusively on the UI/Strategy thread.
+    - Ensure `isFlattenRunning` and `stateLock` are respected without causing deadlocks.
+4.  **AUDIT**: Perform a "Race Condition Simulation" audit on the fix. Verify that if 10 accounts fill at once, the strategy thread processes them sequentially without a crash.
+
+### [TECHNICAL CONSTRAINTS]
+- **NO DEBT**: Do not leave `System.Action` closures that could cause memory leaks.
+- **PARITY**: Maintain the exact logic for target distribution and bracket prices.
+- **NT8 COMPLIANCE**: Use only approved NinjaScript thread-marshalling methods.
+
+---
+**DIRECTOR VERDICT**: **Opus 4.6** is mandatory for this task. Sonnet is risk-prone for subtle thread-locking bugs. Certification "Safe to Trade" depends on the precision of this fix.

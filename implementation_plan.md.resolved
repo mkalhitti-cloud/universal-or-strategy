@@ -1,0 +1,34 @@
+# Strategic Strategy: Modularize & Audit (Build 1101E)
+
+This plan shifts our focus to **Modularization (Refactoring)** as the primary priority. By splitting large files into smaller, focused modules, we reduce "Context Noise" and allow AI agents (like Opus 4.6) to perform deeper forensic audits with higher accuracy.
+
+## Proposed Changes
+
+### [Phase 1: UI Modularization] [COMPLETED]
+Split [UniversalORStrategyV12_002_Dev.UI.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.cs) (~2246 lines) into:
+- [UI.IPC.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.IPC.cs): TCP Server, Client Handlers, and [ProcessIpcCommands](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.IPC.cs#236-988).
+- [UI.Compliance.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.Compliance.cs): Compliance Hub, P/L tracking, and Daily Summary logic.
+- [UI.Sizing.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.Sizing.cs): ATR Auto-Sizing Engine and Position Sizing math.
+- [UI.Callbacks.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.Callbacks.cs): Hotkeys and Chart Click handlers.
+
+### [Phase 2: Order Modularization] [COMPLETED]
+Split [UniversalORStrategyV12_002_Dev.Orders.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.cs) (~2024 lines) into:
+- [Orders.Callbacks.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs): [OnOrderUpdate](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs#37-530), [OnPositionUpdate](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs#636-737), and [OnAccountOrderUpdate](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs#531-635).
+- [Orders.Management.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Management.cs): [SubmitBracketOrders](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Management.cs#37-113), [CleanupPosition](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Management.cs#677-755), and [ReconcileOrphanedOrders](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Management.cs#838-969).
+- `Orders.Actions.cs`: Hotkey execution logic (ExecuteLong, ExecuteShort, Flatten).
+### [Phase 3: Concurrency Hardening] [COMPLETED]
+Implement an event queue or use `TriggerCustomEvent` / `InvokeAsync` to marshal all SIMA callbacks ([OnAccountOrderUpdate](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs#531-635)) to the strategy thread. This prevents "First-Writer-Wins" race conditions between the Master thread and Broker threads.
+
+### [Phase 4: Unmanaged Exit & Sizing Fix]
+- **Fix Unmanaged Violation**: Replace `ExitLong()`/`ExitShort()` in [SIMA.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.SIMA.cs) with `SubmitOrderUnmanaged`.
+- **Sizing Logic Update**: Allow 1-contract trades to have a T1 target if configured, rather than defaulting to "Runner Only" mode.
+- **Audit IPC**: Ensure all FLATTEN/CANCEL commands strictly use unmanaged order submissions.
+
+## Verification Plan
+
+### Automated Verification
+- **Compilation Check**: Run `F5` in NinjaTrader after each module split.
+- **Thread Audit**: Verify `ManagedThreadId` remains constant during execution updates using debug logs.
+
+### Manual Verification
+- **Stress Test**: Slam the IPC with simultaneous `FLATTEN` and `ENTRY` commands during a high-volatility Sim session.

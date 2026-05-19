@@ -1,0 +1,18 @@
+# Task: Post-Hardening Oversight & Next Phase Activation
+
+- [x] Load project baseline and historical context
+    - [x] Read [DIRECTOR_SESSION_LOG.md](file:///C:/WSGTA/universal-or-strategy/docs/audits/DIRECTOR_SESSION_LOG.md)
+    - [x] Read previous session's [task.md](file:///C:/Users/Mohammed%20Khalid/.gemini/antigravity/brain/b3825fff-fc80-4e82-97d2-6543b87f49be/task.md) and [walkthrough.md](file:///C:/Users/Mohammed%20Khalid/.gemini/antigravity/brain/ab0b9420-04fc-4c78-a799-b4fd384be5c6/walkthrough.md)
+    - [x] Verify `src/` directory contents
+- [x] Summarize immediate next steps for regression testing
+- [x] Explain "Regression Testing" and "Weekend Tasks" to user
+- [x] **PHASE 5: Modularization (Refactor First)**
+    - [x] Design "Modular Split" map (e.g., UI → IPC, Compliance, Sizing)
+    - [x] Split [UniversalORStrategyV12_002_Dev.UI.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.cs) (2200+ lines)
+    - [x] Split [UniversalORStrategyV12_002_Dev.Orders.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.cs) (2000+ lines)
+- [x] **PHASE 6: Forensic Audit (Small-Node Scan)**
+    - [x] Identify unmarshalled callback race (SIMA)
+- [x] **PHASE 7: Concurrency Hardening (The "Final Green Light")**
+    - [x] Implement `InvokeAsync` / `TriggerCustomEvent` marshalling
+    - [x] Verify thread-safety in simulation
+- [x] **STABILITY CERTIFIED: Safe to Trade Build 1101E (Modular)**

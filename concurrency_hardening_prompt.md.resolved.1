@@ -1,0 +1,32 @@
+# UNIVERSAL OR STRATEGY V12.44 - PHASE 7: CONCURRENCY HARDENING
+## 🏆 MASTER DIRECTOR-TO-DIRECTOR HANDOFF (OPUS 4.6)
+
+### 🚨 INITIALIZATION COMMAND
+`claude --model opus-4.6 "YOU ARE THE PROJECT DIRECTOR. ATTACH TO C:\WSGTA\universal-or-strategy. ASSUME FULL MISSION OWNERSHIP. EXECUTE PHASE 7 CONCURRENCY HARDENING."`
+
+---
+
+### [DIRECTOR'S MEMORY & CONTEXT]
+You are assuming the role of **Project Director**. Your decisions must be informed by the project's historical memory stored in the following locations:
+1.  **Project Baseline**: [docs/audits/DIRECTOR_SESSION_LOG.md](file:///C:/WSGTA/universal-or-strategy/docs/audits/DIRECTOR_SESSION_LOG.md) (Read this first for Phase 4 history).
+2.  **Active Roadmap**: [brain/b3825fff-fc80-4e82-97d2-6543b87f49be/task.md](file:///C:/Users/Mohammed%20Khalid/.gemini/antigravity/brain/b3825fff-fc80-4e82-97d2-6543b87f49be/task.md) (Current mission state).
+3.  **Audit Logs**: [brain/b3825fff-fc80-4e82-97d2-6543b87f49be/walkthrough.md](file:///C:/Users/Mohammed%20Khalid/.gemini/antigravity/brain/b3825fff-fc80-4e82-97d2-6543b87f49be/walkthrough.md) (Previous phase results).
+
+### [THE CRITICAL TASK: CONCURRENCY FIX]
+The strategy is structurally modular but suffers from a **Thread-Safety Race Condition** in the SIMA (Multi-Account) engine.
+- **Source**: [src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs) (OnAccountOrderUpdate, OnAccountExecutionUpdate).
+- **The Bug**: SIMA fill events from external Apex accounts fire on background broker threads, bypassing the main Strategy/UI thread and risking state-locked deadlocks.
+
+### [DIRECTOR OBJECTIVES]
+1.  **Integrate Memory**: Review the "Silent Killer" list in the session logs.
+2.  **Execute Marshalling**: Wrap all SIMA callback logic in NinjaTrader's `TriggerCustomEvent` or `InvokeAsync` pattern to anchor them to the Main Strategy Thread.
+3.  **Surgical Precision**: Ensure "First-Writer-Wins" guards and `stateLock` are maintained without introducing deadlocks.
+4.  **Final Certification**: Update the [walkthrough.md](file:///C:/Users/Mohammed%20Khalid/.gemini/antigravity/brain/b3825fff-fc80-4e82-97d2-6543b87f49be/walkthrough.md) only when you are 100% confident to issue a "Stability Certified: Safe to Trade" verdict.
+
+### [AUTHORITY PROTOCOLS]
+- **No Refactoring**: The code is already modular. Focus strictly on the concurrency logic.
+- **Deep Audit**: Use your highest logic capacity to simulate race conditions before committing code.
+- **User Preference**: Non-coder user. Code must be complete, compiled (F5 verified), and explained in trading terms.
+
+---
+**AUTHORIZATION CODE**: `DIRECTOR_OVERRIDE_PH7_CERT`

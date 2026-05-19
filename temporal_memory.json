@@ -1,0 +1,32 @@
+[
+  {
+    "time": "2026-05-19T01:25:27.064300+00:00",
+    "agent": "trace_agent_handoff",
+    "action": "chain",
+    "inputs": "{'from_agent': 'Antigravity', 'mission_id': 'MISN-001', 'payload': {'goal': 'sub-1ns'}, 'to_agent': 'Claude'}..."
+  },
+  {
+    "time": "2026-05-19T01:18:26.011181+00:00",
+    "agent": "Fleet Global Monitor",
+    "action": "chain",
+    "inputs": "{'action': 'Connectivity_Test', 'agent_name': 'Bob_IDE', 'metadata': {}, 'status': 'PASS'}..."
+  },
+  {
+    "time": "2026-05-18T21:11:26.320094+00:00",
+    "agent": "trace_agent_handoff",
+    "action": "chain",
+    "inputs": "{'from_agent': 'Antigravity', 'mission_id': 'MISN-001', 'payload': {'goal': 'sub-1ns'}, 'to_agent': 'Claude'}..."
+  },
+  {
+    "time": "2026-05-18T21:11:17.335337+00:00",
+    "agent": "A2A Relay",
+    "action": "chain",
+    "inputs": "{'instructions': 'Testing LangSmith Pipeline Hardening AFTER PYTHON ENV CLEAN', 'to_agent': 'TestAgent'}..."
+  },
+  {
+    "time": "2026-05-17T21:38:23.997344+00:00",
+    "agent": "trace_agent_handoff",
+    "action": "chain",
+    "inputs": "{'from_agent': 'Antigravity', 'mission_id': 'MISN-001', 'payload': {'goal': 'sub-1ns'}, 'to_agent': 'Claude'}..."
+  }
+]

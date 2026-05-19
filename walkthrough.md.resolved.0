@@ -1,0 +1,26 @@
+# Walkthrough: Phase 5 Modularization
+
+The project has successfully transitioned from a monolith architecture to a **Module-Based Architecture**. This partitioning allows for higher-precision AI audits and faster maintenance.
+
+## Changes Made
+
+### 📁 UI Monolith Partitioned
+The 2,246-line [UniversalORStrategyV12_002_Dev.UI.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.cs) has been split into:
+- [UI.IPC.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.IPC.cs): TCP Server, Client Handlers, and Command Dispatcher.
+- [UI.Compliance.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.Compliance.cs): Apex Compliance Hub, P/L tracking, and Health Logging.
+- [UI.Sizing.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.Sizing.cs): ATR Auto-Sizing Engine and Target Distribution logic.
+- [UI.Callbacks.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.Callbacks.cs): Hotkeys and Chart UI events.
+
+### 📁 Orders Monolith Partitioned
+The 2,024-line [UniversalORStrategyV12_002_Dev.Orders.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.cs) has been split into:
+- [Orders.Callbacks.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs): Core event handlers (`OnOrderUpdate`, `OnPositionUpdate`).
+- [Orders.Management.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Management.cs): Bracket submission, Cleanup, and Orphan reconciliation.
+
+## Verification Results
+- **File Geometry**: Verified 16 total source files in `src/`.
+- **Integrity Check**: Partial class structure preserved across all 14 new partial nodes.
+- **Git State**: Commit `103628c` confirms all changes are versioned.
+
+## Next Steps
+1. **Compilation**: User to press `F5` in NinjaTrader to verify no `CS` errors.
+2. **Forensic Audit**: Initiate small-node scan of [UI.Sizing.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.Sizing.cs) and [Orders.Callbacks.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs).

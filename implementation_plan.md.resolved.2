@@ -1,0 +1,27 @@
+# Strategic Strategy: Modularize & Audit (Build 1101E)
+
+This plan shifts our focus to **Modularization (Refactoring)** as the primary priority. By splitting large files into smaller, focused modules, we reduce "Context Noise" and allow AI agents (like Opus 4.6) to perform deeper forensic audits with higher accuracy.
+
+## Proposed Changes
+
+### [Phase 1: UI Modularization] [COMPLETED]
+Split [UniversalORStrategyV12_002_Dev.UI.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.cs) (~2246 lines) into:
+- [UI.IPC.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.IPC.cs): TCP Server, Client Handlers, and `ProcessIpcCommands`.
+- [UI.Compliance.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.Compliance.cs): Compliance Hub, P/L tracking, and Daily Summary logic.
+- [UI.Sizing.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.Sizing.cs): ATR Auto-Sizing Engine and Position Sizing math.
+- [UI.Callbacks.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.Callbacks.cs): Hotkeys and Chart Click handlers.
+
+### [Phase 2: Order Modularization] [COMPLETED]
+Split [UniversalORStrategyV12_002_Dev.Orders.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.cs) (~2024 lines) into:
+- [Orders.Callbacks.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Callbacks.cs): `OnOrderUpdate`, `OnPositionUpdate`, and `OnAccountOrderUpdate`.
+- [Orders.Management.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.Orders.Management.cs): `SubmitBracketOrders`, `CleanupPosition`, and `ReconcileOrphanedOrders`.
+- `Orders.Actions.cs`: Hotkey execution logic (ExecuteLong, ExecuteShort, Flatten).
+
+## Verification Plan
+
+### Automated Verification
+- **Compilation Check**: Run `F5` in NinjaTrader after each module split to ensure namespaces and `partial class` references are intact.
+
+### Manual Verification
+- **Agent Audit**: Hand one small module (e.g., [UI.Sizing.cs](file:///C:/WSGTA/universal-or-strategy/src/UniversalORStrategyV12_002_Dev.UI.Sizing.cs)) to **Opus 4.6** and ask it to find edge cases.
+- **Result**: Compare finding density before vs. after refactor.

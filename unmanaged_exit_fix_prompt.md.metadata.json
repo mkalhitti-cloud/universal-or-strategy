@@ -1,0 +1,5 @@
+{
+  "artifactType": "ARTIFACT_TYPE_TASK",
+  "summary": "A handoff prompt for the Phase 8 fixes, addressing the unmanaged exit violation and 1-contract sizing logic.",
+  "updatedAt": "2026-02-17T18:45:59.118947600Z"
+}

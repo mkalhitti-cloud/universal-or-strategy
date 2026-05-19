@@ -1,0 +1,8 @@
+# Task: Post-Hardening Oversight & Next Phase Activation
+
+- [/] Load project baseline and historical context
+    - [ ] Read `DIRECTOR_SESSION_LOG.md`
+    - [ ] Read previous session's `task.md` and `walkthrough.md`
+    - [ ] Verify `src/` directory contents
+- [ ] Summarize immediate next steps for regression testing
+- [ ] Await user approval for next phase

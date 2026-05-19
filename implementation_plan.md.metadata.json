@@ -1,0 +1,5 @@
+{
+  "artifactType": "ARTIFACT_TYPE_IMPLEMENTATION_PLAN",
+  "summary": "Regression testing plan for V12.44 Build 1101E to verify Phase 4 Hardening and ensure cross-mode stability.",
+  "updatedAt": "2026-02-16T23:24:38.957825100Z"
+}
