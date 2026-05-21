@@ -22,7 +22,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private long _stickyWritePending;        // Interlocked gate: 0=idle, 1=write scheduled
         private const int STICKY_DEBOUNCE_MS = 50;
 
-        private Services.IStickyStateService _stickyStateService;
+        private readonly Services.IStickyStateService _stickyStateService;
 
         private class StickyStateLogger : Services.IStickyStateLogger
         {

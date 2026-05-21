@@ -402,11 +402,7 @@ namespace UniversalOrStrategy.Tests
             // Simulate concurrent shutdown operations decrementing shared metric
             for (int i = 0; i < initialCount; i++)
             {
-                tasks.Add(Task.Run(() =>
-                {
-                    // Atomic decrement - thread-safe without locks
-                    Interlocked.Decrement(ref metricCounter);
-                }));
+                tasks.Add(Task.Run(() => Interlocked.Decrement(ref metricCounter)));
             }
             
             Task.WaitAll(tasks.ToArray());

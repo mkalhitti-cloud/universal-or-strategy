@@ -260,11 +260,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 Print($"[REAPER REPAIR] [FAIL] FAILED for {accountName}: {ex.Message}"); // [Build 969]
             }
-            finally
-            {
-                // [Build 969.3] - Top-level finally guarantees _repairInFlight cleanup on ALL exit paths.
-                _repairInFlight.TryRemove(repairKey, out _);
-            }
+            // [Build 969.3] - Top-level finally guarantees _repairInFlight cleanup on ALL exit paths.
+            _repairInFlight.TryRemove(repairKey, out _);
         }
 
         #endregion

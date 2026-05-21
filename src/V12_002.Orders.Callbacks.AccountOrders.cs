@@ -793,7 +793,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             foreach (var kvp in replaceSpecsSnapshot)
             {
                 FollowerReplaceSpec fsm = kvp.Value;
-                if (fsm != null && fsm.State == FollowerReplaceState.PendingCancel
+                if (fsm.State == FollowerReplaceState.PendingCancel
                     && fsm.CancellingOrderId == order.OrderId)
                 {
                     string matchedEntry = kvp.Key;
