@@ -1,14 +1,7 @@
 ---
-engines:
-  csharp: true
-  markdown: false
-  python: false
-  shell: false
-  duplication: false
-  prospector: false
-  pylint: false
-  bandit: false
-  remark-lint: false
+languages:
+  csharp:
+    enabled: true
 
 exclude_paths:
   - "scripts/**"

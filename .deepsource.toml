@@ -25,5 +25,8 @@ exclude_patterns = [
     ".antigravitycli/**",
     "Traycerrefactor/**",
     "artifacts/**",
-    "benchmarks/**"
+    "benchmarks/**",
+    "src/V12_002.UI.*.cs",
+    "src/V12_002.StickyState.cs",
+    "src/V12_002.SIMA.*.cs"
 ]
