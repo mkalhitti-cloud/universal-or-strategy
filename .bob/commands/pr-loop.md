@@ -44,9 +44,10 @@ INPUT: PR #$1 bot findings + local lint/test results.
 PROTOCOL:
   1. FIX all surgical violations (braces, sealed classes, complexity).
   2. CATEGORIZE issues in docs/brain/workflow_health.md ([VALID], [HALLUCINATION], [INFRA-NOISE]).
-  3. VERIFY: Run `powershell -File .\scripts\calculate_fleet_score.ps1`.
-  4. If Score < 15, repeat Step 1.
-  5. If Score = 15, emit: [LOCAL-READY] PHS 15/15.
+  3. RUN CSharpier formatter: `powershell -File .\scripts\format_all_csharp.ps1` (auto-fixes SA1210, IDE0005, IDE0009).
+  4. VERIFY: Run `powershell -File .\scripts\calculate_fleet_score.ps1`.
+  5. If Score < 15, repeat Step 1.
+  6. If Score = 15, emit: [LOCAL-READY] PHS 15/15.
 ```
 
 ### Step 2: Global Integrity (Goal: 25/25)
@@ -55,13 +56,14 @@ Hand off:
 ```
 TASK: Global Audit & Monitor
 PROTOCOL:
-  1. git add . && git commit -m "fix: PHS Perfection Loop - PR #$1" && powershell -File .\deploy-sync.ps1 && git push
-  2. monitor_pr_checks $1 (Wait for all bots).
+  1. powershell -File .\deploy-sync.ps1 (MANDATORY before push - syncs NT8 hard links)
+  2. git add . && git commit -m "fix: PHS Perfection Loop - PR #$1" && git push
+  3. monitor_pr_checks $1 (Wait for all bots).
      - **MANDATORY SLEEP**: Start-Sleep -Seconds 300 (5 min) for the first check.
      - **SUBSEQUENT SLEEP**: Start-Sleep -Seconds 180 (3 min) if checks are still pending.
-  3. Run `powershell -File .\scripts\calculate_fleet_score.ps1 -PrNumber $1`.
-  4. If Score < 100, emit: [PHS-RETRY] Current: X/100.
-  5. If Score = 100, emit: [PHS-PERFECT] 100/100.
+  4. Run `powershell -File .\scripts\calculate_fleet_score.ps1 -PrNumber $1`.
+  5. If Score < 100, emit: [PHS-RETRY] Current: X/100.
+  6. If Score = 100, emit: [PHS-PERFECT] 100/100.
 ```
 
 ### Step 3: Loop Control
