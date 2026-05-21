@@ -182,6 +182,40 @@ namespace NinjaTrader.NinjaScript.Strategies
             symmetryMasterEntryToDispatch[masterEntryName] = dispatchId;
         }
 
+        /// <summary>
+        /// Rolls back a symmetry dispatch registration when order submission fails.
+        /// Removes the dispatch context and all associated mappings to prevent orphaned state.
+        /// </summary>
+        private void SymmetryGuardRollbackDispatch(string dispatchId)
+        {
+            if (string.IsNullOrEmpty(dispatchId))
+                return;
+
+            // Remove the dispatch context
+            if (symmetryDispatchById.TryRemove(dispatchId, out var ctx))
+            {
+                // Clean up any registered followers
+                string[] followers = ctx.Followers;
+                for (int i = 0; i < followers.Length; i++)
+                {
+                    symmetryFleetEntryToDispatch.TryRemove(followers[i], out _);
+                }
+
+                // Clean up master entry mapping if it exists
+                var masterToRemove = symmetryMasterEntryToDispatch
+                    .Where(kvp => kvp.Value == dispatchId)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                foreach (var masterKey in masterToRemove)
+                {
+                    symmetryMasterEntryToDispatch.TryRemove(masterKey, out _);
+                }
+
+                Print(string.Format("[SYMMETRY_GUARD] Dispatch {0} rolled back due to order submission failure", dispatchId));
+            }
+        }
+
         private void SymmetryGuardOnMasterFill(string entryName, PositionInfo masterPos, double averageFillPrice, int fillQty, DateTime fillTimeUtc)
         {
             if (masterPos == null || masterPos.IsFollower || averageFillPrice <= 0 || fillQty <= 0)

@@ -1,6 +1,0 @@
-{"id":"59dacc5c-e978-449f-9141-3410b14228ef","ts":"2026-05-12T22:50:07.446Z","path":"C:\\WSGTA\\universal-or-strategy\\src\\V12_002.SIMA.Dispatch.cs","version":"1.0.0","taskID":"d397f26a-64e9-4644-90ad-991b24662941"}
-{"id":"98bf25b8-8096-4b69-93ea-7b62b73679b3","ts":"2026-05-12T22:52:21.513Z","path":"C:\\WSGTA\\universal-or-strategy\\src\\V12_002.SIMA.Dispatch.cs","version":"1.0.0","taskID":"d397f26a-64e9-4644-90ad-991b24662941"}
-{"id":"6d31a778-e72b-4b72-bcac-9950a2d181a8","ts":"2026-05-12T22:54:58.166Z","path":"C:\\WSGTA\\universal-or-strategy\\src\\V12_002.SIMA.Dispatch.cs","version":"1.0.0","taskID":"d397f26a-64e9-4644-90ad-991b24662941"}
-{"id":"576e48ba-c7d5-4ff2-8065-ca069b77019f","ts":"2026-05-12T22:55:19.494Z","path":"C:\\WSGTA\\universal-or-strategy\\src\\V12_002.SIMA.Dispatch.cs","version":"1.0.0","taskID":"d397f26a-64e9-4644-90ad-991b24662941"}
-{"id":"cf86971c-4f0c-4fc8-9517-31f365d217ce","ts":"2026-05-12T22:57:56.031Z","path":"C:\\WSGTA\\universal-or-strategy\\src\\V12_002.SIMA.Dispatch.cs","version":"1.0.0","taskID":"d397f26a-64e9-4644-90ad-991b24662941"}
-{"id":"d69900ea-f878-4b67-a18a-cd45b35b491a","ts":"2026-05-12T23:00:09.924Z","path":"C:\\WSGTA\\universal-or-strategy\\docs\\brain\\dispatch_extraction_verification.md","version":"1.0.0","taskID":"d397f26a-64e9-4644-90ad-991b24662941"}
