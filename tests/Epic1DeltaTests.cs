@@ -9,7 +9,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Xunit;
+using NUnit.Framework;
 
 namespace UniversalOrStrategy.Tests
 {
@@ -32,7 +32,7 @@ namespace UniversalOrStrategy.Tests
         /// FIX: try-catch wrapper calls SymmetryGuardRollbackDispatch on exception,
         /// ensuring symmetryDispatchById is cleaned up atomically.
         /// </summary>
-        [Fact]
+        [Test]
         public void SubmitLocalRMAEntry_ThrowsException_ClearsInFlightRegistration()
         {
             // Arrange: Simulate symmetryDispatchById dictionary
@@ -44,8 +44,8 @@ namespace UniversalOrStrategy.Tests
             symmetryDispatchById.TryAdd(testDispatchId, mockContext);
             
             // Verify registration succeeded
-            Assert.True(symmetryDispatchById.ContainsKey(testDispatchId));
-            Assert.Equal(1, symmetryDispatchById.Count);
+            Assert.That(symmetryDispatchById.ContainsKey(testDispatchId), Is.True);
+            Assert.That(symmetryDispatchById.Count, Is.EqualTo(1));
             
             // Act: Simulate exception during order submission
             Exception caughtException = null;
@@ -62,9 +62,9 @@ namespace UniversalOrStrategy.Tests
             }
             
             // Assert: Verify rollback occurred
-            Assert.NotNull(caughtException);
-            Assert.False(symmetryDispatchById.ContainsKey(testDispatchId));
-            Assert.Equal(0, symmetryDispatchById.Count);
+            Assert.That(caughtException, Is.Not.Null);
+            Assert.That(symmetryDispatchById.ContainsKey(testDispatchId), Is.False);
+            Assert.That(symmetryDispatchById.Count, Is.EqualTo(0));
         }
 
         #endregion
@@ -81,7 +81,7 @@ namespace UniversalOrStrategy.Tests
         /// FIX: Clear sideband FIRST, enforce memory barrier, THEN release pool slot.
         /// This ensures acquiring thread always sees zeroed sideband state.
         /// </summary>
-        [Fact]
+        [Test]
         public void Sideband_Release_ClearsBufferPriorToPoolReturn()
         {
             // Arrange: Simulate photon sideband array and pool
@@ -105,17 +105,17 @@ namespace UniversalOrStrategy.Tests
             Interlocked.Exchange(ref poolAvailability[testSlotIndex], 1); // Mark available
             
             // Assert: Verify sideband is zeroed before slot becomes available
-            Assert.Equal(default(FleetDispatchSideband), photonSideband[testSlotIndex]);
-            Assert.Null(photonSideband[testSlotIndex].FleetEntryName);
-            Assert.Null(photonSideband[testSlotIndex].ExpectedKey);
-            Assert.Equal(0, photonSideband[testSlotIndex].ReservedDelta);
-            Assert.Equal(1, poolAvailability[testSlotIndex]);
+            Assert.That(photonSideband[testSlotIndex], Is.EqualTo(default(FleetDispatchSideband)));
+            Assert.That(photonSideband[testSlotIndex].FleetEntryName, Is.Null);
+            Assert.That(photonSideband[testSlotIndex].ExpectedKey, Is.Null);
+            Assert.That(photonSideband[testSlotIndex].ReservedDelta, Is.EqualTo(0));
+            Assert.That(poolAvailability[testSlotIndex], Is.EqualTo(1));
         }
 
         /// <summary>
         /// H02 Stress Test: Multi-threaded producer-consumer validates no stale reads.
         /// </summary>
-        [Fact]
+        [Test]
         public void Sideband_ConcurrentReleaseAcquire_NoStaleReads()
         {
             const int iterations = 1000;
@@ -179,7 +179,7 @@ namespace UniversalOrStrategy.Tests
             Task.WaitAll(tasks.ToArray());
             
             // Assert: Zero stale reads confirms memory ordering is correct
-            Assert.Equal(0, staleReadCount);
+            Assert.That(staleReadCount, Is.EqualTo(0));
         }
 
         /// <summary>
@@ -192,7 +192,7 @@ namespace UniversalOrStrategy.Tests
         /// FIX: Clear sideband array element, enforce memory barrier, THEN release pool.
         /// This test simulates the finally block sequence to verify correct ordering.
         /// </summary>
-        [Fact]
+        [Test]
         public void ProcessFleetSlot_Release_ClearsBufferPriorToPoolReturn()
         {
             // Arrange: Simulate photon sideband array and pool
@@ -211,9 +211,9 @@ namespace UniversalOrStrategy.Tests
             poolAvailability[testSlotIndex] = 0; // Slot in use
             
             // Verify slot has stale data before release
-            Assert.Equal("FLEET_RMA_STALE", photonSideband[testSlotIndex].FleetEntryName);
-            Assert.Equal("APEX_MAIN_RMA_1", photonSideband[testSlotIndex].ExpectedKey);
-            Assert.Equal(3, photonSideband[testSlotIndex].ReservedDelta);
+            Assert.That(photonSideband[testSlotIndex].FleetEntryName, Is.EqualTo("FLEET_RMA_STALE"));
+            Assert.That(photonSideband[testSlotIndex].ExpectedKey, Is.EqualTo("APEX_MAIN_RMA_1"));
+            Assert.That(photonSideband[testSlotIndex].ReservedDelta, Is.EqualTo(3));
             
             // Act: Simulate CORRECT finally block sequence (Clear -> Barrier -> Release)
             // This is what ProcessFleetSlot finally block MUST do
@@ -230,10 +230,10 @@ namespace UniversalOrStrategy.Tests
             
             // Assert: Verify sideband is cleared BEFORE slot becomes available
             // Note: Production code clears strings to string.Empty, not null (default)
-            Assert.Equal(string.Empty, photonSideband[testSlotIndex].FleetEntryName);
-            Assert.Equal(string.Empty, photonSideband[testSlotIndex].ExpectedKey);
-            Assert.Equal(0, photonSideband[testSlotIndex].ReservedDelta);
-            Assert.Equal(1, poolAvailability[testSlotIndex]); // Slot now available
+            Assert.That(photonSideband[testSlotIndex].FleetEntryName, Is.EqualTo(string.Empty));
+            Assert.That(photonSideband[testSlotIndex].ExpectedKey, Is.EqualTo(string.Empty));
+            Assert.That(photonSideband[testSlotIndex].ReservedDelta, Is.EqualTo(0));
+            Assert.That(poolAvailability[testSlotIndex], Is.EqualTo(1)); // Slot now available
         }
 
         #endregion
@@ -250,7 +250,7 @@ namespace UniversalOrStrategy.Tests
         /// FIX: Call UnsubscribeFromFleetAccounts at end of abort drain.
         /// Method is idempotent (V12.1101E [A-4] guard) - safe to call multiple times.
         /// </summary>
-        [Fact]
+        [Test]
         public void DrainQueuesOnAbort_UnregistersAllEventHandlers()
         {
             // Arrange: Simulate event handler registration state
@@ -264,9 +264,9 @@ namespace UniversalOrStrategy.Tests
             pendingDispatches.Enqueue("DISPATCH_2");
             
             // Verify initial state: handlers registered, queues populated
-            Assert.Equal(3, eventHandlerRegistry["Account.OrderUpdate"]);
-            Assert.Equal(3, eventHandlerRegistry["Account.ExecutionUpdate"]);
-            Assert.Equal(2, pendingDispatches.Count);
+            Assert.That(eventHandlerRegistry["Account.OrderUpdate"], Is.EqualTo(3));
+            Assert.That(eventHandlerRegistry["Account.ExecutionUpdate"], Is.EqualTo(3));
+            Assert.That(pendingDispatches.Count, Is.EqualTo(2));
             
             // Act: Simulate DrainAllDispatchQueuesOnAbort sequence
             // Step 1: Drain queues
@@ -277,16 +277,16 @@ namespace UniversalOrStrategy.Tests
             eventHandlerRegistry["Account.ExecutionUpdate"] = 0;
             
             // Assert: Queues drained AND handlers unregistered
-            Assert.Equal(0, pendingDispatches.Count);
-            Assert.Equal(0, eventHandlerRegistry["Account.OrderUpdate"]);
-            Assert.Equal(0, eventHandlerRegistry["Account.ExecutionUpdate"]);
+            Assert.That(pendingDispatches.Count, Is.EqualTo(0));
+            Assert.That(eventHandlerRegistry["Account.OrderUpdate"], Is.EqualTo(0));
+            Assert.That(eventHandlerRegistry["Account.ExecutionUpdate"], Is.EqualTo(0));
         }
 
         /// <summary>
         /// H03 Original Test: Validates that DrainAllDispatchQueuesOnAbort calls
         /// UnsubscribeFromFleetAccounts to prevent stale event handler callbacks.
         /// </summary>
-        [Fact]
+        [Test]
         public void DrainQueuesOnAbort_UnsubscribesFleetAccounts()
         {
             // Arrange: Simulate fleet account subscription state
@@ -304,7 +304,7 @@ namespace UniversalOrStrategy.Tests
             
             // Verify handlers are active
             mockEventHandler("Apex_Main");
-            Assert.Equal(1, eventHandlerCallCount);
+            Assert.That(eventHandlerCallCount, Is.EqualTo(1));
             
             // Act: Simulate DrainAllDispatchQueuesOnAbort with UnsubscribeFromFleetAccounts
             // Clear subscription state (simulates unsubscribe)
@@ -315,14 +315,14 @@ namespace UniversalOrStrategy.Tests
             mockEventHandler("Apex_F01");
             
             // Assert: No additional handler invocations after unsubscribe
-            Assert.Equal(1, eventHandlerCallCount);
-            Assert.Equal(0, subscribedAccounts.Count);
+            Assert.That(eventHandlerCallCount, Is.EqualTo(1));
+            Assert.That(subscribedAccounts.Count, Is.EqualTo(0));
         }
 
         /// <summary>
         /// H03 Idempotency Test: Multiple unsubscribe calls are safe.
         /// </summary>
-        [Fact]
+        [Test]
         public void UnsubscribeFromFleetAccounts_Idempotent_SafeMultipleCalls()
         {
             // Arrange: Simulate subscription state with idempotency guard
@@ -335,10 +335,10 @@ namespace UniversalOrStrategy.Tests
             bool thirdUnsubscribe = subscribedAccounts.TryRemove("Apex_Main", out _);
             
             // Assert: First succeeds, subsequent calls are no-ops (idempotent)
-            Assert.True(firstUnsubscribe);
-            Assert.False(secondUnsubscribe);
-            Assert.False(thirdUnsubscribe);
-            Assert.Equal(0, subscribedAccounts.Count);
+            Assert.That(firstUnsubscribe, Is.True);
+            Assert.That(secondUnsubscribe, Is.False);
+            Assert.That(thirdUnsubscribe, Is.False);
+            Assert.That(subscribedAccounts.Count, Is.EqualTo(0));
         }
         #endregion
 
@@ -354,7 +354,7 @@ namespace UniversalOrStrategy.Tests
         /// FIX: Replace all direct decrement operations with Interlocked.Decrement(ref field)
         /// to guarantee atomic updates without locks.
         /// </summary>
-        [Fact]
+        [Test]
         public void ProcessShutdownSIMA_DeltaRollback_UsesAtomicPrimitives()
         {
             // Arrange: Simulate metric counters that would be decremented during shutdown
@@ -363,9 +363,9 @@ namespace UniversalOrStrategy.Tests
             int pendingDispatchCount = 10;
             
             // Verify initial state
-            Assert.Equal(5, activeFleetCount);
-            Assert.Equal(3, activeSIMACount);
-            Assert.Equal(10, pendingDispatchCount);
+            Assert.That(activeFleetCount, Is.EqualTo(5));
+            Assert.That(activeSIMACount, Is.EqualTo(3));
+            Assert.That(pendingDispatchCount, Is.EqualTo(10));
             
             // Act: Simulate CORRECT atomic decrement pattern (what ProcessShutdownSIMA MUST use)
             // BROKEN PATTERN: activeFleetCount--; activeSIMACount--; pendingDispatchCount--;
@@ -384,15 +384,15 @@ namespace UniversalOrStrategy.Tests
                 Interlocked.Decrement(ref pendingDispatchCount);
             
             // Assert: All metrics rolled back to zero atomically
-            Assert.Equal(0, activeFleetCount);
-            Assert.Equal(0, activeSIMACount);
-            Assert.Equal(0, pendingDispatchCount);
+            Assert.That(activeFleetCount, Is.EqualTo(0));
+            Assert.That(activeSIMACount, Is.EqualTo(0));
+            Assert.That(pendingDispatchCount, Is.EqualTo(0));
         }
 
         /// <summary>
         /// H04 Stress Test: Concurrent shutdown operations with atomic decrements.
         /// </summary>
-        [Fact]
+        [Test]
         public void ProcessShutdownSIMA_ConcurrentRollback_NoRaceConditions()
         {
             const int initialCount = 1000;
@@ -412,7 +412,7 @@ namespace UniversalOrStrategy.Tests
             Task.WaitAll(tasks.ToArray());
             
             // Assert: Counter reaches exactly zero (no lost decrements)
-            Assert.Equal(0, metricCounter);
+            Assert.That(metricCounter, Is.EqualTo(0));
         }
 
 
@@ -430,7 +430,7 @@ namespace UniversalOrStrategy.Tests
         /// FIX: Top-level OrderState.Cancelled check processes cancellations
         /// immediately via ProcessFollowerCancellationSafe, bypassing entry gates.
         /// </summary>
-        [Fact]
+        [Test]
         public void HandleMatchedFollowerOrder_CancelReceivedInStaleState_CancelsFollower()
         {
             // Arrange: Simulate follower position in non-standard state
@@ -452,7 +452,7 @@ namespace UniversalOrStrategy.Tests
             bool cancellationProcessed = false;
             
             // Act: Simulate top-level cancel gate (state-agnostic)
-            if (masterOrderUpdate.OrderState == "Cancelled" || 
+            if (masterOrderUpdate.OrderState == "Cancelled" ||
                 masterOrderUpdate.OrderState == "Rejected")
             {
                 // ProcessFollowerCancellationSafe called regardless of entry state
@@ -461,14 +461,14 @@ namespace UniversalOrStrategy.Tests
             }
             
             // Assert: Follower cancelled despite non-standard entry state
-            Assert.True(cancellationProcessed);
-            Assert.False(followerPosition.IsActive);
+            Assert.That(cancellationProcessed, Is.True);
+            Assert.That(followerPosition.IsActive, Is.False);
         }
 
         /// <summary>
         /// H06 Stress Test: Concurrent cancel events processed correctly.
         /// </summary>
-        [Fact]
+        [Test]
         public void FollowerCancellation_ConcurrentMasterCancels_AllProcessed()
         {
             const int followerCount = 100;
@@ -491,7 +491,7 @@ namespace UniversalOrStrategy.Tests
             
             // Assert: All followers cancelled
             foreach (var kvp in followers)
-                Assert.False(kvp.Value);
+                Assert.That(kvp.Value, Is.False);
         }
 
         #endregion
@@ -508,7 +508,7 @@ namespace UniversalOrStrategy.Tests
         /// FIX: Replace ContainsKey + indexer with atomic TryGetValue.
         /// Single operation guarantees no KeyNotFoundException under stress.
         /// </summary>
-        [Fact]
+        [Test]
         public void UpdateStopQuantity_ConcurrentDictionary_IsAtomic()
         {
             // Arrange: Simulate stopOrders dictionary
@@ -527,18 +527,18 @@ namespace UniversalOrStrategy.Tests
             if (stopOrders.TryGetValue("STOP_1", out var order))
             {
                 foundCorrect = true;
-                Assert.Equal(5, order.Quantity);
+                Assert.That(order.Quantity, Is.EqualTo(5));
             }
             
             // Assert: Atomic pattern succeeds
-            Assert.True(foundCorrect);
-            Assert.False(foundBroken);
+            Assert.That(foundCorrect, Is.True);
+            Assert.That(foundBroken, Is.False);
         }
 
         /// <summary>
         /// H07 Stress Test: Concurrent mutations with TryGetValue never throw.
         /// </summary>
-        [Fact]
+        [Test]
         public void ConcurrentDictionary_HighStressMutations_NoKeyNotFoundException()
         {
             const int iterations = 10000;
@@ -601,7 +601,7 @@ namespace UniversalOrStrategy.Tests
             Task.WaitAll(tasks.ToArray());
             
             // Assert: Zero KeyNotFoundException confirms atomic pattern
-            Assert.Equal(0, exceptionCount);
+            Assert.That(exceptionCount, Is.EqualTo(0));
         }
 
         #endregion
