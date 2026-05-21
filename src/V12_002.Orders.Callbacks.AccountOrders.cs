@@ -358,10 +358,67 @@ namespace NinjaTrader.NinjaScript.Strategies
             return false;
         }
 
+        // H06: Top-level follower cancellation processor (state-agnostic).
+        // Returns true if cancellation was handled (caller should return early).
+        // Checks: PendingCancel FSM, Target Replace FSM, Stop Replacement, PendingCleanup purge.
+        private bool ProcessFollowerCancellationSafe(string matchedEntry, PositionInfo matchedPos, Order order, string acctName, string reason)
+        {
+            if (order == null || order.OrderState != OrderState.Cancelled)
+            {
+                return false;
+            }
+
+            // Check 1: PendingCancel entry replacement FSM
+            FollowerReplaceSpec fsm;
+            if (_followerReplaceSpecs.TryGetValue(matchedEntry, out fsm)
+                && fsm.State == FollowerReplaceState.PendingCancel
+                && fsm.CancellingOrderId == order.OrderId)
+            {
+                return HandleMatchedFollower_PendingCancelReplace(matchedEntry, order, acctName);
+            }
+
+            // Check 2: Target replacement FSM
+            FollowerTargetReplaceSpec tSpec = null;
+            string tFsmMatchKey = null;
+            foreach (var tKvp in _followerTargetReplaceSpecs.ToArray())
+            {
+                if (tKvp.Value.CancellingOrderId == order.OrderId)
+                {
+                    tSpec = tKvp.Value;
+                    tFsmMatchKey = tKvp.Key;
+                    break;
+                }
+            }
+            if (tSpec != null && tFsmMatchKey != null)
+            {
+                return HandleMatchedFollower_TargetReplaceCancel(order);
+            }
+
+            // Check 3: Stop replacement (follower stops arrive via OnAccountOrderUpdate)
+            if (order.Name.StartsWith("Stop_") || order.Name.StartsWith("S_"))
+            {
+                if (HandleMatchedFollower_StopReplacement(order))
+                    return true;
+
+                // Check 4: PendingCleanup purge for terminal stops
+                HandleMatchedFollower_PendingCleanupPurge(order);
+                Print(string.Format("[SIMA] Follower order terminal: {0} on {1} ({2}) | Id={3}", order.Name, acctName, reason, order.OrderId));
+                RemoveGhostOrderRef(order, reason);
+                return true;
+            }
+
+            return false;
+        }
+
         // Build 935 [R-01]: Handles a follower order positively matched to an active position.
         // Entry-not-filled -> rollback + desync label. Entry-filled or stop/target -> ghost log + cleanup.
         private void HandleMatchedFollowerOrder(string matchedEntry, PositionInfo matchedPos, Order order, string acctName, string reason)
         {
+            // H06: Top-level follower cancellation gate (state-agnostic, pre-branch).
+            // Processes all cancellation types before entry-order conditional logic.
+            if (ProcessFollowerCancellationSafe(matchedEntry, matchedPos, order, acctName, reason))
+                return;
+
             if (entryOrders.TryGetValue(matchedEntry, out var entryOrder) &&
                 (entryOrder == order || (entryOrder != null && entryOrder.OrderId == order.OrderId)) &&
                 !matchedPos.EntryFilled)
@@ -390,27 +447,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                 }
 
-                if (HandleMatchedFollower_PendingCancelReplace(matchedEntry, order, acctName))
-                    return;
-
-                if (HandleMatchedFollower_TargetReplaceCancel(order))
-                    return;
-
                 HandleMatchedFollower_DeltaRollback(matchedEntry);
                 Print(string.Format("[SIMA] Follower entry cancelled: {0} on {1}. Reaper monitoring.", matchedEntry, acctName));
                 Draw.TextFixed(this, "SIMA_DESYNC_" + acctName, "(!) FOLLOWER DESYNC: " + acctName, TextPosition.TopLeft, Brushes.Red, new SimpleFont("Arial", 11), Brushes.Transparent, Brushes.Transparent, 50);
             }
             else
             {
-                // Build 950: Follower stop replacement -- mirrors HandleOrderCancelled master path.
-                // Follower stop cancels arrive via OnAccountOrderUpdate (not OnOrderUpdate), so
-                // HandleOrderCancelled never fires for them. Match pendingStopReplacements here.
-                // This block is in the else branch because stop orders are not in entryOrders.
-                if (HandleMatchedFollower_StopReplacement(order))
-                    return;
-
-                HandleMatchedFollower_PendingCleanupPurge(order);
-
+                // H06: Non-entry orders (stops, targets) already handled by top-level gate
                 Print(string.Format("[SIMA] Follower order terminal: {0} on {1} ({2}) | Id={3}", order.Name, acctName, reason, order.OrderId));
                 RemoveGhostOrderRef(order, reason);
             }
@@ -737,6 +780,51 @@ namespace NinjaTrader.NinjaScript.Strategies
                         }
                     }
 
+        // H06: State-agnostic cancellation processor for follower orders.
+        // Processes cancellations BEFORE matched-entry gate to handle stale-state scenarios.
+        // Returns true if cancellation was handled (caller should skip normal flow).
+        private bool ProcessFollowerCancellationUnconditional(Order order, string acctName, string reason)
+        {
+            if (order == null || order.OrderState != OrderState.Cancelled)
+                return false;
+
+            // Check 1: PendingCancel entry replacement FSM
+            foreach (var kvp in _followerReplaceSpecs.ToArray())
+            {
+                FollowerReplaceSpec fsm = kvp.Value;
+                if (fsm != null && fsm.State == FollowerReplaceState.PendingCancel
+                    && fsm.CancellingOrderId == order.OrderId)
+                {
+                    string matchedEntry = kvp.Key;
+                    return HandleMatchedFollower_PendingCancelReplace(matchedEntry, order, acctName);
+                }
+            }
+
+            // Check 2: Target replacement FSM
+            foreach (var tKvp in _followerTargetReplaceSpecs.ToArray())
+            {
+                if (tKvp.Value.CancellingOrderId == order.OrderId)
+                {
+                    return HandleMatchedFollower_TargetReplaceCancel(order);
+                }
+            }
+
+            // Check 3: Stop replacement (follower stops arrive via OnAccountOrderUpdate)
+            if (order.Name.StartsWith("Stop_") || order.Name.StartsWith("S_"))
+            {
+                if (HandleMatchedFollower_StopReplacement(order))
+                    return true;
+
+                // Check 4: PendingCleanup purge for terminal stops
+                HandleMatchedFollower_PendingCleanupPurge(order);
+                Print(string.Format("[SIMA] Follower order terminal: {0} on {1} ({2}) | Id={3}", order.Name, acctName, reason, order.OrderId));
+                RemoveGhostOrderRef(order, reason);
+                return true;
+            }
+
+            return false;
+        }
+
         private void ProcessQueuedAccountOrder(QueuedAccountOrderUpdate item)
         {
             if (item.EventArgs == null || item.EventArgs.Order == null) return;
@@ -746,6 +834,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             string reason = order.OrderState.ToString().ToUpper();
             string acctName = item.Account != null ? item.Account.Name : "UNKNOWN";
             Print(string.Format("[GHOST-AUDIT] OnAccountOrderUpdate: {0} | State={1} | Acct={2}", order.Name, reason, acctName));
+
+            // H06: Process cancellations BEFORE matched-entry gate (state-agnostic path)
+            if (ProcessFollowerCancellationUnconditional(order, acctName, reason))
+                return;
 
             // Build 935 [R-01]: Single snapshot -- reused by both identity search and cascade cleanup,
             // eliminating the second activePositions.ToArray() allocation in the cascade path.

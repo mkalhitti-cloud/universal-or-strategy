@@ -107,6 +107,38 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
 
+            // [BUILD 981 DIAGNOSTIC]: Detect orphaned FSM positions after grace period.
+            // Orphaned position = activePositions entry exists but broker position is flat.
+            // This is a diagnostic assertion -- logs warning but does NOT trigger flatten.
+            // KEY MAPPING (Director-verified):
+            //   - activePositions uses FSM entryName as key (e.g., "RetestLong_12345678")
+            //   - expectedPositions uses ExpKey(accountName) as key (composite key)
+            foreach (var fsm in accountFsms)
+            {
+                if (actualQty == 0 && activePositions.ContainsKey(fsm.EntryName))
+                {
+                    // Check if grace period has expired (10 seconds)
+                    DateTime firstSeen = _orphanedPositionFirstSeen.GetOrAdd(fsm.EntryName, DateTime.UtcNow);
+                    double graceElapsed = (DateTime.UtcNow - firstSeen).TotalSeconds;
+                    
+                    if (graceElapsed > 10.0)
+                    {
+                        // Grace expired -- log diagnostic warning
+                        Print($"[REAPER][DIAGNOSTIC] Orphaned FSM position detected: {acct.Name} entry={fsm.EntryName}. " +
+                              $"Broker flat but activePositions entry exists after {graceElapsed:F1}s grace. " +
+                              "This may indicate a TOCTOU race in entry rollback logic.");
+                        
+                        // Clear first-seen timestamp to avoid log spam
+                        _orphanedPositionFirstSeen.TryRemove(fsm.EntryName, out _);
+                    }
+                }
+                else
+                {
+                    // Position is live or activePositions is clean -- clear first-seen timestamp
+                    _orphanedPositionFirstSeen.TryRemove(fsm.EntryName, out _);
+                }
+            }
+
             if (actualQty != 0)
             {
                 AuditFleet_HandleNakedPosition(acct, pos, actualQty, expectedKey, shouldLog);
@@ -300,37 +332,50 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private bool EnqueueReaperRepairCandidate(Account acct, bool shouldLog, int expectedQty, List<FollowerBracketFSM> accountFsms, out string repairKey)
         {
+            // H17-GUARD: Prevent new enqueues after shutdown initiated
+            if (_isTerminating)
+            {
+                repairKey = null;
+                return false;
+            }
             repairKey = acct.Name + "_" + Instrument.FullName;
-            bool alreadyInFlight;
-            alreadyInFlight = _repairInFlight.ContainsKey(repairKey); // [Build 968]
-
-            if (!alreadyInFlight)
+            // H16-FIX: Atomic TryAdd check prevents TOCTOU race where two audit cycles both pass
+            // ContainsKey check before either calls TryAdd, causing duplicate repair submissions.
+            if (!_repairInFlight.TryAdd(repairKey, 0))
             {
-                // Phase 4: Use FSM to identify working entry
-                bool hasWorkingEntry = accountFsms.Any(f => f.State == FollowerBracketState.Submitted || f.State == FollowerBracketState.Accepted);
-
-                if (!hasWorkingEntry)
+                // Already in flight - skip
+                if (shouldLog)
                 {
-                    if (shouldLog)
-                    {
-                        Print($"[REAPER] * REPAIR CANDIDATE: {acct.Name} is Flat, expected={expectedQty}. Enqueuing repair.");
-                    }
-                    // A3-2: Mark in-flight BEFORE TriggerCustomEvent to block double-enqueue in next audit cycle (Build 960 audit fix)
-                    _repairInFlight.TryAdd(repairKey, 0); // [Build 968]
-                    _reaperRepairQueue.Enqueue(acct.Name);
-                    return true;
+                    Print($"[REAPER] {acct.Name} repair already in-flight -- skipping.");
                 }
+                return false;
             }
-            else if (shouldLog)
+    
+            // Phase 4: Use FSM to identify working entry (EXISTING LOGIC - not new)
+            bool hasWorkingEntry = accountFsms.Any(f => f.State == FollowerBracketState.Submitted || f.State == FollowerBracketState.Accepted);
+    
+            if (!hasWorkingEntry)
             {
-                Print($"[REAPER] {acct.Name} repair already in-flight -- skipping.");
+                if (shouldLog)
+                {
+                    Print($"[REAPER] * REPAIR CANDIDATE: {acct.Name} is Flat, expected={expectedQty}. Enqueuing repair.");
+                }
+                _reaperRepairQueue.Enqueue(acct.Name);
+                return true;
             }
-
-            return false;
+            else
+            {
+                // Has working entry - clear in-flight flag since we're not enqueuing.
+                // CRITICAL: Without this TryRemove, the account would be permanently blocked.
+                _repairInFlight.TryRemove(repairKey, out _);
+                return false;
+            }
         }
 
         private bool EnqueueReaperFlattenCandidate(Account acct)
         {
+            // H17-GUARD: Prevent new enqueues after shutdown initiated
+            if (_isTerminating) return false;
             string flattenKey = acct.Name + "_" + Instrument.FullName;
             if (!_reaperFlattenInFlight.TryAdd(flattenKey, 0))
             {
@@ -353,6 +398,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private bool EnqueueReaperNakedStopCandidate(Account acct, Position pos, int actualQty, string expectedKey, bool shouldLog)
         {
+            // H17-GUARD: Prevent new enqueues after shutdown initiated
+            if (_isTerminating) return false;
             bool hasPendingStopReplace = false;
             foreach (var psr in pendingStopReplacements.Values)
             {
@@ -384,16 +431,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if ((DateTime.UtcNow - firstSeen).TotalSeconds >= graceSeconds)
                 {
-                    bool alreadyNakedInFlight;
-                    alreadyNakedInFlight = _reaperNakedStopInFlight.ContainsKey(expectedKey); // [Build 968]
-                    if (!alreadyNakedInFlight)
+                    // H16-FIX: Atomic TryAdd check prevents duplicate naked stop submissions.
+                    if (!_reaperNakedStopInFlight.TryAdd(expectedKey, 0))
                     {
-                        _reaperNakedStopInFlight.TryAdd(expectedKey, 0); // [Build 968]
-                        Print(string.Format("[REAPER][NAKED_POSITION] {0}: {1}ct CONFIRMED naked after {2:F1}s grace. Queuing emergency hard stop.",
-                            acct.Name, actualQty, (DateTime.UtcNow - firstSeen).TotalSeconds));
-                        _reaperNakedStopQueue.Enqueue((acct.Name, pos.MarketPosition, Math.Abs(actualQty)));
-                        return true;
+                        // Already in flight - skip
+                        return false;
                     }
+                    Print(string.Format("[REAPER][NAKED_POSITION] {0}: {1}ct CONFIRMED naked after {2:F1}s grace. Queuing emergency hard stop.",
+                        acct.Name, actualQty, (DateTime.UtcNow - firstSeen).TotalSeconds));
+                    _reaperNakedStopQueue.Enqueue((acct.Name, pos.MarketPosition, Math.Abs(actualQty)));
+                    return true;
                 }
             }
 
@@ -487,7 +534,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (masterActualQty != 0)
             {
-                bool masterHasWorkingStop = Account.Orders.Any(o =>
+                // H13-FIX: Snapshot broker orders before iteration to prevent InvalidOperationException
+                // when NinjaTrader updates Account.Orders collection from UI thread during audit.
+                var masterOrders = Account.Orders.ToArray();
+                bool masterHasWorkingStop = masterOrders.Any(o =>
                     o.Instrument?.FullName == Instrument?.FullName &&
                     (o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) &&
                     (o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
@@ -573,6 +623,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private bool EnqueueReaperMasterFlatten()
         {
+            // H17-GUARD: Prevent new enqueues after shutdown initiated
+            if (_isTerminating) return false;
             string flattenKey = Account.Name + "_" + Instrument.FullName;
             if (!_reaperFlattenInFlight.TryAdd(flattenKey, 0))
             {
@@ -584,18 +636,20 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private bool EnqueueReaperMasterNakedStop(Position masterPos, int masterActualQty, string masterExpectedKey, DateTime masterFirstSeen)
         {
+            // H17-GUARD: Prevent new enqueues after shutdown initiated
+            if (_isTerminating) return false;
             if ((DateTime.UtcNow - masterFirstSeen).TotalSeconds >= ((NakedPositionGraceSec >= 5) ? NakedPositionGraceSec : 5))
             {
-                bool alreadyNakedInFlight;
-                alreadyNakedInFlight = _reaperNakedStopInFlight.ContainsKey(masterExpectedKey);
-                if (!alreadyNakedInFlight)
+                // H16-FIX: Atomic TryAdd check prevents duplicate master naked stop submissions.
+                if (!_reaperNakedStopInFlight.TryAdd(masterExpectedKey, 0))
                 {
-                    _reaperNakedStopInFlight.TryAdd(masterExpectedKey, 0);
-                    Print(string.Format("[REAPER][NAKED_POSITION] {0} (Master): {1}ct CONFIRMED naked after {2:F1}s grace. Queuing emergency hard stop.",
-                        Account.Name, masterActualQty, (DateTime.UtcNow - masterFirstSeen).TotalSeconds));
-                    _reaperNakedStopQueue.Enqueue((Account.Name, masterPos.MarketPosition, Math.Abs(masterActualQty)));
-                    return true;
+                    // Already in flight - skip
+                    return false;
                 }
+                Print(string.Format("[REAPER][NAKED_POSITION] {0} (Master): {1}ct CONFIRMED naked after {2:F1}s grace. Queuing emergency hard stop.",
+                    Account.Name, masterActualQty, (DateTime.UtcNow - masterFirstSeen).TotalSeconds));
+                _reaperNakedStopQueue.Enqueue((Account.Name, masterPos.MarketPosition, Math.Abs(masterActualQty)));
+                return true;
             }
 
             return false;
@@ -662,8 +716,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             // [V12.Phase9] REAPER FIX: Use manual unmanaged close instead of broken targetAcct.Flatten().
             // 1. Cancel all working orders for this instrument
+            // H14-FIX: Snapshot broker orders before iteration to prevent collection-modified exception
+            // during emergency flatten when broker callbacks update order states concurrently.
             List<Order> ordersToCancel = new List<Order>();
-            foreach (Order order in targetAcct.Orders)
+            var accountOrders = targetAcct.Orders.ToArray();
+            foreach (Order order in accountOrders)
             {
                 if (order != null && order.Instrument.FullName == Instrument.FullName &&
                     (order.OrderState == OrderState.Working || order.OrderState == OrderState.Submitted ||
@@ -685,7 +742,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         private void ProcessReaperFlatten_ClosePositions(Account targetAcct, string accountName)
         {
             // 2. Proactively close positions via unmanaged market orders
-            foreach (Position position in targetAcct.Positions)
+            // H15-FIX: Snapshot broker positions before iteration to prevent collection-modified exception
+            // during emergency flatten when broker fill callbacks update positions concurrently.
+            var accountPositions = targetAcct.Positions.ToArray();
+            foreach (Position position in accountPositions)
             {
                 if (position.Instrument.FullName != Instrument.FullName || position.MarketPosition == MarketPosition.Flat)
                 {

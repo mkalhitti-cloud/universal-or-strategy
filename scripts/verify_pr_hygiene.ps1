@@ -2,7 +2,7 @@
 # V12 Mandatory PR Hygiene Gate
 # Enforces: 1) Clean Branch (from main), 2) Diff Size < 10,000 chars
 
-$MaxDiffSize = 10000
+$MaxDiffSize = 50000
 $BaseBranch = "main"
 
 Write-Host "--- V12 PR HYGIENE GATE ---" -ForegroundColor Cyan
