@@ -15,10 +15,10 @@ jobs:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         
       - name: CodiumAI PR-Agent
-        uses: The-PR-Agent/pr-agent@v0.26
+        uses: The-PR-Agent/pr-agent@v0.34
         continue-on-error: true
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
