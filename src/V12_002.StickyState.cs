@@ -17,9 +17,9 @@ namespace NinjaTrader.NinjaScript.Strategies
     {
         #region Sticky State Fields
 
-        private string _stickyStatePath;        // Full path to .v12state file
+        private string _stickyStatePath; // Full path to .v12state file
         private volatile bool _stickyStateDirty; // Coalescing dirty flag
-        private long _stickyWritePending;        // Interlocked gate: 0=idle, 1=write scheduled
+        private long _stickyWritePending; // Interlocked gate: 0=idle, 1=write scheduled
         private const int STICKY_DEBOUNCE_MS = 50;
 
         private readonly Services.IStickyStateService _stickyStateService;
@@ -27,10 +27,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         private class StickyStateLogger : Services.IStickyStateLogger
         {
             private readonly Action<string> _print;
+
             public StickyStateLogger(Action<string> print)
             {
                 _print = print;
             }
+
             public void Log(string message)
             {
                 _print(message);
@@ -70,12 +72,13 @@ namespace NinjaTrader.NinjaScript.Strategies
             // This method now always executes when dequeued
             {
                 // P1-FIX: Snapshot now built on strategy thread (safe to iterate collections)
-                
+
                 // Map local ModeConfigProfile to Services.ModeConfigProfile
                 var modeProfilesSnapshot = new Dictionary<string, Services.ModeConfigProfile>();
                 foreach (var kvp in _modeProfiles)
                 {
-                    if (kvp.Value == null) continue;
+                    if (kvp.Value == null)
+                        continue;
                     modeProfilesSnapshot[kvp.Key] = new Services.ModeConfigProfile
                     {
                         TargetCount = kvp.Value.TargetCount,
@@ -90,13 +93,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                         T4Type = (Services.TargetMode)(int)kvp.Value.T4Type,
                         T5Type = (Services.TargetMode)(int)kvp.Value.T5Type,
                         StopMult = kvp.Value.StopMult,
-                        MaxRisk = kvp.Value.MaxRisk
+                        MaxRisk = kvp.Value.MaxRisk,
                     };
                 }
 
-                var activeFleetSnapshot = activeFleetAccounts != null
-                    ? new Dictionary<string, bool>(activeFleetAccounts)
-                    : null;
+                var activeFleetSnapshot =
+                    activeFleetAccounts != null ? new Dictionary<string, bool>(activeFleetAccounts) : null;
 
                 // Map local PositionInfo to Services.PositionTrailState
                 var positionStatesSnapshot = new Dictionary<string, Services.PositionTrailState>();
@@ -105,14 +107,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                     foreach (var kvp in activePositions)
                     {
                         var pi = kvp.Value;
-                        if (pi == null || pi.PendingCleanup) continue;
+                        if (pi == null || pi.PendingCleanup)
+                            continue;
                         positionStatesSnapshot[kvp.Key] = new Services.PositionTrailState
                         {
                             ExtremePriceSinceEntry = pi.ExtremePriceSinceEntry,
                             CurrentTrailLevel = pi.CurrentTrailLevel,
                             ManualBreakevenArmed = pi.ManualBreakevenArmed,
                             ManualBreakevenTriggered = pi.ManualBreakevenTriggered,
-                            InitialTargetCount = pi.InitialTargetCount
+                            InitialTargetCount = pi.InitialTargetCount,
                         };
                     }
                 }
@@ -148,7 +151,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     Anchor = (Services.RmaAnchorType)(int)currentRmaAnchor,
                     ManualPrice = cachedMnlPrice,
                     ModeProfiles = modeProfilesSnapshot,
-                    PositionStates = positionStatesSnapshot
+                    PositionStates = positionStatesSnapshot,
                 };
 
                 // P2-FIX (Iteration 4): If service is null, schedule retry instead of dropping save
@@ -218,7 +221,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 T4Type = T4Type,
                 T5Type = T5Type,
                 StopMult = isRMAModeActive ? RMAStopATRMultiplier : StopMultiplier,
-                MaxRisk = MaxRiskAmount
+                MaxRisk = MaxRiskAmount,
             };
         }
 
@@ -253,6 +256,13 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Called ONCE in State.DataLoaded, BEFORE StartIpcServer().
         /// Returns true if state was successfully loaded.
         /// </summary>
+        // DeepSource: Suppress CS-R1140 - High complexity is intentional for comprehensive state hydration
+        // This method performs exhaustive dictionary lookups for 20+ config values in a single pass.
+        // Refactoring would fragment the hydration logic across multiple methods without reducing actual complexity.
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "DeepSource",
+            "CS-R1140:Method has high cyclomatic complexity"
+        )]
         private bool LoadStickyState()
         {
             if (string.IsNullOrEmpty(_stickyStatePath))
@@ -380,7 +390,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         continue;
                     }
                     var mode = kvp.Key;
-                    
+
                     ModeConfigProfile profile;
                     if (!_modeProfiles.TryGetValue(mode, out profile))
                     {
@@ -494,8 +504,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
 
-            Print(string.Format("[STICKY] Applied {0}/{1} persisted fleet toggles",
-                applied, _pendingStickyFleetToggles.Count));
+            Print(
+                string.Format(
+                    "[STICKY] Applied {0}/{1} persisted fleet toggles",
+                    applied,
+                    _pendingStickyFleetToggles.Count
+                )
+            );
             _pendingStickyFleetToggles = null; // One-shot -- prevent double-apply
         }
 
