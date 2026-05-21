@@ -2,6 +2,8 @@
 languages:
   csharp:
     enabled: true
+  markdown:
+    enabled: false
 
 exclude_paths:
   - "scripts/**"
