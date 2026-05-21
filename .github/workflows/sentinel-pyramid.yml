@@ -8,14 +8,14 @@ on:
   push:
     branches: ["main", "build/**"]
     paths:
-      - "src/**.cs"
-      - "tests/**.cs"
+      - "src/**/*.cs"
+      - "tests/**/*.cs"
       - "Testing.csproj"
   pull_request:
     branches: ["main"]
     paths:
-      - "src/**.cs"
-      - "tests/**.cs"
+      - "src/**/*.cs"
+      - "tests/**/*.cs"
       - "Testing.csproj"
       - ".github/workflows/**"
 

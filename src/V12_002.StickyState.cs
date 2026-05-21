@@ -221,6 +221,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return false;
             }
 
+            // P1-FIX: Guard against uninitialized service
+            if (_stickyStateService == null)
+            {
+                Print("[STICKY] Service not initialized -- skipping load");
+                return false;
+            }
+
             try
             {
                 var data = _stickyStateService.Deserialize(_stickyStatePath);

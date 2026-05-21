@@ -155,6 +155,14 @@ Bias toward caution over speed. For trivial tasks, use judgment.
 
 > Refer to `.agent/skills/architect/SKILL.md` for the current Platinum Standard template.
 
+## Section 15: Mandatory PR Monitoring Sleep Intervals (V12.16)
+
+**To prevent rate-limiting and ensure CI bots have sufficient time to initialize and report, all agents MUST adhere to the following sleep protocol when monitoring PR checks:**
+
+- **First Wait**: `Start-Sleep -Seconds 300` (5 minutes) immediately after push.
+- **Subsequent Waits**: `Start-Sleep -Seconds 180` (3 minutes) between status polls.
+- **BANNED**: Polling intervals under 120 seconds are strictly forbidden for the Global Audit pillar.
+
 ## graphify
 
 This project has a graphify knowledge graph at graphify-out/.

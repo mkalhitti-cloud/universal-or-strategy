@@ -2,7 +2,7 @@
 # V12 Mandatory PR Hygiene Gate
 # Enforces: 1) Clean Branch (from main), 2) Diff Size < 10,000 chars
 
-$MaxDiffSize = 50000
+$MaxDiffSize = 10000
 $BaseBranch = "main"
 
 Write-Host "--- V12 PR HYGIENE GATE ---" -ForegroundColor Cyan
@@ -12,7 +12,7 @@ Write-Host "--- V12 PR HYGIENE GATE ---" -ForegroundColor Cyan
 git fetch origin $BaseBranch --quiet
 
 $mergeBase = git merge-base HEAD $BaseBranch
-$mainTip = git rev-parse $BaseBranch
+$mainTip = git rev-parse origin/$BaseBranch
 
 if ($mergeBase -ne $mainTip) {
     # If the merge base isn't the tip of main, check if main is a direct ancestor

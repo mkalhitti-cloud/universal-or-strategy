@@ -55,8 +55,10 @@ Hand off:
 ```
 TASK: Global Audit & Monitor
 PROTOCOL:
-  1. git add . && git commit -m "fix: PHS Perfection Loop - PR #$1" && git push
+  1. git add . && git commit -m "fix: PHS Perfection Loop - PR #$1" && powershell -File .\deploy-sync.ps1 && git push
   2. monitor_pr_checks $1 (Wait for all bots).
+     - **MANDATORY SLEEP**: Start-Sleep -Seconds 300 (5 min) for the first check.
+     - **SUBSEQUENT SLEEP**: Start-Sleep -Seconds 180 (3 min) if checks are still pending.
   3. Run `powershell -File .\scripts\calculate_fleet_score.ps1 -PrNumber $1`.
   4. If Score < 100, emit: [PHS-RETRY] Current: X/100.
   5. If Score = 100, emit: [PHS-PERFECT] 100/100.
