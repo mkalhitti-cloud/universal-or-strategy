@@ -583,9 +583,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // 1. LOCAL ACCOUNT: SubmitOrderUnmanaged (chart-visible)
                 // =======================================================
                 // Helper 3: Submit local account entry (ATOMIC: INV-4.3)
+                bool localSubmitted;
                 try
                 {
-                    SubmitLocalRMAEntry(baseSignal, entryAction, contracts, price, direction, prices, symmetryDispatchId);
+                    localSubmitted = SubmitLocalRMAEntry(baseSignal, entryAction, contracts, price, direction, prices, symmetryDispatchId);
                 }
                 catch (Exception localEx)
                 {
@@ -593,6 +594,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // Specific handling for local submission exceptions (margin, tick size, etc.)
                     SymmetryGuardRollbackDispatch(symmetryDispatchId);
                     Print(string.Format("[SIMA RMA V2] LOCAL ENTRY FAILED: {0} - Dispatch rolled back", localEx.Message));
+                    return;
+                }
+
+                // P1-FIX (Iteration 3): Check boolean result - abort if local entry returned false (null order)
+                if (!localSubmitted)
+                {
+                    SymmetryGuardRollbackDispatch(symmetryDispatchId);
+                    Print("[SIMA RMA V2] LOCAL ENTRY NULL - Dispatch rolled back to prevent orphaned followers");
                     return;
                 }
 

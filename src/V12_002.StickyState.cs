@@ -44,16 +44,27 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <summary>
         /// Marks state as dirty. A debounced async write will fire within 50ms.
         /// Safe to call from any thread (strategy thread via Enqueue, or IPC thread).
+        /// P1-FIX (Iteration 3): Enqueue snapshot capture to FSM/Actor thread to prevent race conditions.
         /// </summary>
         private void MarkStickyDirty()
         {
             _stickyStateDirty = true;
 
+            // P1-FIX: Enqueue snapshot building to strategy thread (FSM/Actor pattern)
+            // This prevents torn reads when IPC thread calls this while collections are mutating
+            Enqueue(state => state.BuildStickySnapshotAndScheduleWrite());
+        }
+
+        /// <summary>
+        /// P1-FIX (Iteration 3): Builds snapshot on strategy thread, then schedules async write.
+        /// Called via Enqueue from MarkStickyDirty() to ensure thread-safe collection iteration.
+        /// </summary>
+        private void BuildStickySnapshotAndScheduleWrite()
+        {
             // Coalescing gate: only one pending write at a time
             if (Interlocked.CompareExchange(ref _stickyWritePending, 1, 0) == 0)
             {
-                // H18-FIX: Capture snapshot of ALL mutable state on strategy thread BEFORE spawning background task.
-                // This prevents race conditions where background serialization reads state that's being mutated.
+                // P1-FIX: Snapshot now built on strategy thread (safe to iterate collections)
                 
                 // Map local ModeConfigProfile to Services.ModeConfigProfile
                 var modeProfilesSnapshot = new Dictionary<string, Services.ModeConfigProfile>();
@@ -134,6 +145,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                     ModeProfiles = modeProfilesSnapshot,
                     PositionStates = positionStatesSnapshot
                 };
+
+                // P1-FIX: Add null guard before service call
+                if (_stickyStateService == null)
+                {
+                    Print("[STICKY] Service not initialized -- skipping save");
+                    Interlocked.Exchange(ref _stickyWritePending, 0);
+                    return;
+                }
 
                 Task.Run(async () =>
                 {
@@ -389,6 +408,13 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (string.IsNullOrEmpty(_stickyStatePath) || !System.IO.File.Exists(_stickyStatePath))
                 return;
+
+            // P1-FIX (Iteration 3): Guard against uninitialized service
+            if (_stickyStateService == null)
+            {
+                Print("[STICKY] Service not initialized -- skipping trail enrichment");
+                return;
+            }
 
             try
             {
