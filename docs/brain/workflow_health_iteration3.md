@@ -92,7 +92,7 @@ if (!localSubmitted)
 **Issue**: `LoadStickyState()` guards against null service, but save/enrich paths don't
 **Risk**: Crash on save if service initialization fails
 
-**CodeRabbit Finding**: "LoadStickyState now allows _stickyStateService to be null, but code paths still call _stickyStateService.Serialize without guarding."
+**CodeRabbit Finding**: "LoadStickyState now allows `_stickyStateService` to be null, but code paths still call `_stickyStateService.Serialize` without guarding."
 
 **Required Fix**:
 ```csharp

@@ -608,11 +608,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // =======================================================
                 // 2. SIMA FLEET: Iterate Account.All for followers
                 // =======================================================
-                if (!EnableSIMA)
-                {
-                    Print("[SIMA RMA V2] [ERR] EnableSIMA is FALSE - Fleet dispatch SKIPPED. Enable SIMA in strategy parameters or send SET_SIMA|ON via IPC.");
-                    return;
-                }
+                // P2-FIX (Iteration 4): Dead code removed - EnableSIMA check is unreachable after early returns
 
                 int fleetOk = 0;
                 int fleetSkip = 0;

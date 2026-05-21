@@ -789,7 +789,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return false;
 
             // Check 1: PendingCancel entry replacement FSM
-            foreach (var kvp in _followerReplaceSpecs.ToArray())
+            var replaceSpecsSnapshot = _followerReplaceSpecs.ToArray();
+            foreach (var kvp in replaceSpecsSnapshot)
             {
                 FollowerReplaceSpec fsm = kvp.Value;
                 if (fsm != null && fsm.State == FollowerReplaceState.PendingCancel
@@ -801,7 +802,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             // Check 2: Target replacement FSM
-            foreach (var tKvp in _followerTargetReplaceSpecs.ToArray())
+            var targetReplaceSpecsSnapshot = _followerTargetReplaceSpecs.ToArray();
+            foreach (var tKvp in targetReplaceSpecsSnapshot)
             {
                 if (tKvp.Value.CancellingOrderId == order.OrderId)
                 {
@@ -810,7 +812,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             // Check 3: Stop replacement (follower stops arrive via OnAccountOrderUpdate)
-            if (order.Name.StartsWith("Stop_") || order.Name.StartsWith("S_"))
+            // P2-FIX (Iteration 4): Add null guard before order.Name access
+            if (order.Name != null && (order.Name.StartsWith("Stop_") || order.Name.StartsWith("S_")))
             {
                 if (HandleMatchedFollower_StopReplacement(order))
                     return true;

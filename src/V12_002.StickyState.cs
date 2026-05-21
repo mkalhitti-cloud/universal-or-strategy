@@ -50,9 +50,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             _stickyStateDirty = true;
 
-            // P1-FIX: Enqueue snapshot building to strategy thread (FSM/Actor pattern)
-            // This prevents torn reads when IPC thread calls this while collections are mutating
-            Enqueue(state => state.BuildStickySnapshotAndScheduleWrite());
+            // P2-FIX (Iteration 4): Check coalescing gate BEFORE enqueue to prevent queue flooding
+            // Only enqueue if no write is pending - coalescing happens at enqueue time, not dequeue time
+            if (Interlocked.CompareExchange(ref _stickyWritePending, 1, 0) == 0)
+            {
+                // P1-FIX: Enqueue snapshot building to strategy thread (FSM/Actor pattern)
+                // This prevents torn reads when IPC thread calls this while collections are mutating
+                Enqueue(state => state.BuildStickySnapshotAndScheduleWrite());
+            }
         }
 
         /// <summary>
@@ -61,8 +66,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         private void BuildStickySnapshotAndScheduleWrite()
         {
-            // Coalescing gate: only one pending write at a time
-            if (Interlocked.CompareExchange(ref _stickyWritePending, 1, 0) == 0)
+            // P2-FIX (Iteration 4): Gate moved to MarkStickyDirty() to prevent queue flooding
+            // This method now always executes when dequeued
             {
                 // P1-FIX: Snapshot now built on strategy thread (safe to iterate collections)
                 
@@ -146,11 +151,30 @@ namespace NinjaTrader.NinjaScript.Strategies
                     PositionStates = positionStatesSnapshot
                 };
 
-                // P1-FIX: Add null guard before service call
+                // P2-FIX (Iteration 4): If service is null, schedule retry instead of dropping save
                 if (_stickyStateService == null)
                 {
-                    Print("[STICKY] Service not initialized -- skipping save");
-                    Interlocked.Exchange(ref _stickyWritePending, 0);
+                    Print("[STICKY] Service not initialized -- scheduling retry in 500ms");
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await Task.Delay(500); // Retry delay for transient initialization
+                            if (_stickyStateService != null && _stickyStateDirty)
+                            {
+                                // Retry: re-enqueue to capture fresh snapshot
+                                Enqueue(state => state.BuildStickySnapshotAndScheduleWrite());
+                            }
+                            else
+                            {
+                                Print("[STICKY] Service still null or state no longer dirty -- save abandoned");
+                            }
+                        }
+                        finally
+                        {
+                            Interlocked.Exchange(ref _stickyWritePending, 0);
+                        }
+                    });
                     return;
                 }
 
