@@ -25,7 +25,7 @@ To prevent AI "blindspots" between platforms (Claude Code, Cursor, Codex, Gemini
 - **Roadmap**: [task.md](docs/brain/task.md) — The single source of truth for mission progress.
 - **Status State**: [phase6_closeout_state.md](docs/brain/memory/phase6_closeout_state.md) — Handoff for Phase 7.
 - **Current Plan**: [implementation_plan.md](docs/brain/implementation_plan.md) — Active surgical steps.
-- **Audit Results**: [prreport_audit_results.md](docs/brain/prreport_audit_results.md) — Forensic findings.
+- **PR Report**: [pr_report.md](docs/brain/pr_report.md) — Pull request analysis and findings.
 
 ## 📜 Project Governance
 

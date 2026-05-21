@@ -9,7 +9,7 @@
 ## STEP 1 -- FORENSIC ANALYSIS COMPLETE
 
 ### 1a. Target Method Analysis
-- **Location:** Lines 151-264 in [`V12_002.Symmetry.BracketFSM.cs`](src/V12_002.Symmetry.BracketFSM.cs:151-264)
+- **Location:** Lines 151-264 in [`V12_002.Symmetry.BracketFSM.cs`](src/V12_002.Symmetry.BracketFSM.cs)
 - **Current Complexity:** 47 CYC (CRITICAL)
 - **Current LOC:** 58 lines
 - **Status:** FSM CRITICAL - M5 Dispatch Candidate
@@ -20,7 +20,7 @@
 - **God Node Risk:** V12_002 class is a god node (49 edges), but ProcessBracketEvent itself is not cross-community
 
 ### 1c. Blast Radius
-- **Direct Caller:** [`DrainAccountMailbox()`](src/V12_002.Symmetry.BracketFSM.cs:88) (line 97)
+- **Direct Caller:** [`DrainAccountMailbox()`](src/V12_002.Symmetry.BracketFSM.cs) (line 97)
 - **Indirect Callers:** OnBarUpdate, OnOrderUpdate via TriggerCustomEvent
 - **External Dependencies:** NONE - internal FSM dispatcher only
 - **Signature Change Risk:** LOW - private method, single caller
