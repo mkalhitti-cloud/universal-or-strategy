@@ -594,6 +594,22 @@ namespace PropTraderTools
         }
 
         /// <summary>
+        /// Returns true if order o is an ATM or PTT-QX target for the given instrument.
+        /// Consolidates instrOk check (&&) and name filter (||) from SnapshotTargetsLocal.
+        /// CYC=3: (1) null guard, (2) instrOk &&, (3) IsAtmTargetName || IsPttQxTarget.
+        /// JS-002: returns false for null inputs. JS-021: no lock. ASCII-only.
+        /// IsAtmTargetName and IsPttQxTarget: calls existing helpers -- no reimplementation.
+        /// </summary>
+        private static bool IsSnapshotTargetOrder(Order o, Instrument instr)
+        {
+            if (o == null || instr == null)
+                return false;
+            if (o.Instrument == null || o.Instrument.FullName != instr.FullName)
+                return false;
+            return IsAtmTargetName(o.Name) || IsPttQxTarget(o.Name);
+        }
+
+        /// <summary>
         /// Read Working/Accepted/Submitted/Initialized/TriggerPending ATM Target orders
         /// from acc for the given instrument.
         /// NT8-006: NO LINQ -- foreach only, no .ToList()/.Where()/.Select()/.Any().
@@ -603,7 +619,9 @@ namespace PropTraderTools
         ///   on rapid ATM-fill -> BE press, producing targets=0 -> bare-stop path on BE button.
         ///   New: Working|Accepted|Submitted|Initialized|TriggerPending -- symmetric with BE-ALL.
         /// JS-002: returns empty list, never null.
-        /// CYC=3: (1) null guard, (2) foreach, (3) compound state+instr+name filter.
+        /// CYC=7: (1) null guard, (2) foreach, (3) o==null skip, (4) stateOk,
+        ///        (5) IsSnapshotTargetOrder, (6) stateOk||, (7) result.Add path.
+        /// E-3 extraction: IsSnapshotTargetOrder extracted (net -2 vs prior CCN=9).
         /// </summary>
         private static List<(double Price, int Qty, OrderAction Action)> SnapshotTargetsLocal(
             Account acc,
@@ -618,8 +636,7 @@ namespace PropTraderTools
                 if (o == null)
                     continue;
                 bool stateOk = IsSnapshotEligibleState(o.OrderState);
-                bool instrOk = o.Instrument != null && o.Instrument.FullName == instr.FullName;
-                if (!stateOk || !instrOk || (!IsAtmTargetName(o.Name) && !IsPttQxTarget(o.Name)))
+                if (!stateOk || !IsSnapshotTargetOrder(o, instr))
                     continue; // BUG-B42-QX-BE-01
                 result.Add((o.LimitPrice, o.Quantity, o.OrderAction));
                 NinjaTrader.Code.Output.Process(

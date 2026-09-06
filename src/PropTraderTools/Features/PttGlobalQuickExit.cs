@@ -107,8 +107,9 @@ namespace PropTraderTools
         /// Execute (forced 2-target): global Quick Exit with caller-supplied target list.
         /// Skips SnapshotTargetOrders -- forcedTargets are used directly.
         /// DW-B133: QAll2t button path. Logs "[PTT-QX-2T-ALL]" to distinguish from no-arg path.
-        /// CYC=8: flag-guard(1), null/empty-guard(2), acc-loop(3), follower-skip(4),
+        /// CYC=8: flag-guard(1), IsInvalidForcedTargets(2), acc-loop(3), follower-skip(4),
         ///        pos-loop(5), null/flat-continue(6), flatten-guard(7), ExecuteFollowers-call(8).
+        /// AT-LIMIT (DW-LE-02): Do not add decision paths without prior extraction review.
         /// JS-021: no lock. JS-001: no throw. JS-002: early return not null.
         /// JS-033: synchronous void. ASCII-only.
         /// </summary>
@@ -124,7 +125,7 @@ namespace PropTraderTools
                 );
                 return;
             }
-            if (forcedTargets == null || forcedTargets.Count < 2) // (2)
+            if (IsInvalidForcedTargets(forcedTargets)) // (2)
             {
                 NinjaTrader.Code.Output.Process(
                     "[PTT-QX-2T-ALL] forcedTargets null or empty -- aborting",
@@ -406,7 +407,8 @@ namespace PropTraderTools
         /// SnapshotTargetOrders: returns list of (LimitPrice, Quantity) for active target orders
         /// on acc for instr. Covers ATM targets (Target1-Target9), PTT-QX-T* targets, and
         /// PTT-BE-Target-* targets (re-arm after prior BE). Reference: CopyEngine.MoveStopToBreakEven Step A.
-        /// CYC=5: null guard(1), foreach(2), stateOk(3), isTarget(4), dedup loop(5).
+        /// CYC=8: null guard(1), foreach(2), stateOk(3), isTarget(4), isNative(5), isPtt(6),
+        ///        nativeAdd/pttAdd(7), dedup loop(8). AT-LIMIT (DW-LE-02).
         /// JS-002: returns list (never null). ASCII-only. JS-021: no lock.
         /// DW-B123: dedup nativeTargets by limit price, keeping highest qty per price level.
         /// NT8 partial-fill entries (DAY TimeInForce) create new bracket objects per fill stage,
@@ -430,16 +432,8 @@ namespace PropTraderTools
                     continue;
                 if (!IsTargetOrder(o, instr))
                     continue;
-                bool isNative =
-                    o.Name.StartsWith("Target", StringComparison.Ordinal)
-                    && o.Name.Length > 6
-                    && char.IsDigit(o.Name[6]);
-                bool isPtt =
-                    (
-                        o.Name.StartsWith("PTT-QX-T", StringComparison.Ordinal)
-                        && o.Name.Length > 8
-                        && char.IsDigit(o.Name[8])
-                    ) || o.Name.StartsWith("PTT-BE-Target-", StringComparison.Ordinal);
+                bool isNative = IsNativeTargetOrder(o.Name);
+                bool isPtt = IsPttTargetOrder(o.Name);
                 if (isNative)
                     nativeTargets.Add((o.LimitPrice, o.Quantity));
                 else if (isPtt)
@@ -450,6 +444,51 @@ namespace PropTraderTools
                 return pttTargets;
             // DW-B123: deduplicate nativeTargets by limit price -- keep highest qty per price.
             return DeduplicateByPrice(nativeTargets);
+        }
+
+        /// <summary>
+        /// IsNativeTargetOrder: returns true if order name is a native ATM target bracket.
+        /// Checks "Target" prefix, length > 6, and digit at position 6.
+        /// RISK-LE-04: intentionally omits name[6] != '0' guard -- preserves existing behavior verbatim.
+        /// CYC=4: IsNullOrEmpty(1), StartsWith(2), Length(3), IsDigit(4).
+        /// JS-002: no return null. JS-021: no lock. ASCII-only.
+        /// </summary>
+        private static bool IsNativeTargetOrder(string name)
+        {
+            return !string.IsNullOrEmpty(name)
+                && name.StartsWith("Target", StringComparison.Ordinal)
+                && name.Length > 6
+                && char.IsDigit(name[6]);
+        }
+
+        /// <summary>
+        /// IsPttTargetOrder: returns true if order name is a PTT target bracket.
+        /// Covers PTT-QX-T naming (digit at pos 8) AND PTT-BE-Target- naming (union).
+        /// CYC=5: IsNullOrEmpty(1), PTT-QX-T StartsWith(2), Length(3), IsDigit(4), PTT-BE-Target- StartsWith(5).
+        /// JS-002: returns false for null input. JS-021: no lock. ASCII-only.
+        /// </summary>
+        private static bool IsPttTargetOrder(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return false;
+            return (
+                    name.StartsWith("PTT-QX-T", StringComparison.Ordinal)
+                    && name.Length > 8
+                    && char.IsDigit(name[8])
+                ) || name.StartsWith("PTT-BE-Target-", StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// IsInvalidForcedTargets: returns true when forced targets list is unusable.
+        /// Null or fewer than 2 entries triggers early-return in Execute(forcedTargets).
+        /// CYC=2: null check(1), Count check(2).
+        /// JS-002: no return null. JS-021: no lock. ASCII-only.
+        /// </summary>
+        private static bool IsInvalidForcedTargets(
+            System.Collections.Generic.List<(double Price, int Qty)> targets
+        )
+        {
+            return targets == null || targets.Count < 2;
         }
 
         /// <summary>

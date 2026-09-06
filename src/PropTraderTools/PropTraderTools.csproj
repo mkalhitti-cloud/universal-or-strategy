@@ -182,5 +182,6 @@
     <Compile Include="Tests\BwaveNextLaneBTests.cs" />
     <Compile Include="Tests\BwaveNextLaneBRepairR4Tests.cs" />
     <Compile Include="Tests\BwaveRefactorLaneCTests.cs" />
+    <Compile Include="Tests\BwaveLaneETests.cs" />
   </ItemGroup>
 </Project>
