@@ -6101,7 +6101,7 @@ namespace PropTraderTools
         // (leaderCount = CountLeaderTargets(instrument)). Caller passes targetsCount=targets.Count.
         // Combines both retry slot registration patterns: each references _pendingFollowerBeSlots
         // and QueueBeRetryFallback. ConcurrentDictionary assignment is lock-free (JS-009 compliant).
-        // CYC<=6: isRetry(1) + IsFlat(2) + leaderCount==0 branch(3) + IsFollowerAccount(4)
+        // CYC<=6: isRetry(1) + IsFlat(2) + targetsCount==0 branch(3) + IsFollowerAccount(4)
         //         + leaderCount>0+targetsCount<leaderCount(5) + !IsFlat(6). JS-021: no lock.
         // JS-001: no throw. JS-002: void. ASCII-only.
         private void RegisterBeRetrySlotIfNeeded(
@@ -6115,7 +6115,7 @@ namespace PropTraderTools
         {
             if (isRetry)
                 return; // (1) no further retry after first retry
-            if (leaderCount == 0) // (2) targets==0 path
+            if (targetsCount == 0) // (2) targets==0 path
             {
                 if (IsFlat(FindPosition(acc, instrument))) // (3)
                     return;

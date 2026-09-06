@@ -1187,13 +1187,13 @@ namespace PropTraderTools
                 arrows.Children.Add(dn);
                 DockPanel.SetDock(arrows, Dock.Right);
                 var btn = new Button { Content = s.Content };
+                btn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
                 if (s.Teal)
                 {
                     btn.BorderBrush = BrushTeal;
-                    btn.Foreground = BrushTeal;
+                    btn.Foreground = System.Windows.Media.Brushes.White; // DW-BWAVE-UI-01: white text on teal bg (was BrushTeal -- invisible)
                     btn.BorderThickness = new Thickness(2);
                 }
-                btn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
                 btn.Background = s.Bg; // AFTER style -- explicit brush wins (DW-LaneA-06 fix)
                 btn.Click += s.Main;
                 cluster.Children.Add(arrows);
@@ -1231,10 +1231,11 @@ namespace PropTraderTools
             {
                 Content = "Quick2t",
                 BorderBrush = BrushTeal,
-                Foreground = BrushTeal,
                 BorderThickness = new Thickness(2),
             };
             _instr2tBtn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            _instr2tBtn.Foreground = System.Windows.Media.Brushes.White; // DW-BWAVE-UI-01: white text on teal bg
+            _instr2tBtn.Background = BrushTeal; // AFTER style -- explicit brush wins
             _instr2tBtn.Click += OnInstr2tClick;
             _instrRowPanel.Children.Add(_instr2tBtn);
 
@@ -1242,10 +1243,11 @@ namespace PropTraderTools
             {
                 Content = "QAll2t",
                 BorderBrush = BrushTeal,
-                Foreground = BrushTeal,
                 BorderThickness = new Thickness(2),
             };
             _instrQAll2tBtn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            _instrQAll2tBtn.Foreground = System.Windows.Media.Brushes.White; // DW-BWAVE-UI-01: white text on teal bg
+            _instrQAll2tBtn.Background = BrushTeal; // AFTER style -- explicit brush wins
             _instrQAll2tBtn.Click += OnInstrQAll2tClick;
             _instrRowPanel.Children.Add(_instrQAll2tBtn);
         }
