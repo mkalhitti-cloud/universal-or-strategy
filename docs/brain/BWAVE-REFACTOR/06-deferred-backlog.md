@@ -17,7 +17,7 @@ Final verdict: FINAL_PASS
 | ID       | Item                                                                                                                                                                                                                                                                       | Priority | Target Block | Status |
 | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------ | ------ |
 | DW-LB-01 | `ActiveOrders .ToList()` -- replace with ConcurrentBag snapshot or direct iteration to avoid allocation on high-frequency NT8 account-bg-thread path. Inherited from DW-NEXT-A-07. Lane B explicitly deferred it.                                                          | P2       | B-future     | OPEN   |
-| DW-LB-02 | `Features/*.cs` CCN violations -- CopyEngine.cs extraction is complete but Features/ files (PttTrim, PttFlatten, PttBreakEven, PttBreakEvenSwap, PttGlobalBreakEven, PttCancel, PttCopier, PttBreakEven) were Lane C scope and remain unaudited for lizard CCN compliance. | P1       | Lane C       | OPEN   |
+| DW-LB-02 | `Features/*.cs` CCN violations -- CopyEngine.cs extraction is complete but Features/ files (PttTrim, PttFlatten, PttBreakEven, PttBreakEvenSwap, PttGlobalBreakEven, PttCancel, PttCopier, PttBreakEven) were Lane C scope and remain unaudited for lizard CCN compliance. | P1       | Lane C       | CLOSED (WAVE2-LANE-E, 2026-09-06) |
 | DW-LB-03 | BWAVE-NEXT LaneBRepair backlog items unrelated to CCN in CopyEngine.cs -- deferred by plan §10 (e.g., correctness repairs from prior LaneBRepair backlog). These were out-of-scope for the extraction-only goal of this epic.                                              | P2       | B-future     | OPEN   |
 | DW-LB-04 | `ResolveNullFollowerSlot` returns null for a reference type (Account). Grandfathered as NT8 iterator-method pattern. Future work should evaluate Option<Account> or a non-null sentinel pattern to fully satisfy JS-002.                                                   | P2       | B-future     | OPEN   |
 | DW-LB-05 | `ExtractLegSuffix_NoDigit_ReturnsNull` test name is misleading: the implementation returns `string.Empty` (not null), but the test method name was preserved from the ticket spec. Rename in a future test-cleanup pass.                                                   | P3       | B-future     | OPEN   |
@@ -78,3 +78,22 @@ Source: amazon-q-developer, greptile (Sentinel), codeant -- PR #47 review commen
 
 DW-LB-GR-01 is the only production-code finding (CopyEngine.cs logic bug). All others are test-file quality issues.
 CodeRabbit findings on docs/brain/LaneB/*.md are documentation drift -- no .cs impact -- deferred as low-priority cleanup.
+
+---
+
+## Block: WAVE2-LANE-E
+
+Date: 2026-09-06
+Epic: Features/*.cs CCN<=8 extraction (8 methods, 6 files)
+Final verdict: FINAL_PASS (PIPELINE_COMPLETE)
+DW-LB-02 STATUS: CLOSED -- all 8 lizard-confirmed CCN>8 violations in Features/ resolved.
+
+### Deferred Items
+
+| ID       | Item | Priority | Target Block | Status |
+| -------- | ---- | -------- | ------------ | ------ |
+| DW-LE-01 | `FormatOrderPrice` duplication between PttFlatten and PttTrim. Both classes have an identical private static FormatOrderPrice helper. Future work: extract to a shared static utility class. Risk: LOW (cosmetic only). | P2 | E-future | OPEN |
+| DW-LE-02 | 5 methods AT-LIMIT (CCN=8 exactly) post-WAVE2-LANE-E: PttGlobalQuickExit::SnapshotTargetOrders, PttGlobalQuickExit::Execute, PttBreakEvenSwap::Execute, PttFlatten::FlattenPositionLocal, PttTrim::TrimPositionLocal. Any future branch addition requires prior extraction review. Risk: MEDIUM. | P1 | E-future | OPEN |
+| DW-LC-01 | AT-LIMIT CCN=8 methods from LaneC (PttQuickExit::Execute, PttGlobalQuickExit::Execute, PttBreakEvenSwap::Execute). | P1 | WAVE2-LANE-E | CLOSED (superseded by DW-LE-02) |
+| DW-LE-F5 | F5 NinjaTrader 8 compilation gate -- ptt-sync-and-verify.ps1 confirmed 18/18 OK (0 MISMATCH). F5 press in NinjaTrader 8 is the mandatory final compile step. | P0 | Immediate | CLOSED (compiled successfully, 2026-09-06) |
+
