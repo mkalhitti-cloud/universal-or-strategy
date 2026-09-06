@@ -145,7 +145,7 @@ namespace PropTraderTools
                             + " "
                             + qty
                             + " @ "
-                            + (orderType == OrderType.Limit ? limitPrice.ToString("F2") : "mkt")
+                            + FormatOrderPrice(orderType, limitPrice)
                             + " on "
                             + acc.Name,
                         NinjaTrader.NinjaScript.PrintTo.OutputTab1
@@ -162,6 +162,17 @@ namespace PropTraderTools
                     NinjaTrader.NinjaScript.PrintTo.OutputTab1
                 );
             }
+        }
+
+        /// <summary>
+        /// Return formatted price string for log: limitPrice.ToString("F2") for Limit, "mkt" for Market.
+        /// DW-LE-01: structurally identical to PttFlatten.FormatOrderPrice (consolidation deferred).
+        /// CYC=2: (1) orderType==Limit branch, (2) else path. JS-002: returns string (never null).
+        /// JS-021: no lock. ASCII-only.
+        /// </summary>
+        private static string FormatOrderPrice(OrderType orderType, double limitPrice)
+        {
+            return orderType == OrderType.Limit ? limitPrice.ToString("F2") : "mkt";
         }
 
         /// <summary>

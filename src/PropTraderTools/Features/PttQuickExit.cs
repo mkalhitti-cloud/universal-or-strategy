@@ -3,6 +3,9 @@
 // B41: 2 classes -- PttQuickExit (per-chart execution) + InstrumentDefaults (static tick mappings).
 // Jane Street rules: JS-001 (no throw), JS-002 (no return null), JS-021 (no lock),
 // JS-033 (no async void). OCO counter delegated to CopyEngine.NextQxOcoId().
+// WAVE2-LANE-E-1: Execute CCN 17->6, SubmitQxOcoPair CCN 9->7.
+//   6 private static helpers extracted: IsFlatOrMissing, IsFollowerSkip, LeaderName,
+//   ResolveTick, ComputeExitPrices, NewQxOcoId.
 
 using System;
 using NinjaTrader.Cbi;
@@ -25,9 +28,9 @@ namespace PropTraderTools
 
         /// <summary>
         /// Execute: per-chart Quick Exit bracket swap.
-        /// CYC=7: null/flat guard(1) + follower guard(2) + snapshotStop guard(3)
-        ///        + isLong(4) + for-loop(5) + stop-submit null check(6) + target-submit null check(7).
-        ///        (fallback guard moved to ResolveTargetCount helper -- CYC=2)
+        /// CYC=6: flat/missing guard(1) + follower guard(2) + snapshotStop guard(3)
+        ///        + for-loop(4) + stop-submit null check(5) + target-submit null check(6).
+        /// WAVE2-LANE-E-1: reduced from CCN=17 via 5 helper extractions (headroom=2).
         /// HOTFIX-QUICK-T3-01: accepts targets snapshot; submits N OCO pairs instead of always 2.
         /// B71 DW-B71-02: skipIfFollower param added -- default true rejects follower accounts.
         /// B78 DW-B63-01: leaderStop + leaderTargetCount fallbacks for follower accounts whose
@@ -46,29 +49,22 @@ namespace PropTraderTools
             int leaderTargetCount = 0
         )
         {
-            // Step 1: null/flat guard
-            Position pos = null;
-            if (leader != null)
-                foreach (Position p in leader.Positions)
-                    if (p.Instrument == instr)
-                    {
-                        pos = p;
-                        break;
-                    }
-            if (pos == null || pos.Quantity == 0)
+            // Step 1: null/flat guard -- IsFlatOrMissing (WAVE2-LANE-E-1, net -4 CCN)
+            if (IsFlatOrMissing(leader, instr, out Position pos))
             {
                 NinjaTrader.Code.Output.Process(
-                    "PTT-QX: flat skip -- " + (leader != null ? leader.Name : "NULL"),
+                    "PTT-QX: flat skip -- " + LeaderName(leader),
                     NinjaTrader.NinjaScript.PrintTo.OutputTab1
                 );
                 return;
             }
 
             // B71 DW-B71-02: reject follower account on direct calls (skipIfFollower=true default)
-            if (skipIfFollower && CopyEngine.Instance?.IsFollowerAccount(leader) == true)
+            // IsFollowerSkip (WAVE2-LANE-E-1, net -1 CCN)
+            if (IsFollowerSkip(skipIfFollower, leader))
             {
                 NinjaTrader.Code.Output.Process(
-                    "PTT-QX: follower guard -- skip " + (leader != null ? leader.Name : "NULL"),
+                    "PTT-QX: follower guard -- skip " + LeaderName(leader),
                     NinjaTrader.NinjaScript.PrintTo.OutputTab1
                 );
                 return;
@@ -81,7 +77,7 @@ namespace PropTraderTools
                 "[PTT-QX] stop resolved: "
                     + snapshotStop
                     + " on "
-                    + (leader != null ? leader.Name : "NULL"),
+                    + LeaderName(leader),
                 NinjaTrader.NinjaScript.PrintTo.OutputTab1
             );
 
@@ -97,9 +93,10 @@ namespace PropTraderTools
             CopyEngine.Instance?.CancelQxBrackets(leader, instr, snapshot);
 
             // Step 4: compute direction and tick
+            // ResolveTick (WAVE2-LANE-E-1, net -2 CCN)
             bool isLong = pos.MarketPosition == MarketPosition.Long;
             double entryPx = pos.AveragePrice;
-            double tick = instr.MasterInstrument?.TickSize ?? 0.25;
+            double tick = ResolveTick(instr);
 
             // Step 5: targetCount -- use snapshotted targets, else leader count, else 2.
             // B78 DW-B63-01: ResolveTargetCount absorbs the fallback logic (CYC=2 helper).
@@ -126,8 +123,8 @@ namespace PropTraderTools
                 );
 
             // Step 7: raise PttBus.QuickExitFired (Card B: back-calc using T1 and T2 prices)
-            double t1Price = isLong ? entryPx + t1Ticks * tick : entryPx - t1Ticks * tick;
-            double t2Price = isLong ? entryPx + t1Ticks * 2 * tick : entryPx - t1Ticks * 2 * tick;
+            // ComputeExitPrices (WAVE2-LANE-E-1, net -2 CCN)
+            var (t1Price, t2Price) = ComputeExitPrices(entryPx, isLong, t1Ticks, tick);
             PttBus.RaiseQuickExit(
                 this,
                 new QuickExitEventArgs(instr, entryPx, t1Price, t2Price, isLong, firstOcoId, tick)
@@ -137,7 +134,9 @@ namespace PropTraderTools
         /// <summary>
         /// Compute per-iteration OCO pair params and dispatch SubmitStopOrder + SubmitTargetOrder.
         /// Extracted from PttQuickExit.Execute for-loop body (lines 111-199, minus headers).
-        /// CYC=6: base(1) + tNQty ternary (targets!=null &amp;&amp; i&lt;targets.Count)=2 + tNQty&lt;=0=1 + if(i==0)firstOcoId=1 + SubmitStopOrder(0) + SubmitTargetOrder(0).
+        /// CYC=7: base(1) + tNQty ternary (targets!=null &amp;&amp; i&lt;targets.Count)=2 + tNQty&lt;=0=1 + if(i==0)firstOcoId=1
+        ///        + SubmitStopOrder null check(1) + SubmitTargetOrder null check(1) + NewQxOcoId ?? path(1) removed.
+        /// WAVE2-LANE-E-1: NewQxOcoId extraction reduced from CCN=9 to CCN=7.
         /// JS-002: void -- ref firstOcoId carries result out. JS-001: no throw. JS-021: no lock. ASCII-only.
         /// </summary>
         private void SubmitQxOcoPair(
@@ -167,9 +166,8 @@ namespace PropTraderTools
             if (tNQty <= 0)
                 return; // B129: skip T2 when posQty==1 and t2Qty==0
 
-            string ocoId_i =
-                CopyEngine.Instance?.NextQxOcoId()
-                ?? ("PTT-QX-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+            // NewQxOcoId (WAVE2-LANE-E-1, net -2 CCN from SubmitQxOcoPair)
+            string ocoId_i = NewQxOcoId();
 
             if (i == 0)
                 firstOcoId = ocoId_i;
@@ -180,6 +178,93 @@ namespace PropTraderTools
             SubmitStopOrder(acc, instr, isLong, tNQty, snapshotStop, ocoId_i, stopName);
             SubmitTargetOrder(acc, instr, isLong, tNQty, tNPrice, ocoId_i, targetName);
         }
+
+        // -------------------------------------------------------------------------
+        // WAVE2-LANE-E-1: Private static helpers extracted to reduce CCN
+        // -------------------------------------------------------------------------
+
+        /// <summary>
+        /// IsFlatOrMissing: returns true when leader is null, instr not found in leader.Positions,
+        /// or found position has qty=0. Sets pos to the found position (or null if absent).
+        /// Removes 5 branches from Execute (foreach + 2 ifs + pos==null||qty check). CYC=4.
+        /// JS-002: bool return (TryXxx pattern). JS-021: no lock. ASCII-only.
+        /// </summary>
+        private static bool IsFlatOrMissing(Account leader, Instrument instr, out Position pos)
+        {
+            pos = null;
+            if (leader == null)
+                return true;
+            foreach (Position p in leader.Positions)
+                if (p.Instrument == instr)
+                {
+                    pos = p;
+                    break;
+                }
+            return pos == null || pos.Quantity == 0;
+        }
+
+        /// <summary>
+        /// IsFollowerSkip: returns true when skipIfFollower=true AND leader is a follower account.
+        /// Removes the &&amp; and ?. from Execute. CYC=2 (the &&amp; is the only branch).
+        /// JS-002: bool return. JS-021: no lock. ASCII-only.
+        /// </summary>
+        private static bool IsFollowerSkip(bool skipIfFollower, Account leader)
+        {
+            return skipIfFollower && CopyEngine.Instance?.IsFollowerAccount(leader) == true;
+        }
+
+        /// <summary>
+        /// LeaderName: returns leader.Name when non-null, else the string literal "NULL".
+        /// Replaces 2 inline ternary expressions in log calls. CYC=1 (single ternary).
+        /// JS-002: returns string "NULL" (not null). ASCII-only.
+        /// </summary>
+        private static string LeaderName(Account leader)
+        {
+            return leader != null ? leader.Name : "NULL";
+        }
+
+        /// <summary>
+        /// ResolveTick: returns instr.MasterInstrument.TickSize when available, else 0.25.
+        /// Removes ?. and ?? from Execute. CYC=2 (the ?. = 1 + the ?? = 1).
+        /// JS-002: returns double (never null). ASCII-only.
+        /// </summary>
+        private static double ResolveTick(Instrument instr)
+        {
+            return instr.MasterInstrument?.TickSize ?? 0.25;
+        }
+
+        /// <summary>
+        /// ComputeExitPrices: computes t1Price and t2Price from entry, direction, and tick offsets.
+        /// Removes 2 ternary branches from Execute (t1Price isLong ternary + t2Price isLong ternary). CYC=2.
+        /// JS-002: returns value tuple (never null). ASCII-only.
+        /// </summary>
+        private static (double t1Price, double t2Price) ComputeExitPrices(
+            double entryPx,
+            bool isLong,
+            int t1Ticks,
+            double tick
+        )
+        {
+            double t1Price = isLong ? entryPx + t1Ticks * tick : entryPx - t1Ticks * tick;
+            double t2Price = isLong ? entryPx + t1Ticks * 2 * tick : entryPx - t1Ticks * 2 * tick;
+            return (t1Price, t2Price);
+        }
+
+        /// <summary>
+        /// NewQxOcoId: returns a unique OCO ID string from CopyEngine singleton, or a PTT-QX- GUID
+        /// fallback when CopyEngine.Instance is null. Removes ?. and ?? from SubmitQxOcoPair. CYC=2.
+        /// JS-002: returns "PTT-QX-" prefixed string (never null). ASCII-only.
+        /// NT8-014: fallback string starts with "PTT-QX-" to preserve signal prefix.
+        /// </summary>
+        private static string NewQxOcoId()
+        {
+            return CopyEngine.Instance?.NextQxOcoId()
+                ?? ("PTT-QX-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+        }
+
+        // -------------------------------------------------------------------------
+        // Existing helpers (unchanged)
+        // -------------------------------------------------------------------------
 
         /// <summary>
         /// Submit StopMarket order for one OCO pair.

@@ -40,6 +40,18 @@ namespace PropTraderTools
         // isLong path: Sell StopMarket below market is valid for NT8 -- always allow.
         // ask==0 path: no market data available -- fail-open, let NT8 log if needed.
         // short path: stopPrice must be >= ask or NT8 rejects with "below market" error.
+        /// <summary>
+        /// Returns true if targets list is null or empty (0-targets guard).
+        /// Extracted from Execute null||Count==0 check (net -1 from Execute CCN).
+        /// CYC=2: (1) null check, (2) Count==0. JS-002: returns bool. JS-021: no lock. ASCII-only.
+        /// </summary>
+        private static bool HasNoTargets(
+            System.Collections.Generic.List<(double Price, int Qty, NinjaTrader.Cbi.OrderAction Action)> targets
+        )
+        {
+            return targets == null || targets.Count == 0;
+        }
+
         private static bool IsStopPriceSubmittable(Instrument instr, bool isLong, double stopPrice)
         {
             if (isLong)
@@ -74,7 +86,7 @@ namespace PropTraderTools
             OrderAction stopDir = isLong ? OrderAction.Sell : OrderAction.BuyToCover;
 
             // (5) 0-targets path: submit one bare PTT-BE-Stop, no OCO
-            if (targets == null || targets.Count == 0) // (4)
+            if (HasNoTargets(targets)) // (4) E-3 extraction: HasNoTargets extracted
             {
                 SubmitBareStopSwap(acc, instr, isLong, stopDir, newStop, pos.Quantity);
                 return;
