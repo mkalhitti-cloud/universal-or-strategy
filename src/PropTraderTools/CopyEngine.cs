@@ -2300,9 +2300,14 @@ namespace PropTraderTools
                 )
             ); // ChartTrader path (DW-B96)
 
-        // B59 T1: IsExitSignalName -- CYC=6. Returns true for names that must not trigger follower copy.
-        // Covers: (1) PTT- own signals; (2) NT8 Close button; (3) NT8 Flatten; (4) NT8 Rev reversal;
+        // B59 T1: IsExitSignalName -- CYC=7. Returns true for names that must not trigger follower copy.
+        // Covers: (0) empty name (NT8 anonymous close orders -- DW-LB-FL-01 V6 fix);
+        //         (1) PTT- own signals; (2) NT8 Close button; (3) NT8 Flatten; (4) NT8 Rev reversal;
         //         (5) NT8 "Exit..." prefix family; (6) NT8 ATM bracket Target1..Target9 (B78 DW-B78-01).
+        // DW-LB-FL-01 V6: empty-name ("") orders are NT8 anonymous close/BE orders that must never be
+        // dispatched as new entries. They appear when PTT-BE-Stop orders fire simultaneously and NT8
+        // creates residual unnamed orders in the leader account. Passing them to DispatchCopy caused
+        // spurious new-entry dispatches to followers in signal mode, leaving reversed positions.
         // "Entry" is NOT blocked -- Gate 2 already limits dispatch to master account only.
         // Follower "Entry" orders (SendCopyWithAtm) never pass Gate 2, so no cascade is possible.
         // Stop1..Stop9 are StopMarket type -- already blocked by Gate 4 before reaching this check.
@@ -2326,6 +2331,8 @@ namespace PropTraderTools
         {
             if (name == null)
                 return false;
+            if (name.Length == 0)
+                return true; // (0) DW-LB-FL-01: empty name = NT8 anonymous close order, never a valid entry
             if (name.StartsWith("PTT-", StringComparison.Ordinal))
                 return true; // (1)
             if (name == "Close")
