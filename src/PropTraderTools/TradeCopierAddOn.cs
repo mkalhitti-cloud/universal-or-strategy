@@ -473,7 +473,54 @@ namespace PropTraderTools
             return instr;
         }
 
-        // DoInject after extraction. CCN=7.
+        // C-07: PurgeStalePanel -- removes all stale TradeCopierPanel rows from ChartTrader grid.
+        // Delegates to existing static TryDetachAndRemoveStalePanels helper. CCN=2.
+        private void PurgeStalePanel(System.Windows.Controls.Grid grid)
+        {
+            if (grid == null)
+                return;
+            TryDetachAndRemoveStalePanels(grid);
+        }
+
+        // C-07: WireNewPanel -- wires a newly created TradeCopierPanel into the ChartTrader grid.
+        // Contains the pre-existing try/catch for instrument wiring. CCN=5.
+        private void WireNewPanel(
+            TradeCopierPanel panel,
+            Chart chart,
+            ChartTrader chartTrader,
+            System.Windows.Controls.Grid grid
+        )
+        {
+            var instr = TrySetPanelInstrument(chartTrader, panel);
+            StartAtrEngine(chart, instr);
+            panel.SetChart(chart);
+
+            // Wire leader account from ChartTrader account ComboBox.
+            WireLeaderAccount(chartTrader, panel);
+
+            // B11 T1 SIM101 Phase A: wire logging-only handler BEFORE production layer.
+            _sim101KeyDiag = new KeyEventHandler(OnChartKeyDiag);
+            chart.PreviewKeyDown += _sim101KeyDiag;
+
+            // B11 T1 Phase B: production keyboard shortcut layer.
+            // RemoveSim101 FIRST (SIM101 must be removed before HookKeyShortcut).
+            RemoveSim101(chart);
+            HookKeyShortcut(chart, panel);
+
+            if (InjectPanelIntoGrid(grid, panel))
+            {
+                _panels[chart] = panel;
+                return;
+            }
+
+            MessageBox.Show(
+                "PTT: ChartTrader.Content is not a Grid.\nContent type: "
+                    + (chartTrader.Content?.GetType().FullName ?? "null"),
+                "PTT Info"
+            );
+        }
+
+        // C-07: DoInject after extraction. Parent CCN=7.
         private void DoInject(Chart chart)
         {
             if (!_panels.TryAdd(chart, null))
@@ -489,37 +536,10 @@ namespace PropTraderTools
                 }
 
                 var grid = chartTrader.Content as System.Windows.Controls.Grid;
-                TryDetachAndRemoveStalePanels(grid);
+                PurgeStalePanel(grid);
 
                 var panel = new TradeCopierPanel();
-                var instr = TrySetPanelInstrument(chartTrader, panel);
-                StartAtrEngine(chart, instr);
-                panel.SetChart(chart);
-
-                // Wire leader account from ChartTrader account ComboBox.
-                WireLeaderAccount(chartTrader, panel);
-
-                // B11 T1 SIM101 Phase A: wire logging-only handler BEFORE production layer.
-                _sim101KeyDiag = new KeyEventHandler(OnChartKeyDiag);
-                chart.PreviewKeyDown += _sim101KeyDiag;
-
-                // B11 T1 Phase B: production keyboard shortcut layer.
-                // RemoveSim101 FIRST (SIM101 must be removed before HookKeyShortcut).
-                // We assume SIM101 PASS per the BUILD-TIME contract in the ticket preamble.
-                RemoveSim101(chart);
-                HookKeyShortcut(chart, panel);
-
-                if (InjectPanelIntoGrid(grid, panel))
-                {
-                    _panels[chart] = panel;
-                    return;
-                }
-
-                MessageBox.Show(
-                    "PTT: ChartTrader.Content is not a Grid.\nContent type: "
-                        + (chartTrader.Content?.GetType().FullName ?? "null"),
-                    "PTT Info"
-                );
+                WireNewPanel(panel, chart, chartTrader, grid);
             }
             catch (System.Exception ex)
             {

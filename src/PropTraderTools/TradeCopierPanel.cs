@@ -794,32 +794,55 @@ namespace PropTraderTools
         }
 
         // -- private: deferred account population ---------------------------------
-        // OnLoaded after extraction. CCN=7.
+        // OnLoaded after extraction. CCN=2.
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             Loaded -= OnLoaded;
+            SubscribeEngineEvents();
+            PopulateFollowerItems();
+            RestoreSavedFollowers();
+            NotifyRiskChanged();
+            NotifyAtrFractionChanged();
+            ApplyCopyState(_engine.IsEnabled);
+            BuildAllAccountsList();
+            RegisterAndInitializeModules();
+            ApplyModuleLicenses();
+            _engine.Subscribe();
+            WireLeaderOrderHandlers();
+            ApplyFeatureFlags(CopyEngine.Instance.Flags);
+        }
+
+        // SubscribeEngineEvents: wires all CopyEngine event handlers on load. CCN=1.
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private void SubscribeEngineEvents()
+        {
             _engine.PositionStateChanged += OnPositionStateChanged;
             _engine.PendingBeFired += OnPendingBeFiredDispatch;
             _engine.PendingBeArmed += OnPendingBeArmedDispatch;
             _engine.GlobalBeBufferChanged += OnGlobalBeBufferChanged;
             _engine.GlobalQuickAllBufferChanged += OnQuickAllBufferChanged;
             _engine.GlobalBeAllDisarmed += OnGlobalBeAllDisarmed;
-            PopulateFollowerItems();
-            RestoreSavedFollowers();
-            NotifyRiskChanged();
-            NotifyAtrFractionChanged();
             _engine.CopyEnabledChanged += OnCopyEnabledChanged;
-            ApplyCopyState(_engine.IsEnabled);
+            CopyEngine.Instance.FeatureFlagsChanged += OnFeatureFlagsChanged;
+        }
 
-            // B33 T7 -- Build AllAccounts (leader + followers) for IPttHostContext.
+        // BuildAllAccountsList: populates _allAccounts with leader + non-leader followers. CCN=3.
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private void BuildAllAccountsList()
+        {
             _allAccounts.Clear();
             if (_leaderAccount != null)
                 _allAccounts.Add(_leaderAccount);
             foreach (var item in _followerItems)
                 if (item.Account != null && item.Account != _leaderAccount)
                     _allAccounts.Add(item.Account);
+        }
 
-            // B33 T7 -- Register and initialize all IPttModules.
+        // RegisterAndInitializeModules: clears _modules, adds 5 modules, initializes each. CCN=2.
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private void RegisterAndInitializeModules()
+        {
             _modules.Clear();
             AddModule(new PttBreakEven());
             AddModule(new PttTrim());
@@ -828,21 +851,17 @@ namespace PropTraderTools
             AddModule(new PttCopier(_engine));
             foreach (IPttModule m in _modules)
                 m.Initialize(this);
+        }
 
-            ApplyModuleLicenses();
-            _engine.Subscribe();
-
-            // B41: Site 3 -- initial display sync after panel wires up.
-            if (_leaderAccount != null)
-            {
-                _leaderAccount.OrderUpdate += OnLeaderOrderUpdate;
-                _leaderAccount.PositionUpdate += OnLeaderPositionUpdate;
-                RefreshQuickDisplay(_leaderAccount, _instrument);
-            }
-
-            // BGTM-1: Subscribe to feature-flag changes and apply current flags now.
-            CopyEngine.Instance.FeatureFlagsChanged += OnFeatureFlagsChanged;
-            ApplyFeatureFlags(CopyEngine.Instance.Flags);
+        // WireLeaderOrderHandlers: wires order/position handlers if leader is non-null. CCN=2.
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private void WireLeaderOrderHandlers()
+        {
+            if (_leaderAccount == null)
+                return;
+            _leaderAccount.OrderUpdate += OnLeaderOrderUpdate;
+            _leaderAccount.PositionUpdate += OnLeaderPositionUpdate;
+            RefreshQuickDisplay(_leaderAccount, _instrument);
         }
 
         // -- live P&L push from NT8 -----------------------------------------------
@@ -983,6 +1002,8 @@ namespace PropTraderTools
 
         // B9 T2: Appends [Buy] [Sell] toggle pair and [Arm] button row to root StackPanel.
         // CYC=1 (straight-line widget construction, no branches).
+        // C-06: CCN=1. Parent after extraction: build row, call 4 helpers, set visibility.
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
         private void BuildClickTraderRow(StackPanel root)
         {
             _clickTraderRow = new StackPanel
@@ -990,28 +1011,55 @@ namespace PropTraderTools
                 Orientation = Orientation.Horizontal,
                 Margin = new Thickness(0, 4, 0, 0),
             };
+            _buyToggle = BuildBuyToggleButton();
+            _sellToggle = BuildSellToggleButton();
+            _armBtn = BuildArmButton();
+            // B41: Cancel button relocated from BuildBufferedButtonsRow Row 3 to Click Trader row.
+            _cancelBtn2 = BuildClickTraderCancelButton();
+            _clickTraderRow.Children.Add(_buyToggle);
+            _clickTraderRow.Children.Add(_sellToggle);
+            _clickTraderRow.Children.Add(_armBtn);
+            _clickTraderRow.Children.Add(_cancelBtn2);
+            root.Children.Add(_clickTraderRow);
+            _clickTraderRow.Visibility = Visibility.Collapsed; // B47 T5-B: HIDE NOT DELETE (handlers preserved)
+        }
 
-            _buyToggle = new ToggleButton
+        // C-06 helper: CCN=1. Builds Buy ToggleButton (default checked, W=45, H=22).
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private ToggleButton BuildBuyToggleButton()
+        {
+            var btn = new ToggleButton
             {
                 Content = "Buy",
                 IsChecked = true,
                 Width = 45,
                 Height = 22,
             };
-            _buyToggle.SetResourceReference(Control.StyleProperty, "NTToggleButtonStyle");
+            btn.SetResourceReference(Control.StyleProperty, "NTToggleButtonStyle");
+            btn.Click += OnBuyToggleClick;
+            return btn;
+        }
 
-            _sellToggle = new ToggleButton
+        // C-06 helper: CCN=1. Builds Sell ToggleButton (W=45, H=22).
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private ToggleButton BuildSellToggleButton()
+        {
+            var btn = new ToggleButton
             {
                 Content = "Sell",
                 Width = 45,
                 Height = 22,
             };
-            _sellToggle.SetResourceReference(Control.StyleProperty, "NTToggleButtonStyle");
+            btn.SetResourceReference(Control.StyleProperty, "NTToggleButtonStyle");
+            btn.Click += OnSellToggleClick;
+            return btn;
+        }
 
-            _buyToggle.Click += OnBuyToggleClick;
-            _sellToggle.Click += OnSellToggleClick;
-
-            _armBtn = new Button
+        // C-06 helper: CCN=1. Builds Arm Button (W=48, H=22, dark background).
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private Button BuildArmButton()
+        {
+            var btn = new Button
             {
                 Content = "Arm",
                 Width = 48,
@@ -1019,11 +1067,16 @@ namespace PropTraderTools
                 Margin = new Thickness(6, 0, 0, 0),
                 Background = MakeBrush(28, 33, 51),
             };
-            _armBtn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            _armBtn.Click += OnArmClick;
+            btn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            btn.Click += OnArmClick;
+            return btn;
+        }
 
-            // B41: Cancel button relocated from BuildBufferedButtonsRow Row 3 to Click Trader row.
-            _cancelBtn2 = new Button
+        // C-06 helper: CCN=1. Builds Cancel Button with BrushDanger border styling.
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private Button BuildClickTraderCancelButton()
+        {
+            var btn = new Button
             {
                 Content = "Cancel",
                 Width = 48,
@@ -1032,15 +1085,9 @@ namespace PropTraderTools
                 BorderBrush = BrushDanger,
                 BorderThickness = new Thickness(2),
             };
-            _cancelBtn2.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            _cancelBtn2.Click += OnCancel2;
-
-            _clickTraderRow.Children.Add(_buyToggle);
-            _clickTraderRow.Children.Add(_sellToggle);
-            _clickTraderRow.Children.Add(_armBtn);
-            _clickTraderRow.Children.Add(_cancelBtn2);
-            root.Children.Add(_clickTraderRow);
-            _clickTraderRow.Visibility = Visibility.Collapsed; // B47 T5-B: HIDE NOT DELETE (handlers preserved)
+            btn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            btn.Click += OnCancel2;
+            return btn;
         }
 
         // B12 T1 -- OnPendingBeFiredDispatch: marshals PendingBeFired from NT8 account bg thread to UI.
@@ -1160,50 +1207,68 @@ namespace PropTraderTools
                 (FormatBuffer("Quick ALL", CopyEngine.Instance.GlobalQuickAllT1),             BrushTeal,     true,  OnQuickAllUp, OnQuickAllDown, OnQuickAllClick, b => _quickAllBtn  = b, _quickRowPanel),
             };
             foreach (var s in specs)
-            {
-                var cluster = new DockPanel { LastChildFill = true };
-                var arrows = new Grid();
-                arrows.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
-                arrows.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
-                var up = new System.Windows.Controls.Primitives.RepeatButton
-                {
-                    Content = "^",
-                    Width = 18,
-                    Height = 12,
-                };
-                var dn = new System.Windows.Controls.Primitives.RepeatButton
-                {
-                    Content = "v",
-                    Width = 18,
-                    Height = 12,
-                };
-                up.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-                dn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-                up.Click += s.Up;
-                dn.Click += s.Dn;
-                Grid.SetRow(up, 0);
-                Grid.SetRow(dn, 1);
-                arrows.Children.Add(up);
-                arrows.Children.Add(dn);
-                DockPanel.SetDock(arrows, Dock.Right);
-                var btn = new Button { Content = s.Content };
-                btn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-                if (s.Teal)
-                {
-                    btn.BorderBrush = BrushTeal;
-                    btn.Foreground = System.Windows.Media.Brushes.White; // DW-BWAVE-UI-01: white text on teal bg (was BrushTeal -- invisible)
-                    btn.BorderThickness = new Thickness(2);
-                }
-                btn.Background = s.Bg; // AFTER style -- explicit brush wins (DW-LaneA-06 fix)
-                btn.Click += s.Main;
-                cluster.Children.Add(arrows);
-                cluster.Children.Add(btn);
-                s.Store(btn);
-                s.Target.Children.Add(cluster);
-            }
+                BuildSingleButtonCluster(s.Content, s.Teal, s.Up, s.Dn, s.Main, s.Store, s.Target);
 
             root.Children.Add(row1);
+            BuildQuickT3HiddenRow(root);
+        }
 
+        // CYC: 3 (1 foreach-entry + 1 isTeal conditional + 1 event-wire sequential).
+        // JS-021: no lock(). JS-033: synchronous void. JS-001: no throw. JS-002: no return null.
+        private void BuildSingleButtonCluster(
+            string content,
+            bool isTeal,
+            RoutedEventHandler upHandler,
+            RoutedEventHandler downHandler,
+            RoutedEventHandler mainHandler,
+            System.Action<Button> storeAction,
+            Panel targetPanel)
+        {
+            var cluster = new DockPanel { LastChildFill = true };
+            var arrows = new Grid();
+            arrows.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
+            arrows.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
+            var up = new System.Windows.Controls.Primitives.RepeatButton
+            {
+                Content = "^",
+                Width = 18,
+                Height = 12,
+            };
+            var dn = new System.Windows.Controls.Primitives.RepeatButton
+            {
+                Content = "v",
+                Width = 18,
+                Height = 12,
+            };
+            up.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            dn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            up.Click += upHandler;
+            dn.Click += downHandler;
+            Grid.SetRow(up, 0);
+            Grid.SetRow(dn, 1);
+            arrows.Children.Add(up);
+            arrows.Children.Add(dn);
+            DockPanel.SetDock(arrows, Dock.Right);
+            var btn = new Button { Content = content };
+            btn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            if (isTeal)
+            {
+                btn.BorderBrush = BrushTeal;
+                btn.Foreground = System.Windows.Media.Brushes.White; // DW-BWAVE-UI-01: white text on teal bg (was BrushTeal -- invisible)
+                btn.BorderThickness = new Thickness(2);
+            }
+            btn.Background = isTeal ? BrushTeal : BrushInactive; // AFTER style -- explicit brush wins (DW-LaneA-06 fix)
+            btn.Click += mainHandler;
+            cluster.Children.Add(arrows);
+            cluster.Children.Add(btn);
+            storeAction(btn);
+            targetPanel.Children.Add(cluster);
+        }
+
+        // CYC: 1 (sequential, no branching).
+        // JS-021: no lock(). JS-033: synchronous void. JS-001: no throw. JS-002: no return null.
+        private void BuildQuickT3HiddenRow(StackPanel root)
+        {
             _quickT3Row = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -1419,54 +1484,63 @@ namespace PropTraderTools
         // B33 T7 -- OnBeClick: 2-state FSM. Idle-immediate path dispatches to PttBreakEven module.
         // Idle: price-at-BE -> DispatchModule("BE") (stays Idle). In drawdown -> ArmPendingBe (Armed).
         // Armed: cancel arm -> Idle.
-        // CYC=5: (1) instrument null, (2) leader null, (3) Idle branch,
-        //        (4) price-already-at-BE check, (5) Armed cancel.
+        // C-08: extracted ExecuteBeIdle + ExecuteBeArmed. Parent CCN=4.
         // B30-B: leader resolved late via _leaderAccount ?? TryResolveLeaderAccount() (DW-B30-03).
+        // JS-021: no lock(). JS-033: synchronous void event handler -- not async void.
         private void OnBeClick(object sender, RoutedEventArgs e)
         {
             if (_instrument == null)
-                return; // (1)
+                return;
             _leaderAccount = _leaderAccount ?? TryResolveLeaderAccount(); // B30-B
             if (_leaderAccount == null)
-                return; // (2)
-            switch (_beState)
+                return;
+            if (_beState == BeState.Idle)
+                ExecuteBeIdle(_leaderAccount, _instrument);
+            else if (_beState == BeState.Armed)
+                ExecuteBeArmed(_leaderAccount);
+        }
+
+        // C-08: ExecuteBeIdle -- handles BeState.Idle arm of OnBeClick.
+        // DW-B32-04: if price already past BE target, fire immediately (stays Idle).
+        // Otherwise arm and wait for price to cross.
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private void ExecuteBeIdle(Account leader, NinjaTrader.Cbi.Instrument instrument)
+        {
+            if (IsPriceAlreadyAtBe(leader, instrument, _beBuffer))
             {
-                case BeState.Idle: // (3)
-                    // DW-B32-04: if price already past BE target, fire immediately -- no arm needed.
-                    // Otherwise arm and wait for price to cross.
-                    if (IsPriceAlreadyAtBe(_leaderAccount, _instrument, _beBuffer)) // (4)
-                    {
-                        NinjaTrader.Code.Output.Process(
-                            "[BE] button: immediate fire "
-                                + _leaderAccount.Name
-                                + " buf="
-                                + _beBuffer,
-                            NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                        );
-                        DispatchModule("BE");
-                        // stay Idle -- ATM owns stop from here
-                    }
-                    else
-                    {
-                        NinjaTrader.Code.Output.Process(
-                            "[BE] button: arming " + _leaderAccount.Name + " buf=" + _beBuffer,
-                            NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                        );
-                        _engine.ArmPendingBe(_instrument, _leaderAccount, _beBuffer);
-                        _beState = BeState.Armed;
-                        UpdateBeVisuals(BeState.Armed);
-                    }
-                    break;
-                case BeState.Armed: // (5)
-                    NinjaTrader.Code.Output.Process(
-                        "[BE] button: disarming " + _leaderAccount.Name,
-                        NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                    );
-                    _engine.DisarmPendingBe(_leaderAccount);
-                    _beState = BeState.Idle;
-                    UpdateBeVisuals(BeState.Idle);
-                    break;
+                NinjaTrader.Code.Output.Process(
+                    "[BE] button: immediate fire "
+                        + leader.Name
+                        + " buf="
+                        + _beBuffer,
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                );
+                DispatchModule("BE");
+                // stay Idle -- ATM owns stop from here
             }
+            else
+            {
+                NinjaTrader.Code.Output.Process(
+                    "[BE] button: arming " + leader.Name + " buf=" + _beBuffer,
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                );
+                _engine.ArmPendingBe(instrument, leader, _beBuffer);
+                _beState = BeState.Armed;
+                UpdateBeVisuals(BeState.Armed);
+            }
+        }
+
+        // C-08: ExecuteBeArmed -- handles BeState.Armed disarm of OnBeClick.
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private void ExecuteBeArmed(Account leader)
+        {
+            NinjaTrader.Code.Output.Process(
+                "[BE] button: disarming " + leader.Name,
+                NinjaTrader.NinjaScript.PrintTo.OutputTab1
+            );
+            _engine.DisarmPendingBe(leader);
+            _beState = BeState.Idle;
+            UpdateBeVisuals(BeState.Idle);
         }
 
         // BWAVE-CYC T4: extracted helpers for IsPriceAlreadyAtBe.
@@ -1665,6 +1739,9 @@ namespace PropTraderTools
 
         // B9 T3: Appends "Mode: [Signal] [Mirror]" radio button row to root StackPanel.
         // CYC=1 (straight-line widget construction, no branches).
+        // C-05: extracted 4 helpers -- BuildSignalRadioButton, BuildMirrorRadioButton,
+        // BuildCloneRadioButton, BuildCopyToggleButton. Parent CCN=1.
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
         private void BuildModeRow(StackPanel root)
         {
             var row = new StackPanel
@@ -1678,24 +1755,66 @@ namespace PropTraderTools
                 Width = 42,
                 VerticalAlignment = VerticalAlignment.Center,
             };
-            _signalModeBtn = new RadioButton
+            _signalModeBtn = BuildSignalRadioButton();
+            _mirrorModeBtn = BuildMirrorRadioButton();
+            _cloneModeBtn = BuildCloneRadioButton();
+            _copyToggleBtn2 = BuildCopyToggleButton();
+            row.Children.Add(lbl);
+            row.Children.Add(_signalModeBtn);
+            row.Children.Add(_mirrorModeBtn);
+            row.Children.Add(_cloneModeBtn);
+            row.Children.Add(_copyToggleBtn2);
+            root.Children.Add(row);
+        }
+
+        // C-05 helper: CCN=1. Builds Signal RadioButton (default checked).
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private RadioButton BuildSignalRadioButton()
+        {
+            var rb = new RadioButton
             {
                 Content = "Signal",
                 IsChecked = true,
                 Margin = new Thickness(4, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center,
             };
-            _mirrorModeBtn = new RadioButton
+            rb.Click += OnSignalModeClick;
+            return rb;
+        }
+
+        // C-05 helper: CCN=1. Builds Mirror RadioButton.
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private RadioButton BuildMirrorRadioButton()
+        {
+            var rb = new RadioButton
             {
                 Content = "Mirror",
                 Margin = new Thickness(8, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center,
             };
-            _signalModeBtn.Click += OnSignalModeClick;
-            _mirrorModeBtn.Click += OnMirrorModeClick;
+            rb.Click += OnMirrorModeClick;
+            return rb;
+        }
 
-            // B41: COPY ON/OFF ToggleButton relocated from BuildBufferedButtonsRow Row 3 to Mode row.
-            _copyToggleBtn2 = new Button
+        // C-05 helper: CCN=1. Builds Clone RadioButton (B50 style).
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private RadioButton BuildCloneRadioButton()
+        {
+            var rb = new RadioButton
+            {
+                Content = "Clone",
+                Margin = new Thickness(8, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            rb.Click += OnCloneModeClick;
+            return rb;
+        }
+
+        // C-05 helper: CCN=1. Builds COPY OFF toggle Button (B41 -- inactive border styling).
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private Button BuildCopyToggleButton()
+        {
+            var btn = new Button
             {
                 Content = "\u25CF COPY OFF",
                 Margin = new Thickness(8, 0, 0, 0),
@@ -1703,24 +1822,9 @@ namespace PropTraderTools
                 BorderThickness = new Thickness(2),
                 VerticalAlignment = VerticalAlignment.Center,
             };
-            _copyToggleBtn2.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            _copyToggleBtn2.Click += OnCopyToggle;
-
-            // B50: Clone radio button
-            _cloneModeBtn = new RadioButton
-            {
-                Content = "Clone",
-                Margin = new Thickness(8, 0, 0, 0),
-                VerticalAlignment = VerticalAlignment.Center,
-            };
-            _cloneModeBtn.Click += OnCloneModeClick;
-
-            row.Children.Add(lbl);
-            row.Children.Add(_signalModeBtn);
-            row.Children.Add(_mirrorModeBtn);
-            row.Children.Add(_cloneModeBtn);
-            row.Children.Add(_copyToggleBtn2);
-            root.Children.Add(row);
+            btn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            btn.Click += OnCopyToggle;
+            return btn;
         }
 
         // B9 T3: CYC=1 -- straight-line engine call
@@ -2036,7 +2140,9 @@ namespace PropTraderTools
         }
 
         // B47 T1-B: BuildInlineFollowerRow -- imperative row construction, no DataTemplate.
-        // CYC=1: straight-line. JS-021: no lock. NT8-012: no FrameworkElementFactory.
+        // C-02: Extracted 5 helpers (BuildFollowerCheckBox, BuildFollowerNameLabel,
+        //        BuildFollowerPnlLabel, BuildFollowerAtmComboBox, WireFollowerCheckBoxHandlers).
+        // JS-021: no lock. JS-001: no throw. JS-002: no return null. JS-033: no async void.
         // ATM ComboBox IsEnabled is set by CheckBox Checked/Unchecked handlers (code-behind).
         // Row: [CheckBox][account TextBlock][P&L TextBlock][ATM ComboBox]  -- 4 columns per spec.
         private void BuildInlineFollowerRow(FollowerItem item)
@@ -2047,17 +2153,73 @@ namespace PropTraderTools
             // PnL and ATM combo are docked Right so they never compete with the name.
             var row = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 1, 0, 1) };
 
-            // Col 0: CheckBox -- docked Left, tracks IsSelected
-            var chk = new CheckBox
+            var chk = BuildFollowerCheckBox(item);
+            DockPanel.SetDock(chk, Dock.Left);
+
+            var atmCombo = BuildFollowerAtmComboBox(item);
+            DockPanel.SetDock(atmCombo, Dock.Right);
+
+            var pnlLabel = BuildFollowerPnlLabel(item);
+            DockPanel.SetDock(pnlLabel, Dock.Right);
+
+            var nameLabel = BuildFollowerNameLabel(item);
+            nameLabel.SetResourceReference(TextBlock.ForegroundProperty, "NTBrushes.SubtleBrush");
+
+            WireFollowerCheckBoxHandlers(item, chk, atmCombo);
+
+            // DockPanel child order: Left-docked first, Right-docked next (ATM then PnL),
+            // LastChildFill (name) added last so it fills the remaining centre space.
+            row.Children.Add(chk);
+            row.Children.Add(atmCombo);
+            row.Children.Add(pnlLabel);
+            row.Children.Add(nameLabel);
+            _followerScrollViewerPanel.Children.Add(row);
+        }
+
+        // C-02: BuildFollowerCheckBox -- create CheckBox bound to item.IsSelected.
+        // CCN=1: straight-line. JS-021: no lock. JS-001: no throw. JS-002: no return null.
+        private CheckBox BuildFollowerCheckBox(FollowerItem item)
+        {
+            return new CheckBox
             {
                 IsChecked = item.IsSelected,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 4, 0),
             };
-            DockPanel.SetDock(chk, Dock.Left);
+        }
 
-            // Col 2 (docked Right): ATM ComboBox (NT8-045: populated from filesystem on Loaded event)
-            // Docked before PnL so DockPanel processes right-most first.
+        // C-02: BuildFollowerNameLabel -- create LastChildFill TextBlock with account display name.
+        // CCN=1: straight-line. JS-021: no lock. JS-001: no throw. JS-002: no return null.
+        private TextBlock BuildFollowerNameLabel(FollowerItem item)
+        {
+            return new TextBlock
+            {
+                Text = item.ToString(),
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                Margin = new Thickness(0, 0, 4, 0),
+            };
+        }
+
+        // C-02: BuildFollowerPnlLabel -- create 60px-wide P&L TextBlock with DailyPnlColor foreground.
+        // CCN=1: straight-line. JS-021: no lock. JS-001: no throw. JS-002: no return null.
+        private TextBlock BuildFollowerPnlLabel(FollowerItem item)
+        {
+            return new TextBlock
+            {
+                Text = item.DailyPnlText,
+                Width = 60,
+                TextAlignment = TextAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(2, 0, 2, 0),
+                Foreground = item.DailyPnlColor,
+            };
+        }
+
+        // C-02: BuildFollowerAtmComboBox -- create 110px ComboBox, wire LoadedEvent + SelectionChanged.
+        // CCN=1: straight-line. JS-021: no lock. JS-001: no throw. JS-002: no return null.
+        private ComboBox BuildFollowerAtmComboBox(FollowerItem item)
+        {
             var atmCombo = new ComboBox
             {
                 Width = 110,
@@ -2071,34 +2233,14 @@ namespace PropTraderTools
             );
             atmCombo.SelectionChanged += OnFollowerAtmTemplateComboChanged;
             atmCombo.DataContext = item;
-            DockPanel.SetDock(atmCombo, Dock.Right);
+            return atmCombo;
+        }
 
-            // Col 2 (docked Right): P&L TextBlock -- mirrors DailyPnlText/DailyPnlColor.
-            // item.DailyPnlText: formatted string e.g. "+$125.00"
-            // item.DailyPnlColor: SolidColorBrush -- green/red/neutral (already Freeze()d by FollowerItem)
-            var pnlLabel = new TextBlock
-            {
-                Text = item.DailyPnlText,
-                Width = 60,
-                TextAlignment = TextAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(2, 0, 2, 0),
-                Foreground = item.DailyPnlColor,
-            };
-            DockPanel.SetDock(pnlLabel, Dock.Right);
-
-            // Col 1 (LastChildFill): Account name label -- fills all remaining space.
-            // TextTrimming=CharacterEllipsis ensures long names degrade gracefully if panel is very narrow.
-            var nameLabel = new TextBlock
-            {
-                Text = item.ToString(),
-                VerticalAlignment = VerticalAlignment.Center,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                Margin = new Thickness(0, 0, 4, 0),
-            };
-            nameLabel.SetResourceReference(TextBlock.ForegroundProperty, "NTBrushes.SubtleBrush");
-
-            // CheckBox event handlers: toggle IsSelected + ATM IsEnabled + sort + auto-apply
+        // C-02: WireFollowerCheckBoxHandlers -- wire chk.Checked and chk.Unchecked lambdas.
+        // CCN=4: 2 lambdas (each counted as branch) + 2 sequential paths inside each lambda.
+        // JS-021: no lock. JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private void WireFollowerCheckBoxHandlers(FollowerItem item, CheckBox chk, ComboBox atmCombo)
+        {
             chk.Checked += (s, e) =>
             {
                 item.IsSelected = true;
@@ -2115,14 +2257,6 @@ namespace PropTraderTools
                 UpdateCopierHeader(); // B47 T3-B
                 TryAutoApply(); // B47 T2-B
             };
-
-            // DockPanel child order: Left-docked first, Right-docked next (ATM then PnL),
-            // LastChildFill (name) added last so it fills the remaining centre space.
-            row.Children.Add(chk);
-            row.Children.Add(atmCombo);
-            row.Children.Add(pnlLabel);
-            row.Children.Add(nameLabel);
-            _followerScrollViewerPanel.Children.Add(row);
         }
 
         // B47 T4-B: SortFollowerRows -- sort _followerItems and rebuild ScrollViewer panel children.
@@ -2294,81 +2428,101 @@ namespace PropTraderTools
         // vertically across rows regardless of account name length.
         // ColumnDefinitions added at runtime via OnRowGridLoaded (WPF FEF limitation).
         // CYC=1 (no branches -- pure factory construction).
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
         private DataTemplate BuildCheckItemTemplate()
         {
             var template = new DataTemplate(typeof(FollowerItem));
-
             var gridFactory = new FrameworkElementFactory(typeof(Grid));
             gridFactory.AddHandler(
                 FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(OnRowGridLoaded)
             );
+            gridFactory.AppendChild(BuildTemplateAccountNameColumn());
+            gridFactory.AppendChild(BuildTemplatePnlColumn());
+            gridFactory.AppendChild(BuildTemplateMultiplierColumn());
+            gridFactory.AppendChild(BuildTemplateAtmComboColumn());
+            gridFactory.AppendChild(BuildTemplateCheckBoxColumn());
+            template.VisualTree = gridFactory;
+            return template;
+        }
 
-            // [1] Account name -- Col 0: star width, ellipsis trimming
-            var nameFactory = new FrameworkElementFactory(typeof(TextBlock));
-            nameFactory.SetValue(Grid.ColumnProperty, 0);
-            nameFactory.SetBinding(TextBlock.TextProperty, new Binding("Account.Name"));
-            nameFactory.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis);
-            nameFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+        // [1] Account name -- Col 0: star width, ellipsis trimming.
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private FrameworkElementFactory BuildTemplateAccountNameColumn()
+        {
+            var f = new FrameworkElementFactory(typeof(TextBlock));
+            f.SetValue(Grid.ColumnProperty, 0);
+            f.SetBinding(TextBlock.TextProperty, new Binding("Account.Name"));
+            f.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis);
+            f.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+            return f;
+        }
 
-            // [2] Daily P&L -- Col 1: 62px fixed, right-aligned, color-coded
-            var pnlFactory = new FrameworkElementFactory(typeof(TextBlock));
-            pnlFactory.SetValue(Grid.ColumnProperty, 1);
-            pnlFactory.SetBinding(TextBlock.TextProperty, new Binding("DailyPnlText"));
-            pnlFactory.SetBinding(TextBlock.ForegroundProperty, new Binding("DailyPnlColor"));
-            pnlFactory.SetValue(TextBlock.TextAlignmentProperty, TextAlignment.Right);
-            pnlFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+        // [2] Daily P&L -- Col 1: 62px fixed, right-aligned, color-coded.
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private FrameworkElementFactory BuildTemplatePnlColumn()
+        {
+            var f = new FrameworkElementFactory(typeof(TextBlock));
+            f.SetValue(Grid.ColumnProperty, 1);
+            f.SetBinding(TextBlock.TextProperty, new Binding("DailyPnlText"));
+            f.SetBinding(TextBlock.ForegroundProperty, new Binding("DailyPnlColor"));
+            f.SetValue(TextBlock.TextAlignmentProperty, TextAlignment.Right);
+            f.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+            return f;
+        }
 
-            // [3] B8 T1: Multiplier TextBox -- Col 2: 30px fixed
-            // Fires on WPF UI thread -- no Dispatcher needed (JS-023 compliant)
-            var multFactory = new FrameworkElementFactory(typeof(TextBox));
-            multFactory.SetValue(Grid.ColumnProperty, 2);
-            multFactory.SetValue(TextBox.TextProperty, "1");
-            multFactory.SetValue(
-                TextBox.VerticalContentAlignmentProperty,
-                VerticalAlignment.Center
-            );
-            multFactory.AddHandler(
+        // [3] B8 T1: Multiplier TextBox -- Col 2: 30px fixed, Visibility=Collapsed.
+        // Fires on WPF UI thread -- no Dispatcher needed (JS-023 compliant).
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private FrameworkElementFactory BuildTemplateMultiplierColumn()
+        {
+            var f = new FrameworkElementFactory(typeof(TextBox));
+            f.SetValue(Grid.ColumnProperty, 2);
+            f.SetValue(TextBox.TextProperty, "1");
+            f.SetValue(TextBox.VerticalContentAlignmentProperty, VerticalAlignment.Center);
+            f.AddHandler(
                 TextBox.TextChangedEvent,
                 new TextChangedEventHandler(OnFollowerMultiplierChanged)
             );
-            multFactory.SetValue(FrameworkElement.VisibilityProperty, Visibility.Collapsed);
+            f.SetValue(FrameworkElement.VisibilityProperty, Visibility.Collapsed);
+            return f;
+        }
 
-            // [4] B43 T1: ATM template ComboBox (replaces Inherit/Market/Named ComboBox + namedBox TextBox).
-            // Col 3. Width=120 to accommodate template names. Wired via FEF LoadedEvent + SelectionChangedEvent.
-            // NT8-012: FEF AddHandler pattern for Loaded event -- mandatory for NT8 DataTemplate wiring.
-            var atmTemplateFactory = new FrameworkElementFactory(typeof(ComboBox));
-            atmTemplateFactory.SetValue(Grid.ColumnProperty, 3);
-            atmTemplateFactory.SetValue(ComboBox.WidthProperty, 120.0);
-            atmTemplateFactory.SetValue(ComboBox.MarginProperty, new Thickness(2));
-            atmTemplateFactory.SetValue(ComboBox.ToolTipProperty, "ATM template for this follower");
-            atmTemplateFactory.AddHandler(
+        // [4] B43 T1: ATM template ComboBox -- Col 3: 120px, wired via FEF Loaded+SelectionChanged.
+        // NT8-012: FEF AddHandler pattern for Loaded event -- mandatory for NT8 DataTemplate wiring.
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private FrameworkElementFactory BuildTemplateAtmComboColumn()
+        {
+            var f = new FrameworkElementFactory(typeof(ComboBox));
+            f.SetValue(Grid.ColumnProperty, 3);
+            f.SetValue(ComboBox.WidthProperty, 120.0);
+            f.SetValue(ComboBox.MarginProperty, new Thickness(2));
+            f.SetValue(ComboBox.ToolTipProperty, "ATM template for this follower");
+            f.AddHandler(
                 FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(OnFollowerAtmTemplateComboLoaded)
             );
-            atmTemplateFactory.AddHandler(
+            f.AddHandler(
                 Selector.SelectionChangedEvent,
                 new SelectionChangedEventHandler(OnFollowerAtmTemplateComboChanged)
             );
+            return f;
+        }
 
-            // [5] Checkmark -- Col 4: 20px fixed, centered (was col 5 -- namedBox col removed)
-            var chkFactory = new FrameworkElementFactory(typeof(CheckBox));
-            chkFactory.SetValue(Grid.ColumnProperty, 4);
-            chkFactory.SetBinding(
+        // [5] Checkmark -- Col 4: 20px fixed, centered, TwoWay IsSelected binding.
+        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        private FrameworkElementFactory BuildTemplateCheckBoxColumn()
+        {
+            var f = new FrameworkElementFactory(typeof(CheckBox));
+            f.SetValue(Grid.ColumnProperty, 4);
+            f.SetBinding(
                 CheckBox.IsCheckedProperty,
                 new Binding("IsSelected") { Mode = BindingMode.TwoWay }
             );
-            chkFactory.AddHandler(CheckBox.ClickEvent, new RoutedEventHandler(OnFollowerChecked));
-            chkFactory.SetValue(CheckBox.VerticalAlignmentProperty, VerticalAlignment.Center);
-            chkFactory.SetValue(CheckBox.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-
-            gridFactory.AppendChild(nameFactory);
-            gridFactory.AppendChild(pnlFactory);
-            gridFactory.AppendChild(multFactory);
-            gridFactory.AppendChild(atmTemplateFactory);
-            gridFactory.AppendChild(chkFactory);
-            template.VisualTree = gridFactory;
-            return template;
+            f.AddHandler(CheckBox.ClickEvent, new RoutedEventHandler(OnFollowerChecked));
+            f.SetValue(CheckBox.VerticalAlignmentProperty, VerticalAlignment.Center);
+            f.SetValue(CheckBox.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            return f;
         }
 
         // B43 T1: Loaded handler for Grid rows materialized from BuildCheckItemTemplate.

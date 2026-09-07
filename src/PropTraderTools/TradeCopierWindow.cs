@@ -224,21 +224,51 @@ namespace PropTraderTools
             );
         }
 
+        // C-09: BuildUI extracted into 6 private helpers. CYC=1. JS-021/001/002/033 compliant.
         private void BuildUI()
         {
             var root = new DockPanel { LastChildFill = true };
+            var titleBlock = BuildWindowTitleBlock();
+            DockPanel.SetDock(titleBlock, Dock.Top);
+            root.Children.Add(titleBlock);
+            var toggleBtn = BuildGlobalToggleButton();
+            DockPanel.SetDock(toggleBtn, Dock.Top);
+            root.Children.Add(toggleBtn);
+            var modeSection = BuildCopyModeSection();
+            DockPanel.SetDock(modeSection, Dock.Top);
+            root.Children.Add(modeSection);
+            var sep1 = new Separator { Margin = new Thickness(0, 2, 0, 2) };
+            DockPanel.SetDock(sep1, Dock.Top);
+            root.Children.Add(sep1);
+            var rulesScroll = BuildRulesScrollSection();
+            DockPanel.SetDock(rulesScroll, Dock.Top);
+            root.Children.Add(rulesScroll);
+            var addRuleBtn = BuildAddRuleButton();
+            DockPanel.SetDock(addRuleBtn, Dock.Top);
+            root.Children.Add(addRuleBtn);
+            var sep2 = new Separator { Margin = new Thickness(0, 2, 0, 2) };
+            DockPanel.SetDock(sep2, Dock.Top);
+            root.Children.Add(sep2);
+            BuildLicenseRow(root);
+            root.Children.Add(BuildLogScrollSection());
+            Content = root;
+            UpdateButtonColors(false, false);
+        }
 
-            // --- Title ---
-            var titleBlock = new TextBlock
+        // C-09: Creates bold title TextBlock. CYC=1. JS-002: no return null. ASCII-only.
+        private TextBlock BuildWindowTitleBlock()
+        {
+            return new TextBlock
             {
                 Text = "Prop Trader Tools -- Trade Copier",
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(6, 4, 4, 2),
             };
-            DockPanel.SetDock(titleBlock, Dock.Top);
-            root.Children.Add(titleBlock);
+        }
 
-            // --- Global toggle (color-coded -- no NTButtonStyle) ---
+        // C-09: Creates global copy toggle Button, assigns _globalToggleBtn. CYC=1. JS-002: no return null.
+        private Button BuildGlobalToggleButton()
+        {
             _globalToggleBtn = new Button
             {
                 Content = "Copy All OFF",
@@ -247,49 +277,11 @@ namespace PropTraderTools
                 Background = WBrushInactive,
             };
             _globalToggleBtn.Click += OnGlobalToggle;
-            DockPanel.SetDock(_globalToggleBtn, Dock.Top);
-            root.Children.Add(_globalToggleBtn);
-
-            var modeRow = BuildModeRow();
-            DockPanel.SetDock(modeRow, Dock.Top);
-            root.Children.Add(modeRow);
-
-            var sep1 = new Separator { Margin = new Thickness(0, 2, 0, 2) };
-            DockPanel.SetDock(sep1, Dock.Top);
-            root.Children.Add(sep1);
-
-            var rulesScroll = BuildRulesScrollArea();
-            DockPanel.SetDock(rulesScroll, Dock.Top);
-            root.Children.Add(rulesScroll);
-
-            _addRuleBtn = new Button
-            {
-                Content = "+ Add Rule",
-                Margin = new Thickness(6, 2, 6, 2),
-                Padding = new Thickness(8, 3, 8, 3),
-            };
-            _addRuleBtn.Click += OnAddRule;
-            DockPanel.SetDock(_addRuleBtn, Dock.Top);
-            root.Children.Add(_addRuleBtn);
-
-            var sep2 = new Separator { Margin = new Thickness(0, 2, 0, 2) };
-            DockPanel.SetDock(sep2, Dock.Top);
-            root.Children.Add(sep2);
-
-            // BGTM-1: license key row docks to bottom before log fills remaining space
-            BuildLicenseRow(root);
-
-            // LastChildFill = true on DockPanel means this gets all remaining space
-            root.Children.Add(BuildLogScrollArea());
-
-            Content = root;
-
-            // V04: ensure consistent initial state (all action buttons start grey)
-            UpdateButtonColors(false, false);
+            return _globalToggleBtn;
         }
 
-        // R5: Builds the horizontal Copy Mode row. CYC=1. JS-002: no return null. ASCII-only.
-        private StackPanel BuildModeRow()
+        // C-09: Creates Copy Mode label + ComboBox row. CYC=1. JS-002: no return null. ASCII-only.
+        private StackPanel BuildCopyModeSection()
         {
             var row = new StackPanel
             {
@@ -313,9 +305,9 @@ namespace PropTraderTools
             return row;
         }
 
-        // R5: Builds the rules scroll area and initialises _rulesPanel. CYC=1. JS-002: no return null. ASCII-only.
-        // B7-F5: ScrollViewer MaxHeight=400 -- DockPanel.SetDock applied by BuildUI on the returned viewer.
-        private ScrollViewer BuildRulesScrollArea()
+        // C-09: Creates _rulesPanel StackPanel wrapped in ScrollViewer. CYC=1. JS-002: no return null.
+        // MaxHeight=400 per B7-F5 spec.
+        private ScrollViewer BuildRulesScrollSection()
         {
             _rulesPanel = new StackPanel();
             _rulesPanel.Children.Add(BuildRuleRow("MES"));
@@ -327,8 +319,21 @@ namespace PropTraderTools
             };
         }
 
-        // R5: Builds the log scroll area and initialises _logPanel. CYC=1. JS-002: no return null. ASCII-only.
-        private ScrollViewer BuildLogScrollArea()
+        // C-09: Creates "+ Add Rule" Button, assigns _addRuleBtn. CYC=1. JS-002: no return null.
+        private Button BuildAddRuleButton()
+        {
+            _addRuleBtn = new Button
+            {
+                Content = "+ Add Rule",
+                Margin = new Thickness(6, 2, 6, 2),
+                Padding = new Thickness(8, 3, 8, 3),
+            };
+            _addRuleBtn.Click += OnAddRule;
+            return _addRuleBtn;
+        }
+
+        // C-09: Creates _logPanel StackPanel wrapped in ScrollViewer. CYC=1. JS-002: no return null. ASCII-only.
+        private ScrollViewer BuildLogScrollSection()
         {
             _logPanel = new StackPanel { Orientation = Orientation.Vertical };
             return new ScrollViewer
@@ -750,6 +755,8 @@ namespace PropTraderTools
         // tag0 = instrumentName (string) or instrTextBox. Adds trim/flatten/cancel to tracking lists.
         // atmPanel: Children[0]=atmCb, Children[1]=namedBox -- passed to OnRowApply tag array.
         // Adds all 5 buttons to grid at their respective columns.
+        // C-04: CCN=1 -- straight-line delegation to 5 private helpers.
+        // All helpers: private instance, UI-thread only, CYC<=1, no lock(), no async void, no return null.
         private void BuildActionButtons(
             object tag0,
             ComboBox leaderCb,
@@ -759,59 +766,90 @@ namespace PropTraderTools
         {
             var atmCb = (ComboBox)atmPanel.Children[0];
             var namedBox = (TextBox)atmPanel.Children[1];
+            BuildTrimActionButton(tag0, grid);
+            BuildFlattenActionButton(tag0, grid);
+            BuildCancelActionButton(tag0, grid);
+            BuildToggleActionButton(tag0, grid);
+            BuildApplyActionButton(tag0, leaderCb, followerLb, atmCb, namedBox, grid);
+        }
 
-            var trimBtn = new Button
+        // CCN=1: no branches.
+        private void BuildTrimActionButton(object tag, Grid grid)
+        {
+            var btn = new Button
             {
                 Content = "[1/2]",
-                Tag = tag0,
+                Tag = tag,
                 Margin = new Thickness(2),
                 Background = WBrushInactive,
             };
-            trimBtn.Click += OnRuleTrim;
-            _trimBtns.Add(trimBtn);
-            Grid.SetColumn(trimBtn, 3);
-            grid.Children.Add(trimBtn);
+            btn.Click += OnRuleTrim;
+            _trimBtns.Add(btn);
+            Grid.SetColumn(btn, 3);
+            grid.Children.Add(btn);
+        }
 
-            var flattenBtn = new Button
+        // CCN=1: no branches.
+        private void BuildFlattenActionButton(object tag, Grid grid)
+        {
+            var btn = new Button
             {
                 Content = "[=]",
-                Tag = tag0,
+                Tag = tag,
                 Margin = new Thickness(2),
                 Background = WBrushInactive,
             };
-            flattenBtn.Click += OnRuleFlatten;
-            _flattenBtns.Add(flattenBtn);
-            Grid.SetColumn(flattenBtn, 4);
-            grid.Children.Add(flattenBtn);
+            btn.Click += OnRuleFlatten;
+            _flattenBtns.Add(btn);
+            Grid.SetColumn(btn, 4);
+            grid.Children.Add(btn);
+        }
 
-            var cancelBtn = new Button
+        // CCN=1: no branches.
+        private void BuildCancelActionButton(object tag, Grid grid)
+        {
+            var btn = new Button
             {
                 Content = "[x]",
-                Tag = tag0,
+                Tag = tag,
                 Margin = new Thickness(2),
                 Background = WBrushInactive,
             };
-            cancelBtn.Click += OnRuleCancel;
-            _cancelBtns.Add(cancelBtn);
-            Grid.SetColumn(cancelBtn, 5);
-            grid.Children.Add(cancelBtn);
+            btn.Click += OnRuleCancel;
+            _cancelBtns.Add(btn);
+            Grid.SetColumn(btn, 5);
+            grid.Children.Add(btn);
+        }
 
-            var toggleBtn = new Button
+        // CCN=1: no branches.
+        private void BuildToggleActionButton(object tag, Grid grid)
+        {
+            var btn = new Button
             {
                 Content = "[ON]",
-                Tag = tag0,
+                Tag = tag,
                 Margin = new Thickness(2),
                 Background = WBrushActive,
             };
-            toggleBtn.Click += OnRuleToggle;
-            Grid.SetColumn(toggleBtn, 6);
-            grid.Children.Add(toggleBtn);
+            btn.Click += OnRuleToggle;
+            Grid.SetColumn(btn, 6);
+            grid.Children.Add(btn);
+        }
 
-            var applyBtn = new Button { Content = "Apply", Margin = new Thickness(2) };
-            applyBtn.Tag = new object[] { tag0, leaderCb, followerLb, atmCb, namedBox };
-            applyBtn.Click += OnRowApply;
-            Grid.SetColumn(applyBtn, 7);
-            grid.Children.Add(applyBtn);
+        // CCN=1: no branches.
+        private void BuildApplyActionButton(
+            object tag,
+            ComboBox leaderCb,
+            ListBox followerLb,
+            ComboBox atmCb,
+            TextBox namedBox,
+            Grid grid)
+        {
+            var btn = new Button { Content = "Apply", Margin = new Thickness(2) };
+            btn.Tag = new object[] { tag, leaderCb, followerLb, atmCb, namedBox };
+            btn.Click += OnRowApply;
+            Grid.SetColumn(btn, 7);
+            grid.Children.Add(btn);
         }
 
         // B56-LaneB: CYC=4 -- null guard (1) + 3-way if-chain for index 0/1/2 (branches 2/3/4)
