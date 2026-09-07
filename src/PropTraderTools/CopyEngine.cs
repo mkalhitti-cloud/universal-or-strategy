@@ -5164,6 +5164,26 @@ namespace PropTraderTools
             }
         }
 
+        // DW-LB-FL-01: dispatch helper used exclusively by NakedPositionDetector
+        // Dispatcher.InvokeAsync lambda.
+        // Guards the FlattenOneAccount call: if ATM brackets are Working/Submitted/Accepted/
+        // TriggerPending on acct for instr, skip flatten (bracket-arm race protection).
+        // This prevents the false PTT-Flatten that fires after a BE ALL cancel storm when the
+        // Dispatcher.InvokeAsync callback runs after the new entry's brackets have started arming.
+        // Does NOT affect TryDispatchLeaderFlat -> FlattenFollower -> FlattenOneAccount path
+        // (intentional leader-initiated flatten -- DW-B65-01 bypass preserved).
+        // CYC=2: base(1) + HasArmingAtmBrackets branch(1).
+        // JS-021: no lock. JS-001: no throw. JS-002: void. ASCII-only. Instance method.
+        private void FlattenIfNotArming(Account acct, Instrument instr) // DW-LB-FL-01 visibility
+        {
+            if (HasArmingAtmBrackets(acct, instr))
+            {
+                StatusUpdate?.Invoke(acct.Name + ": flat-guard: bracket-arm skip");
+                return;
+            }
+            FlattenOneAccount(acct, instr);
+        }
+
         // B28 T1 -- FlattenOneAccount: per-account market flatten helper.
         // B67 DW-B67-01: cancel follower ATM+QX brackets BEFORE submitting market order.
         // B69 DW-B69-01: widened from CancelQxBrackets to cancel ALL active orders (name-agnostic).
@@ -5226,6 +5246,36 @@ namespace PropTraderTools
                 if (o.Instrument?.FullName != instr.FullName)
                     continue;
                 if (IsFlattenOrderActive(o.OrderState))
+                    return true;
+            }
+            return false;
+        }
+
+        // DW-LB-FL-01: returns true if any ATM bracket order is in an active arming state.
+        // Active states: Working, Submitted, Accepted, TriggerPending.
+        // Reuses IsAtmBracketName (Stop1..Stop9 / Target1..Target9) for bracket identification.
+        // Guard purpose: when NakedPositionDetector queues a FlattenOneAccount callback via
+        // Dispatcher.InvokeAsync, bracket arming may complete before the UI thread runs the
+        // callback. If ATM brackets are active at callback time, the account has valid
+        // protection -- do not flatten.
+        // CYC=5: base(1)+foreach(1)+instr-skip(1)+stateActive-branch(1)+IsAtmBracketName(1).
+        // stateActive compound bool is assigned to a local variable -- counts as 1 branch.
+        // JS-021: no lock. acc.Orders.ToList() snapshot (same pattern as HasInflightFlatten L5242).
+        // JS-001: no throw. JS-002: returns bool. ASCII-only. static.
+        internal static bool HasArmingAtmBrackets(Account acc, Instrument instr) // DW-LB-FL-01 visibility
+        {
+            foreach (var o in acc.Orders.ToList())
+            {
+                if (o.Instrument?.FullName != instr.FullName)
+                    continue;
+                bool stateActive =
+                    o.OrderState == OrderState.Working
+                    || o.OrderState == OrderState.Submitted
+                    || o.OrderState == OrderState.Accepted
+                    || o.OrderState == OrderState.TriggerPending;
+                if (!stateActive)
+                    continue;
+                if (IsAtmBracketName(o.Name))
                     return true;
             }
             return false;
@@ -7188,7 +7238,7 @@ namespace PropTraderTools
             Instrument instr = FindOpenPositionInstrument(acct);
             if (instr != null)
                 System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
-                    FlattenOneAccount(acct, instr)
+                    FlattenIfNotArming(acct, instr)
                 );
         }
 
