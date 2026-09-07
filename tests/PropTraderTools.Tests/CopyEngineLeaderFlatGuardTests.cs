@@ -349,7 +349,6 @@ namespace PropTraderTools.Tests
             Assert.False(result);
             Assert.Equal(0, flattenCallCount);
         }
-    }
         // ==================================================================
         // 11. TryDispatchLeaderFlat_WhenCloseOnFlatLeaderButFollowerOpen_FlattensFollower
         //     DW-LB-FL-01 V9 regression fix: leader flat after BE closes 6/7 contracts;

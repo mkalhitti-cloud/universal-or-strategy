@@ -21,6 +21,9 @@ docs/brain/WAVE4*/
 docs/brain/WAVE5*/
 docs/brain/WAVE6*/
 !docs/brain/EPIC-W7-*/
+!docs/brain/WAVE1-LANE-A/
+!docs/brain/WAVE1-LANE-B/
+!docs/brain/WAVE1-LANE-C/
 
 # Building blocks (keep blocked except wave7)
 building-blocks/*

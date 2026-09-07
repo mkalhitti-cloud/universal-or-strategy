@@ -1496,7 +1496,33 @@ namespace PropTraderTools
                 acc.OrderUpdate -= OnOrderUpdate;
         }
 
-        // --- Hot path: CYC=8 (B75-LaneA second pass). All sub-blocks extracted to helpers. ---
+        // WAVE1-LANE-A T3 (advisory): consolidates three gate checks.
+        // Gate order is correctness-critical: enabled -> null -> .Value.Enabled.
+        // out CopyRule rule: value type (struct), never null. JS-002 compliant.
+        // CCN=4: base(1) + enabled(1) + matchedRule null(1) + matchedRule.Enabled(1).
+        private bool TryResolveEnabledRule(Order order, out CopyRule rule)
+        {
+            if (!_isCopyEnabled)
+            {
+                rule = default;
+                return false;
+            }
+            CopyRule? matchedRule = FindMatchingRule(order);
+            if (matchedRule == null)
+            {
+                rule = default;
+                return false;
+            }
+            if (!matchedRule.Value.Enabled)
+            {
+                rule = default;
+                return false;
+            }
+            rule = matchedRule.Value;
+            return true;
+        }
+
+        // --- Hot path: CYC=5 (WAVE1-LANE-A T3 advisory extraction). ---
         private void OnOrderUpdate(object sender, OrderEventArgs e)
         {
             // B62: evict dedup on terminal states so orderId is not permanently blocked.
@@ -1549,28 +1575,19 @@ namespace PropTraderTools
             // Unconditional -- fires even when copy is disabled. CYC delta=0.
             TryDrainWatchdog();
 
-            // Gate 1: enabled check
-            if (!_isCopyEnabled)
+            // Gates 1+2+2.5: enabled + rule match + rule enabled (WAVE1-LANE-A T3).
+            if (!TryResolveEnabledRule(e.Order, out CopyRule matchedRule))
                 return;
-
-            // Gate 2: find matching rule -- instrument AND master account must match.
-            // Extracted to FindMatchingRule (CYC=3).
-            CopyRule? matchedRule = FindMatchingRule(e.Order);
-
-            if (matchedRule == null)
-                return; // Gate 2: no rule match
-            if (!matchedRule.Value.Enabled)
-                return; // Gate 2.5: rule disabled
 
             // BUG-BE-RESET fix: fire position state ONLY for leader account+instrument orders.
             TryFirePositionState(e);
 
             // B9 T3 -- Mirror mode relay (inserted after Gate 2.5, before Gate B)
-            TryMirrorOrderUpdate(e.Order, matchedRule.Value);
+            TryMirrorOrderUpdate(e.Order, matchedRule);
 
             // B56 T1: propagate leader cancel to follower entry orders.
             // Extracted to TryCancelFollowerEntries (CYC=4). Includes HOTFIX-B63-COPY-CANCEL-01 guard.
-            if (TryCancelFollowerEntries(e.Order, matchedRule.Value))
+            if (TryCancelFollowerEntries(e.Order, matchedRule))
                 return;
 
             // DW-B60-01: leader went flat -- propagate close to followers
@@ -1580,7 +1597,7 @@ namespace PropTraderTools
                     e.Order.Instrument,
                     e.Order.OrderState,
                     e.Order.Name,
-                    matchedRule.Value,
+                    matchedRule,
                     IsFollowerAccount,
                     HasOpenPosition,
                     FlattenOneAccount
@@ -1589,11 +1606,11 @@ namespace PropTraderTools
                 return;
 
             // Gate B+C: bracket drag then entry drag -- consolidated into TryHandleDrag (one branch here).
-            if (TryHandleDrag(e.Order, matchedRule.Value))
+            if (TryHandleDrag(e.Order, matchedRule))
                 return;
 
             // No bracket, no drag -- normal copy dispatch
-            DispatchCopy(e.Order, matchedRule.Value);
+            DispatchCopy(e.Order, matchedRule);
         }
 
         // TryFireFollowerBeDisarm: CYC=4. Fires PositionStateChanged when a follower PTT-BE-Stop fills.
@@ -5540,6 +5557,7 @@ namespace PropTraderTools
         // NT8-007: arg12 = (NinjaTrader.Cbi.CustomOrder)null.
         // HOTFIX-F4: cancel any stale PTT-TrimLimit orders before posting new one.
         // Stale limits from a prior click stay live on the book and compete with ATM Close.
+        // WAVE1-LANE-A T2: CreateOrder block extracted to SubmitLimitExitOrder. CCN=4.
         private void TrimOneAccountLimit(
             Account acc,
             Instrument instrument,
@@ -5560,6 +5578,23 @@ namespace PropTraderTools
             var action = isLong ? OrderAction.Sell : OrderAction.BuyToCover;
             double tickSize = instrument.MasterInstrument.TickSize;
             double limitPx = ComputeLimitPx(isLong, ask, bid, exitBuffer, tickSize);
+            SubmitLimitExitOrder(acc, instrument, action, trimQty, limitPx, "PTT-TrimLimit");
+            StatusUpdate?.Invoke(acc.Name + ": trim-limit " + trimQty + " @ " + limitPx);
+        }
+
+        // WAVE1-LANE-A T2: shared helper for FlattenOneAccountLimit and TrimOneAccountLimit.
+        // Absorbs: try/catch CreateOrder block + catch/error pattern (duplicated in both parents).
+        // NT8-007: arg12 MUST be (NinjaTrader.Cbi.CustomOrder)null -- required by NT8 AddOn API.
+        // CRITICAL: acc.Submit is NOT called here -- preserving exact existing behavior (see MirrorCloseOneAccount).
+        // CCN=3: base(1) + try(1) + catch(1). JS-021: no lock. JS-002: void return. ASCII-only.
+        private void SubmitLimitExitOrder(
+            Account acc,
+            Instrument instrument,
+            OrderAction action,
+            int qty,
+            double limitPx,
+            string orderName)
+        {
             try
             {
                 acc.CreateOrder(
@@ -5568,27 +5603,25 @@ namespace PropTraderTools
                     OrderType.Limit,
                     OrderEntry.Manual,
                     TimeInForce.Gtc,
-                    trimQty,
+                    qty,
                     limitPx,
                     0,
                     null,
-                    "PTT-TrimLimit",
+                    orderName,
                     DateTime.MaxValue,
                     (NinjaTrader.Cbi.CustomOrder)null
                 );
-                StatusUpdate?.Invoke(acc.Name + ": trim-limit " + trimQty + " @ " + limitPx);
             }
             catch (Exception ex)
             {
-                StatusUpdate?.Invoke("PTT-TrimLimit error: " + ex.Message);
+                StatusUpdate?.Invoke(orderName + " error: " + ex.Message);
             }
         }
 
-        // B28 T1 -- FlattenOneAccountLimit: per-account limit flatten helper. CYC=3.
-        // (1) pos null/qty guard, (2) isLong ternary, (3) try/catch CreateOrder.
-        // NT8-007: arg12 = (NinjaTrader.Cbi.CustomOrder)null.
+        // B28 T1 -- FlattenOneAccountLimit: per-account limit flatten helper.
+        // NT8-007: arg12 = (NinjaTrader.Cbi.CustomOrder)null -- preserved in SubmitLimitExitOrder.
         // HOTFIX-F4: cancel any stale PTT-FlattenLimit orders before posting new one.
-        // Stale limits from a prior click stay live on the book and compete with ATM Close.
+        // WAVE1-LANE-A T2: CreateOrder block extracted to SubmitLimitExitOrder. CCN=4.
         private void FlattenOneAccountLimit(
             Account acc,
             Instrument instrument,
@@ -5608,30 +5641,8 @@ namespace PropTraderTools
             var action = isLong ? OrderAction.Sell : OrderAction.BuyToCover;
             double tickSize = instrument.MasterInstrument.TickSize;
             double limitPx = ComputeLimitPx(isLong, ask, bid, exitBuffer, tickSize);
-            try
-            {
-                acc.CreateOrder(
-                    instrument,
-                    action,
-                    OrderType.Limit,
-                    OrderEntry.Manual,
-                    TimeInForce.Gtc,
-                    pos.Quantity,
-                    limitPx,
-                    0,
-                    null,
-                    "PTT-FlattenLimit",
-                    DateTime.MaxValue,
-                    (NinjaTrader.Cbi.CustomOrder)null
-                );
-                StatusUpdate?.Invoke(
-                    acc.Name + ": flatten-limit " + pos.Quantity + " @ " + limitPx
-                );
-            }
-            catch (Exception ex)
-            {
-                StatusUpdate?.Invoke("PTT-FlattenLimit error: " + ex.Message);
-            }
+            SubmitLimitExitOrder(acc, instrument, action, pos.Quantity, limitPx, "PTT-FlattenLimit");
+            StatusUpdate?.Invoke(acc.Name + ": flatten-limit " + pos.Quantity + " @ " + limitPx);
         }
 
         // B62: price-keyed dedup. Stores LimitPrice (double) instead of timestamp (long).
@@ -6255,6 +6266,34 @@ namespace PropTraderTools
         // CYC<=6: isRetry(1) + IsFlat(2) + targetsCount==0 branch(3) + IsFollowerAccount(4)
         //         + leaderCount>0+targetsCount<leaderCount(5) + !IsFlat(6). JS-021: no lock.
         // JS-001: no throw. JS-002: void. ASCII-only.
+        // WAVE1-LANE-A T1: extracted from RegisterBeRetrySlotIfNeeded.
+        // Returns true when a BE retry slot should be armed for the partial-targets path.
+        // Pure static predicate -- no NT8 dependencies. CCN=4: base(1)+3 && operators.
+        // JS-021: no lock. JS-002: returns bool. JS-001: no throw. ASCII-only.
+        private static bool IsBeRetrySlotNeeded(
+            bool isFollower,
+            int targetsCount,
+            int leaderCount,
+            bool isFlat)
+            => isFollower && leaderCount > 0 && targetsCount < leaderCount && !isFlat;
+
+        // WAVE1-LANE-A T1: absorbs the duplicated slot-registration block.
+        // CRITICAL ORDERING: slot write FIRST, log SECOND, QueueBeRetryFallback THIRD.
+        // The timer started by QueueBeRetryFallback will TryRemove the slot -- slot must exist first.
+        // CCN=1: base(1) + 0 branches. JS-021: ConcurrentDictionary indexer is lock-free. ASCII-only.
+        private void RegisterPendingBeSlot(
+            Account acc,
+            Instrument instrument,
+            int bufferTicks,
+            int delayMs = 500)
+        {
+            _pendingFollowerBeSlots[acc.Name] = new PendingFollowerBeSlot(acc, instrument, bufferTicks);
+            NinjaTrader.Code.Output.Process(
+                "[BE-DIAG] " + acc.Name + " registered BE retry slot, delayMs=" + delayMs,
+                NinjaTrader.NinjaScript.PrintTo.OutputTab1);
+            QueueBeRetryFallback(acc, instrument, bufferTicks, delayMs: delayMs);
+        }
+
         private void RegisterBeRetrySlotIfNeeded(
             Account acc,
             Instrument instrument,
@@ -6270,44 +6309,15 @@ namespace PropTraderTools
             {
                 if (IsFlat(FindPosition(acc, instrument))) // (3)
                     return;
-                _pendingFollowerBeSlots[acc.Name] = new PendingFollowerBeSlot(
-                    acc,
-                    instrument,
-                    bufferTicks
-                );
-                NinjaTrader.Code.Output.Process(
-                    "[BE-DIAG] "
-                        + acc.Name
-                        + " -- targets=0, registered BE retry slot + 200ms fallback",
-                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                );
-                QueueBeRetryFallback(acc, instrument, bufferTicks, delayMs: 500);
+                RegisterPendingBeSlot(acc, instrument, bufferTicks, delayMs: 500);
                 return;
             }
             if (!IsFollowerAccount(acc)) // (4)
                 return;
-            if (
-                leaderCount <= 0 // (5)
-                || targetsCount >= leaderCount
-                || IsFlat(FindPosition(acc, instrument)) // (6)
-            )
+            if (!IsBeRetrySlotNeeded(IsFollowerAccount(acc), targetsCount, leaderCount,
+                    IsFlat(FindPosition(acc, instrument)))) // (5)
                 return;
-            _pendingFollowerBeSlots[acc.Name] = new PendingFollowerBeSlot(
-                acc,
-                instrument,
-                bufferTicks
-            );
-            NinjaTrader.Code.Output.Process(
-                "[BE-DIAG] "
-                    + acc.Name
-                    + " -- partial targets="
-                    + targetsCount
-                    + " leader="
-                    + leaderCount
-                    + ", registered BE retry slot + 200ms fallback",
-                NinjaTrader.NinjaScript.PrintTo.OutputTab1
-            );
-            QueueBeRetryFallback(acc, instrument, bufferTicks);
+            RegisterPendingBeSlot(acc, instrument, bufferTicks);
         }
 
         // BGTM-1: BreakEven gate CYC=3.
