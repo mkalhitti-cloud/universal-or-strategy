@@ -3818,7 +3818,8 @@ namespace PropTraderTools
             return order.OrderType == OrderType.Limit && !IsStopLeg(order);
         }
 
-        // BWAVE-REFACTOR-LaneB-T4: residual CCN<=7: foreach(1)+OrderPassesBracketGate(1)+4-state filter(4)+MatchesBracketType(1)=7.
+        // BWAVE-REFACTOR-LaneB-T4: residual CCN<=8: foreach(1)+OrderPassesBracketGate(1)+5-state filter(5)+MatchesBracketType(1)=8.
+        // DW-LB-FL-01 V7 Fix B: Initialized added to state filter -- ATM bracket may still be Initialized when SFB fires.
         // JS-021: no lock. JS-001: no throw. JS-002: Order? null contract unchanged.
         private Order? FindFollowerBracketOrder(
             IEnumerable<Order> orders,
@@ -3832,10 +3833,11 @@ namespace PropTraderTools
                 if (!OrderPassesBracketGate(order, fromEntrySignalName, leaderName, isStop)) // (1) branch
                     continue;
                 if (
-                    order.OrderState != OrderState.Working // (4) branches -- B142-DIRECT-9: ChangeSubmitted added
+                    order.OrderState != OrderState.Working // (5) branches -- DW-LB-FL-01 V7: Initialized added
                     && order.OrderState != OrderState.Accepted
                     && order.OrderState != OrderState.Submitted
                     && order.OrderState != OrderState.ChangeSubmitted
+                    && order.OrderState != OrderState.Initialized
                 )
                     continue;
                 if (MatchesBracketType(order, isStop)) // (1) branch
@@ -4160,11 +4162,11 @@ namespace PropTraderTools
             string instr = e.Order.Instrument.FullName;
             bool hasPos = HasOpenPosition(e.Order.Account, e.Order.Instrument);
 
-            if (!HasPosDedupChanged(instr, hasPos)) // (4)
-                return;
-
-            if (!hasPos) // (5)
+            if (!hasPos) // (4) DW-LB-FL-01 V7 Fix A: hoist clear above dedup gate -- idempotent TryRemove is safe
                 TryClearLeaderDirectionOnFlat(e.Order.Account, instr);
+
+            if (!HasPosDedupChanged(instr, hasPos)) // (5)
+                return;
 
             bool hasEntries = HasWorkingEntries(e.Order.Account, e.Order.Instrument);
             PositionStateChanged?.Invoke(instr, new PositionState(hasPos, hasEntries));
