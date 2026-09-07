@@ -5742,6 +5742,10 @@ namespace PropTraderTools
         // Static version of IsBracketLeg for use in static method IsWorkingBracket
         // DW-B134: added STP EndsWith clause -- NT8 ATM stop brackets are named "Buy STP"/"Sell STP".
         // Mirrors IsStopLeg (L3521) which already has this clause. CYC: 3 -> 4.
+        // DW-LB-SFB-01: narrowed PTT- clause from StartsWith("PTT-") to the two specific drag
+        // replacement names (PTT-STP-Drag- and PTT-TGT-Drag-). The broad "PTT-" prefix was
+        // classifying PTT-BE-Stop as a bracket leg, causing HandleBracketChange+SyncFollowerBracket
+        // to fire on the leader's PTT-BE-Stop Working event -> fo=NULL -> PTT-Flatten storm.
         private static bool IsBracketLegStatic(Order order)
         {
             return order.FromEntrySignal != null
@@ -5750,7 +5754,8 @@ namespace PropTraderTools
                     && (
                         order.Name.StartsWith("Stop")
                         || order.Name.StartsWith("Target")
-                        || order.Name.StartsWith("PTT-")
+                        || order.Name.StartsWith("PTT-STP-Drag-", StringComparison.Ordinal)
+                        || order.Name.StartsWith("PTT-TGT-Drag-", StringComparison.Ordinal)
                         || order.Name.EndsWith("STP", StringComparison.OrdinalIgnoreCase)
                     )
                 );
