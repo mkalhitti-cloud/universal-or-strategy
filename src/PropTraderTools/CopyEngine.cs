@@ -4656,15 +4656,39 @@ namespace PropTraderTools
             return pos.Quantity > 0;
         }
 
-        // B65 T1 / DW-B91-B: TryDispatchLeaderFlat -- CYC=6 (strict McCabe after DW-B91-B extraction).
-        // (1) state guard, (2) follower guard, (3) open-position race-safe guard, (4) foreach follower.
-        // DW-B91-B: foreach body extracted to FlattenFollower (CYC=3) which adds per-follower
-        // hasOpenPosition guard to skip already-flat followers. Null guard moved into FlattenFollower.
-        // Guard (3) change: bypass hasOpenPosition when orderName is a native NT8 exit.
-        // Rationale: NT8_FULL_REFERENCE.md line 1721 -- position state is not updated until the next
-        // OnBarUpdate() after an order fill. When leader fills a native close order (Name="Close",
-        // "Flatten", "Exit*", "Rev*"), position still shows open even though the order is filled.
-        // Bypassing the guard here ensures followers are flattened immediately (DW-B65-01 fix).
+        // DW-LB-FL-02 (V-01 extraction): extracted from TryDispatchLeaderFlat guard (1).
+        // Returns true when the order state is one that triggers a flat dispatch (Filled or Cancelled).
+        // Extraction moves the && out of TryDispatchLeaderFlat, freeing 1 CYC budget for guard (3.5).
+        // CYC=2: 1 base + 1 boolean short-circuit (||).
+        // JS-021: no lock. JS-001: no throw. JS-002: returns bool. ASCII-only. static.
+        internal static bool IsDispatchableState(OrderState state)
+        {
+            return state == OrderState.Filled || state == OrderState.Cancelled;
+        }
+
+        // DW-LB-FL-02: Guard helper -- returns true when a native exit order arrived on an
+        // already-flat leader account. In that state the DW-B65-01 bypass must NOT propagate
+        // a PTT-Flatten to followers because no follower position needs closing.
+        // CYC=2: 1 base + 1 boolean short-circuit (&&).
+        // JS-021: no lock. JS-001: no throw. JS-002: returns bool. ASCII-only. static.
+        internal static bool IsNativeExitOnFlatLeader(
+            string orderName,
+            Account account,
+            Instrument instrument,
+            Func<Account, Instrument, bool> hasOpenPosition
+        )
+        {
+            return IsNativeExitName(orderName) && !hasOpenPosition(account, instrument);
+        }
+
+        // B65 T1 / DW-B91-B / DW-LB-FL-02: TryDispatchLeaderFlat -- CYC=8 (strict McCabe, at limit).
+        // Guards: (1) state via IsDispatchableState, (2) follower, (2.5+2.6) non-flat-dispatch name,
+        // (3.5) native-exit on flat leader (DW-LB-FL-02), (3) open-position race-safe, (4) foreach follower.
+        // DW-B91-B: foreach body extracted to FlattenFollower. DW-LB-FL-02: guard (3.5) -- when a native
+        // NT8 exit fires on a leader account that is already flat (e.g. user clicks Close after
+        // PTT-BE-Stop filled), skip dispatch. Preserves DW-B65-01: when leader HAS position,
+        // IsNativeExitOnFlatLeader returns false and guard (3.5) does not block.
+        // DW-LB-FL-02 V-01: guard (1) uses IsDispatchableState to free 1 CYC budget for guard (3.5).
         // JS-021: no lock. JS-001: no throw. JS-002: no null return.
         private static bool TryDispatchLeaderFlat(
             Account account,
@@ -4677,12 +4701,14 @@ namespace PropTraderTools
             Action<Account, Instrument> flattenOne
         )
         {
-            if (state != OrderState.Filled && state != OrderState.Cancelled)
+            if (!IsDispatchableState(state))
                 return false; // (1)
             if (isFollower(account))
                 return false; // (2)
             if (IsNonFlatDispatchName(orderName))
-                return false; // (2.5+2.6) combines HOTFIX-B63-FLATTEN-01 + HOTFIX-B64-ENTRY-FLATTEN-01
+                return false; // (2.5+2.6)
+            if (IsNativeExitOnFlatLeader(orderName, account, instrument, hasOpenPosition))
+                return false; // (3.5) DW-LB-FL-02: native exit on already-flat leader -- nothing to propagate
             if (!IsNativeExitName(orderName) && hasOpenPosition(account, instrument))
                 return false; // (3)
             foreach (var acc in rule.FollowerAccounts) // (4)
