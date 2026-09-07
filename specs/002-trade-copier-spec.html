@@ -41481,6 +41481,32 @@ before Ph4a proceeds.</pre>
     </div>
     <!-- end section-dw-lb-fl-02 -->
 
+    <!-- DW-LB-SFB-01: IsBracketLegStatic PTT- too broad — DIRECT FIX APPLIED — SIM PENDING -->
+    <div class="section" id="section-dw-lb-sfb-01" style="margin-top:40px;">
+      <div class="section-label" style="background:rgba(245,158,11,0.10); border-left:3px solid var(--amber); color:var(--amber);">DW-LB-SFB-01 &mdash; P1 &mdash; DIRECT FIX APPLIED &mdash; SIM PENDING &mdash; IsBracketLegStatic PTT- prefix too broad: classifies PTT-BE-Stop as bracket leg &mdash; commit 1086d9fd pushed 2026-09-07</div>
+      <div class="section-body">
+        <div class="card" style="border-left:3px solid var(--amber); background:rgba(245,158,11,0.04);">
+          <div class="card-title" style="color:var(--amber);">&#9888; DW-LB-SFB-01 &mdash; P1 &mdash; DIRECT FIX APPLIED &mdash; SIM gate pending</div>
+          <div class="card-body">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--amber);font-weight:700;letter-spacing:0.1em;margin-bottom:10px;">DIRECT FIX APPLIED: DW-LB-SFB-01 &mdash; 2026-09-07 &mdash; commit 1086d9fd &mdash; pipeline deferred until SIM PASS (no standalone tests yet)</div>
+            <table style="font-size:0.79rem; border-collapse:collapse; width:100%;">
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted); white-space:nowrap; width:130px;">ID</td><td style="padding:3px 0;">DW-LB-SFB-01</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Severity</td><td style="padding:3px 0; color:var(--amber);">P1</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Symptom</td><td style="padding:3px 0;">Clone mode + BE ALL: when the leader&rsquo;s <code>PTT-BE-Stop-N</code> order goes Working, <code>IsBracketLegStatic</code> (via <code>IsWorkingBracket</code>) returns <code>true</code> because the old clause <code>StartsWith("PTT-")</code> matched any PTT- order. This triggers <code>HandleBracketChange</code> &rarr; <code>SyncFollowerBracket</code> on the leader&rsquo;s PTT-BE-Stop Working event. In SIM, follower order objects (<code>fo</code>) are null at this stage (bracket not yet Working on follower), causing a null-ref cascade and PTT-Flatten storm.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Root cause</td><td style="padding:3px 0;"><code>IsBracketLegStatic</code> in <code>CopyEngine.cs</code> used <code>StartsWith("PTT-")</code> to identify PTT drag-replacement bracket names. This was correct for <code>PTT-STP-Drag-</code> and <code>PTT-TGT-Drag-</code> (the actual drag bracket substitutes) but also matched <code>PTT-BE-Stop</code>, <code>PTT-Flatten</code>, <code>PTT-Trim</code>, <code>PTT-Tighten-Stop</code>, etc. &mdash; all of which are NOT bracket legs.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Fix</td><td style="padding:3px 0;">Narrowed <code>IsBracketLegStatic</code> in <code>CopyEngine.cs</code> from <code>StartsWith("PTT-")</code> to two specific clauses: <code>StartsWith("PTT-STP-Drag-", StringComparison.Ordinal)</code> and <code>StartsWith("PTT-TGT-Drag-", StringComparison.Ordinal)</code>. Only the actual drag-replacement bracket order names are classified as bracket legs.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Commit</td><td style="padding:3px 0;"><code>1086d9fd</code> (main, 2026-09-07 &mdash; direct fix, no pipeline yet)</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Tests</td><td style="padding:3px 0; color:var(--amber);">&#9888; No dedicated [Fact] tests yet for <code>IsBracketLegStatic</code>. Pipeline required after SIM PASS to add <code>IsBracketLegStaticTests</code>. Existing suite 76 pass, 0 fail unaffected.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Pipeline status</td><td style="padding:3px 0; color:var(--amber);">NOT STARTED &mdash; direct repair applied. Full 5-phase PTT pipeline required after SIM PASS to formalise architecture plan + tests.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">SIM gate</td><td style="padding:3px 0; color:var(--amber);">&#9711; PENDING &mdash; Covered by DW-LB-FL-02 SIM gate (Clone mode + BE ALL). PASS: no <code>[TP1-OOU] name=PTT-Flatten</code> after BE stop fills. FAIL: PTT-Flatten storm or <code>fo=NULL</code> in NT8 Output after PTT-BE-Stop Working.</td></tr>
+            </table>
+            <strong style="color:var(--amber);">&#9888; DW-LB-SFB-01 DIRECT FIX APPLIED (commit 1086d9fd, 2026-09-07) &mdash; SIM gate pending. Pipeline required after SIM PASS.</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- end section-dw-lb-sfb-01 -->
+
     <!-- DW-LB-FL-01: Follower native right-click Flatten storm — P1 OPEN — queued -->
     <div class="section" id="section-dw-lb-fl-01" style="margin-top:40px;">
       <div class="section-label" style="background:rgba(239,68,68,0.10); border-left:3px solid var(--red); color:var(--red);">DW-LB-FL-01 &mdash; P1 &mdash; OPEN &mdash; Follower native right-click Flatten triggers PTT-Flatten storm on other followers &mdash; pipeline not yet started</div>
@@ -41606,6 +41632,7 @@ TEST RESULTS: {PASS | FAIL | OBS | PENDING}
                   <span style="color:var(--green); font-weight:700;">&#10003; DW-LB-GR-01 P1 PIPELINE_COMPLETE (commit 79aa5131, PR #48) &mdash; SIM pending</span><br>
                   <span style="color:var(--green); font-weight:700;">&#10003; DW-BWAVE-UI-01 P2 PIPELINE_COMPLETE (commit 79aa5131, PR #48) &mdash; visual verify pending</span><br>
                   <span style="color:var(--green); font-weight:700;">&#10003; DW-LB-FL-02 P1 PIPELINE_COMPLETE (commit 6b087086, FINAL_PASS 2026-09-07) &mdash; SIM pending</span><br>
+                  <span style="color:var(--amber); font-weight:700;">&#9888; DW-LB-SFB-01 P1 DIRECT FIX APPLIED (commit 1086d9fd, 2026-09-07) &mdash; SIM pending. Pipeline required after SIM PASS.</span><br>
                   <span style="color:var(--red); font-weight:700;">&#10007; DW-LB-FL-01 P1 OPEN &mdash; follower native right-click Flatten storm &mdash; queued after DW-LB-FL-02 SIM PASS</span>
                 </td>
               </tr>
