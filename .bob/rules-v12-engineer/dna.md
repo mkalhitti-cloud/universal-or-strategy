@@ -29,11 +29,35 @@ NEVER use `<<<<<<< REPLACE`, `=======`, or `>>>>>>>` markers inside `write_to_fi
 - Use `apply_diff` only when you are absolutely certain the diff syntax is supported by the specific tool instance.
 - If a tool call fails to modify the file, DO NOT report success. Immediately retry using a different surgical tool.
 
-### 7. Complexity Extraction Standards (Phase 7 Epic)
+### 7. Complexity Extraction Standards (PTT Standard)
 All extracted sub-methods must adhere to the following metrics:
-- **Target Complexity**: CYC < 20 per method.
-- **Extraction Floor**: LOC >= 15 lines. (Deviations require explicit justification).
+- **Target Complexity**: CYC <= 8 per method (Jane Street JS-080 strict standard).
+- **Extraction Floor**: LOC >= 5 lines. (Deviations require explicit justification).
 - **Zero Logic Drift**: Do not optimize or "improve" logic during extraction. Pure structural movement only.
+
+### 8. Lizard CCN Measurement — MANDATORY CORRECT COMMAND (P0)
+
+The lizard CSV column order is: **NLOC, CCN, Token, Params, Length, ...**
+Column 1 is NLOC. Column 2 is CCN. This has caused planning failures when
+the header mapping was wrong (Wave 1 incident: all targets were NLOC, not CCN).
+
+**ONLY use this command. Never modify the header order:**
+
+```powershell
+lizard src/PropTraderTools/ -x "*/bin/*" -x "*/obj/*" -x "*Tests*" --csv |
+ConvertFrom-Csv -Header NLOC,CCN,Token,Params,Length,Location,File,Function,Sig,Start,End |
+Where-Object {[int]$_.CCN -gt 8} |
+Sort-Object {[int]$_.CCN} -Descending |
+Select-Object CCN, Function, @{L="File";E={[IO.Path]::GetFileName($_.File)}} |
+Format-Table -AutoSize
+```
+
+Expected when fully compliant: **zero rows**.
+
+**Sanity check**: if any reported CCN value is > 30 for a method under 30 lines,
+you are reading NLOC. Cross-check with `lizard <file>` text mode (col 2 = CCN).
+
+Full protocol: `docs/protocol/LIZARD_CCN_PROTOCOL.md`
 
 ### 8. Empty-Catch Exemption Table (T-Q1)
 When sweeping for empty `catch {}` blocks, the following sites are PERMANENTLY EXEMPT:

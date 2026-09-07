@@ -1,23 +1,36 @@
-# Complexity Reduction Protocol (V12.22)
+# Complexity Reduction Protocol (V12.PTT)
+
+## ⚠️ LIZARD MEASUREMENT — READ THIS FIRST
+
+The lizard CSV column order is NLOC first, CCN second.
+Using the wrong header mapping reports NLOC as CCN, producing
+numbers like 103, 87, 80 that look like CCN but are line counts.
+This caused the entire Wave 1 planning to target the wrong methods.
+
+**Canonical lizard command — use verbatim, never alter header order:**
+```powershell
+lizard src/PropTraderTools/ -x "*/bin/*" -x "*/obj/*" -x "*Tests*" --csv |
+ConvertFrom-Csv -Header NLOC,CCN,Token,Params,Length,Location,File,Function,Sig,Start,End |
+Where-Object {[int]$_.CCN -gt 8} |
+Sort-Object {[int]$_.CCN} -Descending |
+Select-Object CCN, Function, @{L="File";E={[IO.Path]::GetFileName($_.File)}} |
+Format-Table -AutoSize
+```
+Full incident record and sanity checks: `docs/protocol/LIZARD_CCN_PROTOCOL.md`
+
+---
 
 ## Mandatory Thresholds (No Questions Asked)
 
-### Primary Gate: CYC ≤ 15 (BLOCKING)
-**Rule**: ALL methods MUST be reduced to CYC ≤ 15 before merge.
-- **Enforcement**: Pre-push validation (Check #9) - BLOCKING
-- **Tool**: `complexity_audit.py`
-- **Rationale**: Jane Street HFT alignment - cognitive simplicity for microsecond-latency code
+### Primary Gate: CYC ≤ 8 (BLOCKING — JS-080)
+**Rule**: ALL methods MUST be CYC ≤ 8 before merge.
+- **Enforcement**: Pre-push validation — BLOCKING
+- **Tool**: lizard (canonical command above, NOT complexity_audit.py which uses wrong threshold)
+- **Rationale**: Jane Street JS-080 strict standard. CYC ≤ 8 = fits CPU DSB cache, fully testable paths
 
-### Stretch Goal: CYC ≤ 10 (Boy Scout Rule)
-**Rule**: If achievable within the same extraction pass WITHOUT adding new helpers, reduce to ≤10.
-- **Enforcement**: Advisory (Codacy warnings)
-- **When**: During the SAME refactoring session, if the natural extraction lands at 11-15
-- **Don't**: Create artificial splits just to hit 10 if 15 is already achieved
-
-### Aspirational: CYC ≤ 8 (Future Debt Reduction)
-**Rule**: Track in EPIC-CCN-10 backlog, not a current gate.
-- **Enforcement**: None (Lizard tool advisory only)
-- **When**: Dedicated debt-reduction sprints after EPIC-14
+### There is no stretch goal or aspirational tier
+CYC ≤ 8 is the single hard gate. Anything above 8 must be extracted.
+Anything already ≤ 8 must not be touched.
 
 ---
 

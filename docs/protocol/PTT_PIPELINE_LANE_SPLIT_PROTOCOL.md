@@ -130,8 +130,42 @@ Gate violations are REVIEW_FAIL, not warnings.
 
 ---
 
+## CCN Scope Audit Gate (mandatory — Ph1 architect, before ticket sizing)
+
+Before sizing tickets, the ptt-architect MUST establish the true CCN of
+every targeted method using the canonical lizard command. The result
+MUST be stated verbatim in 02-architecture-plan.md.
+
+**Canonical command (copy exactly — do not change header order):**
+```powershell
+lizard src/PropTraderTools/ -x "*/bin/*" -x "*/obj/*" -x "*Tests*" --csv |
+ConvertFrom-Csv -Header NLOC,CCN,Token,Params,Length,Location,File,Function,Sig,Start,End |
+Where-Object {[int]$_.CCN -gt 8} |
+Sort-Object {[int]$_.CCN} -Descending |
+Select-Object CCN, Function, @{L="File";E={[IO.Path]::GetFileName($_.File)}} |
+Format-Table -AutoSize
+```
+
+**Sanity check — if any reported CCN value looks implausibly large:**
+- Any method reporting CCN > 30 with fewer than 30 lines of code is almost
+  certainly showing NLOC, not CCN. The column mapping is wrong.
+- Cross-check: run `lizard <file>` in text mode. Column 2 (the second number)
+  is always CCN. If it differs from what the CSV reported, the CSV header was wrong.
+- A method cannot have CCN higher than its line count. If CCN > NLOC, something is wrong.
+
+**Ph2 ptt-plan-reviewer MUST reject (REVIEW_FAIL) if:**
+- The plan does not include verbatim lizard output for all targeted methods
+- Any reported CCN value exceeds 30 for a method under 30 lines without a
+  cross-check confirmation from text-mode lizard
+- The architecture plan sizes tickets based on unverified CCN numbers
+
+Full protocol: `docs/protocol/LIZARD_CCN_PROTOCOL.md`
+
+---
+
 ## Reference
 
 - `docs/brain/COPIER-SESSION-LOOP.md` — Rule 2: Lane-Split Decision Gate
 - `docs/protocol/PHASE5_EXECUTION_PROTOCOL.md` — Rule 1: 1-agent-per-ticket
 - `.bob/custom_modes.yaml` ptt-orchestrator — enforces gate at Ph1 spawn
+- `docs/protocol/LIZARD_CCN_PROTOCOL.md` — canonical CCN command + incident record

@@ -148,10 +148,12 @@ Before starting EPIC work, Bob Shell MUST:
 - [ ] Confirm current branch matches pattern `feature/src-epic-*`
 - [ ] Verify no non-.cs files are staged (`git status`)
 - [ ] Read EPIC ticket brief from `docs/brain/epic-*/ticket-*.md`
-- [ ] Verify all line numbers and CYC values against live `src/`
+- [ ] Verify all line numbers and CYC values against live `src/` using the
+      canonical lizard command (NLOC,CCN,... header — see dna.md rule 8)
 - [ ] Produce written PLAN before any edit
 - [ ] Execute surgical edits ONLY (no scope creep)
-- [ ] Run `python scripts/complexity_audit.py` after edits
+- [ ] Run lizard CCN gate after edits (canonical command — dna.md rule 8)
+      Expected: zero rows when fully compliant
 - [ ] Run `powershell -File .\deploy-sync.ps1` (ASCII gate MUST pass)
 - [ ] Bump `BUILD_TAG` in `src/V12_002.cs`
 - [ ] Stage ONLY `src/` files (`git add src/`)
@@ -212,6 +214,11 @@ git push origin feature/src-epic-8
 6. **Lock Usage**: Using `lock()` instead of FSM/Actor
 7. **Vague Commits**: "update" instead of "feat: specific change"
 8. **Skipping Deploy-Sync**: Not running after src/ edits
+9. **NLOC/CCN Mislabel (P0)**: Using wrong lizard header mapping.
+   Numbers like 103, 87, 80 for "CCN" are line counts, not complexity.
+   Always use: `-Header NLOC,CCN,Token,Params,Length,Location,File,Function,Sig,Start,End`
+   Sanity check: if "CCN" > 30 for a short method, re-run with text mode to verify.
+   Full protocol: `docs/protocol/LIZARD_CCN_PROTOCOL.md`
 
 ---
 
