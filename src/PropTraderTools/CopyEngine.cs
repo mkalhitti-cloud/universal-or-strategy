@@ -5171,17 +5171,48 @@ namespace PropTraderTools
         // This prevents the false PTT-Flatten that fires after a BE ALL cancel storm when the
         // Dispatcher.InvokeAsync callback runs after the new entry's brackets have started arming.
         // Does NOT affect TryDispatchLeaderFlat -> FlattenFollower -> FlattenOneAccount path
+        // DW-LB-FL-01-V4: stale-callback debounce guard added as first check.
+        // A FlattenIfNotArming callback queued by NakedPositionDetector during a PRIOR trade's
+        // cancel storm can survive in the WPF Dispatcher queue for seconds. When the UI thread
+        // runs it, HasArmingAtmBrackets may return false if new ATM brackets are not yet visible
+        // in acc.Orders (bracket arm window). Fix: if _nakedDetectLastQueuedTicks[acc.Name] was
+        // written within 500ms (same GraceMs as NakedPositionDetector), this account is in the
+        // entry-fill bracket-arm window -- suppress the flatten regardless of bracket state.
+        // Uses same debounce clock that TryNakedDetect v3 stamps on every "Entry":Filled event.
+        // CYC: 2 -> 3 (+1 branch for debounce check). PASS <= 8.
+        // JS-021: IsInEntryFillDebounceWindow uses ConcurrentDictionary.TryGetValue -- lock-free.
         // (intentional leader-initiated flatten -- DW-B65-01 bypass preserved).
-        // CYC=2: base(1) + HasArmingAtmBrackets branch(1).
-        // JS-021: no lock. JS-001: no throw. JS-002: void. ASCII-only. Instance method.
         private void FlattenIfNotArming(Account acct, Instrument instr) // DW-LB-FL-01 visibility
         {
-            if (HasArmingAtmBrackets(acct, instr))
+            if (IsInEntryFillDebounceWindow(acct)) // (1) DW-LB-FL-01-V4: stale callback guard
+            {
+                StatusUpdate?.Invoke(acct.Name + ": flat-guard: debounce-skip");
+                return;
+            }
+            if (HasArmingAtmBrackets(acct, instr)) // (2)
             {
                 StatusUpdate?.Invoke(acct.Name + ": flat-guard: bracket-arm skip");
                 return;
             }
             FlattenOneAccount(acct, instr);
+        }
+
+        // DW-LB-FL-01-V5: returns true if acct is in the entry-fill bracket-arm window.
+        // Reads _nakedDetectLastQueuedTicks -- the debounce clock stamped by TryNakedDetect v3
+        // when an "Entry":Filled or "PTT-Copy":Filled event fires on this follower account.
+        // Returns false when no stamp exists (first trade, account reconnect) -- safe default.
+        // Called from FlattenIfNotArming to suppress stale Dispatcher callbacks from prior cycles.
+        // DW-LB-FL-01-V5: window increased from 500ms to 2000ms to match NakedPositionDetector GraceMs.
+        // 500ms was too tight for accounts with 100+ order history entries (large cancel-storm lag).
+        // CYC=2: TryGetValue branch(1) + now-last comparison(1).
+        // JS-021: TryGetValue on ConcurrentDictionary is lock-free. JS-001: no throw. JS-002: returns bool.
+        // ASCII-only. No DateTime.Now (uses Environment.TickCount same as NakedPositionDetector).
+        private bool IsInEntryFillDebounceWindow(Account acct)
+        {
+            if (!_nakedDetectLastQueuedTicks.TryGetValue(acct.Name, out long last)) // (1)
+                return false;
+            long now = (long)(int)Environment.TickCount;
+            return now - last < 2000L; // (2) DW-LB-FL-01-V5: 500->2000ms
         }
 
         // B28 T1 -- FlattenOneAccount: per-account market flatten helper.
@@ -5262,6 +5293,8 @@ namespace PropTraderTools
         // stateActive compound bool is assigned to a local variable -- counts as 1 branch.
         // JS-021: no lock. acc.Orders.ToList() snapshot (same pattern as HasInflightFlatten L5242).
         // JS-001: no throw. JS-002: returns bool. ASCII-only. static.
+        // DW-LB-FL-01-V2: Initialized added to stateActive -- belt+suspenders for cancel-storm
+        // Dispatcher callback running during CreateOrder->Submit gap (Race 1 secondary hardening).
         internal static bool HasArmingAtmBrackets(Account acc, Instrument instr) // DW-LB-FL-01 visibility
         {
             foreach (var o in acc.Orders.ToList())
@@ -5269,7 +5302,8 @@ namespace PropTraderTools
                 if (o.Instrument?.FullName != instr.FullName)
                     continue;
                 bool stateActive =
-                    o.OrderState == OrderState.Working
+                    o.OrderState == OrderState.Initialized       // DW-LB-FL-01-V2 belt+suspenders
+                    || o.OrderState == OrderState.Working
                     || o.OrderState == OrderState.Submitted
                     || o.OrderState == OrderState.Accepted
                     || o.OrderState == OrderState.TriggerPending;
@@ -7193,9 +7227,33 @@ namespace PropTraderTools
             }
         }
 
+        // DW-LB-FL-01-V2: returns true if order is a PTT-Copy follower entry order.
+        // PTT-Copy = standard copy mode entry. "Entry" = Named ATM mode (Clone mode uses "Entry").
+        // Source: SendCopy L4794 (PTT-Copy), IsQxCancelCandidate L912 ("Entry" as Named ATM entry).
+        // Used by TryNakedDetect to skip NakedPositionDetector on entry fills -- an entry fill is
+        // NOT a naked-position signal; it is the first event of the ATM bracket arm sequence.
+        // CYC=2: base(1) + Name=="Entry"(1). JS-021: no lock (static). JS-001: no throw.
+        // JS-002: returns bool. ASCII-only.
+        private static bool IsPttCopyEntry(Order o) =>
+            o.Name.StartsWith("PTT-Copy", StringComparison.Ordinal) || o.Name == "Entry";
+
         // DW-NEW-08 Option E: thin dispatcher gate.
-        // CYC=3: (1) terminal-state check, (2) follower-account check, (3) NakedPositionDetector call.
-        // JS-021: no lock. JS-001: no throw. JS-033: synchronous void.
+        // DW-LB-FL-01-V2: skip naked-position check on entry fill -- ATM brackets are about to
+        // arm via StartAtmStrategy. An entry fill does NOT indicate a naked position; it is the
+        // first event of the bracket arm sequence. Firing NakedPositionDetector here creates a
+        // race: position exists but brackets not yet in acc.Orders -> false positive -> reversal.
+        // IsPttCopyEntry covers "PTT-Copy" (standard mode) and "Entry" (Named ATM mode).
+        // Does NOT skip on bracket fills or flatten fills -- those remain valid naked-detect triggers.
+        // DW-LB-FL-01-V3: also stamp debounce clock at entry-fill time. Stale bracket cancel acks
+        // from the previous trade's CancelQxBrackets sweep arrive 50-400ms after the entry fill.
+        // Those acks have OrderState.Cancelled (not Filled), so the v2 guard does not fire for them.
+        // They reach NakedPositionDetector, see position=true + no brackets (new ATM arm race window)
+        // = false positive = PTT-Flatten:Submitted = reversal (Race 3, Sim102/Sim103 failure).
+        // Stamping _nakedDetectLastQueuedTicks[acc.Name] here causes NakedPositionDetector's 500ms
+        // grace window to block those stale Cancelled events during the bracket arm window.
+        // Uses same (long)(int)Environment.TickCount pattern as NakedPositionDetector (L7248).
+        // ConcurrentDictionary.AddOrUpdate: lock-free (JS-021). No throw (JS-001). ASCII-only.
+        // CYC=4: unchanged -- AddOrUpdate is inside existing branch, not a new branch point.
         private void TryNakedDetect(OrderEventArgs e)
         {
             if (
@@ -7206,6 +7264,14 @@ namespace PropTraderTools
                 return;
             if (!IsFollowerAccount(e.Order.Account))
                 return;
+            if (e.Order.OrderState == OrderState.Filled && IsPttCopyEntry(e.Order)) // DW-LB-FL-01-V2
+            {
+                // DW-LB-FL-01-V3: stamp debounce clock so stale cancel acks within 500ms are blocked.
+                long now = (long)(int)Environment.TickCount;
+                _nakedDetectLastQueuedTicks.AddOrUpdate(
+                    e.Order.Account.Name, now, (_, __) => now);
+                return;
+            }
             NakedPositionDetector(e.Order.Account);
         }
 
@@ -7224,9 +7290,14 @@ namespace PropTraderTools
             if (!HasNakedPosition(acct))
                 return;
 
-            // debounce: skip if already queued within 500ms grace window
+            // debounce: skip if already queued within 2000ms grace window
+            // DW-LB-FL-01-V5: increased from 500ms -- 500ms was too tight when follower acc.Orders
+            // has 100+ entries (large order history). WPF Dispatcher drain + NT8 bracket routing
+            // latency can exceed 500ms, allowing stale cancel-ack NakedPositionDetector calls to
+            // queue a FlattenIfNotArming callback that fires before new brackets are visible in
+            // acc.Orders. 2000ms covers full bracket arm window (entry fill -> all brackets Working).
             long now = (long)(int)Environment.TickCount;
-            const long GraceMs = 500L;
+            const long GraceMs = 2000L;
             long last = _nakedDetectLastQueuedTicks.GetOrAdd(acct.Name, 0L);
             if (now - last < GraceMs)
                 return;
