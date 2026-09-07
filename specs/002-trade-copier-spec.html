@@ -41406,6 +41406,105 @@ before Ph4a proceeds.</pre>
     </div>
     <!-- end section-b143-pipeline -->
 
+    <!-- DW-LB-GR-01: BE Retry Guard targetsCount fix — PIPELINE_COMPLETE — SIM PENDING -->
+    <div class="section" id="section-dw-lb-gr-01" style="margin-top:40px;">
+      <div class="section-label" style="background:rgba(245,158,11,0.10); border-left:3px solid var(--amber); color:var(--amber);">DW-LB-GR-01 &mdash; P1 &mdash; PIPELINE_COMPLETE &mdash; SIM PENDING &mdash; BE retry guard fires on follower accounts (leaderCount vs targetsCount mismatch) &mdash; PR #48 merged 2026-09-06</div>
+      <div class="section-body">
+        <div class="card" style="border-left:3px solid var(--amber); background:rgba(245,158,11,0.04);">
+          <div class="card-title" style="color:var(--amber);">&#9888; DW-LB-GR-01 &mdash; P1 &mdash; PIPELINE_COMPLETE &mdash; SIM gate pending</div>
+          <div class="card-body">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--amber);font-weight:700;letter-spacing:0.1em;margin-bottom:10px;">PIPELINE_COMPLETE: DW-LB-GR-01 &mdash; 2026-09-06 &mdash; commit 79aa5131 (PR #48)</div>
+            <table style="font-size:0.79rem; border-collapse:collapse; width:100%;">
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted); white-space:nowrap; width:130px;">ID</td><td style="padding:3px 0;">DW-LB-GR-01</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Severity</td><td style="padding:3px 0; color:var(--amber);">P1</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Symptom</td><td style="padding:3px 0;">In Signal mode, BE ALL on leader triggers spurious BE retry on follower accounts when follower has no open targets (targetsCount=0). <code>RegisterBeRetrySlotIfNeeded</code> was comparing <code>leaderTargetCount</code> instead of <code>targetsCount</code>, causing the guard to pass even when follower had zero targets.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Root cause</td><td style="padding:3px 0;"><code>RegisterBeRetrySlotIfNeeded</code> guard compared <code>leaderTargetCount</code> instead of <code>targetsCount</code> (follower target count). Wrong operand &mdash; follower target count was never checked.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Fix</td><td style="padding:3px 0;">Changed guard operand from <code>leaderCount</code> to <code>targetsCount</code> in <code>RegisterBeRetrySlotIfNeeded</code>. Guard now correctly skips retry registration when follower has 0 targets.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Commit</td><td style="padding:3px 0;"><code>79aa5131</code> (PR #48, merged 2026-09-06)</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Tests</td><td style="padding:3px 0;">3 new [Fact] covering targetsCount=0 guard path. Full suite: 76 pass, 0 fail.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">SIM gate</td><td style="padding:3px 0; color:var(--amber);">&#9711; PENDING &mdash; Signal mode, 4 accounts. Restart NT8 fresh. Enter position on ALL 4 accounts simultaneously (market order). Press BE ALL on leader. Expected: [BE-DIAG] acct -- targets=0 per follower. All 4 accounts receive PTT-BE-Stop Working. No spurious retry storm. PASS = no retry fires when it should not. FAIL = BE retry storm or PTT-BE-Stop missing on followers.</td></tr>
+            </table>
+            <strong style="color:var(--amber);">&#9888; DW-LB-GR-01 PIPELINE_COMPLETE (2026-09-06) &mdash; SIM gate pending Director verification.</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- end section-dw-lb-gr-01 -->
+
+    <!-- DW-BWAVE-UI-01: Teal button white foreground — PIPELINE_COMPLETE — Visual verify pending -->
+    <div class="section" id="section-dw-bwave-ui-01" style="margin-top:40px;">
+      <div class="section-label" style="background:rgba(245,158,11,0.10); border-left:3px solid var(--amber); color:var(--amber);">DW-BWAVE-UI-01 &mdash; P2 &mdash; PIPELINE_COMPLETE &mdash; Visual verify pending &mdash; Teal button foreground unreadable (dark-on-teal) &mdash; PR #48 merged 2026-09-06</div>
+      <div class="section-body">
+        <div class="card" style="border-left:3px solid var(--amber); background:rgba(245,158,11,0.04);">
+          <div class="card-title" style="color:var(--amber);">&#9888; DW-BWAVE-UI-01 &mdash; P2 &mdash; PIPELINE_COMPLETE &mdash; Visual verify pending</div>
+          <div class="card-body">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--amber);font-weight:700;letter-spacing:0.1em;margin-bottom:10px;">PIPELINE_COMPLETE: DW-BWAVE-UI-01 &mdash; 2026-09-06 &mdash; commit 79aa5131 (PR #48)</div>
+            <table style="font-size:0.79rem; border-collapse:collapse; width:100%;">
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted); white-space:nowrap; width:130px;">ID</td><td style="padding:3px 0;">DW-BWAVE-UI-01</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Severity</td><td style="padding:3px 0; color:var(--amber);">P2</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Symptom</td><td style="padding:3px 0;">Teal-background buttons in TradeCopierPanel had dark (near-black) foreground text, making button labels illegible. Introduced during BWAVE-REFACTOR.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Fix</td><td style="padding:3px 0;">Set foreground to <code>Brushes.White</code> on teal-background buttons in <code>BuildArrowCluster</code> (TradeCopierPanel.cs). Restores white-on-teal contrast.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Commit</td><td style="padding:3px 0;"><code>79aa5131</code> (PR #48, merged 2026-09-06)</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">SIM gate</td><td style="padding:3px 0; color:var(--amber);">&#9711; PENDING &mdash; Open PTT panel in NT8. Verify teal buttons show white text (readable). PASS = white foreground on teal. FAIL = text still dark/unreadable.</td></tr>
+            </table>
+            <strong style="color:var(--amber);">&#9888; DW-BWAVE-UI-01 PIPELINE_COMPLETE (2026-09-06) &mdash; Visual verify pending.</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- end section-dw-bwave-ui-01 -->
+
+    <!-- DW-LB-FL-02: Flat-leader Close dispatch loop — PIPELINE_COMPLETE — SIM PENDING -->
+    <div class="section" id="section-dw-lb-fl-02" style="margin-top:40px;">
+      <div class="section-label" style="background:rgba(245,158,11,0.10); border-left:3px solid var(--amber); color:var(--amber);">DW-LB-FL-02 &mdash; P1 &mdash; PIPELINE_COMPLETE &mdash; SIM PENDING &mdash; Clone+BE ALL infinite PTT-Flatten loop when leader already flat and Close fires &mdash; commit 6b087086 pushed 2026-09-07</div>
+      <div class="section-body">
+        <div class="card" style="border-left:3px solid var(--amber); background:rgba(245,158,11,0.04);">
+          <div class="card-title" style="color:var(--amber);">&#9888; DW-LB-FL-02 &mdash; P1 &mdash; PIPELINE_COMPLETE &mdash; SIM gate pending</div>
+          <div class="card-body">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--amber);font-weight:700;letter-spacing:0.1em;margin-bottom:10px;">PIPELINE_COMPLETE: DW-LB-FL-02 &mdash; 2026-09-07 &mdash; commit 6b087086 (FINAL_PASS)</div>
+            <table style="font-size:0.79rem; border-collapse:collapse; width:100%;">
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted); white-space:nowrap; width:130px;">ID</td><td style="padding:3px 0;">DW-LB-FL-02</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Severity</td><td style="padding:3px 0; color:var(--amber);">P1</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Symptom</td><td style="padding:3px 0;">Clone mode + BE ALL: leader PTT-BE-Stop fills (leader goes flat). ChartTrader Close button fires on the now-flat leader. DW-B65-01 bypass triggers, dispatching PTT-Flatten to followers that were already flat from their own BE stops. Creates infinite flatten loop: each dispatch flips followers to -1, loop repeats.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Root cause</td><td style="padding:3px 0;">No guard in <code>TryDispatchLeaderFlat</code> to suppress dispatch when native-exit order fires on an already-flat leader. DW-B65-01 bypass was too broad.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Fix (Option A)</td><td style="padding:3px 0;">Added guard (3.5) <code>IsNativeExitOnFlatLeader</code> in <code>TryDispatchLeaderFlat</code> (CopyEngine.cs:4710). Blocks dispatch when <code>IsNativeExitName(orderName)==true</code> AND <code>!hasOpenPosition==true</code>. DW-B65-01 preserved: guard returns false when leader has position.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Commit</td><td style="padding:3px 0;"><code>6b087086</code> (main, 2026-09-07 &mdash; 5-phase PTT pipeline FINAL_PASS)</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Tests</td><td style="padding:3px 0;">10 new [Fact] in <code>CopyEngineLeaderFlatGuardTests.cs</code>. Suite: 76 pass, 0 fail, 3 skipped. CYC TryDispatchLeaderFlat=8. Build 0 errors 0 warnings.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Deferred</td><td style="padding:3px 0;">DW-LB-FL-02-DW-01 (Option B: cancel PTT-BE-Stop-* before flatten) &mdash; P2, future. Not needed for correctness.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Pipeline</td><td style="padding:3px 0;">docs/brain/DW-LB-FL-02/ &mdash; all 5 phases PASS. 05-final-review.md FINAL_PASS. 06-deferred-backlog.md: 1 item (P2).</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">SIM gate</td><td style="padding:3px 0; color:var(--amber);">&#9711; PENDING &mdash; Clone mode, 4 accounts (Sim101 leader + Sim102/103/104). Restart NT8 fresh. (1) Enter 3-contract trade on leader, verify copy. (2) Press BE ALL, verify PTT-BE-Stop-1/2/3 + PTT-BE-Target-1/2/3 on all 4 accounts. (3) Allow price to hit BE: leader PTT-BE-Stop fills (leader flat). (4) Click Close on ChartTrader for leader. PASS: zero PTT-Flatten on any follower. Each follower PTT-BE-Stop fills at BE. All accounts flat. FAIL: any [TP1-OOU] name=PTT-Flatten after BE fills.</td></tr>
+            </table>
+            <strong style="color:var(--amber);">&#9888; DW-LB-FL-02 PIPELINE_COMPLETE (2026-09-07) &mdash; SIM gate pending Director verification.</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- end section-dw-lb-fl-02 -->
+
+    <!-- DW-LB-FL-01: Follower native right-click Flatten storm — P1 OPEN — queued -->
+    <div class="section" id="section-dw-lb-fl-01" style="margin-top:40px;">
+      <div class="section-label" style="background:rgba(239,68,68,0.10); border-left:3px solid var(--red); color:var(--red);">DW-LB-FL-01 &mdash; P1 &mdash; OPEN &mdash; Follower native right-click Flatten triggers PTT-Flatten storm on other followers &mdash; pipeline not yet started</div>
+      <div class="section-body">
+        <div class="card" style="border-left:3px solid var(--red); background:rgba(239,68,68,0.04);">
+          <div class="card-title" style="color:var(--red);">&#10007; DW-LB-FL-01 &mdash; P1 OPEN &mdash; Queued after DW-LB-FL-02 SIM PASS</div>
+          <div class="card-body">
+            <table style="font-size:0.79rem; border-collapse:collapse; width:100%;">
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted); white-space:nowrap; width:130px;">ID</td><td style="padding:3px 0;">DW-LB-FL-01</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Severity</td><td style="padding:3px 0; color:var(--red);">P1 OPEN</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Symptom</td><td style="padding:3px 0;">When a follower account is flattened via native NT8 right-click &ldquo;Flatten&rdquo; (not via PTT button), the follower&rsquo;s native exit fires <code>IsNativeExitName(&quot;Close&quot;)</code>. This incorrectly reaches the leader dispatch path and triggers PTT-Flatten on all other followers, creating a flatten storm originating from a follower-side close rather than a leader close.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Distinction</td><td style="padding:3px 0;">DW-LB-FL-02 = leader-side guard (flat leader dispatches to followers). DW-LB-FL-01 = follower-side guard (follower native close triggers dispatch chain). Both require separate guards. DW-LB-FL-02 fix does NOT cover this path.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Status</td><td style="padding:3px 0; color:var(--red);">P1 OPEN &mdash; pipeline not yet started. Queued after DW-LB-FL-02 SIM gate passes.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Related</td><td style="padding:3px 0;">DW-LB-FL-02 (leader-side guard, PIPELINE_COMPLETE). DW-B65-01 (native exit bypass, closed B65).</td></tr>
+            </table>
+            <strong style="color:var(--red);">&#10007; DW-LB-FL-01 P1 OPEN &mdash; queued after DW-LB-FL-02 SIM PASS. ptt-orchestrator prompt ready on Director request.</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- end section-dw-lb-fl-01 -->
+
+
+
 
 
 
@@ -41503,7 +41602,11 @@ TEST RESULTS: {PASS | FAIL | OBS | PENDING}
                   <span style="color:var(--green);">&#10003; DW-B142-MGC-01 CONFIRMED (via MGC-02 same commit, SIM 2026-09-02)</span><br>
                   <span style="color:var(--green);">&#10003; B142 pipeline: COMPLETE</span><br>
                   <span style="color:var(--red); font-weight:700;">&#9888; B143 pipeline: NOT YET TRIGGERED (commit 3f709a91 &mdash; MGC-01 + MGC-02)</span><br>
-                  <span style="color:var(--amber); font-weight:700;">ACTIVE: DW-B142-CLONE-01 P1 OPEN &mdash; log capture required (Path A / B / C diagnosis pending)</span>
+                  <span style="color:var(--amber); font-weight:700;">&#9888; DW-B142-CLONE-01 P1 OPEN &mdash; log capture required (Path A / B / C diagnosis pending)</span><br>
+                  <span style="color:var(--green); font-weight:700;">&#10003; DW-LB-GR-01 P1 PIPELINE_COMPLETE (commit 79aa5131, PR #48) &mdash; SIM pending</span><br>
+                  <span style="color:var(--green); font-weight:700;">&#10003; DW-BWAVE-UI-01 P2 PIPELINE_COMPLETE (commit 79aa5131, PR #48) &mdash; visual verify pending</span><br>
+                  <span style="color:var(--green); font-weight:700;">&#10003; DW-LB-FL-02 P1 PIPELINE_COMPLETE (commit 6b087086, FINAL_PASS 2026-09-07) &mdash; SIM pending</span><br>
+                  <span style="color:var(--red); font-weight:700;">&#10007; DW-LB-FL-01 P1 OPEN &mdash; follower native right-click Flatten storm &mdash; queued after DW-LB-FL-02 SIM PASS</span>
                 </td>
               </tr>
               <tr style="background:rgba(99,102,241,0.03);">
