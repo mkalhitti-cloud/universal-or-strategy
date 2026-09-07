@@ -1,8 +1,9 @@
-// DW-LB-FL-02: xUnit tests for IsDispatchableState, IsNativeExitOnFlatLeader,
+// DW-LB-FL-02 / DW-LB-FL-01-V9: xUnit tests for IsDispatchableState, IsNativeExitOnFlatLeader,
 // and TryDispatchLeaderFlat guard (3.5) -- Clone mode + BE ALL infinite flatten loop fix.
 // Tests 1-3: IsDispatchableState inline mirror.
-// Tests 4-6: IsNativeExitOnFlatLeader inline mirror.
-// Tests 7-10: TryDispatchLeaderFlat inline mirror (full dispatch pipeline).
+// Tests 4-6: IsNativeExitOnFlatLeader inline mirror (updated for V9: adds follower-open check).
+// Tests 7-11: TryDispatchLeaderFlat inline mirror (full dispatch pipeline).
+// Test 11 (V9 NEW): Close on flat leader with open follower MUST flatten the follower.
 // Framework: xUnit ONLY. NEVER NUnit or MSTest.
 // Approach: inline static predicates mirroring CopyEngine production code.
 //   The test project targets net8.0; PropTraderTools targets net48 for NT8.
@@ -73,19 +74,36 @@ namespace PropTraderTools.Tests
 
         // ------------------------------------------------------------------
         // Inline predicate -- mirrors CopyEngine.IsNativeExitOnFlatLeader.
-        // Production code (DW-LB-FL-02, lines 4674-4682):
+        // Production code (DW-LB-FL-02 + DW-LB-FL-01-V9):
         //   internal static bool IsNativeExitOnFlatLeader(
         //       string orderName, Account account, Instrument instrument,
+        //       IReadOnlyList<Account> followerAccounts,
         //       Func<Account, Instrument, bool> hasOpenPosition)
-        //   => IsNativeExitName(orderName) && !hasOpenPosition(account, instrument);
-        // Uses Func<bool> to avoid NT8 Account/Instrument runtime dependency.
-        // CYC=2: 1 base + 1 && short-circuit.
+        //   => IsNativeExitName(orderName)
+        //       && !hasOpenPosition(account, instrument)
+        //       && !AnyFollowerOpen(followerAccounts, instrument, hasOpenPosition);
+        // V9 change: guard now only fires when leader flat AND no follower is open.
+        // Uses Func<bool> (leader) and Func<string, bool> (per-follower) to avoid NT8 types.
+        // CYC=3: 1 base + 2 && short-circuits.
         // ------------------------------------------------------------------
         private static bool IsNativeExitOnFlatLeaderInline(
             string orderName,
-            Func<bool> hasOpenPosition
-        ) =>
-            IsNativeExitNameInline(orderName) && !hasOpenPosition();
+            Func<bool> leaderHasOpenPosition,
+            Func<string, bool> followerHasOpenPosition,
+            string[] followerAccounts
+        )
+        {
+            if (!IsNativeExitNameInline(orderName))
+                return false;
+            if (leaderHasOpenPosition())
+                return false;
+            foreach (var acc in followerAccounts)
+            {
+                if (acc != null && followerHasOpenPosition(acc))
+                    return false;
+            }
+            return true;
+        }
 
         // ------------------------------------------------------------------
         // Inline predicate -- mirrors CopyEngine.IsNonFlatDispatchName.
@@ -123,8 +141,8 @@ namespace PropTraderTools.Tests
                 return false; // (2)
             if (IsNonFlatDispatchNameInline(orderName))
                 return false; // (2.5+2.6)
-            if (IsNativeExitOnFlatLeaderInline(orderName, () => hasOpenPosition(account, instrument)))
-                return false; // (3.5) DW-LB-FL-02
+            if (IsNativeExitOnFlatLeaderInline(orderName, () => hasOpenPosition(account, instrument), a => hasOpenPosition(a, instrument), followerAccounts))
+                return false; // (3.5) DW-LB-FL-02 + DW-LB-FL-01 V9
             if (!IsNativeExitNameInline(orderName) && hasOpenPosition(account, instrument))
                 return false; // (3)
             foreach (var acc in followerAccounts)
@@ -175,10 +193,12 @@ namespace PropTraderTools.Tests
         //    Defect scenario: "Close" on flat leader -> guard fires.
         // ==================================================================
 
+        // V9 update: guard fires only when leader flat AND no follower open.
+        // This test: leader flat, follower flat -> guard fires (true).
         [Fact]
-        public void IsNativeExitOnFlatLeader_WhenNativeExitAndLeaderFlat_ReturnsTrue()
+        public void IsNativeExitOnFlatLeader_WhenNativeExitAndLeaderFlatAndFollowerFlat_ReturnsTrue()
         {
-            bool result = IsNativeExitOnFlatLeaderInline("Close", () => false);
+            bool result = IsNativeExitOnFlatLeaderInline("Close", () => false, _ => false, SingleFollower);
             Assert.True(result);
         }
 
@@ -190,7 +210,7 @@ namespace PropTraderTools.Tests
         [Fact]
         public void IsNativeExitOnFlatLeader_WhenNativeExitAndLeaderHasPosition_ReturnsFalse()
         {
-            bool result = IsNativeExitOnFlatLeaderInline("Close", () => true);
+            bool result = IsNativeExitOnFlatLeaderInline("Close", () => true, _ => false, SingleFollower);
             Assert.False(result);
         }
 
@@ -202,7 +222,19 @@ namespace PropTraderTools.Tests
         [Fact]
         public void IsNativeExitOnFlatLeader_WhenNonNativeExitAndLeaderFlat_ReturnsFalse()
         {
-            bool result = IsNativeExitOnFlatLeaderInline("PTT-BE-Stop-12345", () => false);
+            bool result = IsNativeExitOnFlatLeaderInline("PTT-BE-Stop-12345", () => false, _ => false, SingleFollower);
+            Assert.False(result);
+        }
+
+        // ==================================================================
+        // 6b. IsNativeExitOnFlatLeader_WhenNativeExitAndLeaderFlatButFollowerOpen_ReturnsFalse
+        //     DW-LB-FL-01 V9: leader flat + follower open -> guard must NOT fire (dispatch needed).
+        // ==================================================================
+
+        [Fact]
+        public void IsNativeExitOnFlatLeader_WhenNativeExitAndLeaderFlatButFollowerOpen_ReturnsFalse()
+        {
+            bool result = IsNativeExitOnFlatLeaderInline("Close", () => false, _ => true, SingleFollower);
             Assert.False(result);
         }
 
@@ -316,6 +348,36 @@ namespace PropTraderTools.Tests
 
             Assert.False(result);
             Assert.Equal(0, flattenCallCount);
+        }
+    }
+        // ==================================================================
+        // 11. TryDispatchLeaderFlat_WhenCloseOnFlatLeaderButFollowerOpen_FlattensFollower
+        //     DW-LB-FL-01 V9 regression fix: leader flat after BE closes 6/7 contracts;
+        //     follower still holds 1 contract. Close:Filled must propagate flatten to follower.
+        // ==================================================================
+
+        [Fact]
+        public void TryDispatchLeaderFlat_WhenCloseOnFlatLeaderButFollowerOpen_FlattensFollower()
+        {
+            int flattenCallCount = 0;
+            Func<string, bool> isFollower = a => a == FollowerName;
+            // Leader is flat; follower has open position.
+            Func<string, string, bool> hasPos = (acct, _) => acct == FollowerName;
+            Action<string, string> flattenOne = (_, __) => flattenCallCount++;
+
+            bool result = TryDispatchLeaderFlatInline(
+                account: LeaderName,
+                instrument: InstrumentName,
+                state: OrderState.Filled,
+                orderName: "Close",
+                followerAccounts: SingleFollower,
+                isFollower: isFollower,
+                hasOpenPosition: hasPos,
+                flattenOne: flattenOne
+            );
+
+            Assert.True(result);
+            Assert.Equal(1, flattenCallCount);
         }
     }
 }

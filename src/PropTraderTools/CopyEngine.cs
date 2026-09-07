@@ -4676,18 +4676,45 @@ namespace PropTraderTools
         }
 
         // DW-LB-FL-02: Guard helper -- returns true when a native exit order arrived on an
-        // already-flat leader account. In that state the DW-B65-01 bypass must NOT propagate
-        // a PTT-Flatten to followers because no follower position needs closing.
+        // already-flat leader account AND no follower still has an open position.
+        // DW-LB-FL-01 V9 FIX: original guard blocked dispatch even when followers had remnant positions
+        // from a PartFill sequence (e.g. 7-lot entry fills 6+1; BE closes 6 on leader; Close:Filled
+        // arrives with leader flat but each follower still holding 1 contract). The fix: only suppress
+        // dispatch when the leader is flat AND no follower is open. If any follower is still open,
+        // fall through so FlattenFollower can close them.
+        // Delegates to AnyFollowerOpen to keep TryDispatchLeaderFlat at CYC=8.
         // CYC=2: 1 base + 1 boolean short-circuit (&&).
         // JS-021: no lock. JS-001: no throw. JS-002: returns bool. ASCII-only. static.
         internal static bool IsNativeExitOnFlatLeader(
             string orderName,
             Account account,
             Instrument instrument,
+            IReadOnlyList<Account> followerAccounts,
             Func<Account, Instrument, bool> hasOpenPosition
         )
         {
-            return IsNativeExitName(orderName) && !hasOpenPosition(account, instrument);
+            return IsNativeExitName(orderName)
+                && !hasOpenPosition(account, instrument)
+                && !AnyFollowerOpen(followerAccounts, instrument, hasOpenPosition);
+        }
+
+        // DW-LB-FL-01 V9: returns true if any non-null follower account has an open position.
+        // CYC=3: 1 base + foreach(1) + null guard(1) + hasOpenPosition(0, leaf call).
+        // JS-021: no lock. JS-001: no throw. JS-002: returns bool. ASCII-only. static.
+        internal static bool AnyFollowerOpen(
+            IReadOnlyList<Account> followerAccounts,
+            Instrument instrument,
+            Func<Account, Instrument, bool> hasOpenPosition
+        )
+        {
+            foreach (var acc in followerAccounts)
+            {
+                if (acc == null)
+                    continue;
+                if (hasOpenPosition(acc, instrument))
+                    return true;
+            }
+            return false;
         }
 
         // B65 T1 / DW-B91-B / DW-LB-FL-02: TryDispatchLeaderFlat -- CYC=8 (strict McCabe, at limit).
@@ -4716,8 +4743,8 @@ namespace PropTraderTools
                 return false; // (2)
             if (IsNonFlatDispatchName(orderName))
                 return false; // (2.5+2.6)
-            if (IsNativeExitOnFlatLeader(orderName, account, instrument, hasOpenPosition))
-                return false; // (3.5) DW-LB-FL-02: native exit on already-flat leader -- nothing to propagate
+            if (IsNativeExitOnFlatLeader(orderName, account, instrument, rule.FollowerAccounts, hasOpenPosition))
+                return false; // (3.5) DW-LB-FL-02 + DW-LB-FL-01 V9: native exit on flat leader with no open followers
             if (!IsNativeExitName(orderName) && hasOpenPosition(account, instrument))
                 return false; // (3)
             foreach (var acc in rule.FollowerAccounts) // (4)
