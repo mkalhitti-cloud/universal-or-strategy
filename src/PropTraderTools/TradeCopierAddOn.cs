@@ -56,14 +56,17 @@ namespace PropTraderTools
         // Called by TradeCopierPanel.Detach(). CYC=1. JS-021: no lock.
         internal static bool IsPanelsEmpty() => _panels.IsEmpty;
 
-        // B11 T1 SIM101: logging-only diag handler stored as field so RemoveSim101() can unhook it.
-        // Set in RunSim101(); nulled unconditionally by RemoveSim101().
-        // Plan sec.2 V2 note. Review note: declare static to match _panels/_clickHandlers pattern.
-        private static KeyEventHandler _sim101KeyDiag;
+        // B11 T1 SIM101: per-chart logging-only diag handlers -- mirrors _keyHandlers pattern.
+        // FIX 3 (PR-121): was single static field, now ConcurrentDictionary to prevent handler leak
+        // on multi-chart. RemoveSim101 now uses TryRemove per chart.
+        private static readonly ConcurrentDictionary<Chart, KeyEventHandler> _sim101KeyDiags =
+            new ConcurrentDictionary<Chart, KeyEventHandler>();
 
-        // B10 T4: polling timer for ATR computation fallback (when bar event not available)
-        // Fires engine.ManualOnBarUpdate every 1 second on UI thread as a safe fallback.
-        private DispatcherTimer _atrPollTimer = null;
+        // B10 T4: per-chart polling timers for ATR computation fallback.
+        // FIX 2 (PR-121): was single _atrPollTimer field -- only first chart got a timer.
+        // Now ConcurrentDictionary<Chart, DispatcherTimer> so every chart gets its own timer.
+        private static readonly ConcurrentDictionary<Chart, DispatcherTimer> _atrPollTimers =
+            new ConcurrentDictionary<Chart, DispatcherTimer>();
 
         protected override void OnStateChange()
         {
@@ -228,27 +231,26 @@ namespace PropTraderTools
             _atrEngines[chart] = engine;
 
             // STEP 3 (event-based fallback -- compile-safe DispatcherTimer, 1s polling).
+            // FIX 2 (PR-121): create a separate timer per chart so all charts get ManualOnBarUpdate.
             // chart.NinjaScripts.Add / Indicators.Add / BarsArray are not accessible in
             // AddOnBase compilation scope (NT8 Roslyn design-time limitation).
-            // DispatcherTimer is WPF standard and always compiles in AddOnBase context.
-            if (_atrPollTimer == null) // guard (3): create timer once
+            var timer = new DispatcherTimer(DispatcherPriority.Background)
             {
-                _atrPollTimer = new DispatcherTimer(DispatcherPriority.Background)
+                Interval = System.TimeSpan.FromSeconds(1),
+            };
+            var capturedEngine = engine; // capture engine local for this chart -- not shared
+            timer.Tick += (s, e2) =>
+            {
+                try
                 {
-                    Interval = System.TimeSpan.FromSeconds(1),
-                };
-                _atrPollTimer.Tick += (s, e2) =>
-                {
-                    try
-                    {
-                        engine.ManualOnBarUpdate();
-                    }
-                    catch (System.Exception)
-                    { /* NT8 context not ready; next tick will retry */
-                    }
-                };
-                _atrPollTimer.Start();
-            }
+                    capturedEngine.ManualOnBarUpdate();
+                }
+                catch (System.Exception)
+                { /* NT8 context not ready; next tick will retry */
+                }
+            };
+            _atrPollTimers[chart] = timer;
+            timer.Start();
 
             CopyEngine.Instance.SetAtrEngine(engine, enabled: false); // disabled until user enables
 
@@ -256,6 +258,7 @@ namespace PropTraderTools
         }
 
         // B10 T4: instance StopAtrEngine -- unsubscribes AtrUpdated and stops poll timer.
+        // FIX 2 (PR-121): uses per-chart _atrPollTimers instead of single _atrPollTimer field.
         // CYC=3 -- TryRemove guard + engine event cleanup + timer cleanup
         private void StopAtrEngine(Chart chart)
         {
@@ -264,11 +267,9 @@ namespace PropTraderTools
                 return; // guard (1)
             if (engine != null)
                 engine.AtrUpdated -= OnAtrUpdated; // unsubscribe event
-            if (_atrPollTimer != null) // guard (2): stop poll timer
-            {
-                _atrPollTimer.Stop();
-                _atrPollTimer = null;
-            }
+            DispatcherTimer timer;
+            if (_atrPollTimers.TryRemove(chart, out timer)) // guard (2): stop per-chart timer
+                timer.Stop();
             CopyEngine.Instance.SetAtrEngine(null, enabled: false); // guard (3): clear reference
         }
 
@@ -347,15 +348,15 @@ namespace PropTraderTools
         }
 
         // B11 T1: Removes the SIM101 logging-only diag handler from chart.PreviewKeyDown.
+        // FIX 3 (PR-121): uses per-chart _sim101KeyDiags dictionary instead of single field.
         // Called UNCONDITIONALLY after SIM101 completes (PASS or FAIL).
         // Must be called BEFORE HookKeyShortcut() on the PASS path.
-        // Nulls _sim101KeyDiag to prevent accidental re-subscription.
-        // CYC=2: null guard (1) + unhook + null assignment (2).
+        // CYC=2: TryRemove guard (1) + null check + unhook (2).
         private static void RemoveSim101(Chart chart)
         {
-            if (_sim101KeyDiag != null)
-                chart.PreviewKeyDown -= _sim101KeyDiag;
-            _sim101KeyDiag = null;
+            KeyEventHandler h;
+            if (_sim101KeyDiags.TryRemove(chart, out h) && h != null)
+                chart.PreviewKeyDown -= h;
         }
 
         // B11 T1: Wire chart.PreviewKeyDown to panel.OnChartKeyDown after successful DoInject.
@@ -375,7 +376,7 @@ namespace PropTraderTools
 
         // B11 T1: Unwire chart.PreviewKeyDown (PRODUCTION handler only) before panel.Detach().
         // Called from OnWindowDestroyed. Removes panel.OnChartKeyDown via _keyHandlers lookup.
-        // Does NOT remove _sim101KeyDiag -- that is RemoveSim101's responsibility.
+        // Does NOT remove _sim101KeyDiags entry -- that is RemoveSim101's responsibility.
         // CYC=2: TryRemove guard (1) + unhook (2).
         private static void UnhookKeyShortcut(Chart chart)
         {
@@ -499,8 +500,10 @@ namespace PropTraderTools
             WireLeaderAccount(chartTrader, panel);
 
             // B11 T1 SIM101 Phase A: wire logging-only handler BEFORE production layer.
-            _sim101KeyDiag = new KeyEventHandler(OnChartKeyDiag);
-            chart.PreviewKeyDown += _sim101KeyDiag;
+            // FIX 3 (PR-121): store per-chart in _sim101KeyDiags instead of overwriting single field.
+            var diagHandler = new KeyEventHandler(OnChartKeyDiag);
+            _sim101KeyDiags[chart] = diagHandler;
+            chart.PreviewKeyDown += diagHandler;
 
             // B11 T1 Phase B: production keyboard shortcut layer.
             // RemoveSim101 FIRST (SIM101 must be removed before HookKeyShortcut).
@@ -523,7 +526,9 @@ namespace PropTraderTools
         // C-07: DoInject after extraction. Parent CCN=7.
         private void DoInject(Chart chart)
         {
-            if (!_panels.TryAdd(chart, null))
+            // FIX 1 (PR-121): TryAdd with null throws ArgumentNullException on ConcurrentDictionary.
+            // Use ContainsKey guard instead -- _panels[chart] = panel is set later in WireNewPanel.
+            if (_panels.ContainsKey(chart))
                 return;
 
             try
