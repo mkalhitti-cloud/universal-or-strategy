@@ -2344,6 +2344,8 @@ namespace PropTraderTools
             return char.IsDigit(name[6]); // (3)
         }
 
+        // CCN=8: base(1)+null(1)+empty(1)+PTT-(1)+IsNativeClose(1)+Rev(1)+Exit(1)+IsAtmTarget(1). WAVE2-LANE-A.
+        // JS-021: no lock. JS-001: no throw. JS-002: returns bool. ASCII-only.
         internal static bool IsExitSignalName(string name)
         {
             if (name == null)
@@ -2352,10 +2354,8 @@ namespace PropTraderTools
                 return true; // (0) DW-LB-FL-01: empty name = NT8 anonymous close order, never a valid entry
             if (name.StartsWith("PTT-", StringComparison.Ordinal))
                 return true; // (1)
-            if (name == "Close")
-                return true; // (2)
-            if (name == "Flatten")
-                return true; // (3)
+            if (IsNativeCloseOrFlattenSignal(name))
+                return true; // (2-3)
             if (name.StartsWith("Rev", StringComparison.Ordinal))
                 return true; // (4)
             if (name.StartsWith("Exit", StringComparison.Ordinal))
@@ -2368,6 +2368,13 @@ namespace PropTraderTools
             // Gate 2 already filters to master account only -- follower "Entry" orders never reach DispatchCopy.
             return false;
         }
+
+        // CCN=3: base(1)+Close(1)+Flatten(1). WAVE2-LANE-A extraction.
+        // Consolidates the two NT8 platform-generated anonymous exit signal names.
+        // internal: accessible to xUnit via InternalsVisibleTo("PropTraderTools.Tests") at CopyEngine.cs:46.
+        // JS-021: no lock (static). JS-001: no throw. JS-002: returns bool. ASCII-only.
+        internal static bool IsNativeCloseOrFlattenSignal(string name) =>
+            name == "Close" || name == "Flatten";
 
         // B65 T1: IsNativeExitName -- CYC=6. Returns true for NT8 built-in exit order names ONLY.
         // Distinct from IsExitSignalName: does NOT cover PTT- prefixed signals.
@@ -5342,8 +5349,7 @@ namespace PropTraderTools
         // Dispatcher.InvokeAsync, bracket arming may complete before the UI thread runs the
         // callback. If ATM brackets are active at callback time, the account has valid
         // protection -- do not flatten.
-        // CYC=5: base(1)+foreach(1)+instr-skip(1)+stateActive-branch(1)+IsAtmBracketName(1).
-        // stateActive compound bool is assigned to a local variable -- counts as 1 branch.
+        // CCN=5: base(1)+foreach(1)+instr-skip(1)+IsArmingOrderState(1)+IsAtmBracketName(1). WAVE2-LANE-A.
         // JS-021: no lock. acc.Orders.ToList() snapshot (same pattern as HasInflightFlatten L5242).
         // JS-001: no throw. JS-002: returns bool. ASCII-only. static.
         // DW-LB-FL-01-V2: Initialized added to stateActive -- belt+suspenders for cancel-storm
@@ -5354,17 +5360,31 @@ namespace PropTraderTools
             {
                 if (o.Instrument?.FullName != instr.FullName)
                     continue;
-                bool stateActive =
-                    o.OrderState == OrderState.Initialized       // DW-LB-FL-01-V2 belt+suspenders
-                    || o.OrderState == OrderState.Working
-                    || o.OrderState == OrderState.Submitted
-                    || o.OrderState == OrderState.Accepted
-                    || o.OrderState == OrderState.TriggerPending;
-                if (!stateActive)
+                if (!IsArmingOrderState(o.OrderState)) // WAVE2-LANE-A extraction
                     continue;
                 if (IsAtmBracketName(o.Name))
                     return true;
             }
+            return false;
+        }
+
+        // CCN=6: base(1)+Initialized(1)+Working(1)+Submitted(1)+Accepted(1)+TriggerPending(1). WAVE2-LANE-A.
+        // JS-021: no lock (static). JS-001: no throw. JS-002: returns bool. ASCII-only.
+        // Extracted from HasArmingAtmBrackets: consolidates 5-state active-order gate.
+        // DW-LB-FL-01-V2: Initialized included (belt+suspenders for cancel-storm race).
+        // internal: accessible to xUnit via InternalsVisibleTo("PropTraderTools.Tests") at CopyEngine.cs:46.
+        internal static bool IsArmingOrderState(OrderState s)
+        {
+            if (s == OrderState.Initialized)
+                return true;
+            if (s == OrderState.Working)
+                return true;
+            if (s == OrderState.Submitted)
+                return true;
+            if (s == OrderState.Accepted)
+                return true;
+            if (s == OrderState.TriggerPending)
+                return true;
             return false;
         }
 
