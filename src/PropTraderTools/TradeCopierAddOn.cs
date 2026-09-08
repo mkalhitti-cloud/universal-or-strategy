@@ -254,44 +254,39 @@ namespace PropTraderTools
 
             CopyEngine.Instance.SetAtrEngine(engine, enabled: false); // disabled until user enables
 
-            engine.AtrUpdated += OnAtrUpdated;
+            // FIX 3 (PR-121 T3): capture chart so AtrUpdated routes to the correct panel.
+            // Replaces OnAtrUpdated method -- lambda carries chart key for _panels lookup.
+            var capturedChart = chart;
+            engine.AtrUpdated += (display) => UpdateAtrOverlay(capturedChart, display);
         }
 
         // B10 T4: instance StopAtrEngine -- unsubscribes AtrUpdated and stops poll timer.
         // FIX 2 (PR-121): uses per-chart _atrPollTimers instead of single _atrPollTimer field.
-        // CYC=3 -- TryRemove guard + engine event cleanup + timer cleanup
+        // FIX 3 (PR-121 T3): no method-name unsubscribe needed -- engine is removed and becomes
+        // unreachable; lambda callback becomes no-op once panel is removed from _panels.
+        // CYC=2 -- TryRemove guard + timer cleanup
         private void StopAtrEngine(Chart chart)
         {
             AtrSizingEngine engine;
             if (!_atrEngines.TryRemove(chart, out engine))
                 return; // guard (1)
-            if (engine != null)
-                engine.AtrUpdated -= OnAtrUpdated; // unsubscribe event
             DispatcherTimer timer;
             if (_atrPollTimers.TryRemove(chart, out timer)) // guard (2): stop per-chart timer
                 timer.Stop();
-            CopyEngine.Instance.SetAtrEngine(null, enabled: false); // guard (3): clear reference
+            CopyEngine.Instance.SetAtrEngine(null, enabled: false); // clear reference
         }
 
-        // B20-LANE-C T5: UpdateAtrOverlay -- routes ATR display text to the first injected panel.
-        // CYC=2: null guard on panel (1) + Dispatcher.InvokeAsync dispatch (2).
-        // JS-021: no lock. _panels is ConcurrentDictionary; FirstOrDefault() on snapshot is lock-free.
-        internal void UpdateAtrOverlay(string atrDisplay)
+        // FIX 3 (PR-121 T3): UpdateAtrOverlay -- routes ATR display text to the panel for the given chart.
+        // CYC=2: TryGetValue guard on panel (1) + Dispatcher.InvokeAsync dispatch (2).
+        // JS-021: no lock. _panels is ConcurrentDictionary; TryGetValue is lock-free.
+        internal void UpdateAtrOverlay(Chart chart, string atrDisplay)
         {
-            var panel = _panels.Values.FirstOrDefault();
-            if (panel == null)
+            TradeCopierPanel panel;
+            if (!_panels.TryGetValue(chart, out panel) || panel == null)
                 return;
             System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                 panel.SetAtrText(atrDisplay)
             );
-        }
-
-        // B10 T4: AtrUpdated event handler -- subscribed in StartAtrEngine.
-        // Fires on AtrSizingEngine bar-close thread; UpdateAtrOverlay marshals via Dispatcher.
-        // CYC=1: straight-line delegation.
-        private void OnAtrUpdated(string display)
-        {
-            UpdateAtrOverlay(display);
         }
 
         // B9 T2: CYC=2 -- null guard + TryRemove branch (ADV-001 CORRECTED: TryRemove-first)
@@ -416,7 +411,7 @@ namespace PropTraderTools
                 stalePanel.Detach();
             int staleRow = System.Windows.Controls.Grid.GetRow(old);
             grid.Children.Remove(old);
-            if (staleRow > 0 && staleRow < grid.RowDefinitions.Count)
+            if (staleRow >= 0 && staleRow < grid.RowDefinitions.Count)
                 grid.RowDefinitions.RemoveAt(staleRow);
         }
 
@@ -516,6 +511,9 @@ namespace PropTraderTools
                 return;
             }
 
+            // Cleanup: resources were wired but panel was never tracked -- release them.
+            StopAtrEngine(chart);
+            UnhookKeyShortcut(chart);
             MessageBox.Show(
                 "PTT: ChartTrader.Content is not a Grid.\nContent type: "
                     + (chartTrader.Content?.GetType().FullName ?? "null"),
@@ -690,8 +688,7 @@ namespace PropTraderTools
             return null;
         }
 
-        // B121/DW-B130b: dev_mode.txt sentinel bypasses LicenseClient entirely.
-        // CYC=4: try-enter(1) + devMode.Exists(2) + licenseTxt.Exists(3) + catch(4).
+        // CYC=3: try-enter(1) + licenseTxt.Exists(2) + catch(3).
         // JS-001: no throw -- any I/O error returns Starter().
         // NT8: File I/O is safe in State.Configure (not the hot path).
         private static FeatureFlags LoadAndValidateLicense()
@@ -702,9 +699,6 @@ namespace PropTraderTools
                     NinjaTrader.Core.Globals.UserDataDir,
                     "PropTraderTools"
                 );
-                var devMode = System.IO.Path.Combine(pttDir, "dev_mode.txt");
-                if (System.IO.File.Exists(devMode))
-                    return FeatureFlags.Elite();
                 var licenseTxt = System.IO.Path.Combine(pttDir, "license.txt");
                 var key = System.IO.File.Exists(licenseTxt)
                     ? System.IO.File.ReadAllText(licenseTxt).Trim()

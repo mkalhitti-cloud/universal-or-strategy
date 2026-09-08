@@ -409,7 +409,9 @@ namespace PropTraderTools
             parent.Children.Add(row);
         }
 
-        // BGTM-1: Activate button click -- validate license and apply flags. CYC=1. JS-001: no throw.
+        // FIX 2 (PR-121 T3): Activate button click -- validate license and apply flags.
+        // LicenseClient.Validate wrapped in own try/catch so validation exceptions don't escape WPF handler.
+        // CYC=2: file-write catch (1) + validate catch (2). JS-001: no throw.
         private void OnActivateClick(object sender, RoutedEventArgs e)
         {
             string key = _licenseKeyBox?.Text?.Trim() ?? string.Empty;
@@ -421,10 +423,19 @@ namespace PropTraderTools
                 System.IO.File.WriteAllText(LicenseTxtPath, key);
             }
             catch (Exception) { }
-            var flags = LicenseClient.Validate(key);
-            CopyEngine.Instance.SetFlags(flags);
-            ApplyFeatureFlags(flags);
-            _licenseStatusText.Text = GetStatusText(flags);
+            try
+            {
+                var flags = LicenseClient.Validate(key);
+                CopyEngine.Instance.SetFlags(flags);
+                ApplyFeatureFlags(flags);
+                _licenseStatusText.Text = GetStatusText(flags);
+            }
+            catch (Exception ex)
+            {
+                if (_licenseStatusText != null)
+                    _licenseStatusText.Text = "Validation error";
+                MessageBox.Show("PTT license error:\n\n" + ex.Message, "Trade Copier");
+            }
         }
 
         // BWAVE-CYC T7: extracted helper for TradeCopierWindow::ApplyFeatureFlags.
