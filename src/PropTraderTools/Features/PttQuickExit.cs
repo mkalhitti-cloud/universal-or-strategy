@@ -134,10 +134,11 @@ namespace PropTraderTools
         /// <summary>
         /// Compute per-iteration OCO pair params and dispatch SubmitStopOrder + SubmitTargetOrder.
         /// Extracted from PttQuickExit.Execute for-loop body (lines 111-199, minus headers).
-        /// CYC=7: base(1) + tNQty ternary (targets!=null &amp;&amp; i&lt;targets.Count)=2 + tNQty&lt;=0=1 + if(i==0)firstOcoId=1
-        ///        + SubmitStopOrder null check(1) + SubmitTargetOrder null check(1) + NewQxOcoId ?? path(1) removed.
-        /// WAVE2-LANE-E-1: NewQxOcoId extraction reduced from CCN=9 to CCN=7.
-        /// JS-002: void -- ref firstOcoId carries result out. JS-001: no throw. JS-021: no lock. ASCII-only.
+        /// CYC=7: base(1) + tNQty ternary(2) + tNQty&lt;=0(3) + if(i==0)firstOcoId(4)
+        ///        + stopName ternary(5) + SubmitStopOrder delegate(6) + SubmitTargetOrder delegate(7).
+        /// C12: price resolution delegated to ResolveTNPrice (extracted helper).
+        /// WAVE2-LANE-E-1: NewQxOcoId extraction reduced from CCN=9. ASCII-only.
+        /// JS-002: void -- ref firstOcoId carries result out. JS-001: no throw. JS-021: no lock.
         /// </summary>
         private void SubmitQxOcoPair(
             Account acc,
@@ -154,9 +155,7 @@ namespace PropTraderTools
             ref string firstOcoId
         )
         {
-            int tNTicks = t1Ticks * (i + 1);
-            double rawTN = isLong ? entryPx + tNTicks * tick : entryPx - tNTicks * tick;
-            double tNPrice = Math.Round(rawTN / tick) * tick;
+            double tNPrice = ResolveTNPrice(targets, i, isLong, entryPx, t1Ticks, tick);
 
             int tNQty =
                 (targets != null && i < targets.Count)
@@ -179,6 +178,29 @@ namespace PropTraderTools
             SubmitTargetOrder(acc, instr, isLong, tNQty, tNPrice, ocoId_i, targetName);
         }
 
+        /// <summary>
+        /// ResolveTNPrice: returns targets[i].Price when non-zero (forced price), else computes
+        /// t1Ticks*(i+1) ticks from entry in the direction of the trade.
+        /// C12: extracted from SubmitQxOcoPair to keep that method CYC&lt;=8.
+        /// CYC=3: forced-price guard(1) + direction ternary(2) + tick-round(3).
+        /// JS-002: returns double (never null). JS-001: no throw. JS-021: no lock. ASCII-only.
+        /// </summary>
+        private static double ResolveTNPrice(
+            System.Collections.Generic.List<(double Price, int Qty)> targets,
+            int i,
+            bool isLong,
+            double entryPx,
+            int t1Ticks,
+            double tick
+        )
+        {
+            if (targets != null && i < targets.Count && targets[i].Price > 0.0)
+                return targets[i].Price; // use forced price directly
+            int tNTicks = t1Ticks * (i + 1);
+            double rawTN = isLong ? entryPx + tNTicks * tick : entryPx - tNTicks * tick;
+            return Math.Round(rawTN / tick) * tick;
+        }
+
         // -------------------------------------------------------------------------
         // WAVE2-LANE-E-1: Private static helpers extracted to reduce CCN
         // -------------------------------------------------------------------------
@@ -187,6 +209,7 @@ namespace PropTraderTools
         /// IsFlatOrMissing: returns true when leader is null, instr not found in leader.Positions,
         /// or found position has qty=0. Sets pos to the found position (or null if absent).
         /// Removes 5 branches from Execute (foreach + 2 ifs + pos==null||qty check). CYC=4.
+        /// C13: uses FullName comparison -- NT8 can supply distinct Instrument instances for the same contract.
         /// JS-002: bool return (TryXxx pattern). JS-021: no lock. ASCII-only.
         /// </summary>
         private static bool IsFlatOrMissing(Account leader, Instrument instr, out Position pos)
@@ -195,7 +218,7 @@ namespace PropTraderTools
             if (leader == null)
                 return true;
             foreach (Position p in leader.Positions)
-                if (p.Instrument == instr)
+                if (p.Instrument?.FullName == instr?.FullName)
                 {
                     pos = p;
                     break;
