@@ -130,8 +130,8 @@ namespace PropTraderTools
 
         /// <summary>
         /// Returns true if bePrice is valid to submit against live market.
-        /// NT8 rule: Sell stop must be <= Ask; BuyToCover stop must be >= Bid.
-        /// ask/bid <= 0.0 means no market data yet -- allow submission, NT8 handles it.
+        /// NT8 rule: Sell stop must be &lt;= Ask; BuyToCover stop validated against ask (NT8 requires >= ask).
+        /// ask/bid &lt;= 0.0 means no market data yet -- allow submission, NT8 handles it.
         /// CYC=3: (1) isLong branch, (2) long priceOk expr, (3) short priceOk expr.
         /// JS-001: no throw. JS-002: returns bool.
         /// </summary>
@@ -139,7 +139,7 @@ namespace PropTraderTools
         {
             if (isLong)
                 return ask <= 0.0 || bePrice <= ask; // (1)(2)
-            return bid <= 0.0 || bePrice >= bid; // (3)
+            return ask <= 0.0 || bePrice >= ask; // (3)
         }
 
         /// <summary>
@@ -546,13 +546,14 @@ namespace PropTraderTools
         /// Find position for account + instrument without Positions[Instrument] indexer.
         /// NT8-050: acc.Positions[Instrument] is CS1503 in NT8 -- use foreach.
         /// CYC=2: foreach(1), if(2). Returns null if flat -- callers have null guards.
+        /// FullName comparison avoids reference equality mismatch across NT8 Instrument instances.
         /// </summary>
         private static Position FindPositionLocal(Account acc, Instrument instr)
         {
             if (acc == null || instr == null)
                 return null;
             foreach (Position p in acc.Positions)
-                if (p.Instrument == instr)
+                if (p.Instrument?.FullName == instr?.FullName)
                     return p;
             return null;
         }
