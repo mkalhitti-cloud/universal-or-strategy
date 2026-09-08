@@ -167,9 +167,26 @@ namespace PropTraderTools
                 return; // CYC branch (1): no saved rules -- keep default MES row
             Dispatcher.InvokeAsync(() =>
             {
+                // Clear stale tracking collections BEFORE rebuild (C1/R7)
+                _leaderBoxes.Clear();
+                _followerBoxes.Clear();
+                _beBtns.Clear();
+                _trimBtns.Clear();
+                _flattenBtns.Clear();
+                _cancelBtns.Clear();
+                _armBeBtns.Clear();
+                _tightenBtns.Clear();
                 _rulesPanel.Children.Clear();
                 foreach (var instr in instruments) // CYC branch (2): iterate instruments
-                    _rulesPanel.Children.Add(BuildRuleRow(instr));
+                {
+                    var row = BuildRuleRow(instr);
+                    _rulesPanel.Children.Add(row);
+                }
+                // Bind Account.All to rebuilt rows (S3/C2/R7)
+                foreach (var cb in _leaderBoxes)
+                    cb.ItemsSource = Account.All;
+                foreach (var lb in _followerBoxes)
+                    lb.ItemsSource = Account.All;
                 ApplyFeatureFlags(CopyEngine.Instance.Flags); // DW-C39-05b: apply flags after rows are built
             });
         }
@@ -427,7 +444,7 @@ namespace PropTraderTools
         }
 
         // BGTM-1: Apply feature flags to all gated UI elements.
-        // TradeCopierWindow::ApplyFeatureFlags after extraction. CCN=5.
+        // TradeCopierWindow::ApplyFeatureFlags after extraction. CCN=4.
         private void ApplyFeatureFlags(FeatureFlags f)
         {
             ApplyButtonGroupFlag(_trimBtns, f.TrimFlatten, "Trim requires Pro tier");
@@ -436,15 +453,31 @@ namespace PropTraderTools
             ApplyButtonGroupFlag(_beBtns, f.BreakEven, "Break Even requires Pro tier");
             ApplyButtonGroupFlag(_armBeBtns, f.BreakEven, "Arm Break-Even not available on this plan");
             ApplyButtonGroupFlag(_tightenBtns, f.BreakEven, "Tighten Stop not available on this plan");
-            if (_modeCb != null)
-            {
-                _modeCb.IsEnabled = f.MirrorMode;
-                _modeCb.ToolTip = f.MirrorMode ? null : "Mirror mode requires Elite tier";
-            }
+            ApplyMirrorModeFlag(f.MirrorMode); // (C4/R4)
             if (_addRuleBtn != null)
             {
                 _addRuleBtn.IsEnabled = f.MultiRule;
                 _addRuleBtn.ToolTip = f.MultiRule ? null : "Multi-rule requires Pro tier";
+            }
+        }
+
+        // ApplyMirrorModeFlag: disable only the Mirror ComboBoxItem, keep others enabled. CCN=4.
+        private void ApplyMirrorModeFlag(bool mirrorEnabled)
+        {
+            if (_modeCb == null)
+                return;
+            _modeCb.IsEnabled = true;
+            _modeCb.ToolTip = null;
+            foreach (var itemObj in _modeCb.Items)
+            {
+                var itemStr = itemObj as string ?? itemObj?.ToString() ?? string.Empty;
+                if (itemStr.IndexOf("Mirror", StringComparison.OrdinalIgnoreCase) < 0)
+                    continue;
+                var container = _modeCb.ItemContainerGenerator.ContainerFromItem(itemObj) as ComboBoxItem;
+                if (container == null)
+                    continue;
+                container.IsEnabled = mirrorEnabled;
+                container.ToolTip = mirrorEnabled ? null : "Mirror mode requires Elite tier";
             }
         }
 
@@ -977,6 +1010,8 @@ namespace PropTraderTools
             if (btn == null)
                 return;
             string name = btn.Tag is TextBox tb ? tb.Text : btn.Tag as string;
+            if (string.IsNullOrWhiteSpace(name))
+                return;
             bool newState = (string)btn.Content == "[ON]" ? false : true;
             btn.Content = newState ? "[ON]" : "[OFF]";
             btn.Background = newState ? WBrushActive : WBrushInactive;
@@ -1010,13 +1045,13 @@ namespace PropTraderTools
                 _engine.BreakEven(instr, ticks);
         }
 
-        // TryParseArmBeBuffer: parses buffer ticks from tag[2] TextBox. Default=2. CCN=2.
+        // TryParseArmBeBuffer: parses buffer ticks from tag[2] TextBox. Default=2. CCN=3.
         private static int TryParseArmBeBuffer(object[] tag)
         {
             int buf = 2;
             var bufBox = tag.Length > 2 ? tag[2] as TextBox : null;
-            if (bufBox != null)
-                int.TryParse(bufBox.Text, out buf);
+            if (bufBox != null && int.TryParse(bufBox.Text, out int parsed) && parsed >= 0)
+                buf = parsed;
             return buf;
         }
 
