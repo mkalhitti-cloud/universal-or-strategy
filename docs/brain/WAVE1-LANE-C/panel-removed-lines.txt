@@ -1,0 +1,237 @@
+﻿        // OnLoaded after extraction. CCN=7.
+            PopulateFollowerItems();
+            RestoreSavedFollowers();
+            NotifyRiskChanged();
+            NotifyAtrFractionChanged();
+            ApplyCopyState(_engine.IsEnabled);
+            // B33 T7 -- Build AllAccounts (leader + followers) for IPttHostContext.
+            // B33 T7 -- Register and initialize all IPttModules.
+            ApplyModuleLicenses();
+            _engine.Subscribe();
+
+            // B41: Site 3 -- initial display sync after panel wires up.
+            if (_leaderAccount != null)
+            {
+                _leaderAccount.OrderUpdate += OnLeaderOrderUpdate;
+                _leaderAccount.PositionUpdate += OnLeaderPositionUpdate;
+                RefreshQuickDisplay(_leaderAccount, _instrument);
+            }
+
+            // BGTM-1: Subscribe to feature-flag changes and apply current flags now.
+            CopyEngine.Instance.FeatureFlagsChanged += OnFeatureFlagsChanged;
+            ApplyFeatureFlags(CopyEngine.Instance.Flags);
+            _buyToggle = new ToggleButton
+            _buyToggle.SetResourceReference(Control.StyleProperty, "NTToggleButtonStyle");
+            _sellToggle = new ToggleButton
+            _sellToggle.SetResourceReference(Control.StyleProperty, "NTToggleButtonStyle");
+
+            _buyToggle.Click += OnBuyToggleClick;
+            _sellToggle.Click += OnSellToggleClick;
+            _armBtn = new Button
+            _armBtn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            _armBtn.Click += OnArmClick;
+            // B41: Cancel button relocated from BuildBufferedButtonsRow Row 3 to Click Trader row.
+            _cancelBtn2 = new Button
+            _cancelBtn2.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            _cancelBtn2.Click += OnCancel2;
+
+            _clickTraderRow.Children.Add(_buyToggle);
+            _clickTraderRow.Children.Add(_sellToggle);
+            _clickTraderRow.Children.Add(_armBtn);
+            _clickTraderRow.Children.Add(_cancelBtn2);
+            root.Children.Add(_clickTraderRow);
+            _clickTraderRow.Visibility = Visibility.Collapsed; // B47 T5-B: HIDE NOT DELETE (handlers preserved)
+            {
+                var cluster = new DockPanel { LastChildFill = true };
+                var arrows = new Grid();
+                arrows.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
+                arrows.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
+                var up = new System.Windows.Controls.Primitives.RepeatButton
+                {
+                    Content = "^",
+                    Width = 18,
+                    Height = 12,
+                };
+                var dn = new System.Windows.Controls.Primitives.RepeatButton
+                {
+                    Content = "v",
+                    Width = 18,
+                    Height = 12,
+                };
+                up.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+                dn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+                up.Click += s.Up;
+                dn.Click += s.Dn;
+                Grid.SetRow(up, 0);
+                Grid.SetRow(dn, 1);
+                arrows.Children.Add(up);
+                arrows.Children.Add(dn);
+                DockPanel.SetDock(arrows, Dock.Right);
+                var btn = new Button { Content = s.Content };
+                btn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+                if (s.Teal)
+                {
+                    btn.BorderBrush = BrushTeal;
+                    btn.Foreground = System.Windows.Media.Brushes.White; // DW-BWAVE-UI-01: white text on teal bg (was BrushTeal -- invisible)
+                    btn.BorderThickness = new Thickness(2);
+                }
+                btn.Background = s.Bg; // AFTER style -- explicit brush wins (DW-LaneA-06 fix)
+                btn.Click += s.Main;
+                cluster.Children.Add(arrows);
+                cluster.Children.Add(btn);
+                s.Store(btn);
+                s.Target.Children.Add(cluster);
+            }
+        // CYC=5: (1) instrument null, (2) leader null, (3) Idle branch,
+        //        (4) price-already-at-BE check, (5) Armed cancel.
+                return; // (1)
+                return; // (2)
+            switch (_beState)
+                case BeState.Idle: // (3)
+                    // DW-B32-04: if price already past BE target, fire immediately -- no arm needed.
+                    // Otherwise arm and wait for price to cross.
+                    if (IsPriceAlreadyAtBe(_leaderAccount, _instrument, _beBuffer)) // (4)
+                    {
+                        NinjaTrader.Code.Output.Process(
+                            "[BE] button: immediate fire "
+                                + _leaderAccount.Name
+                                + " buf="
+                                + _beBuffer,
+                            NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                        );
+                        DispatchModule("BE");
+                        // stay Idle -- ATM owns stop from here
+                    }
+                    else
+                    {
+                        NinjaTrader.Code.Output.Process(
+                            "[BE] button: arming " + _leaderAccount.Name + " buf=" + _beBuffer,
+                            NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                        );
+                        _engine.ArmPendingBe(_instrument, _leaderAccount, _beBuffer);
+                        _beState = BeState.Armed;
+                        UpdateBeVisuals(BeState.Armed);
+                    }
+                    break;
+                case BeState.Armed: // (5)
+                    NinjaTrader.Code.Output.Process(
+                        "[BE] button: disarming " + _leaderAccount.Name,
+                        NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                    );
+                    _engine.DisarmPendingBe(_leaderAccount);
+                    _beState = BeState.Idle;
+                    UpdateBeVisuals(BeState.Idle);
+                    break;
+            _signalModeBtn = new RadioButton
+            _mirrorModeBtn = new RadioButton
+            _signalModeBtn.Click += OnSignalModeClick;
+            _mirrorModeBtn.Click += OnMirrorModeClick;
+            // B41: COPY ON/OFF ToggleButton relocated from BuildBufferedButtonsRow Row 3 to Mode row.
+            _copyToggleBtn2 = new Button
+                Content = "\u25CF COPY OFF",
+                BorderBrush = BrushInactive,
+                BorderThickness = new Thickness(2),
+            _copyToggleBtn2.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            _copyToggleBtn2.Click += OnCopyToggle;
+            // B50: Clone radio button
+            _cloneModeBtn = new RadioButton
+                Content = "Clone",
+            _cloneModeBtn.Click += OnCloneModeClick;
+
+            row.Children.Add(lbl);
+            row.Children.Add(_signalModeBtn);
+            row.Children.Add(_mirrorModeBtn);
+            row.Children.Add(_cloneModeBtn);
+            row.Children.Add(_copyToggleBtn2);
+            root.Children.Add(row);
+        // CYC=1: straight-line. JS-021: no lock. NT8-012: no FrameworkElementFactory.
+            // Col 0: CheckBox -- docked Left, tracks IsSelected
+            var chk = new CheckBox
+            DockPanel.SetDock(chk, Dock.Left);
+            // Col 2 (docked Right): ATM ComboBox (NT8-045: populated from filesystem on Loaded event)
+            // Docked before PnL so DockPanel processes right-most first.
+            var atmCombo = new ComboBox
+                Width = 110,
+                IsEnabled = item.IsSelected,
+                Margin = new Thickness(2, 0, 0, 0),
+            atmCombo.AddHandler(
+                FrameworkElement.LoadedEvent,
+                new RoutedEventHandler(OnFollowerAtmTemplateComboLoaded)
+            );
+            atmCombo.SelectionChanged += OnFollowerAtmTemplateComboChanged;
+            atmCombo.DataContext = item;
+            DockPanel.SetDock(atmCombo, Dock.Right);
+            // Col 2 (docked Right): P&L TextBlock -- mirrors DailyPnlText/DailyPnlColor.
+            // item.DailyPnlText: formatted string e.g. "+$125.00"
+            // item.DailyPnlColor: SolidColorBrush -- green/red/neutral (already Freeze()d by FollowerItem)
+            var pnlLabel = new TextBlock
+            DockPanel.SetDock(pnlLabel, Dock.Right);
+            // Col 1 (LastChildFill): Account name label -- fills all remaining space.
+            // TextTrimming=CharacterEllipsis ensures long names degrade gracefully if panel is very narrow.
+            var nameLabel = new TextBlock
+                Text = item.ToString(),
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                Margin = new Thickness(0, 0, 4, 0),
+            nameLabel.SetResourceReference(TextBlock.ForegroundProperty, "NTBrushes.SubtleBrush");
+            // CheckBox event handlers: toggle IsSelected + ATM IsEnabled + sort + auto-apply
+
+            // DockPanel child order: Left-docked first, Right-docked next (ATM then PnL),
+            // LastChildFill (name) added last so it fills the remaining centre space.
+            row.Children.Add(chk);
+            row.Children.Add(atmCombo);
+            row.Children.Add(pnlLabel);
+            row.Children.Add(nameLabel);
+            _followerScrollViewerPanel.Children.Add(row);
+
+            // [1] Account name -- Col 0: star width, ellipsis trimming
+            var nameFactory = new FrameworkElementFactory(typeof(TextBlock));
+            nameFactory.SetValue(Grid.ColumnProperty, 0);
+            nameFactory.SetBinding(TextBlock.TextProperty, new Binding("Account.Name"));
+            nameFactory.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis);
+            nameFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+
+            // [2] Daily P&L -- Col 1: 62px fixed, right-aligned, color-coded
+            var pnlFactory = new FrameworkElementFactory(typeof(TextBlock));
+            pnlFactory.SetValue(Grid.ColumnProperty, 1);
+            pnlFactory.SetBinding(TextBlock.TextProperty, new Binding("DailyPnlText"));
+            pnlFactory.SetBinding(TextBlock.ForegroundProperty, new Binding("DailyPnlColor"));
+            pnlFactory.SetValue(TextBlock.TextAlignmentProperty, TextAlignment.Right);
+            pnlFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+
+            // [3] B8 T1: Multiplier TextBox -- Col 2: 30px fixed
+            // Fires on WPF UI thread -- no Dispatcher needed (JS-023 compliant)
+            var multFactory = new FrameworkElementFactory(typeof(TextBox));
+            multFactory.SetValue(Grid.ColumnProperty, 2);
+            multFactory.SetValue(TextBox.TextProperty, "1");
+            multFactory.SetValue(
+                TextBox.VerticalContentAlignmentProperty,
+                VerticalAlignment.Center
+            );
+            multFactory.AddHandler(
+            multFactory.SetValue(FrameworkElement.VisibilityProperty, Visibility.Collapsed);
+
+            // [4] B43 T1: ATM template ComboBox (replaces Inherit/Market/Named ComboBox + namedBox TextBox).
+            // Col 3. Width=120 to accommodate template names. Wired via FEF LoadedEvent + SelectionChangedEvent.
+            // NT8-012: FEF AddHandler pattern for Loaded event -- mandatory for NT8 DataTemplate wiring.
+            var atmTemplateFactory = new FrameworkElementFactory(typeof(ComboBox));
+            atmTemplateFactory.SetValue(Grid.ColumnProperty, 3);
+            atmTemplateFactory.SetValue(ComboBox.WidthProperty, 120.0);
+            atmTemplateFactory.SetValue(ComboBox.MarginProperty, new Thickness(2));
+            atmTemplateFactory.SetValue(ComboBox.ToolTipProperty, "ATM template for this follower");
+            atmTemplateFactory.AddHandler(
+            atmTemplateFactory.AddHandler(
+            // [5] Checkmark -- Col 4: 20px fixed, centered (was col 5 -- namedBox col removed)
+            var chkFactory = new FrameworkElementFactory(typeof(CheckBox));
+            chkFactory.SetValue(Grid.ColumnProperty, 4);
+            chkFactory.SetBinding(
+            chkFactory.AddHandler(CheckBox.ClickEvent, new RoutedEventHandler(OnFollowerChecked));
+            chkFactory.SetValue(CheckBox.VerticalAlignmentProperty, VerticalAlignment.Center);
+            chkFactory.SetValue(CheckBox.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+
+            gridFactory.AppendChild(nameFactory);
+            gridFactory.AppendChild(pnlFactory);
+            gridFactory.AppendChild(multFactory);
+            gridFactory.AppendChild(atmTemplateFactory);
+            gridFactory.AppendChild(chkFactory);
+            template.VisualTree = gridFactory;
+            return template;

@@ -1,0 +1,16 @@
+{
+  "epic": "WAVE2-LANE-A",
+  "description": "CopyEngine.cs CCN=9 Extractions: IsExitSignalName + HasArmingAtmBrackets",
+  "created": "2026-08-11",
+  "phases": {
+    "phase1": { "status": "pending", "artifact": "02-architecture-plan.md" },
+    "phase2": { "status": "pending", "artifact": "02-plan-review.md" },
+    "phase3": { "status": "pending", "artifact": "04-tickets.md" },
+    "phase3_5": { "status": "pending", "artifact": "04-ticket-review.md" },
+    "phase4a_t1": { "status": "pending", "artifact": "ticket-1-completion.md" },
+    "phase4b_t1": { "status": "pending", "artifact": "ticket-1-verification.md" },
+    "phase4a_t2": { "status": "pending", "artifact": "ticket-2-completion.md" },
+    "phase4b_t2": { "status": "pending", "artifact": "ticket-2-verification.md" },
+    "phase5": { "status": "pending", "artifact": "05-final-review.md" }
+  }
+}

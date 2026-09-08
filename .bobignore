@@ -1,0 +1,71 @@
+# VM-Specific .bobignore for Wave 7 Execution
+# This version ALLOWS access to phase scripts and epic directories
+
+# Bob IDE Context Exclusions (keep these)
+.agent/
+.agents/
+.claude/
+mcp-servers/
+node_modules/
+bin/
+obj/
+.vscode/
+.history/
+.git/
+
+# Historical waves (keep blocked)
+docs/brain/WAVE1*/
+docs/brain/WAVE2*/
+docs/brain/WAVE3*/
+docs/brain/WAVE4*/
+docs/brain/WAVE5*/
+docs/brain/WAVE6*/
+!docs/brain/EPIC-W7-*/
+!docs/brain/WAVE1-LANE-A/
+!docs/brain/WAVE1-LANE-B/
+!docs/brain/WAVE1-LANE-C/
+!docs/brain/WAVE2-LANE-A/
+
+# Building blocks (keep blocked except wave7)
+building-blocks/*
+!building-blocks/wave7/
+
+# Documentation (keep blocked)
+docs/andrewngtrascript.md
+docs/bobshell_docs.md
+docs/goose cli api.md
+docs/Hermes Architecture.md
+docs/droid api docs.md
+docs/greptiledocs.md
+docs/Gitbutlerdocs.md
+
+# Backups and temp (keep blocked)
+docs/brain-vm-backup/
+temp_epic_*/
+conductor/
+routa-tools/
+sandbox/
+scaffolds/
+Traycerrefactor/
+benchmarks/
+tests/
+src-vm-backup/
+temp_*/
+*.bak*
+*.tmp
+
+# CRITICAL: DO NOT BLOCK THESE ON VM
+# _p0_*.sh - ALLOWED (needed for Phase 0 execution)
+# _p1_*.sh - ALLOWED (needed for Phase 1 execution)
+# _p2_*.sh - ALLOWED (needed for Phase 2 execution)
+# _p3_*.sh - ALLOWED (needed for Phase 3 execution)
+# _p4_*.sh - ALLOWED (needed for Phase 4 execution)
+# _p5_*.sh - ALLOWED (needed for Phase 5 execution)
+# _p5v_*.sh - ALLOWED (needed for Phase 5.V execution)
+# _p6_*.sh - ALLOWED (needed for Phase 6 execution)
+# phase*.sh - ALLOWED (needed for phase execution)
+# complete_epic_*.sh - ALLOWED (needed for epic completion)
+# EPIC-CCN-*/ - ALLOWED (needed for epic brain directories)
+# docs/brain/EPIC-CCN-*/ - ALLOWED (needed for epic documentation)
+
+.bobignore

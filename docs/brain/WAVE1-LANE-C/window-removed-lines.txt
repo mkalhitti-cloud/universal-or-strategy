@@ -1,0 +1,80 @@
+﻿            // --- Title ---
+            var titleBlock = new TextBlock
+            DockPanel.SetDock(titleBlock, Dock.Top);
+            root.Children.Add(titleBlock);
+            // --- Global toggle (color-coded -- no NTButtonStyle) ---
+            DockPanel.SetDock(_globalToggleBtn, Dock.Top);
+            root.Children.Add(_globalToggleBtn);
+
+            var modeRow = BuildModeRow();
+            DockPanel.SetDock(modeRow, Dock.Top);
+            root.Children.Add(modeRow);
+
+            var sep1 = new Separator { Margin = new Thickness(0, 2, 0, 2) };
+            DockPanel.SetDock(sep1, Dock.Top);
+            root.Children.Add(sep1);
+
+            var rulesScroll = BuildRulesScrollArea();
+            DockPanel.SetDock(rulesScroll, Dock.Top);
+            root.Children.Add(rulesScroll);
+
+            _addRuleBtn = new Button
+            {
+                Content = "+ Add Rule",
+                Margin = new Thickness(6, 2, 6, 2),
+                Padding = new Thickness(8, 3, 8, 3),
+            };
+            _addRuleBtn.Click += OnAddRule;
+            DockPanel.SetDock(_addRuleBtn, Dock.Top);
+            root.Children.Add(_addRuleBtn);
+
+            var sep2 = new Separator { Margin = new Thickness(0, 2, 0, 2) };
+            DockPanel.SetDock(sep2, Dock.Top);
+            root.Children.Add(sep2);
+
+            // BGTM-1: license key row docks to bottom before log fills remaining space
+            BuildLicenseRow(root);
+
+            // LastChildFill = true on DockPanel means this gets all remaining space
+            root.Children.Add(BuildLogScrollArea());
+
+            Content = root;
+
+            // V04: ensure consistent initial state (all action buttons start grey)
+            UpdateButtonColors(false, false);
+        // R5: Builds the horizontal Copy Mode row. CYC=1. JS-002: no return null. ASCII-only.
+        private StackPanel BuildModeRow()
+        // R5: Builds the rules scroll area and initialises _rulesPanel. CYC=1. JS-002: no return null. ASCII-only.
+        // B7-F5: ScrollViewer MaxHeight=400 -- DockPanel.SetDock applied by BuildUI on the returned viewer.
+        private ScrollViewer BuildRulesScrollArea()
+        // R5: Builds the log scroll area and initialises _logPanel. CYC=1. JS-002: no return null. ASCII-only.
+        private ScrollViewer BuildLogScrollArea()
+            var trimBtn = new Button
+                Tag = tag0,
+            trimBtn.Click += OnRuleTrim;
+            _trimBtns.Add(trimBtn);
+            Grid.SetColumn(trimBtn, 3);
+            grid.Children.Add(trimBtn);
+            var flattenBtn = new Button
+                Tag = tag0,
+            flattenBtn.Click += OnRuleFlatten;
+            _flattenBtns.Add(flattenBtn);
+            Grid.SetColumn(flattenBtn, 4);
+            grid.Children.Add(flattenBtn);
+            var cancelBtn = new Button
+                Tag = tag0,
+            cancelBtn.Click += OnRuleCancel;
+            _cancelBtns.Add(cancelBtn);
+            Grid.SetColumn(cancelBtn, 5);
+            grid.Children.Add(cancelBtn);
+            var toggleBtn = new Button
+                Tag = tag0,
+            toggleBtn.Click += OnRuleToggle;
+            Grid.SetColumn(toggleBtn, 6);
+            grid.Children.Add(toggleBtn);
+
+            var applyBtn = new Button { Content = "Apply", Margin = new Thickness(2) };
+            applyBtn.Tag = new object[] { tag0, leaderCb, followerLb, atmCb, namedBox };
+            applyBtn.Click += OnRowApply;
+            Grid.SetColumn(applyBtn, 7);
+            grid.Children.Add(applyBtn);

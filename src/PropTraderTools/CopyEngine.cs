@@ -5946,18 +5946,25 @@ namespace PropTraderTools
         internal Position FindPositionPublic(Account acc, Instrument instrument) =>
             FindPosition(acc, instrument);
 
+        // PTT-REPAIRS-01 R1: null-safe FullName equality helper (replaces reference equality).
+        // CYC=2: base(1) + &&(1). Static pure function. JS-021: no lock. JS-002: bool return.
+        private static bool OrderHasInstrFn(Order o, string fn) =>
+            o.Instrument != null && o.Instrument.FullName == fn;
+
         // B58 -- SnapshotTargetsPublic: collects Working orders with PTT-QX-T or PTT-TGT- prefix.
         // CYC=3 (1 base + foreach + prefix check). Returns List<Order> -- panel uses .Count.
         // JS-002: never returns null -- returns empty List if no matches.
         // JS-021: acc.Orders iteration; no lock required (NT8 AddOn read-only enumeration).
+        // PTT-REPAIRS-01 R1: FullName equality via OrderHasInstrFn (CYC unchanged).
         internal List<Order> SnapshotTargetsPublic(Account acc, Instrument instr)
         {
             var result = new List<Order>();
             if (acc == null || instr == null)
                 return result; // (1) null guard
+            string instrFn = instr.FullName; // instr non-null guaranteed by guard above
             foreach (Order o in acc.Orders) // (2) foreach
             {
-                if (o.Instrument != instr)
+                if (!OrderHasInstrFn(o, instrFn))  // PTT-REPAIRS-01 R1: FullName equality
                     continue;
                 if (o.OrderState != OrderState.Working)
                     continue;
@@ -7517,7 +7524,8 @@ namespace PropTraderTools
             // No Interlocked.Exchange -- count was set correctly at construction (F4).
         }
 
-        // CYC<=7: (1) o.Instrument==instrument; (2) OrderState.Working||Accepted +1 for ||;
+        // PTT-REPAIRS-01 R1: o.Instrument?.FullName equality. CYC unchanged (7).
+        // CYC<=7: (1) o.Instrument?.FullName!=instrument?.FullName; (2) OrderState.Working||Accepted +1 for ||;
         //         (3) && between state and type; (4) Limit||StopLimit +1 for ||;
         //         (5) && before name; (6) StartsWith; (7) ||"Entry". base=1 => 8.
         // F2-repair: restrict to PTT-Copy Limit/StopLimit entries only.
@@ -7525,7 +7533,7 @@ namespace PropTraderTools
         // JS-021: no lock (static, pure filter). ASCII-only.
         private static bool IsEntryCandidateOrder(Order o, Instrument instrument)
         {
-            if (o.Instrument != instrument) // (1)
+            if (o.Instrument?.FullName != instrument.FullName) // PTT-REPAIRS-01 R1: FullName equality (instrument non-null)
                 return false;
             if (o.OrderState != OrderState.Working && o.OrderState != OrderState.Accepted) // (2) &&
                 return false;
@@ -7657,9 +7665,43 @@ namespace PropTraderTools
                     _drainOwnedOrderIds.TryRemove(id, out _);
         }
 
-        // DW-NEW-08 Option D: watchdog for stuck drains. Piggybacked in OnOrderUpdate. No System.Threading.Timer.
-        // CYC=4: (1) IsEmpty fast-path, (2) foreach loop, (3) timestamp comparison, (4) F3 cleanup foreach.
+        // PTT-REPAIRS-01 R2: re-issue cancel requests for drain-owned orders still in-flight.
+        // Called by TryDrainWatchdog when PendingCancelCount > 0 at 2s timeout.
+        // CYC: follower null guard(1) + foreach Orders(1) + !idSet.Contains continue(1)
+        //      + Working||Submitted check(1) + || operator(1) + count>0 check(1) = 6 decisions.
+        // CYC <= 7. PASS (< 8).
+        // JS-021: no lock(). Account.Cancel() is AddOnBase available pattern.
+        // JS-001: no throw. JS-002: void -- no return null.
+        // NT8: Account.Cancel(IEnumerable<Order>) -- AddOnBase, confirmed NT8_FULL_REFERENCE.md:2408-2451.
+        // Does NOT decrement PendingCancelCount. Re-issued cancels trigger OnOrderUpdate ->
+        // Interlocked.Decrement -> when count reaches 0 -> SubmitDrainedEntry is called normally.
+        private void ReissueDrainCancels(string acctKey, PendingDispatchDrain payload)
+        {
+            var follower = payload.FollowerAccount;
+            if (follower == null)              // (1)
+                return;
+            var idSet = new System.Collections.Generic.HashSet<string>(payload.DrainedOrderIds);
+            var toCancel = new System.Collections.Generic.List<Order>();
+            foreach (Order o in follower.Orders) // (2)
+            {
+                if (!idSet.Contains(o.OrderId)) // (3)
+                    continue;
+                if (o.OrderState == OrderState.Working || o.OrderState == OrderState.Submitted) // (4) + ||(5)
+                    toCancel.Add(o);
+            }
+            if (toCancel.Count > 0)            // (6)
+                follower.Cancel(toCancel);
+            NinjaTrader.Code.Output.Process(
+                "[DRAIN-REISSUE] acct=" + acctKey + " count=" + toCancel.Count,
+                NinjaTrader.NinjaScript.PrintTo.OutputTab1
+            );
+        }
+
+        // PTT-REPAIRS-01 R2: PendingCancelCount guard + SubmitDrainedEntry/ReissueDrainCancels paths.
+        // CYC=5: (1) IsEmpty fast-path, (2) foreach, (3) timestamp >2000, (4) PendingCancelCount<=0 branch.
         // JS-021: no lock(). ConcurrentDictionary enumeration is thread-safe.
+        // IMPORTANT: SubmitDrainedEntry handles TryRemove + DrainedOrderIds cleanup internally.
+        //            Do NOT call _pendingDispatchDrains.TryRemove or _drainOwnedOrderIds.TryRemove here.
         private void TryDrainWatchdog()
         {
             if (_pendingDispatchDrains.IsEmpty) // (1)
@@ -7670,14 +7712,20 @@ namespace PropTraderTools
             {
                 if (now - kv.Value.TimestampTicks > 2000L) // (3)
                 {
-                    // F3-repair: clear drain-owned IDs before removing timed-out drain.
-                    foreach (var id in kv.Value.DrainedOrderIds) // (4)
-                        _drainOwnedOrderIds.TryRemove(id, out _);
-                    _pendingDispatchDrains.TryRemove(kv.Key, out _);
-                    NinjaTrader.Code.Output.Process(
-                        "[DRAIN-TIMEOUT] acct=" + kv.Key,
-                        NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                    );
+                    if (kv.Value.PendingCancelCount <= 0) // (4) NEW BRANCH
+                    {
+                        // All cancels confirmed (or none were in-flight) -- submit the deferred entry.
+                        SubmitDrainedEntry(kv.Key);
+                        NinjaTrader.Code.Output.Process(
+                            "[DRAIN-TIMEOUT-SUBMIT] acct=" + kv.Key,
+                            NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                        );
+                    }
+                    else
+                    {
+                        // Cancels still in-flight -- re-issue and keep drain alive.
+                        ReissueDrainCancels(kv.Key, kv.Value);
+                    }
                 }
             }
         }
