@@ -199,8 +199,6 @@ namespace PropTraderTools
         private SelectionChangedEventHandler _accountComboSelectionChanged; // B30-B: named handler for leak-free Detach
         private TextBlock _statusText;
         private bool _copyEnabled;
-        private TextBox _beBufferBox;
-
         // Checkmark dropdown
         private ComboBox _followersDropDown;
         private readonly List<FollowerItem> _followerItems = new List<FollowerItem>();
@@ -3038,7 +3036,7 @@ namespace PropTraderTools
         // B19 T1 -- DispatchShortcut: keyboard shortcuts dispatch to engine methods.
         // Calls EXISTING CopyEngine public methods -- no new CopyEngine code added.
         // CYC=5: switch entry (1) + 4 case arms (2,3,4,5).
-        // BE path reads _beBufferBox.Text for buffer ticks (UI-thread-safe; PreviewKeyDown is on UI thread).
+        // BE path uses _beBuffer (int field, maintained by OnBeUp/OnBeDown) for break-even tick count.
         // Key.T: Trim limit @ ask + buffer*tick (long) or bid - buffer*tick (short). Falls back to market on zero ask/bid.
         // Key.F: Flatten limit @ ask + buffer*tick (long) or bid - buffer*tick (short). Same fallback.
         private void DispatchShortcut(Key key)
@@ -3061,9 +3059,7 @@ namespace PropTraderTools
                     _engine.CancelPendingEntries(_leaderAccount, _instrument);
                     break;
                 case Key.B:
-                    int buf = 2;
-                    int.TryParse(_beBufferBox.Text, out buf);
-                    _engine.BreakEven(_leaderAccount, _instrument, buf);
+                    _engine.BreakEven(_leaderAccount, _instrument, _beBuffer);
                     break;
             }
         }
