@@ -5,7 +5,6 @@
 // NT8-003: volatile int (NOT volatile double). NT8-021: Account.All in Loaded handler, not constructor.
 
 using System;
-using System.Linq;
 using System.Threading;
 using NinjaTrader.Cbi;
 
@@ -492,17 +491,30 @@ namespace PropTraderTools
         }
 
         /// <summary>
+        /// IsTargetOrderState: returns true if order is in one of the five eligible working states.
+        /// Extracted from IsTargetOrder to keep CYC <= 8 per Jane Street standard.
+        /// CYC=5: Working(1) || Accepted(2) || Submitted(3) || Initialized(4) || TriggerPending(5).
+        /// JS-002: returns bool. JS-021: no lock. ASCII-only.
+        /// </summary>
+        private static bool IsTargetOrderState(NinjaTrader.Cbi.OrderState state)
+        {
+            return state == NinjaTrader.Cbi.OrderState.Working
+                || state == NinjaTrader.Cbi.OrderState.Accepted
+                || state == NinjaTrader.Cbi.OrderState.Submitted
+                || state == NinjaTrader.Cbi.OrderState.Initialized
+                || state == NinjaTrader.Cbi.OrderState.TriggerPending;
+        }
+
+        /// <summary>
         /// Determine if an order is a valid target for the given instrument.
         /// Extracted from SnapshotTargetOrders inner filter block (lines 449-470).
-        /// CYC=3: (1) stateOk (||), (2) instrOk, (3) name non-empty + Limit type check.
+        /// CYC=4: (1) IsTargetOrderState guard, (2) instrOk null check, (3) OrderType check, (4) name non-empty.
+        /// Delegates state check to IsTargetOrderState (five eligible working states: C1 fix).
         /// JS-002: returns bool. JS-021: no lock. ASCII-only.
         /// </summary>
         private static bool IsTargetOrder(NinjaTrader.Cbi.Order o, NinjaTrader.Cbi.Instrument instr)
         {
-            bool stateOk =
-                o.OrderState == NinjaTrader.Cbi.OrderState.Working
-                || o.OrderState == NinjaTrader.Cbi.OrderState.Accepted;
-            if (!stateOk)
+            if (!IsTargetOrderState(o.OrderState))
                 return false;
             bool instrOk = o.Instrument != null && o.Instrument.FullName == instr.FullName;
             if (!instrOk || o.OrderType != NinjaTrader.Cbi.OrderType.Limit)
@@ -659,7 +671,7 @@ namespace PropTraderTools
         /// to eliminate the DW-B126 race condition.
         /// CYC=7: acc null(1), instr null(2), foreach(3), o null(4), instrOk(5), IsPttBeOrder(6), stateOk(7).
         /// JS-021: no lock. JS-001: no throw. JS-002: returns int (not null). ASCII-only.
-        /// NT8: Account.Cancel(IEnumerable&lt;Order&gt;) -- NT8_FULL_REFERENCE.md lines 2408-2451.
+        /// NT8-006: no LINQ -- manual snapshot. NT8: Account.Cancel(IEnumerable&lt;Order&gt;) -- NT8_FULL_REFERENCE.md lines 2408-2451.
         /// </summary>
         internal static int CancelPttBeOrders(
             NinjaTrader.Cbi.Account acc,
@@ -669,7 +681,10 @@ namespace PropTraderTools
             if (acc == null || instr == null)
                 return 0;
             var toCancel = new System.Collections.Generic.List<NinjaTrader.Cbi.Order>();
-            foreach (NinjaTrader.Cbi.Order o in acc.Orders.ToList())
+            var snapshot = new System.Collections.Generic.List<NinjaTrader.Cbi.Order>();
+            foreach (NinjaTrader.Cbi.Order _snap in acc.Orders)
+                snapshot.Add(_snap);
+            foreach (NinjaTrader.Cbi.Order o in snapshot)
             {
                 if (!IsNonTerminalForInstr(o, instr))
                     continue;
@@ -685,7 +700,17 @@ namespace PropTraderTools
                 );
                 return 0;
             }
-            acc.Cancel(toCancel);
+            try
+            {
+                acc.Cancel(toCancel);
+            }
+            catch (Exception ex)
+            {
+                NinjaTrader.Code.Output.Process(
+                    "[PTT-QX-ALL] CancelPttBeOrders: acc=" + acc.Name + " Cancel exception: " + ex.Message,
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                );
+            }
             NinjaTrader.Code.Output.Process(
                 "[PTT-QX-ALL] CancelPttBeOrders: acc=" + acc.Name + " count=" + toCancel.Count,
                 NinjaTrader.NinjaScript.PrintTo.OutputTab1
@@ -699,6 +724,7 @@ namespace PropTraderTools
         /// Called immediately after CancelPttBeOrders when expectedCount &gt; 0.
         /// CYC=7: acc/count guard(1), while(2), foreach(3), o null(4), instrOk(5), IsPttBeOrder(6), nonTerminal(7).
         /// JS-021: no lock. JS-001: no throw. JS-033: synchronous void. ASCII-only.
+        /// NT8-006: no LINQ -- manual snapshot.
         /// </summary>
         internal static void WaitForPttBeCancelled(
             NinjaTrader.Cbi.Account acc,
@@ -720,7 +746,10 @@ namespace PropTraderTools
             while (DateTime.UtcNow < deadline)
             {
                 int nonTerminal = 0;
-                foreach (NinjaTrader.Cbi.Order o in acc.Orders.ToList())
+                var pollSnapshot = new System.Collections.Generic.List<NinjaTrader.Cbi.Order>();
+                foreach (NinjaTrader.Cbi.Order _snap in acc.Orders)
+                    pollSnapshot.Add(_snap);
+                foreach (NinjaTrader.Cbi.Order o in pollSnapshot)
                 {
                     if (IsNonTerminalForInstr(o, instr))
                         nonTerminal++;
