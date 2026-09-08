@@ -116,19 +116,6 @@ namespace PropTraderTools
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            // Bind Account.All now -- NT8 guarantees accounts are populated by Loaded
-            try
-            {
-                foreach (var cb in _leaderBoxes)
-                    cb.ItemsSource = Account.All;
-                foreach (var lb in _followerBoxes)
-                    lb.ItemsSource = Account.All;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("PTT account bind error:\n\n" + ex.Message, "Trade Copier");
-            }
-
             try
             {
                 _engine.StatusUpdate -= OnStatusUpdate;
@@ -167,26 +154,9 @@ namespace PropTraderTools
                 return; // CYC branch (1): no saved rules -- keep default MES row
             Dispatcher.InvokeAsync(() =>
             {
-                // Clear stale tracking collections BEFORE rebuild (C1/R7)
-                _leaderBoxes.Clear();
-                _followerBoxes.Clear();
-                _beBtns.Clear();
-                _trimBtns.Clear();
-                _flattenBtns.Clear();
-                _cancelBtns.Clear();
-                _armBeBtns.Clear();
-                _tightenBtns.Clear();
                 _rulesPanel.Children.Clear();
                 foreach (var instr in instruments) // CYC branch (2): iterate instruments
-                {
-                    var row = BuildRuleRow(instr);
-                    _rulesPanel.Children.Add(row);
-                }
-                // Bind Account.All to rebuilt rows (S3/C2/R7)
-                foreach (var cb in _leaderBoxes)
-                    cb.ItemsSource = Account.All;
-                foreach (var lb in _followerBoxes)
-                    lb.ItemsSource = Account.All;
+                    _rulesPanel.Children.Add(BuildRuleRow(instr));
                 ApplyFeatureFlags(CopyEngine.Instance.Flags); // DW-C39-05b: apply flags after rows are built
             });
         }
@@ -409,9 +379,7 @@ namespace PropTraderTools
             parent.Children.Add(row);
         }
 
-        // FIX 2 (PR-121 T3): Activate button click -- validate license and apply flags.
-        // LicenseClient.Validate wrapped in own try/catch so validation exceptions don't escape WPF handler.
-        // CYC=2: file-write catch (1) + validate catch (2). JS-001: no throw.
+        // BGTM-1: Activate button click -- validate license and apply flags. CYC=1. JS-001: no throw.
         private void OnActivateClick(object sender, RoutedEventArgs e)
         {
             string key = _licenseKeyBox?.Text?.Trim() ?? string.Empty;
@@ -423,19 +391,10 @@ namespace PropTraderTools
                 System.IO.File.WriteAllText(LicenseTxtPath, key);
             }
             catch (Exception) { }
-            try
-            {
-                var flags = LicenseClient.Validate(key);
-                CopyEngine.Instance.SetFlags(flags);
-                ApplyFeatureFlags(flags);
-                _licenseStatusText.Text = GetStatusText(flags);
-            }
-            catch (Exception ex)
-            {
-                if (_licenseStatusText != null)
-                    _licenseStatusText.Text = "Validation error";
-                MessageBox.Show("PTT license error:\n\n" + ex.Message, "Trade Copier");
-            }
+            var flags = LicenseClient.Validate(key);
+            CopyEngine.Instance.SetFlags(flags);
+            ApplyFeatureFlags(flags);
+            _licenseStatusText.Text = GetStatusText(flags);
         }
 
         // BWAVE-CYC T7: extracted helper for TradeCopierWindow::ApplyFeatureFlags.
@@ -455,7 +414,7 @@ namespace PropTraderTools
         }
 
         // BGTM-1: Apply feature flags to all gated UI elements.
-        // TradeCopierWindow::ApplyFeatureFlags after extraction. CCN=4.
+        // TradeCopierWindow::ApplyFeatureFlags after extraction. CCN=5.
         private void ApplyFeatureFlags(FeatureFlags f)
         {
             ApplyButtonGroupFlag(_trimBtns, f.TrimFlatten, "Trim requires Pro tier");
@@ -464,31 +423,14 @@ namespace PropTraderTools
             ApplyButtonGroupFlag(_beBtns, f.BreakEven, "Break Even requires Pro tier");
             ApplyButtonGroupFlag(_armBeBtns, f.BreakEven, "Arm Break-Even not available on this plan");
             ApplyButtonGroupFlag(_tightenBtns, f.BreakEven, "Tighten Stop not available on this plan");
-            ApplyMirrorModeFlag(f.MirrorMode); // (C4/R4)
+            if (_modeCb != null)
+            {
+                _modeCb.ToolTip = f.MirrorMode ? null : "Mirror mode requires Elite tier";
+            }
             if (_addRuleBtn != null)
             {
                 _addRuleBtn.IsEnabled = f.MultiRule;
                 _addRuleBtn.ToolTip = f.MultiRule ? null : "Multi-rule requires Pro tier";
-            }
-        }
-
-        // ApplyMirrorModeFlag: disable only the Mirror ComboBoxItem, keep others enabled. CCN=4.
-        private void ApplyMirrorModeFlag(bool mirrorEnabled)
-        {
-            if (_modeCb == null)
-                return;
-            _modeCb.IsEnabled = true;
-            _modeCb.ToolTip = null;
-            foreach (var itemObj in _modeCb.Items)
-            {
-                var itemStr = itemObj as string ?? itemObj?.ToString() ?? string.Empty;
-                if (itemStr.IndexOf("Mirror", StringComparison.OrdinalIgnoreCase) < 0)
-                    continue;
-                var container = _modeCb.ItemContainerGenerator.ContainerFromItem(itemObj) as ComboBoxItem;
-                if (container == null)
-                    continue;
-                container.IsEnabled = mirrorEnabled;
-                container.ToolTip = mirrorEnabled ? null : "Mirror mode requires Elite tier";
             }
         }
 
@@ -525,8 +467,7 @@ namespace PropTraderTools
             return "STARTER";
         }
 
-        // BWAVE-CYC R1: BuildRuleRow refactored to use shared helpers. LoC before=202 after=36.
-        // CYC=1 (straight-line construction; no branches in parent).
+        // PTT-REPAIRS-01 R5: Account.All bound immediately. CYC=2 (Account.All null guard).
         private Grid BuildRuleRow(string instrumentName)
         {
             var grid = new Grid { Margin = new Thickness(2) };
@@ -542,18 +483,25 @@ namespace PropTraderTools
             Grid.SetColumn(instrLabel, 0);
             grid.Children.Add(instrLabel);
 
-            // Col 1: leader ComboBox -- ItemsSource set in Loaded
+            // Col 1: leader ComboBox
             var leaderCb = new ComboBox { Margin = new Thickness(2) };
             _leaderBoxes.Add(leaderCb);
             leaderCb.ItemTemplate = BuildAccountDisplayTemplate();
             Grid.SetColumn(leaderCb, 1);
             grid.Children.Add(leaderCb);
 
-            // Col 2: follower ListBox -- ItemsSource set in Loaded
+            // Col 2: follower ListBox
             var followerLb = BuildFollowerListBox();
             _followerBoxes.Add(followerLb);
             Grid.SetColumn(followerLb, 2);
             grid.Children.Add(followerLb);
+
+            // PTT-REPAIRS-01 R5: bind Account.All immediately if available (null guard for constructor timing).
+            if (Account.All != null) // (1) NEW BRANCH -- CYC becomes 2
+            {
+                leaderCb.ItemsSource = Account.All;
+                followerLb.ItemsSource = Account.All;
+            }
 
             var atmPanel = BuildAtmColumnPanel();
             BuildActionButtons(instrumentName, leaderCb, followerLb, atmPanel, grid);
@@ -896,18 +844,26 @@ namespace PropTraderTools
             grid.Children.Add(btn);
         }
 
-        // B56-LaneB: CYC=4 -- null guard (1) + 3-way if-chain for index 0/1/2 (branches 2/3/4)
+        // PTT-REPAIRS-01 R4: Mirror mode Elite gate added. CYC=5.
+        // null guard(1), Elite-gate(2), index==1(3), index==2(4), else(5).
+        // Re-entrancy: cb.SelectedIndex = 0 re-fires this handler; second call index==0, gate=false -> no loop.
+        // JS-033: WPF SelectionChangedEventArgs event handler -- void permitted.
         private void OnCopyModeComboChanged(object sender, SelectionChangedEventArgs e)
         {
             var cb = sender as ComboBox;
             if (cb == null)
                 return; // guard (1)
+            if (cb.SelectedIndex == 1 && !CopyEngine.Instance.Flags.MirrorMode) // (2) NEW GATE
+            {
+                cb.SelectedIndex = 0; // Revert to Signal (re-fires handler; second call: index==0, gate fails)
+                return;
+            }
             if (cb.SelectedIndex == 1)
-                CopyEngine.Instance.SetCopyMode(CopyMode.Mirror); // branch (2)
+                CopyEngine.Instance.SetCopyMode(CopyMode.Mirror); // branch (3)
             else if (cb.SelectedIndex == 2)
-                CopyEngine.Instance.SetCopyMode(CopyMode.Clone); // branch (3)
+                CopyEngine.Instance.SetCopyMode(CopyMode.Clone); // branch (4)
             else
-                CopyEngine.Instance.SetCopyMode(CopyMode.Signal); // branch (4)
+                CopyEngine.Instance.SetCopyMode(CopyMode.Signal); // branch (5)
         }
 
         private void OnGlobalToggle(object sender, RoutedEventArgs e)
@@ -1021,8 +977,6 @@ namespace PropTraderTools
             if (btn == null)
                 return;
             string name = btn.Tag is TextBox tb ? tb.Text : btn.Tag as string;
-            if (string.IsNullOrWhiteSpace(name))
-                return;
             bool newState = (string)btn.Content == "[ON]" ? false : true;
             btn.Content = newState ? "[ON]" : "[OFF]";
             btn.Background = newState ? WBrushActive : WBrushInactive;
@@ -1056,13 +1010,13 @@ namespace PropTraderTools
                 _engine.BreakEven(instr, ticks);
         }
 
-        // TryParseArmBeBuffer: parses buffer ticks from tag[2] TextBox. Default=2. CCN=3.
+        // TryParseArmBeBuffer: parses buffer ticks from tag[2] TextBox. Default=2. CCN=2.
         private static int TryParseArmBeBuffer(object[] tag)
         {
             int buf = 2;
             var bufBox = tag.Length > 2 ? tag[2] as TextBox : null;
-            if (bufBox != null && int.TryParse(bufBox.Text, out int parsed) && parsed >= 0)
-                buf = parsed;
+            if (bufBox != null)
+                int.TryParse(bufBox.Text, out buf);
             return buf;
         }
 

@@ -56,17 +56,14 @@ namespace PropTraderTools
         // Called by TradeCopierPanel.Detach(). CYC=1. JS-021: no lock.
         internal static bool IsPanelsEmpty() => _panels.IsEmpty;
 
-        // B11 T1 SIM101: per-chart logging-only diag handlers -- mirrors _keyHandlers pattern.
-        // FIX 3 (PR-121): was single static field, now ConcurrentDictionary to prevent handler leak
-        // on multi-chart. RemoveSim101 now uses TryRemove per chart.
-        private static readonly ConcurrentDictionary<Chart, KeyEventHandler> _sim101KeyDiags =
-            new ConcurrentDictionary<Chart, KeyEventHandler>();
+        // B11 T1 SIM101: logging-only diag handler stored as field so RemoveSim101() can unhook it.
+        // Set in RunSim101(); nulled unconditionally by RemoveSim101().
+        // Plan sec.2 V2 note. Review note: declare static to match _panels/_clickHandlers pattern.
+        private static KeyEventHandler _sim101KeyDiag;
 
-        // B10 T4: per-chart polling timers for ATR computation fallback.
-        // FIX 2 (PR-121): was single _atrPollTimer field -- only first chart got a timer.
-        // Now ConcurrentDictionary<Chart, DispatcherTimer> so every chart gets its own timer.
-        private static readonly ConcurrentDictionary<Chart, DispatcherTimer> _atrPollTimers =
-            new ConcurrentDictionary<Chart, DispatcherTimer>();
+        // B10 T4: polling timer for ATR computation fallback (when bar event not available)
+        // Fires engine.ManualOnBarUpdate every 1 second on UI thread as a safe fallback.
+        private DispatcherTimer _atrPollTimer = null;
 
         protected override void OnStateChange()
         {
@@ -231,62 +228,69 @@ namespace PropTraderTools
             _atrEngines[chart] = engine;
 
             // STEP 3 (event-based fallback -- compile-safe DispatcherTimer, 1s polling).
-            // FIX 2 (PR-121): create a separate timer per chart so all charts get ManualOnBarUpdate.
             // chart.NinjaScripts.Add / Indicators.Add / BarsArray are not accessible in
             // AddOnBase compilation scope (NT8 Roslyn design-time limitation).
-            var timer = new DispatcherTimer(DispatcherPriority.Background)
+            // DispatcherTimer is WPF standard and always compiles in AddOnBase context.
+            if (_atrPollTimer == null) // guard (3): create timer once
             {
-                Interval = System.TimeSpan.FromSeconds(1),
-            };
-            var capturedEngine = engine; // capture engine local for this chart -- not shared
-            timer.Tick += (s, e2) =>
-            {
-                try
+                _atrPollTimer = new DispatcherTimer(DispatcherPriority.Background)
                 {
-                    capturedEngine.ManualOnBarUpdate();
-                }
-                catch (System.Exception)
-                { /* NT8 context not ready; next tick will retry */
-                }
-            };
-            _atrPollTimers[chart] = timer;
-            timer.Start();
+                    Interval = System.TimeSpan.FromSeconds(1),
+                };
+                _atrPollTimer.Tick += (s, e2) =>
+                {
+                    try
+                    {
+                        engine.ManualOnBarUpdate();
+                    }
+                    catch (System.Exception)
+                    { /* NT8 context not ready; next tick will retry */
+                    }
+                };
+                _atrPollTimer.Start();
+            }
 
             CopyEngine.Instance.SetAtrEngine(engine, enabled: false); // disabled until user enables
 
-            // FIX 3 (PR-121 T3): capture chart so AtrUpdated routes to the correct panel.
-            // Replaces OnAtrUpdated method -- lambda carries chart key for _panels lookup.
-            var capturedChart = chart;
-            engine.AtrUpdated += (display) => UpdateAtrOverlay(capturedChart, display);
+            engine.AtrUpdated += OnAtrUpdated;
         }
 
         // B10 T4: instance StopAtrEngine -- unsubscribes AtrUpdated and stops poll timer.
-        // FIX 2 (PR-121): uses per-chart _atrPollTimers instead of single _atrPollTimer field.
-        // FIX 3 (PR-121 T3): no method-name unsubscribe needed -- engine is removed and becomes
-        // unreachable; lambda callback becomes no-op once panel is removed from _panels.
-        // CYC=2 -- TryRemove guard + timer cleanup
+        // CYC=3 -- TryRemove guard + engine event cleanup + timer cleanup
         private void StopAtrEngine(Chart chart)
         {
             AtrSizingEngine engine;
             if (!_atrEngines.TryRemove(chart, out engine))
                 return; // guard (1)
-            DispatcherTimer timer;
-            if (_atrPollTimers.TryRemove(chart, out timer)) // guard (2): stop per-chart timer
-                timer.Stop();
-            CopyEngine.Instance.SetAtrEngine(null, enabled: false); // clear reference
+            if (engine != null)
+                engine.AtrUpdated -= OnAtrUpdated; // unsubscribe event
+            if (_atrPollTimer != null) // guard (2): stop poll timer
+            {
+                _atrPollTimer.Stop();
+                _atrPollTimer = null;
+            }
+            CopyEngine.Instance.SetAtrEngine(null, enabled: false); // guard (3): clear reference
         }
 
-        // FIX 3 (PR-121 T3): UpdateAtrOverlay -- routes ATR display text to the panel for the given chart.
-        // CYC=2: TryGetValue guard on panel (1) + Dispatcher.InvokeAsync dispatch (2).
-        // JS-021: no lock. _panels is ConcurrentDictionary; TryGetValue is lock-free.
-        internal void UpdateAtrOverlay(Chart chart, string atrDisplay)
+        // B20-LANE-C T5: UpdateAtrOverlay -- routes ATR display text to the first injected panel.
+        // CYC=2: null guard on panel (1) + Dispatcher.InvokeAsync dispatch (2).
+        // JS-021: no lock. _panels is ConcurrentDictionary; FirstOrDefault() on snapshot is lock-free.
+        internal void UpdateAtrOverlay(string atrDisplay)
         {
-            TradeCopierPanel panel;
-            if (!_panels.TryGetValue(chart, out panel) || panel == null)
+            var panel = _panels.Values.FirstOrDefault();
+            if (panel == null)
                 return;
             System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                 panel.SetAtrText(atrDisplay)
             );
+        }
+
+        // B10 T4: AtrUpdated event handler -- subscribed in StartAtrEngine.
+        // Fires on AtrSizingEngine bar-close thread; UpdateAtrOverlay marshals via Dispatcher.
+        // CYC=1: straight-line delegation.
+        private void OnAtrUpdated(string display)
+        {
+            UpdateAtrOverlay(display);
         }
 
         // B9 T2: CYC=2 -- null guard + TryRemove branch (ADV-001 CORRECTED: TryRemove-first)
@@ -343,15 +347,15 @@ namespace PropTraderTools
         }
 
         // B11 T1: Removes the SIM101 logging-only diag handler from chart.PreviewKeyDown.
-        // FIX 3 (PR-121): uses per-chart _sim101KeyDiags dictionary instead of single field.
         // Called UNCONDITIONALLY after SIM101 completes (PASS or FAIL).
         // Must be called BEFORE HookKeyShortcut() on the PASS path.
-        // CYC=2: TryRemove guard (1) + null check + unhook (2).
+        // Nulls _sim101KeyDiag to prevent accidental re-subscription.
+        // CYC=2: null guard (1) + unhook + null assignment (2).
         private static void RemoveSim101(Chart chart)
         {
-            KeyEventHandler h;
-            if (_sim101KeyDiags.TryRemove(chart, out h) && h != null)
-                chart.PreviewKeyDown -= h;
+            if (_sim101KeyDiag != null)
+                chart.PreviewKeyDown -= _sim101KeyDiag;
+            _sim101KeyDiag = null;
         }
 
         // B11 T1: Wire chart.PreviewKeyDown to panel.OnChartKeyDown after successful DoInject.
@@ -371,7 +375,7 @@ namespace PropTraderTools
 
         // B11 T1: Unwire chart.PreviewKeyDown (PRODUCTION handler only) before panel.Detach().
         // Called from OnWindowDestroyed. Removes panel.OnChartKeyDown via _keyHandlers lookup.
-        // Does NOT remove _sim101KeyDiags entry -- that is RemoveSim101's responsibility.
+        // Does NOT remove _sim101KeyDiag -- that is RemoveSim101's responsibility.
         // CYC=2: TryRemove guard (1) + unhook (2).
         private static void UnhookKeyShortcut(Chart chart)
         {
@@ -411,7 +415,7 @@ namespace PropTraderTools
                 stalePanel.Detach();
             int staleRow = System.Windows.Controls.Grid.GetRow(old);
             grid.Children.Remove(old);
-            if (staleRow >= 0 && staleRow < grid.RowDefinitions.Count)
+            if (staleRow > 0 && staleRow < grid.RowDefinitions.Count)
                 grid.RowDefinitions.RemoveAt(staleRow);
         }
 
@@ -495,10 +499,8 @@ namespace PropTraderTools
             WireLeaderAccount(chartTrader, panel);
 
             // B11 T1 SIM101 Phase A: wire logging-only handler BEFORE production layer.
-            // FIX 3 (PR-121): store per-chart in _sim101KeyDiags instead of overwriting single field.
-            var diagHandler = new KeyEventHandler(OnChartKeyDiag);
-            _sim101KeyDiags[chart] = diagHandler;
-            chart.PreviewKeyDown += diagHandler;
+            _sim101KeyDiag = new KeyEventHandler(OnChartKeyDiag);
+            chart.PreviewKeyDown += _sim101KeyDiag;
 
             // B11 T1 Phase B: production keyboard shortcut layer.
             // RemoveSim101 FIRST (SIM101 must be removed before HookKeyShortcut).
@@ -511,9 +513,6 @@ namespace PropTraderTools
                 return;
             }
 
-            // Cleanup: resources were wired but panel was never tracked -- release them.
-            StopAtrEngine(chart);
-            UnhookKeyShortcut(chart);
             MessageBox.Show(
                 "PTT: ChartTrader.Content is not a Grid.\nContent type: "
                     + (chartTrader.Content?.GetType().FullName ?? "null"),
@@ -524,9 +523,7 @@ namespace PropTraderTools
         // C-07: DoInject after extraction. Parent CCN=7.
         private void DoInject(Chart chart)
         {
-            // FIX 1 (PR-121): TryAdd with null throws ArgumentNullException on ConcurrentDictionary.
-            // Use ContainsKey guard instead -- _panels[chart] = panel is set later in WireNewPanel.
-            if (_panels.ContainsKey(chart))
+            if (!_panels.TryAdd(chart, null))
                 return;
 
             try
@@ -688,6 +685,7 @@ namespace PropTraderTools
             return null;
         }
 
+        // PTT-REPAIRS-01 R3: developer bypass removed.
         // CYC=3: try-enter(1) + licenseTxt.Exists(2) + catch(3).
         // JS-001: no throw -- any I/O error returns Starter().
         // NT8: File I/O is safe in State.Configure (not the hot path).

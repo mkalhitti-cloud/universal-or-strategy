@@ -32,3 +32,28 @@ paths = ['''(^|[\\/])check_ascii\.py$''']
 description = "Allow the redacted Sentry DSN placeholder"
 regexTarget = "line"
 regexes = ['''REDACTED_SENTRY_DSN -- see V12_SENTRY_DSN env var''']
+
+[[allowlists]]
+description = "Allow test fixtures in infrastructure/paperclip (intentional test data)"
+paths = ['''infrastructure/paperclip/.*''']
+
+[[allowlists]]
+description = "Exclude gitleaks report files and Firebase credentials (gitignored)"
+paths = [
+    '''gitleaks_report\.json$''',
+    '''firebase-credentials\.json$''',
+    '''firebase-credentials\.json\.revoked$''',
+    '''.*firebase-adminsdk.*\.json$'''
+]
+
+[[allowlists]]
+description = "Allow EPIC-W7-114 architecture plan (false positive: jcodemunch call hierarchy text)"
+paths = ['''docs/brain/EPIC-W7-114/02-architecture-plan\.md$''']
+
+[[allowlists]]
+description = "Allow test fixtures in routa-tools tests"
+paths = ['''routa-tools/.*/__tests__/.*''']
+
+[[allowlists]]
+description = "Suppress false positive: ConcurrentDictionary<Chart, KeyEventHandler> in TradeCopierAddOn.cs"
+paths = ['''(^|[\\/])src[\\/]PropTraderTools[\\/]TradeCopierAddOn\.cs$''']
