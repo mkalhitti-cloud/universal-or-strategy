@@ -2275,7 +2275,7 @@ namespace PropTraderTools
                     : OrderAction.BuyToCover; // ternary: not a branch
             try
             {
-                acc.CreateOrder(
+                var order = acc.CreateOrder(
                     instr,
                     action,
                     OrderType.Market,
@@ -2289,6 +2289,8 @@ namespace PropTraderTools
                     DateTime.MaxValue,
                     null
                 );
+                if (order != null)
+                    acc.Submit(new[] { order });
                 StatusUpdate?.Invoke(acc.Name + ": mirror-close " + pos.Quantity);
             }
             catch (Exception ex)
@@ -5202,7 +5204,7 @@ namespace PropTraderTools
                     : OrderAction.BuyToCover;
             try
             {
-                acc.CreateOrder(
+                var order = acc.CreateOrder(
                     instrument,
                     action,
                     OrderType.Market,
@@ -5216,6 +5218,8 @@ namespace PropTraderTools
                     DateTime.MaxValue,
                     null
                 );
+                if (order != null)
+                    acc.Submit(new[] { order });
                 StatusUpdate?.Invoke(acc.Name + ": trim " + trimQty);
             }
             catch (Exception ex)
@@ -5617,7 +5621,7 @@ namespace PropTraderTools
         {
             try
             {
-                acc.CreateOrder(
+                var order = acc.CreateOrder(
                     instrument,
                     action,
                     OrderType.Limit,
@@ -5631,6 +5635,8 @@ namespace PropTraderTools
                     DateTime.MaxValue,
                     (NinjaTrader.Cbi.CustomOrder)null
                 );
+                if (order != null)
+                    acc.Submit(new[] { order });
             }
             catch (Exception ex)
             {
