@@ -92,21 +92,37 @@ namespace PropTraderTools
         }
 
         /// <summary>
-        /// Returns true if order o should be added to the cancel list: non-null, correct instrument,
-        /// and in Working or Initialized state.
-        /// Extracted from CancelWorkingEntriesLocal compound filter.
-        /// CYC=4: (1) o null check, (2) stateOk: Working||Initialized (||),
-        ///         (3) instrOk: o.Instrument!=null, (4) instrOk: FullName comparison.
+        /// Returns true if the order state is one of the five active/live states that
+        /// should be cancelled: Working, Initialized, Submitted, Accepted, TriggerPending.
+        /// CYC=5: base(1) + four || branches.
+        /// JS-002: returns bool. JS-021: no lock. ASCII-only.
+        /// </summary>
+        private static bool IsCancellableState(OrderState s)
+        {
+            return s == OrderState.Working
+                || s == OrderState.Initialized
+                || s == OrderState.Submitted
+                || s == OrderState.Accepted
+                || s == OrderState.TriggerPending;
+        }
+
+        /// <summary>
+        /// Returns true if order o should be added to the cancel list: non-null, correct
+        /// instrument, active cancellable state, and an entry order action (Buy or SellShort).
+        /// Protective stop/target orders (Sell, BuyToCover) are excluded by the actionOk guard.
+        /// CYC=4: (1) o null check, (2) IsCancellableState delegate,
+        ///         (3) instrOk: o.Instrument!=null &amp;&amp; FullName, (4) actionOk: Buy||SellShort.
         /// JS-002: returns bool. JS-021: no lock. ASCII-only.
         /// </summary>
         private static bool IsWorkingEntryOrder(Order o, Instrument instr)
         {
             if (o == null)
                 return false; // (1)
-            bool stateOk =
-                o.OrderState == OrderState.Working || o.OrderState == OrderState.Initialized; // (2)
-            bool instrOk = o.Instrument != null && o.Instrument.FullName == instr.FullName; // (3)(4)
-            return stateOk && instrOk;
+            bool stateOk = IsCancellableState(o.OrderState); // (2)
+            bool instrOk = o.Instrument != null && o.Instrument.FullName == instr.FullName; // (3)
+            bool actionOk =
+                o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.SellShort; // (4)
+            return stateOk && instrOk && actionOk;
         }
     }
 }
