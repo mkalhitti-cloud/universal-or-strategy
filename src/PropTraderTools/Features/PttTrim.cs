@@ -178,8 +178,9 @@ namespace PropTraderTools
         /// <summary>
         /// Compute order type, limit price, and stop price for trim close order.
         /// Extracted from TrimPositionLocal useLimitOrder block (lines 113-136).
-        /// CYC=5: (1) tickSize>0, (2) && (Long?ask:bid)>0, (3) isLong ternary in useLimitOrder,
-        ///         (4) if(useLimitOrder) branch, (5) MarketPosition ternary for limitPrice.
+        /// CYC=6: (1) buffer>0, (2) tickSize>0, (3) && (Long?ask:bid)>0, (4) isLong ternary in useLimitOrder,
+        ///         (5) if(useLimitOrder) branch, (6) MarketPosition ternary for limitPrice.
+        /// C6: buffer>0 added as first condition -- zero-buffer limit order would sit at touch price.
         /// JS-002: returns value tuple (never null). JS-001: no throw. JS-021: no lock. ASCII-only.
         /// NT8-049: Limit orderType uses limitPrice in arg6, stopPrice=0 in arg7 (preserved in caller).
         /// </summary>
@@ -190,8 +191,9 @@ namespace PropTraderTools
         ) ResolveOrderParams(Position pos, int buffer, double ask, double bid, double tickSize)
         {
             bool useLimitOrder =
-                tickSize > 0.0 // (1)
-                && (pos.MarketPosition == MarketPosition.Long ? ask > 0.0 : bid > 0.0); // (2)(3)
+                buffer > 0 // (1)
+                && tickSize > 0.0 // (2)
+                && (pos.MarketPosition == MarketPosition.Long ? ask > 0.0 : bid > 0.0); // (3)(4)
 
             if (useLimitOrder) // (4)
             {
@@ -206,13 +208,18 @@ namespace PropTraderTools
             return (OrderType.Market, 0, 0);
         }
 
-        /// <summary>NT8-050: foreach-based position lookup, never acc.Positions[instr]. CYC=2.</summary>
+        /// <summary>
+        /// NT8-050: foreach-based position lookup, never acc.Positions[instr].
+        /// C7: FullName comparison used instead of reference equality -- NT8 may supply distinct
+        ///     Instrument instances for the same contract (e.g., after reconnect).
+        /// CYC=2.
+        /// </summary>
         private static Position FindPositionLocal(Account acc, Instrument instr)
         {
             if (acc == null || instr == null)
                 return null;
             foreach (Position p in acc.Positions)
-                if (p.Instrument == instr)
+                if (p.Instrument?.FullName == instr?.FullName)
                     return p;
             return null;
         }
