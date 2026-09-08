@@ -42,10 +42,19 @@ namespace PropTraderTools
             _submitBeStop = submitBeStop;
         }
 
-        // Production entry point -- delegates to ArmAllPendingBe via CopyEngine. CYC=1 (2 lines, no branches).
+        // Production entry point -- delegates to ArmAllPendingBe via CopyEngine. CYC=2 (1 branch: BreakEven flag gate).
         // B40: Execute now arms/waits instead of firing immediately. Old inner loop removed.
+        // C8 FIX: BreakEven entitlement guard -- blocks Starter-tier accounts.
         internal void Execute(int bufferTicks)
         {
+            if (!CopyEngine.Instance.Flags.BreakEven)
+            {
+                NinjaTrader.Code.Output.Process(
+                    "[BE-ALL] GlobalBreakEven: blocked -- BreakEven not licensed",
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                );
+                return;
+            }
             System.Threading.Interlocked.Increment(ref _ocoSeq);
             NinjaTrader.Code.Output.Process(
                 "[BE-ALL] GlobalBreakEven: ArmAllPendingBe buf=" + bufferTicks + "t",
@@ -71,6 +80,9 @@ namespace PropTraderTools
 
         // Direction-aware bePrice calculation. B35 guard inherited from SubmitBeStop.
         // CYC=4 (1 base + if + || + ternary direction). JS-002: early return void (not return null).
+        // C9 FIX: direction matches PttBreakEven.cs:112 convention.
+        //   LONG:  stop = entry - buffer (below entry -- fires if price drops back to entry).
+        //   SHORT: stop = entry + buffer (above entry -- fires if price rises back to entry).
         private void ExecuteOne(Account acc, Position pos, int bufferTicks)
         {
             if (pos == null || pos.Quantity == 0)
@@ -79,7 +91,7 @@ namespace PropTraderTools
             double tickSize = pos.Instrument.MasterInstrument?.TickSize ?? 0.25;
             double bePrice =
                 Math.Round(
-                    (pos.AveragePrice + (isLong ? bufferTicks : -bufferTicks) * tickSize) / tickSize
+                    (pos.AveragePrice + (isLong ? -bufferTicks : bufferTicks) * tickSize) / tickSize
                 ) * tickSize;
             _submitBeStop(acc, pos.Instrument, bePrice, isLong);
         }
