@@ -5,6 +5,7 @@
 // NT8-003: volatile int (NOT volatile double). NT8-021: Account.All in Loaded handler, not constructor.
 
 using System;
+using System.Linq;
 using System.Threading;
 using NinjaTrader.Cbi;
 
@@ -56,8 +57,10 @@ namespace PropTraderTools
                     if (pos == null || pos.Quantity == 0)
                         continue; // (4)
                     // B118 DW-B126: cancel PTT-BE-* BEFORE snapshot to eliminate BE/QX race.
-                    int _beCancelCount = CancelPttBeOrders(acc, pos.Instrument);
-                    WaitForPttBeCancelled(acc, pos.Instrument, _beCancelCount, 1000);
+                    // PTT-REPAIRS-01 R6: TryCancelBeOrders handles -1 exception path.
+                    int _beCancelCount = TryCancelBeOrders(acc, pos.Instrument);
+                    if (_beCancelCount < 0)
+                        continue; // exception in cancel -- skip this position
                     // PTT-BE-* are now terminal -- snapshot sees clean order book.
                     var targets = SnapshotTargetOrders(acc, pos.Instrument);
                     // B78 DW-B63-01: snapshot leader stop BEFORE ExecuteOne cancels leader brackets.
@@ -106,9 +109,8 @@ namespace PropTraderTools
         /// Execute (forced 2-target): global Quick Exit with caller-supplied target list.
         /// Skips SnapshotTargetOrders -- forcedTargets are used directly.
         /// DW-B133: QAll2t button path. Logs "[PTT-QX-2T-ALL]" to distinguish from no-arg path.
-        /// CYC=8: flag-guard(1), IsInvalidForcedTargets(2), acc-loop(3), follower-skip(4),
-        ///        pos-loop(5), null/flat-continue(6), flatten-guard(7), ExecuteFollowers-call(8).
-        /// AT-LIMIT (DW-LE-02): Do not add decision paths without prior extraction review.
+        /// PTT-REPAIRS-01 R6.0: inner pos-loop body extracted to ProcessForcedTargetPosition.
+        /// CYC=5: flag-guard(1), IsInvalidForcedTargets(2), acc-loop(3), follower-skip(4), pos-loop(5).
         /// JS-021: no lock. JS-001: no throw. JS-002: early return not null.
         /// JS-033: synchronous void. ASCII-only.
         /// </summary>
@@ -141,57 +143,20 @@ namespace PropTraderTools
             {
                 if (engine != null && engine.IsFollowerAccount(acc))
                     continue; // (4)
-                foreach (Position pos in acc.Positions) // (5)
-                {
-                    if (pos == null || pos.Quantity == 0)
-                        continue; // (6)
-                    int _beCancelCount = CancelPttBeOrders(acc, pos.Instrument);
-                    WaitForPttBeCancelled(acc, pos.Instrument, _beCancelCount, 1000);
-                    double leaderStop = PttQuickExit.SnapshotStopPrice(acc, pos.Instrument);
-                    var ticks = ResolveQuickTicks(pos.Instrument);
-                    NinjaTrader.Code.Output.Process(
-                        "[PTT-QX-2T-ALL] leader: "
-                            + acc.Name
-                            + " "
-                            + pos.Instrument.FullName
-                            + " qty="
-                            + pos.Quantity
-                            + " forcedTargetCount="
-                            + forcedTargets.Count,
-                        NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                    );
-                    if (
-                        NeedsLeaderFallbackFlatten(
-                            _beCancelCount,
-                            forcedTargets.Count,
-                            pos.Quantity
-                        )
-                    ) // (7)
-                    {
-                        NinjaTrader.Code.Output.Process(
-                            "[PTT-QX-2T-FLATTEN] leader fallback flatten: "
-                                + acc.Name
-                                + " "
-                                + pos.Instrument.FullName
-                                + " qty="
-                                + pos.Quantity,
-                            NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                        );
-                        acc.Flatten(new[] { pos.Instrument });
-                        continue;
-                    }
-                    ExecuteOne(acc, pos.Instrument, ticks.t1, forcedTargets);
-                    ExecuteFollowers(acc, pos, forcedTargets, ticks, leaderStop); // (8)
-                }
+                // PTT-REPAIRS-01 R6.0: inner loop body extracted to ProcessForcedTargetPosition.
+                foreach (Position pos in acc.Positions) // (5) -- body now in helper
+                    ProcessForcedTargetPosition(acc, pos, forcedTargets, engine);
             }
         }
 
         /// <summary>
         /// ExecuteFollowers: dispatch Quick Exit to all follower accounts for the given leader position.
         /// Extracted from Execute() by B120 to maintain CYC <= 8 in Execute() after DW-B129 guard.
-        /// CYC=7: rule null-check(1), follower foreach(2), follower null continue(3),
-        ///        follower position foreach DIAG(4), DIAG _p null/instr guard(5), DIAG for-loop(6), delegate(7).
-        /// B118 DW-B126: CancelPttBeOrders + WaitForPttBeCancelled on each follower path (unchanged).
+        /// PTT-REPAIRS-01 R6: TryCancelBeOrders replaces CancelPttBeOrders+WaitForPttBeCancelled.
+        /// PTT-REPAIRS-01 R6: DIAG pos-qty lookup extracted to GetFollowerPositionQty to maintain CYC<=8.
+        /// CYC=8: rule null-check(1), follower foreach(2), follower null continue(3),
+        ///        _fBeCancelCount<0 guard(4), DIAG for-loop(5), R6 guard(6-removed; absorbed by TryCancelBeOrders),
+        ///        ResolveFollowerTargets(6), delegate(7). Lizard-measured 8 via engine?. null-conditional.
         /// JS-021: no lock. JS-001: no throw. JS-033: synchronous void. ASCII-only.
         /// </summary>
         private void ExecuteFollowers(
@@ -210,47 +175,16 @@ namespace PropTraderTools
                     if (follower == null)
                         continue; // (3)
                     // B118 DW-B126: cancel follower PTT-BE-* BEFORE snapshot (same race applies to followers).
-                    int _fBeCancelCount = CancelPttBeOrders(follower, pos.Instrument);
-                    WaitForPttBeCancelled(follower, pos.Instrument, _fBeCancelCount, 1000);
+                    // PTT-REPAIRS-01 R6: TryCancelBeOrders handles -1 exception path.
+                    int _fBeCancelCount = TryCancelBeOrders(follower, pos.Instrument);
+                    if (_fBeCancelCount < 0)
+                        continue; // exception in cancel -- skip this follower (4)
                     var followerTargets = SnapshotTargetOrders(follower, pos.Instrument);
                     // DW-B115-DIAG: log follower position qty + per-target qty split.
-                    // Determines: (A) whether follower ATM has same qty split as leader,
-                    // or (B) whether followerTargets is empty/partial (DW-B120 async lag).
+                    // PTT-REPAIRS-01 R6: pos-qty lookup extracted to GetFollowerPositionQty (CYC budget).
                     // Remove when DW-B115 root cause confirmed and fix applied.
-                    int _fPosQty = 0;
-                    foreach (NinjaTrader.Cbi.Position _p in follower.Positions) // (4)
-                    {
-                        if (
-                            _p != null
-                            && _p.Instrument != null
-                            && _p.Instrument.FullName == pos.Instrument.FullName
-                        ) // (5)
-                        {
-                            _fPosQty = _p.Quantity;
-                            break;
-                        }
-                    }
-                    {
-                        var _sb = new System.Text.StringBuilder(
-                            "[DW-B115-DIAG] follower targets: "
-                        );
-                        _sb.Append(follower.Name);
-                        _sb.Append(" count=");
-                        _sb.Append(followerTargets.Count);
-                        _sb.Append(" posQty=");
-                        _sb.Append(_fPosQty);
-                        for (int _i = 0; _i < followerTargets.Count; _i++) // (6)
-                        {
-                            _sb.Append(" T");
-                            _sb.Append(_i + 1);
-                            _sb.Append("=");
-                            _sb.Append(followerTargets[_i].Qty);
-                        }
-                        NinjaTrader.Code.Output.Process(
-                            _sb.ToString(),
-                            NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                        );
-                    }
+                    int _fPosQty = GetFollowerPositionQty(follower, pos.Instrument); // (5)
+                    LogFollowerDiag(follower, followerTargets, _fPosQty); // (6)
                     // DW-B124: when follower snapshot is empty (BE-ALL consumed native brackets),
                     // derive qty array from leader snapshot scaled by posQty ratio.
                     // Prevents CalcTNQty arithmetic fallback from wrong tranche split.
@@ -281,6 +215,59 @@ namespace PropTraderTools
                         leaderTargetCount: targets.Count
                     );
                 }
+        }
+
+        // PTT-REPAIRS-01 R6: extracted DIAG pos-qty lookup from ExecuteFollowers to maintain CYC<=8.
+        // DW-B115-DIAG: find position qty for follower on this instrument.
+        // CYC=3: foreach(1), _p null/instr check(2), FullName check(3).
+        // JS-021: no lock. JS-001: no throw. JS-002: returns int. ASCII-only.
+        private static int GetFollowerPositionQty(
+            NinjaTrader.Cbi.Account follower,
+            NinjaTrader.Cbi.Instrument instr
+        )
+        {
+            foreach (NinjaTrader.Cbi.Position _p in follower.Positions) // (1)
+            {
+                if (
+                    _p != null
+                    && _p.Instrument != null
+                    && _p.Instrument.FullName == instr.FullName
+                ) // (2, 3)
+                {
+                    return _p.Quantity;
+                }
+            }
+            return 0;
+        }
+
+        // PTT-REPAIRS-01 R6: extracted DIAG logging from ExecuteFollowers to maintain CYC<=8.
+        // DW-B115-DIAG: log follower targets count + per-target qty split.
+        // CYC=2: foreach(1), for-loop(2). JS-021: no lock. JS-001: no throw. ASCII-only.
+        private static void LogFollowerDiag(
+            NinjaTrader.Cbi.Account follower,
+            System.Collections.Generic.List<(double Price, int Qty)> followerTargets,
+            int fPosQty
+        )
+        {
+            var _sb = new System.Text.StringBuilder(
+                "[DW-B115-DIAG] follower targets: "
+            );
+            _sb.Append(follower.Name);
+            _sb.Append(" count=");
+            _sb.Append(followerTargets.Count);
+            _sb.Append(" posQty=");
+            _sb.Append(fPosQty);
+            for (int _i = 0; _i < followerTargets.Count; _i++) // (1)
+            {
+                _sb.Append(" T");
+                _sb.Append(_i + 1);
+                _sb.Append("=");
+                _sb.Append(followerTargets[_i].Qty);
+            }
+            NinjaTrader.Code.Output.Process(
+                _sb.ToString(),
+                NinjaTrader.NinjaScript.PrintTo.OutputTab1
+            );
         }
 
         /// <summary>
@@ -491,30 +478,17 @@ namespace PropTraderTools
         }
 
         /// <summary>
-        /// IsTargetOrderState: returns true if order is in one of the five eligible working states.
-        /// Extracted from IsTargetOrder to keep CYC <= 8 per Jane Street standard.
-        /// CYC=5: Working(1) || Accepted(2) || Submitted(3) || Initialized(4) || TriggerPending(5).
-        /// JS-002: returns bool. JS-021: no lock. ASCII-only.
-        /// </summary>
-        private static bool IsTargetOrderState(NinjaTrader.Cbi.OrderState state)
-        {
-            return state == NinjaTrader.Cbi.OrderState.Working
-                || state == NinjaTrader.Cbi.OrderState.Accepted
-                || state == NinjaTrader.Cbi.OrderState.Submitted
-                || state == NinjaTrader.Cbi.OrderState.Initialized
-                || state == NinjaTrader.Cbi.OrderState.TriggerPending;
-        }
-
-        /// <summary>
         /// Determine if an order is a valid target for the given instrument.
         /// Extracted from SnapshotTargetOrders inner filter block (lines 449-470).
-        /// CYC=4: (1) IsTargetOrderState guard, (2) instrOk null check, (3) OrderType check, (4) name non-empty.
-        /// Delegates state check to IsTargetOrderState (five eligible working states: C1 fix).
+        /// CYC=3: (1) stateOk (||), (2) instrOk, (3) name non-empty + Limit type check.
         /// JS-002: returns bool. JS-021: no lock. ASCII-only.
         /// </summary>
         private static bool IsTargetOrder(NinjaTrader.Cbi.Order o, NinjaTrader.Cbi.Instrument instr)
         {
-            if (!IsTargetOrderState(o.OrderState))
+            bool stateOk =
+                o.OrderState == NinjaTrader.Cbi.OrderState.Working
+                || o.OrderState == NinjaTrader.Cbi.OrderState.Accepted;
+            if (!stateOk)
                 return false;
             bool instrOk = o.Instrument != null && o.Instrument.FullName == instr.FullName;
             if (!instrOk || o.OrderType != NinjaTrader.Cbi.OrderType.Limit)
@@ -664,14 +638,90 @@ namespace PropTraderTools
             return ScaleLeaderTargets(leaderTargets, followerPosQty, leaderPosQty);
         }
 
+        // PTT-REPAIRS-01 R6.0: extracted from Execute(forcedTargets) inner pos-loop body.
+        // Reduces Execute(forcedTargets) CYC by removing branches 5/6/7/8 into this helper.
+        // CYC=4: null/flat guard(1), TryCancelBeOrders -1 guard(2), NeedsLeaderFallbackFlatten(3), flatten continue(4).
+        // Wait: TryCancelBeOrders absorbs WaitForPttBeCancelled -- no separate wait call needed.
+        // JS-021: no lock. JS-001: no throw. JS-002: void. JS-033: synchronous void. ASCII-only.
+        private void ProcessForcedTargetPosition(
+            NinjaTrader.Cbi.Account acc,
+            NinjaTrader.Cbi.Position pos,
+            System.Collections.Generic.List<(double Price, int Qty)> forcedTargets,
+            CopyEngine engine
+        )
+        {
+            if (pos == null || pos.Quantity == 0) // (1)
+                return;
+            int _beCancelCount = TryCancelBeOrders(acc, pos.Instrument);
+            if (_beCancelCount < 0) // (2)
+                return; // exception in cancel -- skip this position (R6 guard)
+            double leaderStop = PttQuickExit.SnapshotStopPrice(acc, pos.Instrument);
+            var ticks = ResolveQuickTicks(pos.Instrument);
+            NinjaTrader.Code.Output.Process(
+                "[PTT-QX-2T-ALL] leader: "
+                    + acc.Name
+                    + " "
+                    + pos.Instrument.FullName
+                    + " qty="
+                    + pos.Quantity
+                    + " forcedTargetCount="
+                    + forcedTargets.Count,
+                NinjaTrader.NinjaScript.PrintTo.OutputTab1
+            );
+            if (
+                NeedsLeaderFallbackFlatten(
+                    _beCancelCount,
+                    forcedTargets.Count,
+                    pos.Quantity
+                )
+            ) // (3)
+            {
+                NinjaTrader.Code.Output.Process(
+                    "[PTT-QX-2T-FLATTEN] leader fallback flatten: "
+                        + acc.Name
+                        + " "
+                        + pos.Instrument.FullName
+                        + " qty="
+                        + pos.Quantity,
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                );
+                acc.Flatten(new[] { pos.Instrument }); // (4) flatten path
+                return;
+            }
+            ExecuteOne(acc, pos.Instrument, ticks.t1, forcedTargets);
+            ExecuteFollowers(acc, pos, forcedTargets, ticks, leaderStop);
+        }
+
+        // PTT-REPAIRS-01 R6: helper to absorb -1 exception handling from Execute/ExecuteFollowers call sites.
+        // Used at all 3 call sites of CancelPttBeOrders to preserve CYC budget.
+        // CYC=2: base(1) + count<0 check(1). PASS (<= 8).
+        // JS-001: no throw. JS-002: returns int (-1 = exception, 0 = no orders, >0 = count). ASCII-only.
+        private int TryCancelBeOrders(Account acc, Instrument instr)
+        {
+            int count = CancelPttBeOrders(acc, instr);
+            if (count < 0) // (1)
+            {
+                NinjaTrader.Code.Output.Process(
+                    "[PTT-QX-ALL] CancelPttBeOrders exception -- skipping acc=" + (acc?.Name ?? "null"),
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                );
+                return -1;
+            }
+            WaitForPttBeCancelled(acc, instr, count, 1000);
+            return count;
+        }
+
         /// <summary>
         /// CancelPttBeOrders: cancel all PTT-BE-Target-* and PTT-BE-Stop-* orders in
         /// non-terminal states on acc for instr. Returns count of orders submitted for cancel.
+        /// Returns -1 if an exception occurs (caller must skip this position).
         /// Called before SnapshotTargetOrders on both leader and follower paths in Execute()
         /// to eliminate the DW-B126 race condition.
-        /// CYC=7: acc null(1), instr null(2), foreach(3), o null(4), instrOk(5), IsPttBeOrder(6), stateOk(7).
-        /// JS-021: no lock. JS-001: no throw. JS-002: returns int (not null). ASCII-only.
-        /// NT8-006: no LINQ -- manual snapshot. NT8: Account.Cancel(IEnumerable&lt;Order&gt;) -- NT8_FULL_REFERENCE.md lines 2408-2451.
+        /// PTT-REPAIRS-01 R6: try/catch added. CYC=8 (at limit).
+        /// CYC: acc/instr null(1), foreach(2), IsNonTerminalForInstr continue(3), count==0(4),
+        ///      Output(5), acc.Cancel(6), Output(7), catch(8).
+        /// JS-021: no lock. JS-001: catch swallows + logs (no re-throw). JS-002: returns int. ASCII-only.
+        /// NT8: Account.Cancel(IEnumerable&lt;Order&gt;) -- NT8_FULL_REFERENCE.md lines 2408-2451.
         /// </summary>
         internal static int CancelPttBeOrders(
             NinjaTrader.Cbi.Account acc,
@@ -680,42 +730,41 @@ namespace PropTraderTools
         {
             if (acc == null || instr == null)
                 return 0;
-            var toCancel = new System.Collections.Generic.List<NinjaTrader.Cbi.Order>();
-            var snapshot = new System.Collections.Generic.List<NinjaTrader.Cbi.Order>();
-            foreach (NinjaTrader.Cbi.Order _snap in acc.Orders)
-                snapshot.Add(_snap);
-            foreach (NinjaTrader.Cbi.Order o in snapshot)
-            {
-                if (!IsNonTerminalForInstr(o, instr))
-                    continue;
-                toCancel.Add(o);
-            }
-            if (toCancel.Count == 0)
-            {
-                NinjaTrader.Code.Output.Process(
-                    "[PTT-QX-ALL] CancelPttBeOrders: acc="
-                        + acc.Name
-                        + " count=0 (no active PTT-BE orders)",
-                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                );
-                return 0;
-            }
             try
             {
+                var toCancel = new System.Collections.Generic.List<NinjaTrader.Cbi.Order>();
+                foreach (NinjaTrader.Cbi.Order o in acc.Orders.ToList())
+                {
+                    if (!IsNonTerminalForInstr(o, instr))
+                        continue;
+                    toCancel.Add(o);
+                }
+                if (toCancel.Count == 0)
+                {
+                    NinjaTrader.Code.Output.Process(
+                        "[PTT-QX-ALL] CancelPttBeOrders: acc="
+                            + acc.Name
+                            + " count=0 (no active PTT-BE orders)",
+                        NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                    );
+                    return 0;
+                }
                 acc.Cancel(toCancel);
+                NinjaTrader.Code.Output.Process(
+                    "[PTT-QX-ALL] CancelPttBeOrders: acc=" + acc.Name + " count=" + toCancel.Count,
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                );
+                return toCancel.Count;
             }
             catch (Exception ex)
             {
                 NinjaTrader.Code.Output.Process(
-                    "[PTT-QX-ALL] CancelPttBeOrders: acc=" + acc.Name + " Cancel exception: " + ex.Message,
+                    "[PTT-QX-ALL] CancelPttBeOrders: EXCEPTION acc="
+                        + (acc?.Name ?? "null") + " " + ex.Message,
                     NinjaTrader.NinjaScript.PrintTo.OutputTab1
                 );
+                return -1;
             }
-            NinjaTrader.Code.Output.Process(
-                "[PTT-QX-ALL] CancelPttBeOrders: acc=" + acc.Name + " count=" + toCancel.Count,
-                NinjaTrader.NinjaScript.PrintTo.OutputTab1
-            );
-            return toCancel.Count;
         }
 
         /// <summary>
@@ -724,7 +773,6 @@ namespace PropTraderTools
         /// Called immediately after CancelPttBeOrders when expectedCount &gt; 0.
         /// CYC=7: acc/count guard(1), while(2), foreach(3), o null(4), instrOk(5), IsPttBeOrder(6), nonTerminal(7).
         /// JS-021: no lock. JS-001: no throw. JS-033: synchronous void. ASCII-only.
-        /// NT8-006: no LINQ -- manual snapshot.
         /// </summary>
         internal static void WaitForPttBeCancelled(
             NinjaTrader.Cbi.Account acc,
@@ -746,10 +794,7 @@ namespace PropTraderTools
             while (DateTime.UtcNow < deadline)
             {
                 int nonTerminal = 0;
-                var pollSnapshot = new System.Collections.Generic.List<NinjaTrader.Cbi.Order>();
-                foreach (NinjaTrader.Cbi.Order _snap in acc.Orders)
-                    pollSnapshot.Add(_snap);
-                foreach (NinjaTrader.Cbi.Order o in pollSnapshot)
+                foreach (NinjaTrader.Cbi.Order o in acc.Orders.ToList())
                 {
                     if (IsNonTerminalForInstr(o, instr))
                         nonTerminal++;
