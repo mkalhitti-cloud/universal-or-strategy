@@ -68,6 +68,7 @@ namespace PropTraderTools
             else if (State == NinjaTrader.NinjaScript.State.DataLoaded)
             {
                 // NT8 constraint: Add() is not valid here; ATR() accessed directly in OnBarUpdate.
+                if (Period < 1) Period = 1; // C16: clamp Period to minimum of 1 (ATR requires Period >= 1)
             }
             else if (State == NinjaTrader.NinjaScript.State.Terminated)
             {
