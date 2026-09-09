@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <OutputType>Library</OutputType>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="AtrSizingEngine.cs" />
+    <Compile Include="CopyEngine.cs" />
+    <Compile Include="CopyEngineTests.cs" />
+    <Compile Include="FeatureFlags.cs" />
+    <Compile Include="LicenseClient.cs" />
+    <Compile Include="TradeCopierAddOn.cs" />
+    <Compile Include="TradeCopierPanel.cs" />
+    <Compile Include="TradeCopierWindow.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit" Version="2.4.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="NinjaTrader.Core">
+      <HintPath>C:\Program Files\NinjaTrader 8\bin\NinjaTrader.Core.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="NinjaTrader.Custom">
+      <HintPath>C:\Users\Mohammed Khalid\Documents\NinjaTrader 8\bin\Custom\NinjaTrader.Custom.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="NinjaTrader.Gui">
+      <HintPath>C:\Program Files\NinjaTrader 8\bin\NinjaTrader.Gui.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SharpDX">
+      <HintPath>C:\Program Files\NinjaTrader 8\bin\SharpDX.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SharpDX.Direct2D1">
+      <HintPath>C:\Program Files\NinjaTrader 8\bin\SharpDX.Direct2D1.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SharpDX.Direct3D10">
+      <HintPath>C:\Program Files\NinjaTrader 8\bin\SharpDX.Direct3D10.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SharpDX.DXGI">
+      <HintPath>C:\Program Files\NinjaTrader 8\bin\SharpDX.DXGI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
