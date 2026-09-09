@@ -724,7 +724,7 @@ namespace PropTraderTools
             _cloneAtmCacheByInstr[instrFullName] = value ?? string.Empty;
         }
 
-        // PTT-REPAIRS-04 BUG-F: SetCloneAtmObjectCache -- per-instrument. CYC=1.
+        // PTT-REPAIRS-04 BUG-F: SetCloneAtmObjectCache -- per-instrument. CYC=2.
         // instrFullName key prevents MES panel clone click from overwriting MGC ATM object.
         // JS-021: ConcurrentDictionary indexer write is lock-free atomic. JS-001: no throw.
         internal void SetCloneAtmObjectCache(string instrFullName, NinjaTrader.NinjaScript.AtmStrategy atmObj)
@@ -735,7 +735,7 @@ namespace PropTraderTools
                 _cloneAtmObjectByInstr.TryRemove(instrFullName, out _);
         }
 
-        // PTT-REPAIRS-04 BUG-F: GetCloneAtmMode -- per-instrument. CYC=2.
+        // PTT-REPAIRS-04 BUG-F: GetCloneAtmMode -- per-instrument. CYC=4.
         // Looks up ATM by instrFullName so each chart panel uses its own cloned ATM.
         // JS-002: never returns null -- returns Inherit as fallback.
         internal FollowerAtmMode GetCloneAtmMode(string instrFullName)
@@ -5846,8 +5846,11 @@ namespace PropTraderTools
         // B62: evict dedup entry when order reaches terminal state (Filled/Cancelled/Rejected).
         // Called unconditionally from OnOrderUpdate pre-gate, after TryFirePositionState.
         // Ensures evicted orderId can be re-used for the next fresh order on the same instrument.
-        // PTT-REPAIRS-04: CYC=7: terminal-guard(1) + Cancelled(2) + instrKey-lookup(3) + liveEntry-guard(4) + pipeIdx-guard(5) + Filled(6) + filledInstrKey-remove(7).
-        // JS-025: ConcurrentDictionary.TryRemove is lock-free.
+        // PTT-REPAIRS-DW-E-04: CYC=7. Extracted Cancelled/Filled branch bodies to
+        // EvictCancelledEntry and EvictFilledEntry to satisfy JS-013 (CYC<=8).
+        // Signature unchanged: call site at line 1541 must not change.
+        // JS-021: no lock -- all ConcurrentDictionary ops are lock-free.
+        // JS-001: no throw. JS-042: ASCII-only.
         internal void EvictDedup(string orderId, OrderState state)
         {
             if (
@@ -5862,42 +5865,48 @@ namespace PropTraderTools
             if (state == OrderState.Cancelled)
             {
                 // DW-B142-MGC-02: scoped removal -- do NOT Clear() the whole map.
-                // Bracket/drag/ATM cancels must not wipe the entry dispatch guard for other orderIds.
                 _entryDispatchedOrders.TryRemove(orderId, out _);
-                // If this orderId was a dispatched entry (no fill, just cancelled),
-                // remove the instrument-level live guard so future entries are not blocked.
-                // PTT-REPAIRS-03-POST: value-guarded removal -- only remove instrKey if the stored
-                //   orderId still matches this cancelled orderId. If a newer order has already
-                //   overwritten the value (SetLiveEntryDispatched indexer), preserve it.
                 if (_entryInstrKeyByOrderId.TryRemove(orderId, out var cancelledInstrKey))
-                {
-                    string storedId;
-                    if (_liveEntryInstruments.TryGetValue(cancelledInstrKey, out storedId)
-                        && storedId == orderId)
-                        _liveEntryInstruments.TryRemove(cancelledInstrKey, out _);
-                    // PTT-REPAIRS-04 BUG-E: entry cancelled without fill -- direction record is stale.
-                    // Clear _lastLeaderDirection so next entry in any direction is not reversal-blocked.
-                    var pipeIdx = cancelledInstrKey.IndexOf('|');
-                    if (pipeIdx > 0)
-                        _lastLeaderDirection.TryRemove(cancelledInstrKey.Substring(0, pipeIdx), out _);
-                }
+                    EvictCancelledEntry(orderId, cancelledInstrKey);
             }
 
             if (state == OrderState.Filled)
             {
-                // PTT-REPAIRS-02: clear instrKey on fill -- entry lifecycle complete, followers dispatched.
-                // Mirrors Cancelled branch. ClearLiveEntryForInstrument remains as secondary guard.
-                // MGC cancel+resubmit guard provided by _entryDispatchedOrders (DW-B91-A) -- not instrKey.
-                // PTT-REPAIRS-03-POST: value-guarded removal -- same TOCTOU-safe pattern as Cancelled.
                 if (_entryInstrKeyByOrderId.TryRemove(orderId, out var filledInstrKey))
-                {
-                    string storedId;
-                    if (_liveEntryInstruments.TryGetValue(filledInstrKey, out storedId)
-                        && storedId == orderId)
-                        _liveEntryInstruments.TryRemove(filledInstrKey, out _);
-                }
+                    EvictFilledEntry(orderId, filledInstrKey);
             }
             // DW-B91-A-v2: Filled/Rejected _entryDispatchedOrders eviction handled in TryEvictFollowerBeSlot.
+        }
+
+        // PTT-REPAIRS-DW-E-04: Extracted from EvictDedup Cancelled branch.
+        // Value-guarded removal of liveEntryInstruments guard.
+        // BUG-E: clears stale _lastLeaderDirection when entry cancelled without fill.
+        // JS-021: no lock. JS-001: no throw. JS-042: ASCII-only.
+        // CYC=4: base(1) + TryGetValue-&&-guard(2) + &&(3) + pipeIdx-guard(4).
+        private void EvictCancelledEntry(string orderId, string cancelledInstrKey)
+        {
+            string storedId;
+            if (_liveEntryInstruments.TryGetValue(cancelledInstrKey, out storedId)
+                && storedId == orderId)
+                _liveEntryInstruments.TryRemove(cancelledInstrKey, out _);
+            // PTT-REPAIRS-04 BUG-E: entry cancelled without fill -- direction record is stale.
+            // Clear _lastLeaderDirection so next entry in any direction is not reversal-blocked.
+            var pipeIdx = cancelledInstrKey.IndexOf('|');
+            if (pipeIdx > 0)
+                _lastLeaderDirection.TryRemove(cancelledInstrKey.Substring(0, pipeIdx), out _);
+        }
+
+        // PTT-REPAIRS-DW-E-04: Extracted from EvictDedup Filled branch.
+        // PTT-REPAIRS-02: clear instrKey on fill -- entry lifecycle complete, followers dispatched.
+        // PTT-REPAIRS-03-POST: value-guarded removal -- TOCTOU-safe pattern as Cancelled.
+        // JS-021: no lock. JS-001: no throw. JS-042: ASCII-only.
+        // CYC=3: base(1) + TryGetValue-&&-guard(2) + &&(3).
+        private void EvictFilledEntry(string orderId, string filledInstrKey)
+        {
+            string storedId;
+            if (_liveEntryInstruments.TryGetValue(filledInstrKey, out storedId)
+                && storedId == orderId)
+                _liveEntryInstruments.TryRemove(filledInstrKey, out _);
         }
 
         // B127: updated to implement Option A lazy re-resolve (DW-PTT-BE-FIX-01).

@@ -4208,6 +4208,23 @@ namespace PropTraderTools
                 System.StringComparison.Ordinal
             );
         }
+
+        // PTT-REPAIRS-DW-E-04 T1: verify EvictDedup BUG-E fix clears _lastLeaderDirection on cancel.
+        // When an entry order is cancelled without fill, the stale direction record must be removed
+        // so the next entry in any direction is not reversal-blocked.
+        [Fact]
+        public void EvictDedup_CancelledEntry_ClearsLastLeaderDirection()
+        {
+            // Arrange: record a leader direction and mark entry as live-dispatched.
+            _engine.SetLeaderDirection_ForTest("MGC DEC26", OrderAction.Buy);
+            _engine.IsLiveEntryBlocked_ForTest("MGC DEC26|Buy", "ord-1", 0.0);
+
+            // Act: cancel the entry order -- BUG-E fix must clear the direction.
+            _engine.EvictDedup_ForTest("ord-1", NinjaTrader.Cbi.OrderState.Cancelled);
+
+            // Assert: _lastLeaderDirection entry for "MGC DEC26" must be gone.
+            Assert.False(_engine.HasLeaderDirection("MGC DEC26"));
+        }
     }
 
     // B75-LaneA: 60 xUnit tests covering TryDispatchLeaderFlat gates, IsAtmBracketName,
@@ -8033,6 +8050,26 @@ namespace PropTraderTools
             // Simulates NT8 late-cancel scenario: orderId-A set but not yet evicted
             // when orderId-B arrives on same instrKey. New order must pass gate5.
             Assert.False(blocked);
+        }
+
+        // PTT-REPAIRS-DW-F-R06 F3: verify EvictDedup clears _lastLeaderDirection on Cancelled.
+        // Covers PTT-REPAIRS-04 BUG-E path: cancelled entry order removes stale direction record.
+        // Uses InternalsVisibleTo seams declared at CopyEngine.cs:46.
+        // No NT8 type construction required -- seams operate on string keys and OrderState enum.
+        [Fact(Skip = "NT8-runtime: CopyEngine.cctor requires NT8 host")]
+        public void EvictDedup_CancelledEntry_ClearsLastLeaderDirection()
+        {
+            // Arrange: record a leader direction for the instrument
+            _engine.SetLeaderDirection_ForTest("MGC DEC26", OrderAction.Buy);
+
+            // Arrange: simulate a dispatched entry (sets _liveEntryInstruments and _entryInstrKeyByOrderId)
+            _engine.IsLiveEntryBlocked_ForTest("MGC DEC26|Buy", "ord-1", 0.0);
+
+            // Act: order is cancelled -- EvictDedup must clear _lastLeaderDirection["MGC DEC26"]
+            _engine.EvictDedup_ForTest("ord-1", NinjaTrader.Cbi.OrderState.Cancelled);
+
+            // Assert: direction record must be cleared so next entry is not reversal-blocked
+            Assert.False(_engine.HasLeaderDirection("MGC DEC26"));
         }
 
     }
