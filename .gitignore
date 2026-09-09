@@ -31,10 +31,14 @@ testsprite_tests/
 *.log
 .dotnet-home/
 
-# Sensitive Info / Env
+# Sensitive Info / Credentials -- NEVER COMMIT
 .env
 auth.json
 *.key
+*firebase-adminsdk*.json
+firebase-credentials.json
+firebase*.json
+*-adminsdk-*.json
 
 # Audit & PR artifacts (never commit these)
 audit_report.md
@@ -62,3 +66,19 @@ infrastructure/
 experts/
 docs/brain/run2-stickystate/
 agy_log.txt
+
+# Build scan / output noise (generated, never commit)
+build_out_*.txt
+build_output.txt
+build_scan_out.txt
+
+# NinjaTrader export CSVs (trading data, not source)
+NinjaTrader*.csv
+
+# IDE / editor backup snapshots (too large)
+backups/
+
+# Vercel / website deploy artifacts
+website/
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md
