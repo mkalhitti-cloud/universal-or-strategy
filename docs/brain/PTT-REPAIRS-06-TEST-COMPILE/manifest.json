@@ -1,0 +1,13 @@
+{
+  "epic": "PTT-REPAIRS-06-TEST-COMPILE",
+  "created": "2025-09-06",
+  "phases": {
+    "phase1": { "status": "COMPLETE",    "artifact": "02-architecture-plan.md", "result": "PLAN_COMPLETE" },
+    "phase2": { "status": "PENDING",     "artifact": "02-plan-review.md" },
+    "phase3": { "status": "PENDING",     "artifact": "04-tickets.md" },
+    "phase3_5": { "status": "PENDING",   "artifact": "04-ticket-review.md" },
+    "phase4a_t1": { "status": "PENDING", "artifact": "ticket-1-completion.md" },
+    "phase4b_t1": { "status": "PENDING", "artifact": "ticket-1-verification.md" },
+    "phase5": { "status": "PENDING",     "artifacts": ["05-final-review.md","06-deferred-backlog.md"] }
+  }
+}
