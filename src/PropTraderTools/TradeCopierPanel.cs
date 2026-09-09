@@ -1848,6 +1848,8 @@ namespace PropTraderTools
         private void OnCloneModeClick(object sender, RoutedEventArgs e)
         {
             CopyEngine.Instance.SetCopyMode(CopyMode.Clone);
+            // PTT-REPAIRS-04 BUG-F: key by this panel's instrument so each chart keeps its own ATM.
+            string instrKey = _instrument?.FullName ?? string.Empty;
             // Capture live AtmStrategy object from ChartTrader -- must be done on UI thread (we are).
             NinjaTrader.NinjaScript.AtmStrategy atmObj = null;
             if (_currentChart != null) // branch (1)
@@ -1855,9 +1857,9 @@ namespace PropTraderTools
                 var ct = TradeCopierAddOn.FindVisualChild<ChartTrader>(_currentChart);
                 atmObj = ct?.AtmStrategy;
             }
-            CopyEngine.Instance.SetCloneAtmObjectCache(atmObj);
+            CopyEngine.Instance.SetCloneAtmObjectCache(instrKey, atmObj);
             string tpl = GetLeaderAtmTemplateName(_currentChart); // string for display only
-            CopyEngine.Instance.SetCloneAtmCache(tpl);
+            CopyEngine.Instance.SetCloneAtmCache(instrKey, tpl);
             UpdateAtmComboVisibility(Visibility.Collapsed);
         }
 

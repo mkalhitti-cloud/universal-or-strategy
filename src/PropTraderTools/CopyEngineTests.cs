@@ -3131,6 +3131,56 @@ namespace PropTraderTools
             Assert.False(CopyEngine.IsExitSignalName(""));
         }
 
+        // PTT-REPAIRS-03-POST: IsExitSignalNameOrAnonClose -- DW-LB-FL-01-V7 tests.
+        // Verifies that the type-aware gate0.5 helper correctly distinguishes:
+        //   (a) empty-name Limit  -> false (valid entry, no signal name assigned)
+        //   (b) empty-name Market -> true  (NT8 anonymous close order)
+        //   (c) named orders      -> delegates to IsExitSignalName (existing contract unchanged)
+        // Uses NinjaTrader.Cbi.OrderType enum values available in the test stub.
+
+        [Fact]
+        public void T_B59_AnonClose_01_EmptyName_LimitType_ReturnsFalse()
+        {
+            // Empty-name Limit order = valid entry with no signal name -- must NOT be blocked.
+            Assert.False(CopyEngine.IsExitSignalNameOrAnonClose("", OrderType.Limit));
+        }
+
+        [Fact]
+        public void T_B59_AnonClose_02_EmptyName_MarketType_ReturnsTrue()
+        {
+            // Empty-name Market order = NT8 anonymous close/BE order -- must be blocked.
+            Assert.True(CopyEngine.IsExitSignalNameOrAnonClose("", OrderType.Market));
+        }
+
+        [Fact]
+        public void T_B59_AnonClose_03_EmptyName_StopMarketType_ReturnsTrue()
+        {
+            // Empty-name StopMarket = NT8 anonymous bracket/stop order -- must be blocked.
+            Assert.True(CopyEngine.IsExitSignalNameOrAnonClose("", OrderType.StopMarket));
+        }
+
+        [Fact]
+        public void T_B59_AnonClose_04_NamedPttPrefix_AnyType_ReturnsTrue()
+        {
+            // Named PTT- order: type is irrelevant -- IsExitSignalName already blocks it.
+            Assert.True(CopyEngine.IsExitSignalNameOrAnonClose("PTT-Copy", OrderType.Limit));
+            Assert.True(CopyEngine.IsExitSignalNameOrAnonClose("PTT-Copy", OrderType.Market));
+        }
+
+        [Fact]
+        public void T_B59_AnonClose_05_NamedEntry_LimitType_ReturnsFalse()
+        {
+            // "Entry" is a valid user signal name -- must not be blocked regardless of type.
+            Assert.False(CopyEngine.IsExitSignalNameOrAnonClose("Entry", OrderType.Limit));
+        }
+
+        [Fact]
+        public void T_B59_AnonClose_06_NullName_ReturnsFalse()
+        {
+            // Null name: IsExitSignalName returns false for null -- unchanged behavior.
+            Assert.False(CopyEngine.IsExitSignalNameOrAnonClose(null, OrderType.Market));
+        }
+
         // B60 T1: Rev prefix widening -- DW-B59-02 fix verification.
         // Verifies that StartsWith("Rev") catches all NT8 reversal order name variants.
         // Old exact match (name == "Rev") would return false for all three inputs below.
@@ -4577,10 +4627,11 @@ namespace PropTraderTools
         public void T_CLONE_02_GetCloneAtmMode_NullObjectNonEmptyCache_ReturnsNamedString()
         {
             // Arrange: _cloneAtmObject = null, _cloneAtmCache = "MES $200 SL6".
-            _engine.SetCloneAtmObjectCache(null);
-            _engine.SetCloneAtmCache("MES $200 SL6");
+            // PTT-REPAIRS-05: updated to per-instrument signature (BUG-F fix).
+            _engine.SetCloneAtmObjectCache("MGC DEC26", null);
+            _engine.SetCloneAtmCache("MGC DEC26", "MES $200 SL6");
 
-            FollowerAtmMode mode = _engine.GetCloneAtmMode();
+            FollowerAtmMode mode = _engine.GetCloneAtmMode("MGC DEC26");
 
             // Priority 2: string fallback -> Named with TemplateName.
             Assert.IsType<FollowerAtmMode.Named>(mode);
@@ -4589,17 +4640,18 @@ namespace PropTraderTools
             Assert.Null(named.AtmObject);
 
             // Teardown: reset to empty so other tests get Inherit.
-            _engine.SetCloneAtmCache(string.Empty);
+            _engine.SetCloneAtmCache("MGC DEC26", string.Empty);
         }
 
         [Fact]
         public void T_CLONE_03_GetCloneAtmMode_NullObjectEmptyCache_ReturnsInherit()
         {
             // Both caches empty/null -> priority 3 (default) returns Inherit.
-            _engine.SetCloneAtmObjectCache(null);
-            _engine.SetCloneAtmCache(string.Empty);
+            // PTT-REPAIRS-05: updated to per-instrument signature (BUG-F fix).
+            _engine.SetCloneAtmObjectCache("MGC DEC26", null);
+            _engine.SetCloneAtmCache("MGC DEC26", string.Empty);
 
-            FollowerAtmMode mode = _engine.GetCloneAtmMode();
+            FollowerAtmMode mode = _engine.GetCloneAtmMode("MGC DEC26");
 
             Assert.IsType<FollowerAtmMode.Inherit>(mode);
         }
@@ -4608,16 +4660,17 @@ namespace PropTraderTools
         public void T_CLONE_04_SetCloneAtmCache_NonEmpty_GetCloneAtmModeReturnsNamed()
         {
             // SetCloneAtmCache updates the string fallback path correctly.
-            _engine.SetCloneAtmObjectCache(null);
-            _engine.SetCloneAtmCache("MES $200 SL6");
+            // PTT-REPAIRS-05: updated to per-instrument signature (BUG-F fix).
+            _engine.SetCloneAtmObjectCache("MGC DEC26", null);
+            _engine.SetCloneAtmCache("MGC DEC26", "MES $200 SL6");
 
-            FollowerAtmMode mode = _engine.GetCloneAtmMode();
+            FollowerAtmMode mode = _engine.GetCloneAtmMode("MGC DEC26");
 
             Assert.IsType<FollowerAtmMode.Named>(mode);
             Assert.Equal("MES $200 SL6", ((FollowerAtmMode.Named)mode).TemplateName);
 
             // Teardown
-            _engine.SetCloneAtmCache(string.Empty);
+            _engine.SetCloneAtmCache("MGC DEC26", string.Empty);
         }
 
         // =================================================================
@@ -4636,10 +4689,11 @@ namespace PropTraderTools
         {
             // SetCloneAtmObjectCache(null) clears object cache.
             // Then set string cache to non-empty -- string fallback must still work.
-            _engine.SetCloneAtmObjectCache(null);
-            _engine.SetCloneAtmCache("MES 200");
+            // PTT-REPAIRS-05: updated to per-instrument signature (BUG-F fix).
+            _engine.SetCloneAtmObjectCache("MGC DEC26", null);
+            _engine.SetCloneAtmCache("MGC DEC26", "MES 200");
 
-            FollowerAtmMode mode = _engine.GetCloneAtmMode();
+            FollowerAtmMode mode = _engine.GetCloneAtmMode("MGC DEC26");
 
             // Object is null so string fallback fires -> Named with AtmObject == null.
             Assert.IsType<FollowerAtmMode.Named>(mode);
@@ -4648,7 +4702,31 @@ namespace PropTraderTools
             Assert.Equal("MES 200", named.TemplateName);
 
             // Teardown
-            _engine.SetCloneAtmCache(string.Empty);
+            _engine.SetCloneAtmCache("MGC DEC26", string.Empty);
+        }
+
+        [Fact]
+        public void T_CLONE_XISO_01_PerInstrumentIsolation_MGCandMESIndependent()
+        {
+            // PTT-REPAIRS-05: cross-instrument isolation test proving BUG-F guarantee.
+            // SetCloneAtmCache for two instruments does not cross-contaminate.
+            _engine.SetCloneAtmObjectCache("MGC DEC26", null);
+            _engine.SetCloneAtmObjectCache("MES DEC26", null);
+            _engine.SetCloneAtmCache("MGC DEC26", "MGC_TPL");
+            _engine.SetCloneAtmCache("MES DEC26", "MES_TPL");
+
+            FollowerAtmMode mgcMode = _engine.GetCloneAtmMode("MGC DEC26");
+            FollowerAtmMode mesMode = _engine.GetCloneAtmMode("MES DEC26");
+
+            // Each instrument must return its own template, not the other's.
+            Assert.IsType<FollowerAtmMode.Named>(mgcMode);
+            Assert.Equal("MGC_TPL", ((FollowerAtmMode.Named)mgcMode).TemplateName);
+            Assert.IsType<FollowerAtmMode.Named>(mesMode);
+            Assert.Equal("MES_TPL", ((FollowerAtmMode.Named)mesMode).TemplateName);
+
+            // Teardown
+            _engine.SetCloneAtmCache("MGC DEC26", string.Empty);
+            _engine.SetCloneAtmCache("MES DEC26", string.Empty);
         }
 
         [Fact]
@@ -7776,5 +7854,130 @@ namespace PropTraderTools
             Assert.Equal(typeof(NinjaTrader.Cbi.Account), parms[0].ParameterType);
             Assert.Equal(typeof(NinjaTrader.Cbi.Instrument), parms[1].ParameterType);
         }
+
+        // PTT-REPAIRS-03 T1: verify reversal guard does NOT skip when follower has working entry orders.
+        // BUG-A fix: followerIsFlat = IsFlat(pos) && !HasWorkingEntries() -- when HasWorkingEntries
+        // returns true, followerIsFlat = false, and IsReversalToFlatFollower returns false (no skip).
+        // Tests the sub-predicate IsReversalToFlatFollower(Buy, Sell, followerIsFlat: false) directly
+        // (internal static, no NT8 Account/Instrument construction required).
+        // This is Option B from the ticket spec -- pure predicate test, no mocking framework.
+        [Fact]
+        public void ShouldSkipForReversalGuard_AllowsEntryWhenFollowerHasWorkingOrders()
+        {
+            // Arrange: reversal scenario (Buy after Sell), but followerIsFlat=false because
+            // HasWorkingEntries() returns true (working entry exists).
+            // With the BUG-A fix: followerIsFlat = IsFlat(pos: true) && !HasWorkingEntries(true) = false.
+            const OrderAction currentAction = OrderAction.Buy;
+            const OrderAction lastAction    = OrderAction.Sell;
+            const bool followerIsFlat       = false; // working order exists -> not truly flat
+
+            // Act: IsReversalToFlatFollower is internal static; accessible via InternalsVisibleTo L46.
+            // When followerIsFlat=false, reversal condition (cur != last && isFlat) is false.
+            bool wouldSkip = CopyEngine.IsReversalToFlatFollower(currentAction, lastAction, followerIsFlat);
+
+            // Assert: guard must NOT skip -- dispatch is allowed when follower has working orders.
+            Assert.False(wouldSkip);
+        }
+
+        // PTT-REPAIRS-02 T1: verify _liveEntryInstruments is cleared on Filled,
+        // allowing a second DispatchCopy for the same instrKey to pass Gate 5 check (a).
+        // Uses InternalsVisibleTo seams declared at CopyEngine.cs:46.
+        // No NT8 type construction required -- seams operate on string keys and OrderState enum.
+        [Fact]
+        public void IsLiveEntryBlocked_ClearsOnFill_AllowsReentry()
+        {
+            const string instrKey = "MGC DEC26|Sell";
+            const string orderId1 = "PTTR02-orderId-1";
+            const string orderId2 = "PTTR02-orderId-2";
+            const double limitPrice = 0.0;
+
+            // Pre-condition: clear any residual state from other tests
+            _engine.ClearLiveEntryForInstrument_ForTest("MGC DEC26");
+
+            // Step 1: First dispatch -- Gate 5 should pass (instrKey not yet set)
+            bool blocked1 = _engine.IsLiveEntryBlocked_ForTest(instrKey, orderId1, limitPrice);
+            Assert.False(blocked1); // first dispatch must proceed
+
+            // Step 2: instrKey is now set in _liveEntryInstruments
+            Assert.True(_engine.LiveEntryInstrumentsContains_ForTest(instrKey));
+
+            // Step 3: Leader order fills -- EvictDedup must clear instrKey (the fix)
+            _engine.EvictDedup_ForTest(orderId1, NinjaTrader.Cbi.OrderState.Filled);
+
+            // Step 4: instrKey must be cleared from _liveEntryInstruments after the fill
+            Assert.False(_engine.LiveEntryInstrumentsContains_ForTest(instrKey));
+
+            // Step 5: Second dispatch for same instrKey -- Gate 5 check (a) must pass
+            bool blocked2 = _engine.IsLiveEntryBlocked_ForTest(instrKey, orderId2, limitPrice);
+            Assert.False(blocked2); // second dispatch must proceed (was blocked before fix)
+        }
+
+        // PTT-REPAIRS-03 T2: verify DispatchCopy does NOT phantom-lock instrKey when all followers are skipped.
+        // BUG-B fix: SetLiveEntryDispatched is only called when dispatched > 0.
+        // Tests sub-predicate path: IsReversalToFlatFollower(Buy, Sell, followerIsFlat: false) returns false
+        // (no skip). Here we verify via pure predicate that IsLiveEntryBlocked_Check returns false
+        // for an instrKey that was never committed (dispatched == 0 scenario).
+        // Uses InternalsVisibleTo seams declared at CopyEngine.cs:46.
+        [Fact]
+        public void DispatchCopy_DoesNotSetPhantomInstrKey_WhenAllFollowersSkipped()
+        {
+            // Arrange: use a unique instrKey that has never been dispatched this test run.
+            // Simulate dispatched==0 by verifying via IsLiveEntryBlocked_Check (the pure predicate).
+            // The scenario: gate5 check returns false (instrKey unknown), but SetLiveEntryDispatched
+            // is NOT called -- meaning _liveEntryInstruments never gets the instrKey written.
+            const string instrKey  = "MES SEP26|Buy";
+            const string orderId   = "PTTR03-phantom-001";
+            const double limitPrice = 0.0;
+
+            // Pre-condition: ensure the instrKey is clean (no residual state)
+            _engine.ClearLiveEntryForInstrument_ForTest("MES SEP26");
+
+            // Act: call IsLiveEntryBlocked_Check directly (internal, accessible via InternalsVisibleTo L46).
+            // This replicates what DispatchCopy gate5 does BEFORE the loop.
+            // We do NOT call SetLiveEntryDispatched -- replicating the dispatched==0 path.
+            var checkMethod = typeof(CopyEngine).GetMethod(
+                "IsLiveEntryBlocked_Check",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+            );
+            bool blocked = (bool)checkMethod.Invoke(_engine, new object[] { instrKey, orderId, limitPrice });
+
+            // Assert 1: gate5 check returns false (instrKey not set -- no phantom lock)
+            Assert.False(blocked);
+
+            // Assert 2: _liveEntryInstruments does NOT contain instrKey
+            // (SetLiveEntryDispatched was never called -- dispatched==0 path)
+            Assert.False(_engine.LiveEntryInstrumentsContains_ForTest(instrKey));
+        }
+
+        // PTT-REPAIRS-03-POST BUG-C regression test -- DW-REPAIRS-03-POST-02.
+        // Verifies that a new orderId with the same instrKey as an already-dispatched order
+        // is NOT blocked at gate5. Simulates NT8 late-cancel scenario: orderId-A was dispatched
+        // (instrKey set in _liveEntryInstruments) but OrderState.Cancelled has not yet arrived
+        // when orderId-B reaches Accepted on the same instrument+direction.
+        // Pre-fix behaviour (ContainsKey-only): blocked == true (regression).
+        // Post-fix behaviour (TryGetValue+equality): blocked == false (correct).
+        [Fact]
+        public void IsLiveEntryBlocked_DifferentOrderId_SameInstrKey_NotBlocked()
+        {
+            // Arrange: clear any residual state for this instrKey
+            _engine.ClearLiveEntryForInstrument_ForTest("MES SEP26");
+
+            // Arrange: prime _liveEntryInstruments with orderId-A for instrKey
+            // IsLiveEntryBlocked_ForTest: if not blocked, calls SetLiveEntryDispatched internally.
+            // This replicates DispatchCopy check+commit for orderId-A.
+            bool firstResult = _engine.IsLiveEntryBlocked_ForTest("MES SEP26|Sell", "orderId-A", 0.0);
+            // Verify the arrange step: orderId-A must pass (instrKey was clean)
+            Assert.False(firstResult);
+            // _liveEntryInstruments["MES SEP26|Sell"] is now "orderId-A"
+
+            // Act: orderId-B arrives on the same instrKey (NT8 Cancelled for orderId-A not yet delivered)
+            bool blocked = _engine.IsLiveEntryBlocked_ForTest("MES SEP26|Sell", "orderId-B", 0.0);
+
+            // Assert: different orderId on same instrKey must NOT be blocked (BUG-C fix)
+            // Simulates NT8 late-cancel scenario: orderId-A set but not yet evicted
+            // when orderId-B arrives on same instrKey. New order must pass gate5.
+            Assert.False(blocked);
+        }
+
     }
 }

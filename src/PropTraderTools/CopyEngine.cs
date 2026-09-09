@@ -139,15 +139,17 @@ namespace PropTraderTools
         // B9 T3 -- Mirror mode (JS-023: volatile int backing for CopyMode enum)
         private volatile int _copyModeValue = 0; // 0=Signal (default), 1=Mirror
 
-        // B50 -- _cloneAtmCache: volatile string holds ATM template name for display/logging only.
-        // volatile string: reference-type writes are atomic on CLR 4.0+ (JS-023 compliant).
-        // NT8-003: volatile double/float BANNED -- string is safe.
-        private volatile string _cloneAtmCache = string.Empty;
+        // PTT-REPAIRS-04 BUG-F: per-instrument clone ATM cache.
+        // Keyed by instrument FullName -- prevents MES chart ATM from overwriting MGC ATM when
+        // user switches between chart panels. ConcurrentDictionary: lock-free reads/writes. JS-021.
+        private readonly ConcurrentDictionary<string, string> _cloneAtmCacheByInstr =
+            new ConcurrentDictionary<string, string>(StringComparer.Ordinal);
 
-        // HOTFIX-B66-ATM-OBJ: volatile reference to live ChartTrader.AtmStrategy object.
-        // Captured at Clone mode click; used in StartAtmStrategy(atm, order) object overload.
-        // volatile object reference write/read: atomic on CLR 4.0+ (JS-023 compliant).
-        private volatile NinjaTrader.NinjaScript.AtmStrategy _cloneAtmObject = null;
+        // PTT-REPAIRS-04 BUG-F: per-instrument clone ATM object cache.
+        // Keyed by instrument FullName -- same rationale as _cloneAtmCacheByInstr.
+        // ConcurrentDictionary<string, AtmStrategy>: lock-free. JS-021. JS-023 N/A (not volatile).
+        private readonly ConcurrentDictionary<string, NinjaTrader.NinjaScript.AtmStrategy> _cloneAtmObjectByInstr =
+            new ConcurrentDictionary<string, NinjaTrader.NinjaScript.AtmStrategy>(StringComparer.Ordinal);
 
         // BGTM-1: Feature flags -- volatile reference (atomic on CLR 4.0+, JS-023 compliant).
         // SetFlags called from UI thread only. Read from UI thread only.
@@ -191,14 +193,20 @@ namespace PropTraderTools
 
         // DW-B142-MGC-02: instrument-level dispatch guard.
         // Key = instrFullName + "|" + OrderAction (e.g. "MGC DEC26|Sell").
-        // Set on first Gate 5 pass. Cleared on Cancelled (no-fill cancel) via companion map,
-        // or on PositionStateChanged flat (safety net). NOT cleared on Filled -- trade is live.
+        // Value = orderId of the last dispatched entry for this instrKey.
+        // Set on first Gate 5 pass. Gate 5 blocks ONLY if the stored orderId matches the
+        // incoming orderId (same order re-dispatching at Working state). A new orderId with
+        // the same instrKey is allowed through (replacement order after cancel-without-Cancelled).
+        // Cleared on Cancelled/Filled via value-guarded eviction (EvictDedup) or
+        // on PositionStateChanged flat (safety net, ClearLiveEntryForInstrument).
+        // PTT-REPAIRS-03-POST: bug fix -- was ConcurrentDictionary<string, byte> keyed by instrKey
+        // only, which caused false-block when NT8 delivers Cancelled late (after next Accepted).
         // JS-025: ConcurrentDictionary is lock-free. JS-021: no lock.
-        private readonly ConcurrentDictionary<string, byte> _liveEntryInstruments =
-            new ConcurrentDictionary<string, byte>();
+        private readonly ConcurrentDictionary<string, string> _liveEntryInstruments =
+            new ConcurrentDictionary<string, string>();
 
         // DW-B142-MGC-02: maps dispatched orderId -> instrKey.
-        // Written in IsLiveEntryBlocked at Gate 5 pass time.
+        // Written in SetLiveEntryDispatched at Gate 5 pass time (PTT-REPAIRS-03 B1 split).
         // Used by EvictDedup(Cancelled) to clean up _liveEntryInstruments on no-fill cancel.
         // Key = orderId, Value = instrKey. JS-025: ConcurrentDictionary. JS-021: no lock.
         private readonly ConcurrentDictionary<string, string> _entryInstrKeyByOrderId =
@@ -708,34 +716,38 @@ namespace PropTraderTools
         // JS-021: no lock. JS-002: void, no return null.
         public void RelayCancel(CancelEventArgs e) => CancelPendingEntries(e.Instrument);
 
-        // B50 -- SetCloneAtmCache: CYC=1. Stores ATM template name string for display/logging only.
-        // Called from TradeCopierPanel.OnCloneModeClick alongside SetCloneAtmObjectCache.
-        // JS-023: volatile string write is atomic.
-        internal void SetCloneAtmCache(string value)
+        // PTT-REPAIRS-04 BUG-F: SetCloneAtmCache -- per-instrument. CYC=1.
+        // instrFullName key prevents MES panel clone click from overwriting MGC ATM cache.
+        // JS-021: ConcurrentDictionary indexer write is lock-free atomic.
+        internal void SetCloneAtmCache(string instrFullName, string value)
         {
-            _cloneAtmCache = value ?? string.Empty;
+            _cloneAtmCacheByInstr[instrFullName] = value ?? string.Empty;
         }
 
-        // HOTFIX-B66-ATM-OBJ: SetCloneAtmObjectCache -- stores live AtmStrategy object for Clone dispatch.
-        // Called from TradeCopierPanel.OnCloneModeClick after FindVisualChild<ChartTrader>.AtmStrategy.
-        // JS-023: volatile reference write is atomic on CLR 4.0+.
-        // CYC=1. JS-001: no throw. JS-002: null is valid (means None selected).
-        internal void SetCloneAtmObjectCache(NinjaTrader.NinjaScript.AtmStrategy atmObj)
+        // PTT-REPAIRS-04 BUG-F: SetCloneAtmObjectCache -- per-instrument. CYC=1.
+        // instrFullName key prevents MES panel clone click from overwriting MGC ATM object.
+        // JS-021: ConcurrentDictionary indexer write is lock-free atomic. JS-001: no throw.
+        internal void SetCloneAtmObjectCache(string instrFullName, NinjaTrader.NinjaScript.AtmStrategy atmObj)
         {
-            _cloneAtmObject = atmObj;
+            if (atmObj != null) // branch (1) -- null means no ATM selected; remove stale entry
+                _cloneAtmObjectByInstr[instrFullName] = atmObj;
+            else
+                _cloneAtmObjectByInstr.TryRemove(instrFullName, out _);
         }
 
-        // B50 -- GetCloneAtmMode: CYC=2. Returns Named(obj) if object cached, Named(string) if string only, else Inherit.
-        // Primary: use _cloneAtmObject (live AtmStrategy) so StartAtmStrategy(atm,order) overload is used.
-        // Fallback: _cloneAtmCache string (for non-Clone-via-ChartTrader scenarios).
+        // PTT-REPAIRS-04 BUG-F: GetCloneAtmMode -- per-instrument. CYC=2.
+        // Looks up ATM by instrFullName so each chart panel uses its own cloned ATM.
         // JS-002: never returns null -- returns Inherit as fallback.
-        internal FollowerAtmMode GetCloneAtmMode()
+        internal FollowerAtmMode GetCloneAtmMode(string instrFullName)
         {
-            var atmObj = _cloneAtmObject;
-            if (atmObj != null) // branch (1) -- preferred: object overload
-                return new FollowerAtmMode.Named(_cloneAtmCache, atmObj);
-            var cache = _cloneAtmCache;
-            if (cache != null && cache.Length > 0) // branch (2) -- fallback: string overload
+            NinjaTrader.NinjaScript.AtmStrategy atmObj;
+            if (_cloneAtmObjectByInstr.TryGetValue(instrFullName, out atmObj) && atmObj != null) // branch (1)
+                return new FollowerAtmMode.Named(
+                    _cloneAtmCacheByInstr.TryGetValue(instrFullName, out var tpl) ? tpl : string.Empty,
+                    atmObj
+                );
+            string cache;
+            if (_cloneAtmCacheByInstr.TryGetValue(instrFullName, out cache) && cache.Length > 0) // branch (2)
                 return new FollowerAtmMode.Named(cache);
             return new FollowerAtmMode.Inherit();
         }
@@ -2319,14 +2331,16 @@ namespace PropTraderTools
                 )
             ); // ChartTrader path (DW-B96)
 
-        // B59 T1: IsExitSignalName -- CYC=7. Returns true for names that must not trigger follower copy.
-        // Covers: (0) empty name (NT8 anonymous close orders -- DW-LB-FL-01 V6 fix);
-        //         (1) PTT- own signals; (2) NT8 Close button; (3) NT8 Flatten; (4) NT8 Rev reversal;
+        // B59 T1: IsExitSignalName -- CYC=6. Returns true for names that must not trigger follower copy.
+        // Covers: (1) PTT- own signals; (2) NT8 Close button; (3) NT8 Flatten; (4) NT8 Rev reversal;
         //         (5) NT8 "Exit..." prefix family; (6) NT8 ATM bracket Target1..Target9 (B78 DW-B78-01).
-        // DW-LB-FL-01 V6: empty-name ("") orders are NT8 anonymous close/BE orders that must never be
-        // dispatched as new entries. They appear when PTT-BE-Stop orders fire simultaneously and NT8
-        // creates residual unnamed orders in the leader account. Passing them to DispatchCopy caused
-        // spurious new-entry dispatches to followers in signal mode, leaving reversed positions.
+        // NOTE: empty name ("") returns FALSE here -- empty-name Limit orders are valid entries with
+        //   no signal name assigned. Empty-name Market orders (NT8 anonymous closes) are blocked by
+        //   IsExitSignalNameOrAnonClose in DispatchCopy gate0.5 (DW-LB-FL-01-V7).
+        // PTT-REPAIRS-03-POST: DW-LB-FL-01 empty check removed from this method because it blocked
+        //   legitimate entry orders placed without a signal name (name=""). The empty check was moved
+        //   to IsExitSignalNameOrAnonClose which distinguishes Limit (valid entry) vs Market (close).
+        //   T_B59_07 already asserted IsExitSignalName("") == false -- the V6 change broke that test.
         // "Entry" is NOT blocked -- Gate 2 already limits dispatch to master account only.
         // Follower "Entry" orders (SendCopyWithAtm) never pass Gate 2, so no cascade is possible.
         // Stop1..Stop9 are StopMarket type -- already blocked by Gate 4 before reaching this check.
@@ -2346,14 +2360,13 @@ namespace PropTraderTools
             return char.IsDigit(name[6]); // (3)
         }
 
-        // CCN=8: base(1)+null(1)+empty(1)+PTT-(1)+IsNativeClose(1)+Rev(1)+Exit(1)+IsAtmTarget(1). WAVE2-LANE-A.
+        // CCN=7: base(1)+null(1)+PTT-(1)+IsNativeClose(1)+Rev(1)+Exit(1)+IsAtmTarget(1). WAVE2-LANE-A.
+        // empty("") returns false -- see IsExitSignalNameOrAnonClose for the type-aware empty guard.
         // JS-021: no lock. JS-001: no throw. JS-002: returns bool. ASCII-only.
         internal static bool IsExitSignalName(string name)
         {
             if (name == null)
                 return false;
-            if (name.Length == 0)
-                return true; // (0) DW-LB-FL-01: empty name = NT8 anonymous close order, never a valid entry
             if (name.StartsWith("PTT-", StringComparison.Ordinal))
                 return true; // (1)
             if (IsNativeCloseOrFlattenSignal(name))
@@ -2422,30 +2435,81 @@ namespace PropTraderTools
 
         // --- B7-F0: Bracket mirroring methods ---
 
+        // DW-LB-FL-01-V7: type-aware gate0.5 guard -- combines IsExitSignalName with empty-name check.
+        // Empty-name ("") orders require knowledge of order type to distinguish:
+        //   - empty-name Limit  = valid entry order with no signal name assigned -> allow (return false)
+        //   - empty-name Market = NT8 anonymous close/BE order                  -> block (return true)
+        // Callers that only have a name (tests, non-order contexts) use IsExitSignalName directly.
+        // CYC=3: empty-name check(1) + not-Limit branch(2) + IsExitSignalName call(3 via CYC+=0 tail).
+        // JS-021: no lock. JS-001: no throw. JS-002: returns bool. ASCII-only. Static -- no NT8 state.
+        internal static bool IsExitSignalNameOrAnonClose(string name, OrderType orderType)
+        {
+            if (name != null && name.Length == 0)
+                return orderType != OrderType.Limit; // (1)+(2): empty-name Limit=allow, others=block
+            return IsExitSignalName(name); // (3): named order -- delegate to normal check
+        }
+
         // B8 T1: DispatchCopy -- index-tracking loop replaces plain foreach.
         // TB-T4: extracted ShouldSkipFollowerDispatch, ShouldSkipForReversalGuard, DispatchToFollower.
-        // CYC<=6 after extraction. JS-001: no throw in hot path. JS-021: no lock.
+        // CYC=8 after ShouldSkipFollower extraction + T2 dispatched-guard (PTT-REPAIRS-03).
+        // JS-001: no throw in hot path. JS-021: no lock.
         private void DispatchCopy(Order order, CopyRule rule)
         {
             // Gate 0.5: block PTT- cascade AND known NT8 exit signal names (B59).
-            if (IsExitSignalName(order.Name))
+            // DW-LB-FL-01-V7: uses IsExitSignalNameOrAnonClose to allow empty-name Limit orders.
+            if (IsExitSignalNameOrAnonClose(order.Name, order.OrderType))
+            {
+                NinjaTrader.Code.Output.Process(
+                    "[PTT-COPY-DIAG] gate0.5 exit: name=" + order.Name
+                        + " act=" + order.OrderAction
+                        + " state=" + order.OrderState
+                        + " type=" + order.OrderType,
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                );
                 return;
+            }
 
             // Gate 3: must be a dispatch-trigger state (Submitted for market; Accepted for AddOn limit)
             if (!IsDispatchTriggerState(order.OrderState, order.OrderType)) // HOTFIX-MARKET-DEDUP-01
+            {
+                NinjaTrader.Code.Output.Process(
+                    "[PTT-COPY-DIAG] gate3 exit: name=" + order.Name
+                        + " act=" + order.OrderAction
+                        + " state=" + order.OrderState
+                        + " type=" + order.OrderType,
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                );
                 return;
+            }
 
             // Gate 4: market or limit order type only (extracted to eliminate && branch)
             if (!IsDispatchableOrderType(order.OrderType))
+            {
+                NinjaTrader.Code.Output.Process(
+                    "[PTT-COPY-DIAG] gate4 exit: name=" + order.Name
+                        + " act=" + order.OrderAction
+                        + " state=" + order.OrderState
+                        + " type=" + order.OrderType,
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                );
                 return;
+            }
 
             // Gate 5: dedup -- reject duplicate event for same orderId (B62: price-keyed dedup).
-            // DW-B91-A: IsEntryDispatched extends dedup across EvictDedup eviction boundary.
-            // DW-B142-MGC-02: IsLiveEntryBlocked adds instrument-level guard -- blocks cancel+resubmit dups.
+            // DW-B142-MGC-02: IsLiveEntryBlocked_Check (pure predicate) + SetLiveEntryDispatched (commit).
+            // PTT-REPAIRS-03: commit deferred to post-loop guard (dispatched > 0) to prevent phantom lock.
             var orderId = order.OrderId.ToString();
             var instrKey = order.Instrument.FullName + "|" + order.OrderAction;
-            if (IsLiveEntryBlocked(instrKey, orderId, order.LimitPrice)) // DW-B142-MGC-02
+            if (IsLiveEntryBlocked_Check(instrKey, orderId, order.LimitPrice)) // DW-B142-MGC-02
+            {
+                NinjaTrader.Code.Output.Process(
+                    "[PTT-COPY-DIAG] gate5 exit: name=" + order.Name
+                        + " act=" + order.OrderAction
+                        + " instrKey=" + instrKey,
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                );
                 return;
+            }
 
             // All gates passed -- build base signal
             var baseSignal = CopySignal.Create(
@@ -2469,24 +2533,11 @@ namespace PropTraderTools
             );
 
             // B8 T1: index-tracking loop applies per-follower multiplier
+            int dispatched = 0;
             int idx = 0;
             foreach (var acc in rule.FollowerAccounts)
             {
-                if (ShouldSkipFollowerDispatch(acc))
-                {
-                    idx++;
-                    continue;
-                }
-
-                if (
-                    ShouldSkipForReversalGuard(
-                        acc,
-                        instr,
-                        currentAction,
-                        lastAction,
-                        hasLastDirection
-                    )
-                )
+                if (ShouldSkipFollower(acc, instr, currentAction, lastAction, hasLastDirection))
                 {
                     idx++;
                     continue;
@@ -2494,7 +2545,10 @@ namespace PropTraderTools
 
                 DispatchToFollower(acc, order, rule, idx, baseSignal, baseQty);
                 idx++;
+                dispatched++;
             }
+            if (dispatched > 0)
+                SetLiveEntryDispatched(instrKey, orderId);
 
             // B119: DW-B128 -- record direction dispatched for this instrument.
             // Write happens AFTER the loop so all followers in this dispatch see the same lastAction.
@@ -2541,9 +2595,11 @@ namespace PropTraderTools
         }
 
         // TB-T4 Helper 2: reversal entry guard extracted from DispatchCopy loop.
-        // Returns true when hasLastDirection is true and follower is flat and direction reversed.
-        // CCN<=3: hasLastDirection + IsReversalToFlatFollower + IsFlat = 3 Lizard branches.
-        // B119: DW-B128 guard. JS-021: FindPosition/IsFlat are lock-free reads. JS-001: no throw.
+        // Returns true when hasLastDirection is true and follower is truly flat (no position AND
+        // no working entries) and direction reversed.
+        // CCN<=4: hasLastDirection + IsReversalToFlatFollower + IsFlat + HasWorkingEntries = 4 Lizard branches.
+        // B119: DW-B128 guard. JS-021: FindPosition/IsFlat/HasWorkingEntries are lock-free reads. JS-001: no throw.
+        // PTT-DIAG: log emits cur/last/flat on every skip -- permanent diagnostic aid.
         // internal: accessible to xUnit via InternalsVisibleTo("PropTraderTools.Tests") at L46.
         internal bool ShouldSkipForReversalGuard(
             Account acc,
@@ -2555,7 +2611,8 @@ namespace PropTraderTools
         {
             if (!hasLastDirection)
                 return false;
-            bool followerIsFlat = IsFlat(FindPosition(acc, instr));
+            bool followerIsFlat = IsFlat(FindPosition(acc, instr))
+                                  && !HasWorkingEntries(acc, instr);
             if (!IsReversalToFlatFollower(currentAction, lastAction, followerIsFlat))
                 return false;
             NinjaTrader.Code.Output.Process(
@@ -2563,10 +2620,32 @@ namespace PropTraderTools
                     + acc.Name
                     + " "
                     + instr.FullName
-                    + " follower flat",
+                    + " cur=" + currentAction
+                    + " last=" + lastAction
+                    + " flat=" + followerIsFlat,
                 NinjaTrader.NinjaScript.PrintTo.OutputTab1
             );
             return true;
+        }
+
+        // Extracted from DispatchCopy loop to reduce DispatchCopy CYC budget (V-01 fix: PTT-REPAIRS-03).
+        // Short-circuits identically to the original two sequential ifs: ShouldSkipFollowerDispatch first,
+        // then ShouldSkipForReversalGuard. Zero new logic.
+        // CYC=3: base + dispatch-skip check + reversal-guard check.
+        // JS-001: no throw. JS-021: no lock. JS-042: ASCII-only.
+        private bool ShouldSkipFollower(
+            Account acc,
+            NinjaTrader.Cbi.Instrument instr,
+            OrderAction currentAction,
+            OrderAction lastAction,
+            bool hasLastDirection
+        )
+        {
+            if (ShouldSkipFollowerDispatch(acc))
+                return true;
+            if (ShouldSkipForReversalGuard(acc, instr, currentAction, lastAction, hasLastDirection))
+                return true;
+            return false;
         }
 
         // TB-T4 Helper 3: per-follower dispatch body extracted from DispatchCopy loop.
@@ -2590,7 +2669,7 @@ namespace PropTraderTools
                 baseSignal.LimitPrice,
                 baseSignal.OrderId
             );
-            var mode = ResolveAtmMode(rule, acc.Name);
+            var mode = ResolveAtmMode(rule, acc.Name, order.Instrument.FullName);
             NinjaTrader.Code.Output.Process(
                 "[PTT-COPY] dispatch: "
                     + scaledSignal.Action
@@ -4261,11 +4340,22 @@ namespace PropTraderTools
         // InternalsVisibleTo("PropTraderTools.Tests") granted at L46.
         #region B143 test seam
 
+        // B143 test seam: after PTT-REPAIRS-03 B1 split, replicates DispatchCopy check+commit path.
+        // Calls IsLiveEntryBlocked_Check (pure predicate) -- if not blocked, calls SetLiveEntryDispatched
+        // to record the maps exactly as DispatchCopy does after dispatched > 0.
+        // This preserves the behavioral contract of IsLiveEntryBlocked_ClearsOnFill_AllowsReentry:
+        //   first call passes gate + sets instrKey; fill clears it; second call passes again.
         internal bool IsLiveEntryBlocked_ForTest(
             string instrKey,
             string orderId,
             double limitPrice
-        ) => IsLiveEntryBlocked(instrKey, orderId, limitPrice);
+        )
+        {
+            if (IsLiveEntryBlocked_Check(instrKey, orderId, limitPrice))
+                return true;
+            SetLiveEntryDispatched(instrKey, orderId);
+            return false;
+        }
 
         internal void EvictDedup_ForTest(string orderId, NinjaTrader.Cbi.OrderState state) =>
             EvictDedup(orderId, state);
@@ -4311,7 +4401,7 @@ namespace PropTraderTools
                 cancelledOrder.LimitPrice,
                 cancelledOrder.OrderId.ToString() + "-R"
             ); // "-R" suffix = replacement, avoids dedup collision
-            var mode = ResolveAtmMode(matchedRule.Value, cancelledOrder.Account.Name);
+            var mode = ResolveAtmMode(matchedRule.Value, cancelledOrder.Account.Name, cancelledOrder.Instrument.FullName);
             if (mode is FollowerAtmMode.Named namedAtm) // (4) Named -> native ATM re-place
                 SendCopyWithAtm(cancelledOrder.Account, cancelledOrder.Instrument, in signal, namedAtm);
             else
@@ -4798,10 +4888,13 @@ namespace PropTraderTools
             flattenOne(acc, instrument);
         }
 
-        // CYC=3. Returns true if any working non-bracket order exists for the instrument.
+        // CYC=5: foreach(1) + instrument check(2) + state check(3) + bracket check(4) + early-return path(5).
+        // Returns true if any working non-bracket order exists for the instrument.
+        // JS-001: acc.Orders.ToList() snapshot prevents InvalidOperationException on concurrent NT8 modification
+        //         (pattern mirrors HasWorkingPttCopy line 4861). Promoted in-scope by PTT-REPAIRS-03 V-02 fix.
         private bool HasWorkingEntries(Account acc, Instrument instrument)
         {
-            foreach (var order in acc.Orders) // (1) branch
+            foreach (var order in acc.Orders.ToList()) // JS-001: snapshot live collection; pattern matches HasWorkingPttCopy
             {
                 if (order.Instrument != instrument) // (1) branch
                     continue;
@@ -4967,14 +5060,14 @@ namespace PropTraderTools
             return new FollowerAtmMode.Inherit();
         }
 
-        // B50 -- ResolveAtmMode: CYC=2. Mode-aware ATM dispatch router.
-        // Clone mode uses shared _cloneAtmCache; Signal/Mirror modes delegate to GetAtmMode (per-rule).
-        // Replaces direct GetAtmMode call in DispatchCopy inner loop.
+        // PTT-REPAIRS-04 BUG-F: ResolveAtmMode -- per-instrument. CYC=2.
+        // instrFullName passed through so GetCloneAtmMode can look up the correct per-instrument ATM.
+        // Signal/Mirror modes delegate to GetAtmMode (per-rule) -- instrFullName unused there.
         // JS-002: never returns null -- all branches return a FollowerAtmMode subtype.
-        private FollowerAtmMode ResolveAtmMode(CopyRule rule, string accountName)
+        private FollowerAtmMode ResolveAtmMode(CopyRule rule, string accountName, string instrFullName)
         {
             if (GetCopyMode() == CopyMode.Clone) // branch (1)
-                return GetCloneAtmMode();
+                return GetCloneAtmMode(instrFullName);
             return GetAtmMode(rule, accountName);
         }
 
@@ -5686,38 +5779,56 @@ namespace PropTraderTools
             return false;
         }
 
-        // DW-B91-A: guard -- returns true if this orderId was already dispatched (blocks re-dispatch).
-        // Side-effect on first call: TryAdd records the orderId as dispatched.
-        // CYC=2: 1 base + 1 if (ContainsKey).
-        // JS-021: ContainsKey + TryAdd are lock-free. JS-001: no throw. JS-002: returns bool.
+        // DW-B91-A (PTT-REPAIRS-03 B1 split): pure check -- returns true if orderId was committed
+        // via SetLiveEntryDispatched. TryAdd side effect removed; commit is now in SetLiveEntryDispatched.
+        // CYC=1: single return, no decision branches.
+        // JS-021: ContainsKey is lock-free. JS-001: no throw. JS-002: returns bool. ASCII-only.
         private bool IsEntryDispatched(string orderId)
         {
-            if (_entryDispatchedOrders.ContainsKey(orderId))
-                return true;
-            _entryDispatchedOrders.TryAdd(orderId, 0);
-            return false;
+            return _entryDispatchedOrders.ContainsKey(orderId);
         }
 
-        // DW-B142-MGC-02: Gate 5 compound predicate for DispatchCopy.
-        // CYC=4: liveInstr guard(1) + IsDedup(2) + IsEntryDispatched(3).
+        // DW-B142-MGC-02 (PTT-REPAIRS-03 B1 split): pure check predicate for DispatchCopy gate5.
+        // CYC=4: base(1) + instrKey ContainsKey(2) + IsDedup(3) + orderId ContainsKey(4).
         // Returns true (block dispatch) on any of:
         //   (a) instrument already has a live entry dispatched this slot -- blocks resubmit dup.
-        //   (b) same orderId seen before -- orderId-level dup guard.
-        //   (c) orderId was previously dispatched and survived EvictDedup -- eviction-bypass guard.
-        // On false (first real dispatch): records instrKey in _liveEntryInstruments
-        //   and orderId in _entryInstrKeyByOrderId.
-        // JS-021: no lock. JS-001: no throw. JS-002: returns bool. ASCII-only.
-        private bool IsLiveEntryBlocked(string instrKey, string orderId, double limitPrice)
+        //   (b) same orderId+price seen before -- IsDedup orderId-level dedup guard.
+        //       Note: IsDedup retains its _dedupCache.TryAdd side effect (records event for idempotency
+        //       across NT8 Accepted+Working double-fire). This is safe and intentional.
+        //   (c) orderId was previously committed via SetLiveEntryDispatched -- eviction-bypass guard.
+        // Side effects: NONE on _liveEntryInstruments or _entryInstrKeyByOrderId.
+        //   (IsDedup side effect on _dedupCache is intentional -- see note above.)
+        // PTT-REPAIRS-03-POST: check (a) now compares stored orderId to incoming orderId.
+        //   _liveEntryInstruments[instrKey] == orderId  -> same order re-dispatching -> block.
+        //   _liveEntryInstruments[instrKey] != orderId  -> new replacement order    -> allow.
+        //   _liveEntryInstruments does not contain instrKey                          -> allow.
+        // This fixes the false-block when NT8 delivers Cancelled after the next Accepted.
+        // CYC=4: TryGetValue(1)+equality(2)+IsDedup(3)+ContainsKey(4). Within JS-013 limit.
+        // JS-021: no lock. JS-001: no throw. JS-002: returns bool. JS-023: pure check path. ASCII-only.
+        private bool IsLiveEntryBlocked_Check(string instrKey, string orderId, double limitPrice)
         {
-            if (_liveEntryInstruments.ContainsKey(instrKey))
+            if (_liveEntryInstruments.TryGetValue(instrKey, out var liveOrderId) && liveOrderId == orderId)
                 return true;
             if (IsDedup(orderId, limitPrice))
                 return true;
-            if (IsEntryDispatched(orderId))
+            if (_entryDispatchedOrders.ContainsKey(orderId))
                 return true;
-            _liveEntryInstruments.TryAdd(instrKey, 0);
-            _entryInstrKeyByOrderId.TryAdd(orderId, instrKey);
             return false;
+        }
+
+        // DW-B142-MGC-02 (PTT-REPAIRS-03 B1 split): commit method -- called only when dispatched > 0.
+        // Writes the three maps that IsLiveEntryBlocked_Check reads.
+        // PTT-REPAIRS-03-POST: _liveEntryInstruments[instrKey] uses indexer (overwrite) instead of
+        //   TryAdd so that a new orderId always overwrites a stale one for the same instrKey.
+        //   TryAdd would silently fail if the instrKey already exists, leaving the old orderId in the
+        //   map -- causing the new order's cancel to miss the value-guarded TryRemove in EvictDedup.
+        // CYC=1: no decision branches. JS-021: no lock. ConcurrentDictionary indexer is lock-free.
+        // JS-001: no throw. ASCII-only.
+        private void SetLiveEntryDispatched(string instrKey, string orderId)
+        {
+            _liveEntryInstruments[instrKey] = orderId;
+            _entryInstrKeyByOrderId.TryAdd(orderId, instrKey);
+            _entryDispatchedOrders.TryAdd(orderId, 0);
         }
 
         // DW-B142-MGC-02: on position flat, remove all live-entry keys for this instrument.
@@ -5735,7 +5846,7 @@ namespace PropTraderTools
         // B62: evict dedup entry when order reaches terminal state (Filled/Cancelled/Rejected).
         // Called unconditionally from OnOrderUpdate pre-gate, after TryFirePositionState.
         // Ensures evicted orderId can be re-used for the next fresh order on the same instrument.
-        // DW-B142-MGC-02: CYC=5: terminal-guard(1) + Cancelled(2) + instrKey-lookup(3) + Filled(4).
+        // PTT-REPAIRS-04: CYC=7: terminal-guard(1) + Cancelled(2) + instrKey-lookup(3) + liveEntry-guard(4) + pipeIdx-guard(5) + Filled(6) + filledInstrKey-remove(7).
         // JS-025: ConcurrentDictionary.TryRemove is lock-free.
         internal void EvictDedup(string orderId, OrderState state)
         {
@@ -5755,16 +5866,36 @@ namespace PropTraderTools
                 _entryDispatchedOrders.TryRemove(orderId, out _);
                 // If this orderId was a dispatched entry (no fill, just cancelled),
                 // remove the instrument-level live guard so future entries are not blocked.
+                // PTT-REPAIRS-03-POST: value-guarded removal -- only remove instrKey if the stored
+                //   orderId still matches this cancelled orderId. If a newer order has already
+                //   overwritten the value (SetLiveEntryDispatched indexer), preserve it.
                 if (_entryInstrKeyByOrderId.TryRemove(orderId, out var cancelledInstrKey))
-                    _liveEntryInstruments.TryRemove(cancelledInstrKey, out _);
+                {
+                    string storedId;
+                    if (_liveEntryInstruments.TryGetValue(cancelledInstrKey, out storedId)
+                        && storedId == orderId)
+                        _liveEntryInstruments.TryRemove(cancelledInstrKey, out _);
+                    // PTT-REPAIRS-04 BUG-E: entry cancelled without fill -- direction record is stale.
+                    // Clear _lastLeaderDirection so next entry in any direction is not reversal-blocked.
+                    var pipeIdx = cancelledInstrKey.IndexOf('|');
+                    if (pipeIdx > 0)
+                        _lastLeaderDirection.TryRemove(cancelledInstrKey.Substring(0, pipeIdx), out _);
+                }
             }
 
             if (state == OrderState.Filled)
             {
-                // DW-B142-MGC-02: clean up companion map (lazy).
-                // Do NOT remove _liveEntryInstruments key -- trade is live.
-                // PositionStateChanged flat gate (ClearLiveEntryForInstrument) is the authoritative cleanup.
-                _entryInstrKeyByOrderId.TryRemove(orderId, out _);
+                // PTT-REPAIRS-02: clear instrKey on fill -- entry lifecycle complete, followers dispatched.
+                // Mirrors Cancelled branch. ClearLiveEntryForInstrument remains as secondary guard.
+                // MGC cancel+resubmit guard provided by _entryDispatchedOrders (DW-B91-A) -- not instrKey.
+                // PTT-REPAIRS-03-POST: value-guarded removal -- same TOCTOU-safe pattern as Cancelled.
+                if (_entryInstrKeyByOrderId.TryRemove(orderId, out var filledInstrKey))
+                {
+                    string storedId;
+                    if (_liveEntryInstruments.TryGetValue(filledInstrKey, out storedId)
+                        && storedId == orderId)
+                        _liveEntryInstruments.TryRemove(filledInstrKey, out _);
+                }
             }
             // DW-B91-A-v2: Filled/Rejected _entryDispatchedOrders eviction handled in TryEvictFollowerBeSlot.
         }
