@@ -1,0 +1,17 @@
+{
+  "epic": "PTT-REPAIRS-DW-F-R06",
+  "description": "CYC Comment Fix (F1, F2) + New [Fact] Test (F3) — CopyEngine.cs + CopyEngineTests.cs",
+  "created": "2025-01-01",
+  "phases": {
+    "phase1": { "status": "COMPLETE", "artifact": "02-architecture-plan.md", "result": "PLAN_COMPLETE" },
+    "phase2": { "status": "COMPLETE", "artifact": "02-plan-review.md",        "result": "REVIEW_PASS" },
+    "phase3": { "status": "COMPLETE", "artifact": "04-tickets.md",            "result": "TICKETS_COMPLETE (correction cycle 1 applied)" },
+    "phase3_5": { "status": "COMPLETE", "artifact": "04-ticket-review.md",    "result": "TICKET_REVIEW_PASS (cycle 2)" },
+    "phase4a_t1": { "status": "COMPLETE", "artifact": "ticket-1-completion.md",   "result": "BUILD_PASS" },
+    "phase4b_t1": { "status": "COMPLETE", "artifact": "ticket-1-verification.md", "result": "VERIFY_PASS" },
+    "phase4a_t2": { "status": "COMPLETE", "artifact": "ticket-2-completion.md",   "result": "BUILD_PASS (NT8 Skip applied)" },
+    "phase4b_t2": { "status": "COMPLETE", "artifact": "ticket-2-verification.md", "result": "VERIFY_PASS" },
+    "phase5": { "status": "COMPLETE", "artifacts": ["05-final-review.md", "06-deferred-backlog.md"], "result": "FINAL_PASS" }
+  },
+  "pipeline_result": "PIPELINE_COMPLETE"
+}
