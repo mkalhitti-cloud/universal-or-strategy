@@ -6088,7 +6088,7 @@ namespace PropTraderTools
 
         // ---- T2: LogDiagOrderCount
 
-        [Fact]
+        [Fact(Skip = "NT8-runtime: CopyEngine.cctor requires NT8 host")]
         public void LogDiagOrderCount_ShouldLogCorrectCount_WhenOrdersExistForInstrument()
         {
             var m = GetMethod("LogDiagOrderCount");

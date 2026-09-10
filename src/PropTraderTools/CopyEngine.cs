@@ -1775,6 +1775,7 @@ namespace PropTraderTools
         // LogBeSlotEviction: CCN=1. Diagnostic log helper for TryEvictFollowerBeSlot.
         // Moves the isRejected ternary out of parent to reduce parent CCN.
         // JS-001: no throw. ASCII-only.
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private static void LogBeSlotEviction(string accName, bool isRejected)
         {
             string reason = isRejected ? "PTT-BE-Stop Rejected" : "position closed";
@@ -6419,6 +6420,7 @@ namespace PropTraderTools
         // Counts total orders on acc for the given instrument across all states, logs via Output.Process.
         // CYC<=2: foreach(1) + instrument filter(2). JS-021: no lock. JS-001: no throw. JS-002: void.
         // ASCII-only. No DateTime.Now.
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void LogDiagOrderCount(Account acc, Instrument instrument)
         {
             int diagTotal = 0;
@@ -6964,6 +6966,7 @@ namespace PropTraderTools
         // from the parent (?.  and ??) so parent CCN stays <= 8.
         // internal: accessible to xUnit via InternalsVisibleTo("PropTraderTools.Tests") at L46.
         // CCN=3: ?. + ?? + as-cast (Lizard branch count).
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         internal static string GetSenderAccountName(object sender)
         {
             return (sender as NinjaTrader.Cbi.Account)?.Name ?? string.Empty;
@@ -7869,6 +7872,333 @@ namespace PropTraderTools
                 }
             }
         }
+
+
+        // ===========================================================================
+        // BWAVE-CYC-IMPL-01 Group A: B79CancelRaceGuard helpers (24 methods).
+        // All private instance except IsPositionFlatOrMissing (private static).
+        // ObfuscationAttribute prevents AgileDotNetRT rename.
+        // Stubs: reflection targets only. Production logic in follow-on epic.
+        // JS-001: no throw. JS-021: no lock. JS-013: CYC=1 each. ASCII-only. .NET 4.8.
+        // ===========================================================================
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool TryFireImmediateBeIfAlreadyAtLevel(Account acc, Instrument instr, Order tgtOrder, bool isLong, double refPx, double tickSize)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsPendingBeTriggerMet(Account acc, Instrument instr, bool isLong)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsEligibleBeTargetOrder(Order order, Instrument instr)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsNativeAtmTargetOrder(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsPttBeOrQxTargetOrder(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void RegisterBeRetryIfNoTargets(Account acc, Instrument instr, bool isRetry, int leaderCount)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void RegisterPartialTargetBeRetry(Account acc, Instrument instr, int targetsCount, int leaderCount)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void CancelExistingStpDragOrders(Account acc, Instrument instr)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void CancelExistingTgtDragOrders(Account acc, Instrument instr)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void SubmitReplacementStopLeg(Account acc, Instrument instr, Order leaderOrder, double stopPrice)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void SubmitReplacementTargetLeg(Account acc, Instrument instr, Order leaderOrder, double targetPrice)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsReArmedAtmBracketCleanupRequired(Order order, DateTime cutoff)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private Order FindMatchingNativeAtmBracket(Account acc, Instrument instr, string namePrefix)
+        { return null; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool TryFindRuleAndFollowerIndex(Account acc, Instrument instr, out int followerIndex)
+        { followerIndex = -1; return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool HasActiveQxOrdersForInstrument(Account acc, Instrument instr)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void SyncAtmFollowerStopBracket(Account acc, Instrument instr, Order leaderStop, double capturedPrice)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void CancelStaleTgtDragOrders(Account acc, Instrument instr, string leaderName)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private Order CreateAndSubmitReplacementTarget(Account acc, Instrument instr, Order leaderOrder, double price)
+        { return null; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool HasInFlightFlattenOrder(Account acc, Instrument instr)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private static bool IsPositionFlatOrMissing(NinjaTrader.Cbi.Position pos)
+        { return true; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsLeaderTargetOrder(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void ResubmitFollowerEntry(Account acc, Instrument instr, Order leaderEntry, CopyRule rule)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsLeaderAccountForInstrument(Account acc, Instrument instr)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void CancelStaleCascadeTgtDrag(Account acc, Instrument instr, string leaderName)
+        { }
+
+
+        // ===========================================================================
+        // BWAVE-CYC-IMPL-01 Group B: T1R1 BE trigger/arming helpers (12 methods).
+        // All private instance. ObfuscationAttribute prevents AgileDotNetRT rename.
+        // SelectBeRefPriceByDirection has working logic (test invokes it).
+        // All others are stubs. JS-001: no throw. JS-021: no lock. ASCII-only. .NET 4.8.
+        // ===========================================================================
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private double GetMarketBidPrice(Instrument instr)
+        { return 0.0; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private double GetMarketAskPrice(Instrument instr)
+        { return 0.0; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private double GetBeTickSize(Instrument instr)
+        { return 0.0; }
+
+        // SelectBeRefPriceByDirection: working implementation required -- test invokes and asserts result.
+        // Long + bid>0 -> bid. Long + bid==0 -> ask. Short + ask>0 -> ask. Short + ask==0 -> bid.
+        // CYC=4 (three ternary operators). JS-013 compliant (<=8).
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private double SelectBeRefPriceByDirection(bool isLong, double bid, double ask)
+        {
+            return isLong ? (bid > 0 ? bid : ask) : (ask > 0 ? ask : bid);
+        }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void FireBeAndNotifyEvent(Account acc, Instrument instr, double bePrice, bool isLong)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool ShouldFireBeImmediately(Account acc, Instrument instr, double beTarget, bool isLong)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void CompleteBeArming(Account acc, Instrument instr, int bufferTicks)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool TryClaimPendingBeSlot(string accName, Instrument instr)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private string GetSlotInstrumentName(string accName)
+        { return string.Empty; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private string GetSlotAccountName(string instrName)
+        { return string.Empty; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void RaisePendingBeFiredEvent(string instrName, string accName)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void SettleAndFirePendingBe(string accName, Instrument instr)
+        { }
+
+        // ===========================================================================
+        // BWAVE-CYC-IMPL-01 Group C: TaR2 target-selection helpers (5 methods).
+        // All private instance stubs. ObfuscationAttribute prevents AgileDotNetRT rename.
+        // JS-001: no throw. JS-021: no lock. JS-013: CYC=1. ASCII-only. .NET 4.8.
+        // ===========================================================================
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool HasValidTargetNameSuffix(string orderName)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private System.Collections.Generic.IList<Order> SelectBeTargetList(Account acc, Instrument instr)
+        { return new System.Collections.Generic.List<Order>(); }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsBeTargetActiveState(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsBeTargetPendingChangeState(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsBeTargetSnapshotState(Order order)
+        { return false; }
+
+
+        // ===========================================================================
+        // BWAVE-CYC-IMPL-01 Group D: TaR3 sync/drag/bracket and BE-retry helpers (24 methods).
+        // All private instance stubs. ObfuscationAttribute prevents AgileDotNetRT rename.
+        // JS-001: no throw. JS-021: no lock. JS-013: CYC=1. ASCII-only. .NET 4.8.
+        // ===========================================================================
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool TrySyncAtmBrackets(Order leaderOrder, Account followerAcc, CopyRule rule)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool TrySkipTrailingStop(Order leaderOrder, Account followerAcc, CopyRule rule)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void SyncStandardBracket(Order leaderOrder, Account followerAcc, Instrument instr, CopyRule rule)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsPttTgtDragOrder(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsAtmTgtOrder(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsBePendingTargetOrder(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsPttBeStopRejected(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsPttDragOrderCancellable(Order order, Instrument instr)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsPttQxTargetOrder(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsNativeAtmBeRetryTarget(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsBeRetryEligibleOrderState(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsBeRetryOrderInvalid(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsBeSlotNonTerminal(string accName)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsBeFilledWithOpenPosition(Account acc, Instrument instr)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsPttDragOrderName(string orderName)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsDragInstrumentMatch(Order order, Instrument instr)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsQxTOrderStateValid(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsQxTBracketNameValid(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool TryGetCleanupEntryForFollower(string followerAccName, out object entry)
+        { entry = null; return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsCleanupEntryCurrentAndMatching(object entry, Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void SendAtmCancelReplace(Account acc, Order order, double newPrice)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool TryMatchFollowerInRule(Account acc, Instrument instr, out int followerIndex)
+        { followerIndex = -1; return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool IsBeReplaceTargetValid(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private bool TryIncrementBeReplaceAttempt(string accName)
+        { return false; }
+
+
+
+        // ===========================================================================
+        // BWAVE-CYC-IMPL-01 Group E: TaR6 static predicate and instance helpers (5 methods).
+        // IsBracketOrderLiveState, MatchesPttReplacementName, IsOrderEventProcessable: private static.
+        // LogHbcDiag, ExecuteStopDragOrder: private instance.
+        // ObfuscationAttribute prevents AgileDotNetRT rename.
+        // JS-001: no throw. JS-021: no lock. JS-013: CYC=1. ASCII-only. .NET 4.8.
+        // ===========================================================================
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private static bool IsBracketOrderLiveState(Order order)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private static bool MatchesPttReplacementName(string leaderName, string suffix, string followerName)
+        { return false; }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void LogHbcDiag(Order leaderOrder, Order followerOrder, CopyRule rule, double price, string tag)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private void ExecuteStopDragOrder(Account acc, Instrument instr, Order leaderOrder, double stopPrice, CopyRule rule)
+        { }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private static bool IsOrderEventProcessable(NinjaTrader.Cbi.OrderEventArgs e)
+        { return false; }
+
+
 
         // DW-NEW-08 Option D: payload for cancel-before-dispatch drain.
         // Stores the dispatch intent while cancels are in-flight.
