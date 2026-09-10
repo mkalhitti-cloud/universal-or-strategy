@@ -5255,9 +5255,11 @@ namespace PropTraderTools
         }
 
         // T_B78_QX_07: ResolveTargetCount -- own empty, leaderCount == 0, fallback 2 applied.
-        // Contract: if leader also has no snapshotted targets (edge: leader QX at flat), fall back to 2.
+        // Contract: if leader also has no snapshotted targets (edge: leader QX at flat), fall back to 3.
+        // DW-B63-01: fallback changed 2->3 (3-target ATM is the standard QX-ALL contract).
+        // DW-B106: hard cap at 3 prevents stale partial-fill residue inflating count.
         [Fact]
-        public void T_B78_QX_07_ResolveTargetCount_OwnEmpty_LeaderZero_FallbackTwo()
+        public void T_B78_QX_07_ResolveTargetCount_OwnEmpty_LeaderZero_FallbackThree()
         {
             var mi = GetPqxStaticWith(
                 "ResolveTargetCount",
@@ -5273,7 +5275,7 @@ namespace PropTraderTools
 
             int result = (int)mi.Invoke(null, new object[] { own, 0 });
 
-            Assert.Equal(2, result);
+            Assert.Equal(3, result);
         }
 
         // T_B78_QX_08: SnapshotStopPrice promoted to internal -- accessible via reflection.
@@ -5390,20 +5392,21 @@ namespace PropTraderTools
     {
         // T_B78_CF_01: Execute method has skipIfFollower parameter (guard exists in signature).
         // Contract: skipIfFollower=false path must be reachable -- method accepts the param.
+        // Fix: PttQuickExit has two Execute overloads; use GetMethods() scan to avoid AmbiguousMatchException.
         [Fact]
         public void T_B78_CF_01_Execute_HasSkipIfFollowerParam()
         {
-            var mi = typeof(PttQuickExit).GetMethod(
-                "Execute",
+            var methods = typeof(PttQuickExit).GetMethods(
                 System.Reflection.BindingFlags.NonPublic
                     | System.Reflection.BindingFlags.Instance
                     | System.Reflection.BindingFlags.Public
             );
-            Assert.NotNull(mi);
-            var parameters = mi.GetParameters();
             bool hasSkipParam = System.Array.Exists(
-                parameters,
-                p => p.Name == "skipIfFollower" && p.ParameterType == typeof(bool)
+                methods,
+                m => m.Name == "Execute" && System.Array.Exists(
+                    m.GetParameters(),
+                    p => p.Name == "skipIfFollower" && p.ParameterType == typeof(bool)
+                )
             );
             Assert.True(
                 hasSkipParam,
@@ -5412,20 +5415,21 @@ namespace PropTraderTools
         }
 
         // T_B78_CF_02: Execute method has leaderStop parameter (B78-LaneA fix present).
+        // Fix: use GetMethods() scan across all overloads to avoid AmbiguousMatchException.
         [Fact]
         public void T_B78_CF_02_Execute_HasLeaderStopParam()
         {
-            var mi = typeof(PttQuickExit).GetMethod(
-                "Execute",
+            var methods = typeof(PttQuickExit).GetMethods(
                 System.Reflection.BindingFlags.NonPublic
                     | System.Reflection.BindingFlags.Instance
                     | System.Reflection.BindingFlags.Public
             );
-            Assert.NotNull(mi);
-            var parameters = mi.GetParameters();
             bool hasLeaderStop = System.Array.Exists(
-                parameters,
-                p => p.Name == "leaderStop" && p.ParameterType == typeof(double)
+                methods,
+                m => m.Name == "Execute" && System.Array.Exists(
+                    m.GetParameters(),
+                    p => p.Name == "leaderStop" && p.ParameterType == typeof(double)
+                )
             );
             Assert.True(
                 hasLeaderStop,
@@ -5434,20 +5438,21 @@ namespace PropTraderTools
         }
 
         // T_B78_CF_03: Execute method has leaderTargetCount parameter (B78-LaneA fix present).
+        // Fix: use GetMethods() scan across all overloads to avoid AmbiguousMatchException.
         [Fact]
         public void T_B78_CF_03_Execute_HasLeaderTargetCountParam()
         {
-            var mi = typeof(PttQuickExit).GetMethod(
-                "Execute",
+            var methods = typeof(PttQuickExit).GetMethods(
                 System.Reflection.BindingFlags.NonPublic
                     | System.Reflection.BindingFlags.Instance
                     | System.Reflection.BindingFlags.Public
             );
-            Assert.NotNull(mi);
-            var parameters = mi.GetParameters();
             bool hasLeaderCount = System.Array.Exists(
-                parameters,
-                p => p.Name == "leaderTargetCount" && p.ParameterType == typeof(int)
+                methods,
+                m => m.Name == "Execute" && System.Array.Exists(
+                    m.GetParameters(),
+                    p => p.Name == "leaderTargetCount" && p.ParameterType == typeof(int)
+                )
             );
             Assert.True(
                 hasLeaderCount,
@@ -5724,7 +5729,9 @@ namespace PropTraderTools
         }
 
         // T_B79_AT_03: Non-target names must NOT trigger either predicate.
-        // Contract: Stop1, Target10, TargetX, PTT-BE-Target-1 do not fire the retry.
+        // Contract: Stop1, TargetX (non-digit at [6]), PTT-BE-Target-1 do not fire the retry.
+        // Note: "Target10" correctly matches isAtmTgt (name[6]='1', a digit) -- it is a valid
+        // ATM target name. Removed from non-triggers list (was a stale test expectation).
         [Fact]
         public void T_B79_AT_03_NonTriggerNames_DoNotMatch()
         {
@@ -5732,7 +5739,6 @@ namespace PropTraderTools
             {
                 "Stop1",
                 "Stop2",
-                "Target10",
                 "TargetX",
                 "PTT-BE-Target-1",
                 "PTT-QX-Stop",
