@@ -1257,7 +1257,7 @@ namespace PropTraderTools
         // CCN=3: base(1) + foreach(1) + inner null-guard(1). FullName comparison per B69 DW-B69-02.
         // internal: accessible to xUnit via InternalsVisibleTo("PropTraderTools.Tests") at L46.
         // JS-021: acc.Positions is NT8 read-only collection -- no lock needed.
-        internal NinjaTrader.Cbi.Position FindBePosition(
+        internal NinjaTrader.Cbi.Position? FindBePosition(
             Account acc,
             NinjaTrader.Cbi.Instrument instr
         )
@@ -1994,7 +1994,7 @@ namespace PropTraderTools
                 )
                     return rule;
             }
-            return null;
+            return default;
         }
 
         // TryCancelFollowerEntries: CYC=4 (was 6). Propagates leader cancel to scoped follower entry orders.
@@ -3027,7 +3027,7 @@ namespace PropTraderTools
         private double? CaptureLinkedTargetPrice(Account acc, string stopName)
         {
             if (!TryParseStopSuffix(stopName, out string suffix)) // (1) if -- && NOT counted
-                return null;
+                return default;
             string targetName = "Target" + suffix;
             string pttTgtName = "PTT-TGT-Drag-" + suffix;
             double? pttPrice = null;
@@ -3129,7 +3129,7 @@ namespace PropTraderTools
         // Returns null if not found -- callers fall back to fo.Quantity.
         // CYC=3: base(1) + foreach(1) + if(1). JS-021: no lock. JS-001: no throw. JS-002: null is valid here.
         // ASCII-only. Iterates leader account orders snapshot.
-        private static Order FindLeaderCollateralOrder(Order leaderOrder, string suffix)
+        private static Order? FindLeaderCollateralOrder(Order leaderOrder, string suffix)
         {
             if (leaderOrder?.Account?.Orders == null || string.IsNullOrEmpty(suffix)) // (1) if -- || NOT counted
                 return null;
@@ -3298,7 +3298,7 @@ namespace PropTraderTools
                 // DW-B142-QTY-DESYNC-01: look up the leader's per-leg bracket order for this suffix.
                 // leaderOrder.Name is e.g. "Stop2"; collateral leg s="1" or "3" -> look up "Stop1"/"Stop3".
                 // Also try "Target1"/"Target3" since CaptureOtherLegTargetPrices may have stored either.
-                Order leaderLeg = FindLeaderCollateralOrder(leaderOrder, s);
+                Order? leaderLeg = FindLeaderCollateralOrder(leaderOrder, s);
                 ResubmitOneCollateralLeg(acc, fo, newPrice, otherLegPrices[i - 1], s, leaderLeg);
             }
         }
@@ -4436,7 +4436,7 @@ namespace PropTraderTools
                     return rule;
                 }
             }
-            return null;
+            return default;
         }
 
         // CCN<=3: base(1)+for-i(1)+?.Name match(1)=CCN<=3.
@@ -5498,7 +5498,7 @@ namespace PropTraderTools
         // CYC<=3: pos null/qty guard(1) + action ternary(2) + order null guard(3). JS-021: no lock.
         // JS-001: no throw (absorbs existing try/catch). JS-002: void. ASCII-only.
         // T5-FIX: CCN 9-><=4: extract DoFlattenOrder to absorb CreateOrder+Submit+catch block.
-        private void SubmitMarketFlattenOrder(Account acc, Instrument instrument, Position pos)
+        private void SubmitMarketFlattenOrder(Account acc, Instrument instrument, Position? pos)
         {
             if (pos == null || pos.Quantity == 0) // (1+2 for ||)
             {
@@ -5947,7 +5947,7 @@ namespace PropTraderTools
         // JS-021: no lock (ConcurrentDictionary TryGetValue/TryAdd is lock-free per JS-025).
         // JS-001: no throw. ASCII-only.
         // NT8 pattern: null = slot could not be resolved
-        private Account ResolveNullFollowerSlot(CopyRule rule, int i)
+        private Account? ResolveNullFollowerSlot(CopyRule rule, int i)
         {
             var names = rule.FollowerAccountNames;
             var name = (names != null && i < names.Length) ? names[i] : null;
@@ -5987,13 +5987,13 @@ namespace PropTraderTools
         internal CopyRule? FindRule(Instrument instrument)
         {
             if (instrument == null)
-                return null; // Change 8: null guard
+                return default; // Change 8: null guard
             foreach (var rule in _rules)
             {
                 if (rule.Instrument == instrument.FullName)
                     return rule;
             }
-            return null;
+            return default;
         }
 
         // Change 6: Replace PassesDailyCapCheck stub with real P&L check
@@ -6005,7 +6005,7 @@ namespace PropTraderTools
             return pnl > _dailyCapFloor;
         }
 
-        private static bool IsFlat(NinjaTrader.Cbi.Position pos)
+        private static bool IsFlat(NinjaTrader.Cbi.Position? pos)
         {
             return pos == null || pos.Quantity == 0;
         }
@@ -6072,7 +6072,7 @@ namespace PropTraderTools
                 );
         }
 
-        private Position FindPosition(Account acc, Instrument instrument)
+        private Position? FindPosition(Account acc, Instrument instrument)
         {
             foreach (Position p in acc.Positions)
                 if (p.Instrument != null && p.Instrument.FullName == instrument.FullName)
@@ -6083,7 +6083,7 @@ namespace PropTraderTools
         // B58 -- FindPositionPublic: thin wrapper over private FindPosition for panel access.
         // CYC=1. Returns null if no position (pre-existing FindPosition behavior -- not new).
         // JS-002: null return is pre-existing contract of FindPosition, not a new null-return site.
-        internal Position FindPositionPublic(Account acc, Instrument instrument) =>
+        internal Position? FindPositionPublic(Account acc, Instrument instrument) =>
             FindPosition(acc, instrument);
 
         // PTT-REPAIRS-01 R1: null-safe FullName equality helper (replaces reference equality).
@@ -7292,7 +7292,7 @@ namespace PropTraderTools
                     );
             }
 
-            int[] multipliers = ResolveMultipliers(dto);
+            int[]? multipliers = ResolveMultipliers(dto);
             var atmMap = ResolveAtmMap(dto);
 
             // B10 T3: backward compat -- old XML has no TightenTicks element, XmlSerializer sets to 0.
@@ -7349,7 +7349,7 @@ namespace PropTraderTools
         // CYC=2: null check(1) + length check(2).
         // Note on JS-002: returning null is consistent with existing CopyRule.Create contract (int[]?).
         // TESTABILITY: internal static with CopyRuleDto param -- directly testable (no NT8 deps).
-        internal static int[] ResolveMultipliers(CopyRuleDto dto)
+        internal static int[]? ResolveMultipliers(CopyRuleDto dto)
         {
             if (dto.FollowerMultipliers == null || dto.FollowerMultipliers.Length == 0) // (1)(2)
                 return null;
