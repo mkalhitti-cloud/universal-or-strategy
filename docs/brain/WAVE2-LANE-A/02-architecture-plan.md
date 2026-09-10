@@ -31,7 +31,7 @@ Per Parallel Lane Protocol: "Two lanes writing to the same .cs file = merge conf
 | File in scope | `src/PropTraderTools/CopyEngine.cs` |
 | Class | `TrimSignal` (nested static class within CopyEngine.cs) |
 | Tickets | 2 (sequential) |
-| New helper methods | 2 (private static, within TrimSignal) |
+| New helper methods | 2 (internal static, within TrimSignal) |
 | Other files modified | `tests/PropTraderTools.Tests/Wave2LaneATests.cs` (new) |
 | Files BANNED from modification | All `Ptt*.cs`, Panel, Window, AddOn files |
 
@@ -82,7 +82,7 @@ NT8 types used (read-only, query only):
 | `TrimSignal` | `IsExitSignalName(string)` | 2347-2370 | Reduce CCN 9 -> 8; delegate Close/Flatten to new helper |
 | `TrimSignal` | `HasArmingAtmBrackets(Account, Instrument)` | 5351-5369 | Reduce CCN 9 -> 5; delegate OrderState check to new helper |
 
-### New components (private static helpers within TrimSignal)
+### New components (internal static helpers within TrimSignal)
 
 | Class | Method | Placement | CCN |
 |---|---|---|---|
@@ -150,7 +150,7 @@ Both extractions produce pure static functions with no shared state:
 internal static bool IsExitSignalName(string name)
 
 // New private helper (CCN = 3)
-private static bool IsNativeCloseOrFlattenSignal(string name)
+internal static bool IsNativeCloseOrFlattenSignal(string name)
 ```
 
 ### Ticket 2 -- new + modified signatures
@@ -160,7 +160,7 @@ private static bool IsNativeCloseOrFlattenSignal(string name)
 internal static bool HasArmingAtmBrackets(Account acc, Instrument instr)
 
 // New private helper (CCN = 6)
-private static bool IsArmingOrderState(OrderState s)
+internal static bool IsArmingOrderState(OrderState s)
 ```
 
 ---
@@ -220,7 +220,7 @@ if (IsNativeCloseOrFlattenSignal(name))
     return true; // (2)+(3)
 
 // NEW HELPER -- place after IsExitSignalName:
-private static bool IsNativeCloseOrFlattenSignal(string name)
+internal static bool IsNativeCloseOrFlattenSignal(string name)
 {
     if (name == "Close")
         return true;
@@ -231,7 +231,7 @@ private static bool IsNativeCloseOrFlattenSignal(string name)
 ```
 
 Constraints:
-- Helper is `private static bool` -- not `internal`, not public
+- Helper is `internal static bool` (InternalsVisibleTo enables xUnit access) -- not public
 - No null guard in helper (caller guarantees non-null, non-empty via earlier guards)
 - No StringComparison parameter needed -- ordinal equality is default for `==` on string in C#
 - ASCII-only string literals
@@ -332,7 +332,7 @@ if (!IsArmingOrderState(o.OrderState))
     continue;
 
 // NEW HELPER -- place after HasArmingAtmBrackets:
-private static bool IsArmingOrderState(OrderState s)
+internal static bool IsArmingOrderState(OrderState s)
 {
     if (s == OrderState.Initialized)
         return true;
@@ -349,7 +349,7 @@ private static bool IsArmingOrderState(OrderState s)
 ```
 
 Constraints:
-- Helper is `private static bool` -- not `internal`, not public
+- Helper is `internal static bool` (InternalsVisibleTo enables xUnit access) -- not public
 - Parameter type is `OrderState` (value type enum) -- thread-safe by nature
 - No `lock()`, no `Dispatcher.InvokeAsync`
 - .NET 4.8 compatible (no switch expression)
