@@ -6693,6 +6693,8 @@ namespace PropTraderTools
     {
         private static MethodInfo GetMethod(string name) =>
             typeof(CopyEngine).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance);
+        private static MethodInfo GetStaticMethod(string name) =>
+            typeof(CopyEngine).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Static);
 
         // -- HasValidTargetNameSuffix (extracted from IsLeaderTargetOrder) --------
 
@@ -6800,12 +6802,12 @@ namespace PropTraderTools
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void GetSenderAccountName_ShouldBeReusedByOnTrailBeAccountUpdate()
         {
             // Verifies the shared helper exists (reused by both OnPendingBeAccountUpdate
             // and OnTrailBeAccountUpdate after TA-R2 refactor).
-            var m = GetMethod("GetSenderAccountName");
+            var m = GetStaticMethod("GetSenderAccountName");
             Assert.NotNull(m);
         }
     }
@@ -6819,6 +6821,9 @@ namespace PropTraderTools
     {
         private static MethodInfo GetMethod(string name) =>
             typeof(CopyEngine).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance);
+
+        private static MethodInfo GetStaticMethod(string name) =>
+            typeof(CopyEngine).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Static);
 
         // -- TrySyncAtmBrackets (extracted from SyncFollowerBracket) --
 
@@ -6929,17 +6934,17 @@ namespace PropTraderTools
         }
 
         // TA-R4: LogBeSlotEviction helper tests
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void LogBeSlotEviction_ShouldExist_AsPrivateVoidMethod()
         {
-            var m = GetMethod("LogBeSlotEviction");
+            var m = GetStaticMethod("LogBeSlotEviction");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void LogBeSlotEviction_ShouldAccept_AccNameAndIsRejectedParameters()
         {
-            var m = GetMethod("LogBeSlotEviction");
+            var m = GetStaticMethod("LogBeSlotEviction");
             Assert.NotNull(m);
             Assert.Equal(2, m.GetParameters().Length);
         }

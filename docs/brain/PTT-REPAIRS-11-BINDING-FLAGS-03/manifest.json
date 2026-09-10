@@ -1,0 +1,15 @@
+{
+  "epic": "PTT-REPAIRS-11-BINDING-FLAGS-03",
+  "phase": "Ph5",
+  "status": "COMPLETE",
+  "artifacts": {
+    "Ph1": "docs/brain/PTT-REPAIRS-11-BINDING-FLAGS-03/02-architecture-plan.md",
+    "Ph2": "docs/brain/PTT-REPAIRS-11-BINDING-FLAGS-03/02-plan-review.md",
+    "Ph3": "docs/brain/PTT-REPAIRS-11-BINDING-FLAGS-03/04-tickets.md",
+    "Ph3.5": "docs/brain/PTT-REPAIRS-11-BINDING-FLAGS-03/04-ticket-review.md",
+    "Ph4a": "docs/brain/PTT-REPAIRS-11-BINDING-FLAGS-03/ticket-1-completion.md",
+    "Ph4b": "docs/brain/PTT-REPAIRS-11-BINDING-FLAGS-03/ticket-1-verification.md",
+    "Ph5_review": "docs/brain/PTT-REPAIRS-11-BINDING-FLAGS-03/05-final-review.md",
+    "Ph5_backlog": "docs/brain/PTT-REPAIRS-11-BINDING-FLAGS-03/06-deferred-backlog.md"
+  }
+}
