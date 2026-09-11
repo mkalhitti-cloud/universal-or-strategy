@@ -6502,7 +6502,7 @@ namespace PropTraderTools
 
         // -- Direction selector --------------------------------------------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact(Skip = "NT8-runtime: CopyEngine.cctor requires NT8 host")]
         public void SelectBeRefPriceByDirection_ShouldReturnBid_WhenLongAndBidIsPositive()
         {
             var m = GetMethod("SelectBeRefPriceByDirection");
@@ -6512,7 +6512,7 @@ namespace PropTraderTools
             Assert.Equal(100.25, result);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact(Skip = "NT8-runtime: CopyEngine.cctor requires NT8 host")]
         public void SelectBeRefPriceByDirection_ShouldReturnAsk_WhenLongAndBidIsZero()
         {
             var m = GetMethod("SelectBeRefPriceByDirection");
@@ -6522,7 +6522,7 @@ namespace PropTraderTools
             Assert.Equal(100.50, result);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact(Skip = "NT8-runtime: CopyEngine.cctor requires NT8 host")]
         public void SelectBeRefPriceByDirection_ShouldReturnAsk_WhenShortAndAskIsPositive()
         {
             var m = GetMethod("SelectBeRefPriceByDirection");
@@ -6532,7 +6532,7 @@ namespace PropTraderTools
             Assert.Equal(100.50, result);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact(Skip = "NT8-runtime: CopyEngine.cctor requires NT8 host")]
         public void SelectBeRefPriceByDirection_ShouldReturnBid_WhenShortAndAskIsZero()
         {
             var m = GetMethod("SelectBeRefPriceByDirection");
