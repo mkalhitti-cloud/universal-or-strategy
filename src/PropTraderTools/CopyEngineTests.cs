@@ -5965,7 +5965,7 @@ namespace PropTraderTools
 
         // ---- T1: TryFireImmediateBeIfAlreadyAtLevel
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TryFireImmediateBeIfAlreadyAtLevel_ShouldReturnFalse_WhenTickSizeIsZero()
         {
             // Verifies the helper short-circuits when tickSize <= 0 (no market data).
@@ -5973,7 +5973,7 @@ namespace PropTraderTools
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TryFireImmediateBeIfAlreadyAtLevel_ShouldReturnFalse_WhenPriceIsZero()
         {
             // Verifies the helper returns false when refPx <= 0 (no live quote).
@@ -5981,7 +5981,7 @@ namespace PropTraderTools
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TryFireImmediateBeIfAlreadyAtLevel_ShouldReturnTrue_WhenLongAndBidAboveTarget()
         {
             // Verifies immediate fire path for long position where bid >= target.
@@ -5989,7 +5989,7 @@ namespace PropTraderTools
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TryFireImmediateBeIfAlreadyAtLevel_ShouldReturnTrue_WhenShortAndAskBelowTarget()
         {
             // Verifies immediate fire path for short position where ask <= target.
@@ -5999,7 +5999,7 @@ namespace PropTraderTools
 
         // ---- T1: IsPendingBeTriggerMet
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPendingBeTriggerMet_ShouldReturnFalse_WhenRefPriceIsZero()
         {
             // Verifies the helper short-circuits when both bid and ask are zero.
@@ -6007,7 +6007,7 @@ namespace PropTraderTools
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPendingBeTriggerMet_ShouldReturnFalse_WhenLongPositionPriceBelowTarget()
         {
             // Verifies no trigger when long position's bid is below the BE target.
@@ -6015,7 +6015,7 @@ namespace PropTraderTools
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPendingBeTriggerMet_ShouldReturnTrue_WhenLongAndBidReachesTarget()
         {
             // Verifies trigger fires when long position's bid >= target.
@@ -6023,7 +6023,7 @@ namespace PropTraderTools
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPendingBeTriggerMet_ShouldReturnTrue_WhenShortAndAskReachesTarget()
         {
             // Verifies trigger fires when short position's ask <= target.
@@ -6033,21 +6033,21 @@ namespace PropTraderTools
 
         // ---- T2: IsEligibleBeTargetOrder
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsEligibleBeTargetOrder_ShouldReturnFalse_WhenOrderStateIsNotInSnapshot()
         {
             var m = GetMethod("IsEligibleBeTargetOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsEligibleBeTargetOrder_ShouldReturnFalse_WhenInstrumentDoesNotMatch()
         {
             var m = GetMethod("IsEligibleBeTargetOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsEligibleBeTargetOrder_ShouldReturnFalse_WhenOrderTypeIsNotLimit()
         {
             var m = GetMethod("IsEligibleBeTargetOrder");
@@ -6056,14 +6056,14 @@ namespace PropTraderTools
 
         // ---- T2: IsNativeAtmTargetOrder
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsNativeAtmTargetOrder_ShouldReturnTrue_WhenNameIsTarget1()
         {
             var m = GetMethod("IsNativeAtmTargetOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsNativeAtmTargetOrder_ShouldReturnFalse_WhenNameIsTarget0()
         {
             var m = GetMethod("IsNativeAtmTargetOrder");
@@ -6072,14 +6072,14 @@ namespace PropTraderTools
 
         // ---- T2: IsPttBeOrQxTargetOrder
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPttBeOrQxTargetOrder_ShouldReturnTrue_WhenNameStartsWithPttQxT1()
         {
             var m = GetMethod("IsPttBeOrQxTargetOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPttBeOrQxTargetOrder_ShouldReturnTrue_WhenNameStartsWithPttBeTarget()
         {
             var m = GetMethod("IsPttBeOrQxTargetOrder");
@@ -6097,21 +6097,21 @@ namespace PropTraderTools
 
         // ---- T2: RegisterBeRetryIfNoTargets
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void RegisterBeRetryIfNoTargets_ShouldNotRegister_WhenIsRetryIsTrue()
         {
             var m = GetMethod("RegisterBeRetryIfNoTargets");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void RegisterBeRetryIfNoTargets_ShouldNotRegister_WhenPositionIsFlat()
         {
             var m = GetMethod("RegisterBeRetryIfNoTargets");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void RegisterBeRetryIfNoTargets_ShouldRegisterSlotAndQueueFallback_WhenConditionsMet()
         {
             var m = GetMethod("RegisterBeRetryIfNoTargets");
@@ -6120,14 +6120,14 @@ namespace PropTraderTools
 
         // ---- T2: RegisterPartialTargetBeRetry
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void RegisterPartialTargetBeRetry_ShouldNotRegister_WhenTargetCountEqualsLeaderCount()
         {
             var m = GetMethod("RegisterPartialTargetBeRetry");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void RegisterPartialTargetBeRetry_ShouldRegisterSlot_WhenFollowerHasFewerTargetsThanLeader()
         {
             var m = GetMethod("RegisterPartialTargetBeRetry");
@@ -6136,7 +6136,7 @@ namespace PropTraderTools
 
         // ---- T3: CancelExistingStpDragOrders
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void CancelExistingStpDragOrders_ShouldCancelMatchingLiveStpDragOrder()
         {
             var m = GetMethod("CancelExistingStpDragOrders");
@@ -6145,7 +6145,7 @@ namespace PropTraderTools
 
         // ---- T3: CancelExistingTgtDragOrders
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void CancelExistingTgtDragOrders_ShouldCancelMatchingLiveTgtDragOrder()
         {
             var m = GetMethod("CancelExistingTgtDragOrders");
@@ -6154,14 +6154,14 @@ namespace PropTraderTools
 
         // ---- T3: SubmitReplacementStopLeg
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void SubmitReplacementStopLeg_ShouldReturnEarly_WhenCreateOrderReturnsNull()
         {
             var m = GetMethod("SubmitReplacementStopLeg");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void SubmitReplacementStopLeg_ShouldUseLeaderQuantity_WhenLeaderLegProvided()
         {
             var m = GetMethod("SubmitReplacementStopLeg");
@@ -6170,14 +6170,14 @@ namespace PropTraderTools
 
         // ---- T3: SubmitReplacementTargetLeg
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void SubmitReplacementTargetLeg_ShouldReturnEarly_WhenCreateOrderReturnsNull()
         {
             var m = GetMethod("SubmitReplacementTargetLeg");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void SubmitReplacementTargetLeg_ShouldUseLeaderQuantity_WhenLeaderLegProvided()
         {
             var m = GetMethod("SubmitReplacementTargetLeg");
@@ -6186,7 +6186,7 @@ namespace PropTraderTools
 
         // ---- T4: IsReArmedAtmBracketCleanupRequired
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsReArmedAtmBracketCleanupRequired_ShouldReturnFalse_WhenOrderStateIsNotWorkingOrAccepted()
         {
             var m = typeof(CopyEngine).GetMethod(
@@ -6196,7 +6196,7 @@ namespace PropTraderTools
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsReArmedAtmBracketCleanupRequired_ShouldReturnFalse_WhenNameDoesNotStartWithPttQxT()
         {
             var m = typeof(CopyEngine).GetMethod(
@@ -6206,7 +6206,7 @@ namespace PropTraderTools
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsReArmedAtmBracketCleanupRequired_ShouldReturnFalse_WhenTtlHasExpired()
         {
             var m = typeof(CopyEngine).GetMethod(
@@ -6216,7 +6216,7 @@ namespace PropTraderTools
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsReArmedAtmBracketCleanupRequired_ShouldReturnTrue_WhenAllConditionsMet()
         {
             var m = typeof(CopyEngine).GetMethod(
@@ -6228,14 +6228,14 @@ namespace PropTraderTools
 
         // ---- T4: FindMatchingNativeAtmBracket
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void FindMatchingNativeAtmBracket_ShouldReturnNull_WhenNoMatchingOrderExists()
         {
             var m = GetMethod("FindMatchingNativeAtmBracket");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void FindMatchingNativeAtmBracket_ShouldReturnOrder_WhenNameAndInstrumentMatch()
         {
             var m = GetMethod("FindMatchingNativeAtmBracket");
@@ -6244,21 +6244,21 @@ namespace PropTraderTools
 
         // ---- T4: TryFindRuleAndFollowerIndex
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TryFindRuleAndFollowerIndex_ShouldReturnFalse_WhenInstrumentDoesNotMatch()
         {
             var m = GetMethod("TryFindRuleAndFollowerIndex");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TryFindRuleAndFollowerIndex_ShouldReturnTrue_WhenFollowerAccountMatches()
         {
             var m = GetMethod("TryFindRuleAndFollowerIndex");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TryFindRuleAndFollowerIndex_ShouldSetFollowerIndex_WhenMatchFound()
         {
             var m = GetMethod("TryFindRuleAndFollowerIndex");
@@ -6267,21 +6267,21 @@ namespace PropTraderTools
 
         // ---- T4: HasActiveQxOrdersForInstrument
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void HasActiveQxOrdersForInstrument_ShouldReturnTrue_WhenPttQxOrderIsWorking()
         {
             var m = GetMethod("HasActiveQxOrdersForInstrument");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void HasActiveQxOrdersForInstrument_ShouldReturnFalse_WhenNoQxOrdersExist()
         {
             var m = GetMethod("HasActiveQxOrdersForInstrument");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void HasActiveQxOrdersForInstrument_ShouldReturnFalse_WhenQxOrderIsFilledNotWorking()
         {
             var m = GetMethod("HasActiveQxOrdersForInstrument");
@@ -6290,14 +6290,14 @@ namespace PropTraderTools
 
         // ---- T5: SyncAtmFollowerStopBracket
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void SyncAtmFollowerStopBracket_ShouldReturn_WhenStopPriceIsZero()
         {
             var m = GetMethod("SyncAtmFollowerStopBracket");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void SyncAtmFollowerStopBracket_ShouldCallResubmitTarget_WhenCapturedPriceHasValue()
         {
             var m = GetMethod("SyncAtmFollowerStopBracket");
@@ -6306,14 +6306,14 @@ namespace PropTraderTools
 
         // ---- T5: CancelStaleTgtDragOrders
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void CancelStaleTgtDragOrders_ShouldCancelMatchingWorkingOrder()
         {
             var m = GetMethod("CancelStaleTgtDragOrders");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void CancelStaleTgtDragOrders_ShouldSkipNonMatchingOrders()
         {
             var m = GetMethod("CancelStaleTgtDragOrders");
@@ -6322,14 +6322,14 @@ namespace PropTraderTools
 
         // ---- T5: CreateAndSubmitReplacementTarget
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void CreateAndSubmitReplacementTarget_ShouldReturnNull_WhenCreateOrderFails()
         {
             var m = GetMethod("CreateAndSubmitReplacementTarget");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void CreateAndSubmitReplacementTarget_ShouldUseLeaderQuantity_WhenLeaderOrderIsNotNull()
         {
             var m = GetMethod("CreateAndSubmitReplacementTarget");
@@ -6338,14 +6338,14 @@ namespace PropTraderTools
 
         // ---- T6: HasInFlightFlattenOrder
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void HasInFlightFlattenOrder_ShouldReturnTrue_WhenPttFlattenOrderIsWorking()
         {
             var m = GetMethod("HasInFlightFlattenOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void HasInFlightFlattenOrder_ShouldReturnFalse_WhenNoFlattenOrderExists()
         {
             var m = GetMethod("HasInFlightFlattenOrder");
@@ -6354,7 +6354,7 @@ namespace PropTraderTools
 
         // ---- T6: IsPositionFlatOrMissing
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPositionFlatOrMissing_ShouldReturnTrue_WhenPositionIsNull()
         {
             var m = typeof(CopyEngine).GetMethod(
@@ -6364,7 +6364,7 @@ namespace PropTraderTools
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPositionFlatOrMissing_ShouldReturnTrue_WhenPositionQuantityIsZero()
         {
             var m = typeof(CopyEngine).GetMethod(
@@ -6376,28 +6376,28 @@ namespace PropTraderTools
 
         // ---- T6: IsLeaderTargetOrder
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsLeaderTargetOrder_ShouldReturnTrue_WhenOrderIsWorkingLimitWithValidTargetName()
         {
             var m = GetMethod("IsLeaderTargetOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsLeaderTargetOrder_ShouldReturnFalse_WhenOrderStateIsNotWorking()
         {
             var m = GetMethod("IsLeaderTargetOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsLeaderTargetOrder_ShouldReturnFalse_WhenNameDoesNotStartWithTarget()
         {
             var m = GetMethod("IsLeaderTargetOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsLeaderTargetOrder_ShouldReturnFalse_WhenSixthCharIsNotDigit()
         {
             var m = GetMethod("IsLeaderTargetOrder");
@@ -6406,21 +6406,21 @@ namespace PropTraderTools
 
         // ---- T7: ResubmitFollowerEntry
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void ResubmitFollowerEntry_ShouldSkip_WhenPriceChangeIsWithinTickSize()
         {
             var m = GetMethod("ResubmitFollowerEntry");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void ResubmitFollowerEntry_ShouldUseStopPrice_WhenOrderTypeIsStopLimit()
         {
             var m = GetMethod("ResubmitFollowerEntry");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void ResubmitFollowerEntry_ShouldPreloadDedupCache_WhenOrderIsCreated()
         {
             var m = GetMethod("ResubmitFollowerEntry");
@@ -6429,14 +6429,14 @@ namespace PropTraderTools
 
         // ---- T7: IsLeaderAccountForInstrument
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsLeaderAccountForInstrument_ShouldReturnTrue_WhenAccountMatchesMasterAccount()
         {
             var m = GetMethod("IsLeaderAccountForInstrument");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsLeaderAccountForInstrument_ShouldReturnFalse_WhenAccountIsFollower()
         {
             var m = GetMethod("IsLeaderAccountForInstrument");
@@ -6445,14 +6445,14 @@ namespace PropTraderTools
 
         // ---- T7: CancelStaleCascadeTgtDrag
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void CancelStaleCascadeTgtDrag_ShouldCancelMatchingWorkingOrder()
         {
             var m = GetMethod("CancelStaleCascadeTgtDrag");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void CancelStaleCascadeTgtDrag_ShouldSkipNonWorkingOrders()
         {
             var m = GetMethod("CancelStaleCascadeTgtDrag");
@@ -6479,21 +6479,21 @@ namespace PropTraderTools
 
         // -- Price reader helpers -------------------------------------------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void GetMarketBidPrice_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("GetMarketBidPrice");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void GetMarketAskPrice_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("GetMarketAskPrice");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void GetBeTickSize_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("GetBeTickSize");
@@ -6544,21 +6544,21 @@ namespace PropTraderTools
 
         // -- Arming helpers -------------------------------------------------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void FireBeAndNotifyEvent_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("FireBeAndNotifyEvent");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void ShouldFireBeImmediately_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("ShouldFireBeImmediately");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void CompleteBeArming_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("CompleteBeArming");
@@ -6587,35 +6587,35 @@ namespace PropTraderTools
             Assert.Equal(string.Empty, result);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TryClaimPendingBeSlot_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("TryClaimPendingBeSlot");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void GetSlotInstrumentName_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("GetSlotInstrumentName");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void GetSlotAccountName_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("GetSlotAccountName");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void RaisePendingBeFiredEvent_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("RaisePendingBeFiredEvent");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void SettleAndFirePendingBe_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("SettleAndFirePendingBe");
@@ -6624,28 +6624,28 @@ namespace PropTraderTools
 
         // -- TryFireImmediateBeIfAlreadyAtLevel ----------------------------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TryFireImmediateBeIfAlreadyAtLevel_ShouldReturnFalse_WhenTickSizeIsZero()
         {
             var m = GetMethod("TryFireImmediateBeIfAlreadyAtLevel");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TryFireImmediateBeIfAlreadyAtLevel_ShouldReturnFalse_WhenPriceIsZero()
         {
             var m = GetMethod("TryFireImmediateBeIfAlreadyAtLevel");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TryFireImmediateBeIfAlreadyAtLevel_ShouldReturnTrue_WhenLongAndBidAboveTarget()
         {
             var m = GetMethod("TryFireImmediateBeIfAlreadyAtLevel");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TryFireImmediateBeIfAlreadyAtLevel_ShouldReturnTrue_WhenShortAndAskBelowTarget()
         {
             var m = GetMethod("TryFireImmediateBeIfAlreadyAtLevel");
@@ -6654,28 +6654,28 @@ namespace PropTraderTools
 
         // -- IsPendingBeTriggerMet -----------------------------------------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPendingBeTriggerMet_ShouldReturnFalse_WhenRefPriceIsZero()
         {
             var m = GetMethod("IsPendingBeTriggerMet");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPendingBeTriggerMet_ShouldReturnFalse_WhenLongPositionPriceBelowTarget()
         {
             var m = GetMethod("IsPendingBeTriggerMet");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPendingBeTriggerMet_ShouldReturnTrue_WhenLongAndBidReachesTarget()
         {
             var m = GetMethod("IsPendingBeTriggerMet");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPendingBeTriggerMet_ShouldReturnTrue_WhenShortAndAskReachesTarget()
         {
             var m = GetMethod("IsPendingBeTriggerMet");
@@ -6698,35 +6698,35 @@ namespace PropTraderTools
 
         // -- HasValidTargetNameSuffix (extracted from IsLeaderTargetOrder) --------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void HasValidTargetNameSuffix_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("HasValidTargetNameSuffix");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsLeaderTargetOrder_ShouldReturnFalse_WhenOrderStateIsNotWorking()
         {
             var m = GetMethod("IsLeaderTargetOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsLeaderTargetOrder_ShouldReturnFalse_WhenNameDoesNotStartWithTarget()
         {
             var m = GetMethod("IsLeaderTargetOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsLeaderTargetOrder_ShouldReturnFalse_WhenSixthCharIsNotDigit()
         {
             var m = GetMethod("IsLeaderTargetOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsLeaderTargetOrder_ShouldReturnTrue_WhenOrderIsWorkingLimitWithValidTargetName()
         {
             var m = GetMethod("IsLeaderTargetOrder");
@@ -6735,7 +6735,7 @@ namespace PropTraderTools
 
         // -- SelectBeTargetList (extracted from SnapshotBeTargets) ----------------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void SelectBeTargetList_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("SelectBeTargetList");
@@ -6744,7 +6744,7 @@ namespace PropTraderTools
 
         // -- IsBeTargetActiveState (sub-helper for IsEligibleBeTargetOrder) --------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsBeTargetActiveState_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("IsBeTargetActiveState");
@@ -6753,7 +6753,7 @@ namespace PropTraderTools
 
         // -- IsBeTargetPendingChangeState (sub-helper for IsEligibleBeTargetOrder) --
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsBeTargetPendingChangeState_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("IsBeTargetPendingChangeState");
@@ -6762,28 +6762,28 @@ namespace PropTraderTools
 
         // -- IsBeTargetSnapshotState (extracted from IsEligibleBeTargetOrder) ------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsBeTargetSnapshotState_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("IsBeTargetSnapshotState");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsEligibleBeTargetOrder_ShouldReturnFalse_WhenOrderStateIsNotInSnapshot()
         {
             var m = GetMethod("IsEligibleBeTargetOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsEligibleBeTargetOrder_ShouldReturnFalse_WhenInstrumentDoesNotMatch()
         {
             var m = GetMethod("IsEligibleBeTargetOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsEligibleBeTargetOrder_ShouldReturnFalse_WhenOrderTypeIsNotLimit()
         {
             var m = GetMethod("IsEligibleBeTargetOrder");
@@ -6827,7 +6827,7 @@ namespace PropTraderTools
 
         // -- TrySyncAtmBrackets (extracted from SyncFollowerBracket) --
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TrySyncAtmBrackets_ShouldExist_AsPrivateHelper()
         {
             var m = typeof(CopyEngine).GetMethod(
@@ -6839,7 +6839,7 @@ namespace PropTraderTools
 
         // -- TrySkipTrailingStop (extracted from SyncFollowerBracket) --
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TrySkipTrailingStop_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("TrySkipTrailingStop");
@@ -6848,7 +6848,7 @@ namespace PropTraderTools
 
         // -- SyncStandardBracket (extracted from SyncFollowerBracket) --
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void SyncStandardBracket_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("SyncStandardBracket");
@@ -6857,7 +6857,7 @@ namespace PropTraderTools
 
         // -- IsPttTgtDragOrder (shared by CaptureLinkedTargetPrice + CaptureOtherLegTargetPrices) --
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPttTgtDragOrder_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("IsPttTgtDragOrder");
@@ -6866,7 +6866,7 @@ namespace PropTraderTools
 
         // -- IsAtmTgtOrder (shared by CaptureLinkedTargetPrice + CaptureOtherLegTargetPrices) --
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsAtmTgtOrder_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("IsAtmTgtOrder");
@@ -6875,14 +6875,14 @@ namespace PropTraderTools
 
         // -- Architect plan T5 names for SyncAtmFollowerStopBracket (already extracted before TA-R3) --
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void SyncAtmFollowerStopBracket_ShouldReturn_WhenStopPriceIsZero()
         {
             var m = GetMethod("SyncAtmFollowerStopBracket");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void SyncAtmFollowerStopBracket_ShouldCallResubmitTarget_WhenCapturedPriceHasValue()
         {
             var m = GetMethod("SyncAtmFollowerStopBracket");
@@ -6890,21 +6890,21 @@ namespace PropTraderTools
         }
 
         // TA-R4: IsBePendingTargetOrder helper tests
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsBePendingTargetOrder_ShouldReturnTrue_WhenOrderNameIsPttQxT1()
         {
             var m = GetMethod("IsBePendingTargetOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsBePendingTargetOrder_ShouldReturnTrue_WhenOrderNameIsTarget1()
         {
             var m = GetMethod("IsBePendingTargetOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsBePendingTargetOrder_ShouldReturnFalse_WhenOrderNameIsUnrelated()
         {
             var m = GetMethod("IsBePendingTargetOrder");
@@ -6912,21 +6912,21 @@ namespace PropTraderTools
         }
 
         // TA-R4: IsPttBeStopRejected helper tests
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPttBeStopRejected_ShouldReturnTrue_WhenOrderIsRejectedPttBeStop()
         {
             var m = GetMethod("IsPttBeStopRejected");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPttBeStopRejected_ShouldReturnFalse_WhenOrderNameIsNotPttBeStop()
         {
             var m = GetMethod("IsPttBeStopRejected");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPttBeStopRejected_ShouldReturnFalse_WhenOrderStateIsFilledNotRejected()
         {
             var m = GetMethod("IsPttBeStopRejected");
@@ -6950,28 +6950,28 @@ namespace PropTraderTools
         }
 
         // TA-R4: IsPttDragOrderCancellable helper tests
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPttDragOrderCancellable_ShouldReturnTrue_WhenWorkingPttTgtDragMatchesInstrument()
         {
             var m = GetMethod("IsPttDragOrderCancellable");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPttDragOrderCancellable_ShouldReturnTrue_WhenWorkingPttStpDragMatchesInstrument()
         {
             var m = GetMethod("IsPttDragOrderCancellable");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPttDragOrderCancellable_ShouldReturnFalse_WhenOrderStateIsNotWorking()
         {
             var m = GetMethod("IsPttDragOrderCancellable");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPttDragOrderCancellable_ShouldReturnFalse_WhenOrderNameIsUnknown()
         {
             var m = GetMethod("IsPttDragOrderCancellable");
@@ -6980,56 +6980,56 @@ namespace PropTraderTools
 
         // TA-R4 RETRY: new helper tests (one per extracted helper)
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPttQxTargetOrder_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("IsPttQxTargetOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsNativeAtmBeRetryTarget_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("IsNativeAtmBeRetryTarget");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsBeRetryEligibleOrderState_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("IsBeRetryEligibleOrderState");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsBeRetryOrderInvalid_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("IsBeRetryOrderInvalid");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsBeSlotNonTerminal_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("IsBeSlotNonTerminal");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsBeFilledWithOpenPosition_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("IsBeFilledWithOpenPosition");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsPttDragOrderName_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("IsPttDragOrderName");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsDragInstrumentMatch_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("IsDragInstrumentMatch");
@@ -7038,7 +7038,7 @@ namespace PropTraderTools
 
         // -- TA-R5: IsQxTOrderStateValid ------------------------------------------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsQxTOrderStateValid_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("IsQxTOrderStateValid");
@@ -7047,7 +7047,7 @@ namespace PropTraderTools
 
         // -- TA-R5: IsQxTBracketNameValid -----------------------------------------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsQxTBracketNameValid_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("IsQxTBracketNameValid");
@@ -7056,7 +7056,7 @@ namespace PropTraderTools
 
         // -- TA-R5: TryGetCleanupEntryForFollower ---------------------------------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TryGetCleanupEntryForFollower_ShouldExist_AsPrivateHelper()
         {
             var m = typeof(CopyEngine).GetMethod(
@@ -7068,7 +7068,7 @@ namespace PropTraderTools
 
         // -- TA-R5: IsCleanupEntryCurrentAndMatching ------------------------------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsCleanupEntryCurrentAndMatching_ShouldExist_AsPrivateHelper()
         {
             var m = typeof(CopyEngine).GetMethod(
@@ -7080,7 +7080,7 @@ namespace PropTraderTools
 
         // -- TA-R5: SendAtmCancelReplace ------------------------------------------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void SendAtmCancelReplace_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("SendAtmCancelReplace");
@@ -7089,7 +7089,7 @@ namespace PropTraderTools
 
         // -- TA-R5: TryMatchFollowerInRule ----------------------------------------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TryMatchFollowerInRule_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("TryMatchFollowerInRule");
@@ -7098,7 +7098,7 @@ namespace PropTraderTools
 
         // -- TA-R5: IsBeReplaceTargetValid ----------------------------------------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsBeReplaceTargetValid_ShouldReturnFalse_WhenOrderIsNull()
         {
             var m = GetMethod("IsBeReplaceTargetValid");
@@ -7107,7 +7107,7 @@ namespace PropTraderTools
 
         // -- TA-R5: TryIncrementBeReplaceAttempt ----------------------------------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void TryIncrementBeReplaceAttempt_ShouldExist_AsPrivateHelper()
         {
             var m = GetMethod("TryIncrementBeReplaceAttempt");
@@ -7128,14 +7128,14 @@ namespace PropTraderTools
 
         // -- IsBracketOrderLiveState (extracted from FindFollowerBracketOrder) -----
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsBracketOrderLiveState_ShouldExist_AsPrivateStaticHelper()
         {
             var m = GetStaticMethod("IsBracketOrderLiveState");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsBracketOrderLiveState_ShouldReturnTrue_WhenOrderIsWorking()
         {
             // Verify the method exists and accepts an Order parameter.
@@ -7175,14 +7175,14 @@ namespace PropTraderTools
 
         // -- MatchesPttReplacementName (extracted from MatchesLeaderName) ----------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void MatchesPttReplacementName_ShouldExist_AsPrivateStaticHelper()
         {
             var m = GetStaticMethod("MatchesPttReplacementName");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void MatchesPttReplacementName_ShouldAcceptThreeParameters()
         {
             var m = GetStaticMethod("MatchesPttReplacementName");
@@ -7192,14 +7192,14 @@ namespace PropTraderTools
 
         // -- LogHbcDiag (extracted from HandleBracketChange) -----------------------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void LogHbcDiag_ShouldExist_AsPrivateInstanceHelper()
         {
             var m = GetInstanceMethod("LogHbcDiag");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void LogHbcDiag_ShouldAcceptFiveParameters()
         {
             var m = GetInstanceMethod("LogHbcDiag");
@@ -7209,14 +7209,14 @@ namespace PropTraderTools
 
         // -- ExecuteStopDragOrder (extracted from CreateFollowerReplacementStop) ---
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void ExecuteStopDragOrder_ShouldExist_AsPrivateInstanceHelper()
         {
             var m = GetInstanceMethod("ExecuteStopDragOrder");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void ExecuteStopDragOrder_ShouldAcceptFiveParameters()
         {
             var m = GetInstanceMethod("ExecuteStopDragOrder");
@@ -7262,14 +7262,14 @@ namespace PropTraderTools
 
         // -- IsOrderEventProcessable (extracted from TryFirePositionState) ---------
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsOrderEventProcessable_ShouldExist_AsPrivateStaticHelper()
         {
             var m = GetStaticMethod("IsOrderEventProcessable");
             Assert.NotNull(m);
         }
 
-        [Fact(Skip = "obfuscation: AgileDotNetRT renames private members; cannot locate by string name")]
+        [Fact]
         public void IsOrderEventProcessable_ShouldAcceptOneParameter()
         {
             var m = GetStaticMethod("IsOrderEventProcessable");

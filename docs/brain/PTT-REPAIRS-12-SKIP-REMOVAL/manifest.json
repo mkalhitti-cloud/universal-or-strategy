@@ -1,0 +1,20 @@
+{
+  "epic": "PTT-REPAIRS-12-SKIP-REMOVAL",
+  "created": "2025-07-31",
+  "description": "Remove 137 obfuscation skips across 5 test classes in CopyEngineTests.cs",
+  "phases": {
+    "ph1": { "status": "NOT_STARTED", "artifact": "02-architecture-plan.md" },
+    "ph2": { "status": "NOT_STARTED", "artifact": "02-plan-review.md" },
+    "ph3": { "status": "NOT_STARTED", "artifact": "04-tickets.md" },
+    "ph3_5": { "status": "NOT_STARTED", "artifact": "04-ticket-review.md" },
+    "ph4_t1": { "status": "NOT_STARTED", "artifacts": ["ticket-1-completion.md", "ticket-1-verification.md"] },
+    "ph4_t2": { "status": "NOT_STARTED", "artifacts": ["ticket-2-completion.md", "ticket-2-verification.md"] },
+    "ph4_t3": { "status": "NOT_STARTED", "artifacts": ["ticket-3-completion.md", "ticket-3-verification.md"] },
+    "ph4_t4": { "status": "NOT_STARTED", "artifacts": ["ticket-4-completion.md", "ticket-4-verification.md"] },
+    "ph5": { "status": "NOT_STARTED", "artifacts": ["05-final-review.md", "06-deferred-backlog.md"] }
+  },
+  "baseline": { "passed": 26, "failed": 0, "skipped": 488, "total": 514 },
+  "target":   { "passed": 163, "failed": 0, "skipped": 351, "total": 514 },
+  "deferred_closed": ["DW-09-04"],
+  "wave_workspace": "C:\\WSGTA\\universal-or-strategy\\"
+}
