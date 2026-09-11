@@ -1,0 +1,21 @@
+{
+  "epic": "BWAVE-CYC-LOGIC-01",
+  "created": "2025-07-31",
+  "workspace": "C:\\WSGTA\\universal-or-strategy",
+  "artifact_folder": "docs/brain/BWAVE-CYC-LOGIC-01",
+  "phases": {
+    "phase1": { "status": "IN_PROGRESS", "artifact": "02-architecture-plan.md" },
+    "phase2": { "status": "PENDING",     "artifact": "02-plan-review.md" },
+    "phase3": { "status": "PENDING",     "artifact": "04-tickets.md" },
+    "phase3_5": { "status": "PENDING",   "artifact": "04-ticket-review.md" },
+    "phase4": { "status": "PENDING",     "tickets": [] },
+    "phase5": { "status": "PENDING",     "artifact": "05-final-review.md" }
+  },
+  "baseline": {
+    "passed": 159,
+    "failed": 0,
+    "skipped": 355,
+    "total": 514
+  },
+  "deferred_item_closed": "DW-BWAVE-01"
+}

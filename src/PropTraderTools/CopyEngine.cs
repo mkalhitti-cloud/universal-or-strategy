@@ -7884,99 +7884,335 @@ namespace PropTraderTools
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool TryFireImmediateBeIfAlreadyAtLevel(Account acc, Instrument instr, Order tgtOrder, bool isLong, double refPx, double tickSize)
-        { return false; }
+        {
+            // CYC=5
+            if (tickSize <= 0) return false;
+            if (refPx <= 0) return false;
+            if (tgtOrder == null) return false;
+            double target = tgtOrder.LimitPrice;
+            if (isLong ? refPx >= target : refPx <= target)
+            {
+                BreakEven(acc, instr, 0);
+                return true;
+            }
+            return false;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsPendingBeTriggerMet(Account acc, Instrument instr, bool isLong)
-        { return false; }
+        {
+            // CYC=8
+            PendingBeSlot slot;
+            if (!_pendingBeSlots.TryGetValue(acc.Name, out slot)) return false;
+            double bid = GetMarketBidPrice(instr);
+            double ask = GetMarketAskPrice(instr);
+            double refPrice = SelectBeRefPriceByDirection(isLong, bid, ask);
+            if (refPrice <= 0) return false;
+            var pos = FindPosition(acc, instr);
+            if (pos == null || pos.Quantity == 0) return false;
+            double tick = GetBeTickSize(instr);
+            if (tick <= 0) return false;
+            double direction = isLong ? -1.0 : 1.0;
+            double target = pos.AveragePrice + direction * slot.BufferTicks * tick;
+            return isLong ? refPrice >= target : refPrice <= target;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsEligibleBeTargetOrder(Order order, Instrument instr)
-        { return false; }
+        {
+            // CYC=4
+            if (order == null) return false;
+            if (order.Instrument?.FullName != instr?.FullName) return false;
+            if (order.OrderType != OrderType.Limit) return false;
+            return IsBeTargetSnapshotState(order);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsNativeAtmTargetOrder(Order order)
-        { return false; }
+        {
+            // CYC=5
+            return order != null
+                && order.Name != null
+                && order.Name.StartsWith("Target", StringComparison.Ordinal)
+                && order.Name.Length > 6
+                && char.IsDigit(order.Name[6]);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsPttBeOrQxTargetOrder(Order order)
-        { return false; }
+        {
+            // CYC=6
+            if (order == null || order.Name == null) return false;
+            return order.Name.StartsWith("PTT-BE-Target", StringComparison.Ordinal)
+                || (order.Name.StartsWith("PTT-QX-T", StringComparison.Ordinal)
+                    && order.Name.Length > 8
+                    && char.IsDigit(order.Name[8]));
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void RegisterBeRetryIfNoTargets(Account acc, Instrument instr, bool isRetry, int leaderCount)
-        { }
+        {
+            // CYC=1
+            RegisterBeRetrySlotIfNeeded(acc, instr, bufferTicks: 0, isRetry: isRetry,
+                targetsCount: 0, leaderCount: leaderCount);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void RegisterPartialTargetBeRetry(Account acc, Instrument instr, int targetsCount, int leaderCount)
-        { }
+        {
+            // CYC=1
+            RegisterBeRetrySlotIfNeeded(acc, instr, bufferTicks: 0, isRetry: false,
+                targetsCount: targetsCount, leaderCount: leaderCount);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void CancelExistingStpDragOrders(Account acc, Instrument instr)
-        { }
+        {
+            // CYC=4
+            foreach (var o in acc.Orders.ToList())
+            {
+                if (!IsPttStpDragCancellable(o)) continue;
+                if (o.Instrument?.FullName != instr?.FullName) continue;
+                if (!o.Name.StartsWith("PTT-STP-Drag", StringComparison.Ordinal)) continue;
+                try { acc.Cancel(new Order[] { o }); } catch { }
+            }
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void CancelExistingTgtDragOrders(Account acc, Instrument instr)
-        { }
+        {
+            // CYC=4
+            foreach (var o in acc.Orders.ToList())
+            {
+                bool stateOk = o.OrderState == OrderState.Working
+                    || o.OrderState == OrderState.Submitted
+                    || o.OrderState == OrderState.Accepted;
+                if (!stateOk) continue;
+                if (o.Instrument?.FullName != instr?.FullName) continue;
+                if (!o.Name.StartsWith("PTT-TGT-Drag", StringComparison.Ordinal)) continue;
+                try { acc.Cancel(new Order[] { o }); } catch { }
+            }
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void SubmitReplacementStopLeg(Account acc, Instrument instr, Order leaderOrder, double stopPrice)
-        { }
+        {
+            // CYC=3
+            if (leaderOrder == null) return;
+            try
+            {
+                var o = acc.CreateOrder(instr, leaderOrder.OrderAction, OrderType.StopMarket,
+                    OrderEntry.Automated, TimeInForce.Day, leaderOrder.Quantity,
+                    0, stopPrice, string.Empty, "PTT-STP-Drag",
+                    NinjaTrader.Core.Globals.MaxDate, (NinjaTrader.Cbi.CustomOrder)null);
+                if (o != null) acc.Submit(new[] { o });
+            }
+            catch { }
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void SubmitReplacementTargetLeg(Account acc, Instrument instr, Order leaderOrder, double targetPrice)
-        { }
+        {
+            // CYC=3
+            if (leaderOrder == null) return;
+            try
+            {
+                var o = acc.CreateOrder(instr, leaderOrder.OrderAction, OrderType.Limit,
+                    OrderEntry.Automated, TimeInForce.Day, leaderOrder.Quantity,
+                    targetPrice, 0, string.Empty, "PTT-TGT-Drag",
+                    NinjaTrader.Core.Globals.MaxDate, (NinjaTrader.Cbi.CustomOrder)null);
+                if (o != null) acc.Submit(new[] { o });
+            }
+            catch { }
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsReArmedAtmBracketCleanupRequired(Order order, DateTime cutoff)
-        { return false; }
+        {
+            // CYC=3
+            if (order == null) return false;
+            if (!IsCleanupQxOrderOk(order)) return false;
+            return DateTime.UtcNow < cutoff;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private Order FindMatchingNativeAtmBracket(Account acc, Instrument instr, string namePrefix)
-        { return null; }
+        {
+            // CYC=4
+            foreach (var o in acc.Orders.ToList())
+            {
+                if (o.Name == null || !o.Name.StartsWith(namePrefix, StringComparison.Ordinal)) continue;
+                if (o.Instrument?.FullName != instr?.FullName) continue;
+                if (o.OrderState != OrderState.Working && o.OrderState != OrderState.Accepted) continue;
+                return o;
+            }
+            return null;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool TryFindRuleAndFollowerIndex(Account acc, Instrument instr, out int followerIndex)
-        { followerIndex = -1; return false; }
+        {
+            // CYC=5
+            followerIndex = -1;
+            foreach (var rule in _rules)
+            {
+                if (rule.Instrument != instr?.FullName) continue;
+                for (int i = 0; i < rule.FollowerAccounts.Length; i++)
+                {
+                    if (!IsFollowerAccountMatch(rule.FollowerAccounts[i],
+                            rule.FollowerAccountNames, i, acc.Name)) continue;
+                    followerIndex = i;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
+        private static bool IsFollowerAccountMatch(Account follower, string[] followerNames, int index, string accName)
+        {
+            // CYC=4
+            if (follower != null) return follower.Name == accName;
+            if (followerNames == null) return false;
+            if (index >= followerNames.Length) return false;
+            return followerNames[index] == accName;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool HasActiveQxOrdersForInstrument(Account acc, Instrument instr)
-        { return false; }
+        {
+            // CYC=3
+            return acc.Orders.ToList().Any(o =>
+                o.Name != null
+                && o.Name.StartsWith("PTT-QX-", StringComparison.Ordinal)
+                && (o.OrderState == OrderState.Working || o.OrderState == OrderState.Submitted)
+                && o.Instrument?.FullName == instr?.FullName
+            );
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void SyncAtmFollowerStopBracket(Account acc, Instrument instr, Order leaderStop, double capturedPrice)
-        { }
+        {
+            // CYC=3
+            if (leaderStop == null || capturedPrice <= 0) return;
+            string suffix = DeriveLeaderBracketIndex(leaderStop).ToString();
+            var fo = FindFollowerBracketOrder(acc, leaderStop.FromEntrySignal, isStop: true, leaderStop.Name);
+            if (fo == null) return;
+            SyncAtmFollowerBracket(acc, fo, capturedPrice, suffix, leaderStop);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void CancelStaleTgtDragOrders(Account acc, Instrument instr, string leaderName)
-        { }
+        {
+            // CYC=4
+            foreach (var o in acc.Orders.ToList())
+            {
+                if (o.OrderState != OrderState.Working) continue;
+                if (o.Instrument?.FullName != instr?.FullName) continue;
+                if (!o.Name.StartsWith("PTT-TGT-Drag", StringComparison.Ordinal)) continue;
+                try { acc.Cancel(new Order[] { o }); } catch { }
+            }
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private Order CreateAndSubmitReplacementTarget(Account acc, Instrument instr, Order leaderOrder, double price)
-        { return null; }
+        {
+            // CYC=3
+            if (leaderOrder == null) return null;
+            try
+            {
+                var o = acc.CreateOrder(instr, leaderOrder.OrderAction, OrderType.Limit,
+                    OrderEntry.Automated, TimeInForce.Day, leaderOrder.Quantity,
+                    price, 0, string.Empty, "PTT-TGT-Drag",
+                    NinjaTrader.Core.Globals.MaxDate, (NinjaTrader.Cbi.CustomOrder)null);
+                if (o != null) acc.Submit(new[] { o });
+                return o;
+            }
+            catch { return null; }
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool HasInFlightFlattenOrder(Account acc, Instrument instr)
-        { return false; }
+        {
+            // CYC=4
+            return acc.Orders.ToList().Any(o =>
+                (o.OrderState == OrderState.Working || o.OrderState == OrderState.Submitted
+                 || o.OrderState == OrderState.Accepted)
+                && o.Instrument?.FullName == instr?.FullName
+                && o.Name != null
+                && (o.Name.StartsWith("PTT-Flatten", StringComparison.Ordinal)
+                    || o.Name.StartsWith("PTT-Trim", StringComparison.Ordinal))
+            );
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private static bool IsPositionFlatOrMissing(NinjaTrader.Cbi.Position pos)
-        { return true; }
+        {
+            // CYC=3
+            return pos == null || pos.MarketPosition == MarketPosition.Flat || pos.Quantity == 0;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsLeaderTargetOrder(Order order)
-        { return false; }
+        {
+            // CYC=4
+            if (order == null) return false;
+            if (order.OrderState != OrderState.Working) return false;
+            if (order.OrderType != OrderType.Limit) return false;
+            return HasValidTargetNameSuffix(order.Name);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void ResubmitFollowerEntry(Account acc, Instrument instr, Order leaderEntry, CopyRule rule)
-        { }
+        {
+            // CYC=8
+            if (leaderEntry == null || leaderEntry.LimitPrice <= 0) return;
+            int multIdx = FindFollowerSlotIndex(rule, acc.Name);
+            int mult = (multIdx >= 0 && rule.FollowerMultipliers != null
+                && multIdx < rule.FollowerMultipliers.Length)
+                ? rule.FollowerMultipliers[multIdx] : 1;
+            if (mult <= 0) mult = 1;
+            int qty = leaderEntry.Quantity * mult;
+            try
+            {
+                var o = acc.CreateOrder(instr, leaderEntry.OrderAction, OrderType.Limit,
+                    OrderEntry.Manual, TimeInForce.Gtc, qty, leaderEntry.LimitPrice,
+                    0, null, "PTT-Copy",
+                    DateTime.MaxValue, (NinjaTrader.Cbi.CustomOrder)null);
+                if (o == null) return;
+                _dedupCache[o.OrderId.ToString()] = leaderEntry.LimitPrice;
+                acc.Submit(new[] { o });
+            }
+            catch { }
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsLeaderAccountForInstrument(Account acc, Instrument instr)
-        { return false; }
+        {
+            // CYC=3
+            foreach (var rule in _rules)
+            {
+                if (rule.Instrument != instr?.FullName) continue;
+                if (rule.MasterAccount?.Name == acc?.Name) return true;
+            }
+            return false;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void CancelStaleCascadeTgtDrag(Account acc, Instrument instr, string leaderName)
-        { }
+        {
+            // CYC=8
+            string suffix = string.IsNullOrEmpty(leaderName) ? string.Empty
+                : ExtractLegSuffix(leaderName);
+            foreach (var o in acc.Orders.ToList())
+            {
+                if (o.OrderState != OrderState.Working) continue;
+                if (o.Instrument?.FullName != instr?.FullName) continue;
+                if (!o.Name.StartsWith("PTT-TGT-Drag-", StringComparison.Ordinal)) continue;
+                if (!string.IsNullOrEmpty(suffix) && o.Name.EndsWith(suffix, StringComparison.Ordinal)) continue;
+                try { acc.Cancel(new Order[] { o }); } catch { }
+            }
+        }
 
 
         // ===========================================================================
@@ -7988,15 +8224,24 @@ namespace PropTraderTools
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private double GetMarketBidPrice(Instrument instr)
-        { return 0.0; }
+        {
+            // CYC=1
+            return instr?.MarketData?.Bid?.Price ?? 0.0;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private double GetMarketAskPrice(Instrument instr)
-        { return 0.0; }
+        {
+            // CYC=1
+            return instr?.MarketData?.Ask?.Price ?? 0.0;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private double GetBeTickSize(Instrument instr)
-        { return 0.0; }
+        {
+            // CYC=1
+            return instr?.MasterInstrument?.TickSize ?? 0.0;
+        }
 
         // SelectBeRefPriceByDirection: working implementation required -- test invokes and asserts result.
         // Long + bid>0 -> bid. Long + bid==0 -> ask. Short + ask>0 -> ask. Short + ask==0 -> bid.
@@ -8009,35 +8254,78 @@ namespace PropTraderTools
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void FireBeAndNotifyEvent(Account acc, Instrument instr, double bePrice, bool isLong)
-        { }
+        {
+            // CYC=1
+            SubmitBeStop(acc, instr, bePrice, isLong);
+            PendingBeFired?.Invoke(instr?.FullName ?? string.Empty, acc?.Name ?? string.Empty);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool ShouldFireBeImmediately(Account acc, Instrument instr, double beTarget, bool isLong)
-        { return false; }
+        {
+            // CYC=3
+            double bid = GetMarketBidPrice(instr);
+            double ask = GetMarketAskPrice(instr);
+            double refPrice = SelectBeRefPriceByDirection(isLong, bid, ask);
+            if (refPrice <= 0) return false;
+            if (beTarget <= 0) return false;
+            return isLong ? refPrice >= beTarget : refPrice <= beTarget;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void CompleteBeArming(Account acc, Instrument instr, int bufferTicks)
-        { }
+        {
+            // CYC=1
+            _pendingBeSlots[acc.Name] = new PendingBeSlot(acc, instr, bufferTicks);
+            PendingBeArmed?.Invoke(instr?.FullName ?? string.Empty, acc?.Name ?? string.Empty);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool TryClaimPendingBeSlot(string accName, Instrument instr)
-        { return false; }
+        {
+            // CYC=2
+            PendingBeSlot slot;
+            if (!_pendingBeSlots.TryRemove(accName, out slot)) return false;
+            return slot.Instrument?.FullName == instr?.FullName;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private string GetSlotInstrumentName(string accName)
-        { return string.Empty; }
+        {
+            // CYC=1 (TryGetValue failure path handled by ?? return)
+            PendingBeSlot slot;
+            if (!_pendingBeSlots.TryGetValue(accName, out slot)) return string.Empty;
+            return slot.Instrument?.FullName ?? string.Empty;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private string GetSlotAccountName(string instrName)
-        { return string.Empty; }
+        {
+            // CYC=2
+            foreach (var kvp in _pendingBeSlots)
+            {
+                if (kvp.Value.Instrument?.FullName == instrName)
+                    return kvp.Value.Account?.Name ?? string.Empty;
+            }
+            return string.Empty;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void RaisePendingBeFiredEvent(string instrName, string accName)
-        { }
+        {
+            // CYC=1
+            PendingBeFired?.Invoke(instrName, accName);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void SettleAndFirePendingBe(string accName, Instrument instr)
-        { }
+        {
+            // CYC=3
+            PendingBeSlot slot;
+            if (!_pendingBeSlots.TryRemove(accName, out slot)) return;
+            if (IsFlat(FindPosition(slot.Account, instr))) return;
+            MoveStopToBreakEven(slot.Account, instr, slot.BufferTicks);
+        }
 
         // ===========================================================================
         // BWAVE-CYC-IMPL-01 Group C: TaR2 target-selection helpers (5 methods).
@@ -8047,23 +8335,52 @@ namespace PropTraderTools
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool HasValidTargetNameSuffix(string orderName)
-        { return false; }
+        {
+            // CYC=5
+            return orderName != null
+                && orderName.StartsWith("Target", StringComparison.Ordinal)
+                && orderName.Length > 6
+                && char.IsDigit(orderName[6]);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private System.Collections.Generic.IList<Order> SelectBeTargetList(Account acc, Instrument instr)
-        { return new System.Collections.Generic.List<Order>(); }
+        {
+            // CYC=3
+            var result = new System.Collections.Generic.List<Order>();
+            foreach (Order o in acc.Orders.ToList())
+            {
+                if (!IsEligibleBeTargetOrder(o, instr)) continue;
+                if (IsNativeAtmTargetOrder(o) || IsPttBeOrQxTargetOrder(o))
+                    result.Add(o);
+            }
+            return result;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsBeTargetActiveState(Order order)
-        { return false; }
+        {
+            // CYC=2
+            return order != null
+                && (order.OrderState == OrderState.Working
+                    || order.OrderState == OrderState.Accepted);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsBeTargetPendingChangeState(Order order)
-        { return false; }
+        {
+            // CYC=2
+            return order != null
+                && (order.OrderState == OrderState.ChangeSubmitted
+                    || order.OrderState == OrderState.ChangePending);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsBeTargetSnapshotState(Order order)
-        { return false; }
+        {
+            // CYC=1
+            return IsBeTargetActiveState(order) || IsBeTargetPendingChangeState(order);
+        }
 
 
         // ===========================================================================
@@ -8074,99 +8391,261 @@ namespace PropTraderTools
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool TrySyncAtmBrackets(Order leaderOrder, Account followerAcc, CopyRule rule)
-        { return false; }
+        {
+            // CYC=6
+            if (leaderOrder == null || followerAcc == null) return false;
+            bool isStop = IsAtmSTPOrder(leaderOrder)
+                && leaderOrder.OrderType != OrderType.Limit;
+            var fo = FindFollowerBracketOrder(followerAcc,
+                leaderOrder.FromEntrySignal, isStop, leaderOrder.Name);
+            if (fo == null) return false;
+            string suffix = DeriveLeaderBracketIndex(leaderOrder).ToString();
+            if (isStop)
+                SyncAtmFollowerBracket(followerAcc, fo, leaderOrder.StopPrice, suffix, leaderOrder);
+            else
+                SyncAtmFollowerTarget(followerAcc, fo, leaderOrder.LimitPrice, leaderOrder);
+            return true;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool TrySkipTrailingStop(Order leaderOrder, Account followerAcc, CopyRule rule)
-        { return false; }
+        {
+            // CYC=2
+            if (leaderOrder == null) return false;
+            return leaderOrder.Name != null
+                && (leaderOrder.Name.StartsWith("PTT-STP-Drag-", StringComparison.Ordinal)
+                    || leaderOrder.Name.StartsWith("PTT-TGT-Drag-", StringComparison.Ordinal));
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void SyncStandardBracket(Order leaderOrder, Account followerAcc, Instrument instr, CopyRule rule)
-        { }
+        {
+            // CYC=4
+            if (leaderOrder == null || followerAcc == null) return;
+            bool isStop = leaderOrder.OrderType == OrderType.StopMarket
+                || leaderOrder.OrderType == OrderType.StopLimit;
+            var fo = FindFollowerBracketOrder(followerAcc,
+                leaderOrder.FromEntrySignal, isStop, leaderOrder.Name);
+            if (fo == null) return;
+            string suffix = DeriveLeaderBracketIndex(leaderOrder).ToString();
+            if (isStop)
+                SyncAtmFollowerBracket(followerAcc, fo, leaderOrder.StopPrice, suffix, leaderOrder);
+            else
+                SyncAtmFollowerTarget(followerAcc, fo, leaderOrder.LimitPrice, leaderOrder);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsPttTgtDragOrder(Order order)
-        { return false; }
+        {
+            // CYC=2
+            return order?.Name != null
+                && order.Name.StartsWith("PTT-TGT-Drag", StringComparison.Ordinal);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsAtmTgtOrder(Order order)
-        { return false; }
+        {
+            // CYC=4
+            return order?.Name != null
+                && order.Name.StartsWith("Target", StringComparison.Ordinal)
+                && order.Name.Length > 6
+                && char.IsDigit(order.Name[6]);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsBePendingTargetOrder(Order order)
-        { return false; }
+        {
+            // CYC=1
+            return IsPttQxTargetOrder(order) || IsNativeAtmBeRetryTarget(order);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsPttBeStopRejected(Order order)
-        { return false; }
+        {
+            // CYC=3
+            return order != null
+                && order.OrderState == OrderState.Rejected
+                && order.Name == "PTT-BE-Stop";
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsPttDragOrderCancellable(Order order, Instrument instr)
-        { return false; }
+        {
+            // CYC=5
+            if (order == null) return false;
+            if (order.OrderState != OrderState.Working) return false;
+            if (order.Instrument?.FullName != instr?.FullName) return false;
+            return order.Name != null
+                && (order.Name == "PTT-TGT-Drag"
+                    || order.Name == "PTT-STP-Drag"
+                    || order.Name.StartsWith("PTT-TGT-Drag-", StringComparison.Ordinal)
+                    || order.Name.StartsWith("PTT-STP-Drag-", StringComparison.Ordinal));
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsPttQxTargetOrder(Order order)
-        { return false; }
+        {
+            // CYC=4
+            return order?.Name != null
+                && order.Name.StartsWith("PTT-QX-T", StringComparison.Ordinal)
+                && order.Name.Length > 8
+                && char.IsDigit(order.Name[8]);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsNativeAtmBeRetryTarget(Order order)
-        { return false; }
+        {
+            // CYC=4
+            return order?.Name != null
+                && order.Name.StartsWith("Target", StringComparison.Ordinal)
+                && order.Name.Length > 6
+                && char.IsDigit(order.Name[6]);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsBeRetryEligibleOrderState(Order order)
-        { return false; }
+        {
+            // CYC=3
+            return order != null
+                && (order.OrderState == OrderState.Working
+                    || order.OrderState == OrderState.Accepted);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsBeRetryOrderInvalid(Order order)
-        { return false; }
+        {
+            // CYC=3
+            return order == null || order.Name == null || order.Account == null;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsBeSlotNonTerminal(string accName)
-        { return false; }
+        {
+            // CYC=1
+            return _pendingFollowerBeSlots.ContainsKey(accName);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsBeFilledWithOpenPosition(Account acc, Instrument instr)
-        { return false; }
+        {
+            // CYC=2
+            int count;
+            _filledBeTargetCount.TryGetValue(acc.Name, out count);
+            if (count <= 0) return false;
+            return !IsFlat(FindPosition(acc, instr));
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsPttDragOrderName(string orderName)
-        { return false; }
+        {
+            // CYC=3
+            return orderName != null
+                && (orderName.StartsWith("PTT-TGT-Drag", StringComparison.Ordinal)
+                    || orderName.StartsWith("PTT-STP-Drag", StringComparison.Ordinal));
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsDragInstrumentMatch(Order order, Instrument instr)
-        { return false; }
+        {
+            // CYC=1
+            return order?.Instrument?.FullName == instr?.FullName;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsQxTOrderStateValid(Order order)
-        { return false; }
+        {
+            // CYC=3
+            return order != null
+                && (order.OrderState == OrderState.Working
+                    || order.OrderState == OrderState.Accepted);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsQxTBracketNameValid(Order order)
-        { return false; }
+        {
+            // CYC=4
+            return order?.Name != null
+                && order.Name.StartsWith("PTT-QX-T", StringComparison.Ordinal)
+                && order.Name.Length >= 9
+                && char.IsDigit(order.Name[8]);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool TryGetCleanupEntryForFollower(string followerAccName, out object entry)
-        { entry = null; return false; }
+        {
+            // CYC=2
+            (Instrument Instr, DateTime Expiry) tuple;
+            if (_qxPendingFollowerCleanup.TryGetValue(followerAccName, out tuple))
+            {
+                entry = tuple;
+                return true;
+            }
+            entry = null;
+            return false;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsCleanupEntryCurrentAndMatching(object entry, Order order)
-        { return false; }
+        {
+            // CYC=4
+            if (entry == null || order == null) return false;
+            if (!(entry is ValueTuple<Instrument, DateTime>)) return false;
+            var t = (ValueTuple<Instrument, DateTime>)entry;
+            return DateTime.UtcNow < t.Item2
+                && t.Item1?.FullName == order.Instrument?.FullName;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void SendAtmCancelReplace(Account acc, Order order, double newPrice)
-        { }
+        {
+            // CYC=3
+            if (order == null || newPrice <= 0) return;
+            try { acc.Cancel(new Order[] { order }); } catch { }
+            bool isStop = order.OrderType == OrderType.StopMarket
+                || order.OrderType == OrderType.StopLimit;
+            string suffix = DeriveLeaderBracketIndex(order).ToString();
+            if (string.IsNullOrEmpty(suffix) || suffix == "0") suffix = "1";
+            if (isStop)
+                SyncAtmFollowerBracket(acc, order, newPrice, suffix, null);
+            else
+                SyncAtmFollowerTarget(acc, order, newPrice, null);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool TryMatchFollowerInRule(Account acc, Instrument instr, out int followerIndex)
-        { followerIndex = -1; return false; }
+        {
+            // CYC=4
+            followerIndex = -1;
+            foreach (var rule in _rules)
+            {
+                if (rule.Instrument != instr?.FullName) continue;
+                int idx = FindFollowerSlotIndex(rule, acc?.Name ?? string.Empty);
+                if (idx >= 0) { followerIndex = idx; return true; }
+            }
+            return false;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool IsBeReplaceTargetValid(Order order)
-        { return false; }
+        {
+            // CYC=4
+            if (order == null) return false;
+            if (order.OrderType != OrderType.Limit) return false;
+            return order.OrderState == OrderState.Working
+                || order.OrderState == OrderState.Accepted
+                || order.OrderState == OrderState.ChangeSubmitted;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private bool TryIncrementBeReplaceAttempt(string accName)
-        { return false; }
+        {
+            // CYC=2
+            int current;
+            _beReplaceAttempts.TryGetValue(accName, out current);
+            if (current >= 5) return false;
+            _beReplaceAttempts[accName] = current + 1;
+            return true;
+        }
 
 
 
@@ -8180,23 +8659,63 @@ namespace PropTraderTools
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private static bool IsBracketOrderLiveState(Order order)
-        { return false; }
+        {
+            // CYC=4
+            return order != null
+                && (order.OrderState == OrderState.Working
+                    || order.OrderState == OrderState.Accepted
+                    || order.OrderState == OrderState.Submitted
+                    || order.OrderState == OrderState.ChangeSubmitted);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private static bool MatchesPttReplacementName(string leaderName, string suffix, string followerName)
-        { return false; }
+        {
+            // CYC=3
+            if (string.IsNullOrEmpty(suffix) || string.IsNullOrEmpty(followerName)) return false;
+            return followerName == "PTT-STP-Drag-" + suffix
+                || followerName == "PTT-TGT-Drag-" + suffix;
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void LogHbcDiag(Order leaderOrder, Order followerOrder, CopyRule rule, double price, string tag)
-        { }
+        {
+            // CYC=2
+            if (!_diagnosticMode) return;
+            NinjaTrader.Code.Output.Process(
+                "[HBC-DIAG] " + (tag ?? string.Empty)
+                + " leader=" + (leaderOrder?.Name ?? "null")
+                + " fo=" + (followerOrder?.Name ?? "null")
+                + " rule=" + (rule.Instrument ?? string.Empty)
+                + " price=" + price.ToString("F2"),
+                NinjaTrader.NinjaScript.PrintTo.OutputTab1
+            );
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void ExecuteStopDragOrder(Account acc, Instrument instr, Order leaderOrder, double stopPrice, CopyRule rule)
-        { }
+        {
+            // CYC=3
+            if (leaderOrder == null || stopPrice <= 0) return;
+            int idx = DeriveLeaderBracketIndex(leaderOrder);
+            string suffix = idx > 0 ? idx.ToString() : "1";
+            var fo = FindFollowerBracketOrder(acc,
+                leaderOrder.FromEntrySignal, isStop: true, leaderOrder.Name);
+            if (fo != null)
+                SyncAtmFollowerBracket(acc, fo, stopPrice, suffix, leaderOrder);
+            else
+                CreateAndSubmitCollateralStop(acc, leaderOrder, stopPrice, suffix, leaderOrder);
+        }
 
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private static bool IsOrderEventProcessable(NinjaTrader.Cbi.OrderEventArgs e)
-        { return false; }
+        {
+            // CYC=4
+            return e != null
+                && e.Order != null
+                && e.Order.Instrument != null
+                && e.Order.Account != null;
+        }
 
 
 
