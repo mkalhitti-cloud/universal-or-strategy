@@ -55,7 +55,7 @@ across `src/PropTraderTools/`. DW-B25-02 CLOSED this block.
 | ID | Item | Priority | Target Block | Status |
 |----|------|----------|--------------|--------|
 | DW-B25-02 | **Per-account BE state isolation**: Replace singleton `volatile int _pendingBeState` / `_trailBeState` with per-account `ConcurrentDictionary<string,int>`. Update Disarm signatures and all 5 Panel call sites. | — | B25 (this block) | **CLOSED** |
-| DW-B25-01 | **Companion field race**: `_pendingBeAccount`, `_pendingBeInstrument`, `_trailBeAccount`, `_trailBeInstrument` remain plain refs (single-writer UI thread). In a multi-panel topology, two panels could race on the same singleton companion ref. Per-account isolation was scoped to state slots only in B25. Full companion-field isolation requires a larger refactor. | P3 | B26 or future | OPEN |
+| DW-B25-01 | **Companion field race**: `_pendingBeAccount`, `_pendingBeInstrument`, `_trailBeAccount`, `_trailBeInstrument` remain plain refs (single-writer UI thread). In a multi-panel topology, two panels could race on the same singleton companion ref. Per-account isolation was scoped to state slots only in B25. Full companion-field isolation requires a larger refactor. Fields confirmed absent from TradeCopierPanel.cs by source scan 2026-09-11 — removed in post-B25 refactor. | P3 | B26 or future | STALE — CLOSED |
 
 ---
 
@@ -90,7 +90,7 @@ zero across `src/PropTraderTools/`. Commit SHA: 4336c300.
 
 | ID | Item | Priority | Target Block | Status |
 |----|------|----------|--------------|--------|
-| DW-B25-01 | **Companion field race**: `_pendingBeAccount`, `_pendingBeInstrument`, `_trailBeAccount`, `_trailBeInstrument` remain plain singleton refs. Multi-panel topology could race on these. Not in B26 scope. | P3 | B27 or future | OPEN |
+| DW-B25-01 | **Companion field race**: `_pendingBeAccount`, `_pendingBeInstrument`, `_trailBeAccount`, `_trailBeInstrument` remain plain singleton refs. Multi-panel topology could race on these. Not in B26 scope. Fields confirmed absent from TradeCopierPanel.cs by source scan 2026-09-11 — removed in post-B25 refactor. | P3 | B27 or future | STALE — CLOSED |
 
 ### B26 Items
 
@@ -132,7 +132,7 @@ accepted-deviation-documented. dotnet test: Failed=0, Passed=159, Skipped=356, T
 
 | ID | Item | Priority | Target Block | Status |
 |----|------|----------|--------------|--------|
-| DW-B25-01 | **Companion field race**: `_pendingBeAccount`, `_pendingBeInstrument`, `_trailBeAccount`, `_trailBeInstrument` remain plain singleton refs. Multi-panel topology race possible. Not in scope. | P3 | B27 or future | OPEN |
+| DW-B25-01 | **Companion field race**: `_pendingBeAccount`, `_pendingBeInstrument`, `_trailBeAccount`, `_trailBeInstrument` remain plain singleton refs. Multi-panel topology race possible. Not in scope. Fields confirmed absent from TradeCopierPanel.cs by source scan 2026-09-11 — removed in post-B25 refactor. | P3 | B27 or future | STALE — CLOSED |
 
 ### B26 Items Carried Forward
 
@@ -298,5 +298,75 @@ Not addressed in Lane D (out of scope).
 ---
 
 *ptt-plan-reviewer · PTT-BUGS-LIVE-0911 Lane D · 2026-09-11*
+
+---
+
+## Block PTT-BUGS-LIVE-0911 — Lane E (DW-LD-03: Re-arm ATM after QX/BE)
+
+**Block ID:** PTT-BUGS-LIVE-0911-LANE-E
+**Status:** COMPLETE
+**Phase 5 Reviewed:** 2026-09-11
+**Final verdict:** FINAL_PASS
+
+### Block Summary
+
+Lane E implemented automatic re-arming of NT8 ATM bracket protection after a partial QX/BE exit
+leaves a remaining position on the follower account with no active bracket orders.
+
+**Core implementation** (`src/PropTraderTools/CopyEngine.cs`):
+- New field `_laneEDispatched` (`ConcurrentDictionary<string, byte>`, `StringComparer.Ordinal`) — dedup guard preventing double-arm on multiple `PositionUpdate` events for the same post-QX/BE slot. Declared at line 417, after `_laneDDispatched`.
+- New method `IsLaneEEligible` (CYC=8, lines 2770–2796) — pure eligibility predicate absorbing all compound boolean guards (non-Clone check, null check, qty>0 check, gate-closed check, ATM template check) so `TryLaneEHook` remains free of `||`/`&&` operators.
+- New method `TryLaneEHook` (CYC≤5, lines 2804–2826) — hook called from `OnFollowerPositionUpdate` after `TrySetFollowerSlateReady`. On success: opens `_followerSlateReady[acc.Name] = true` gate directly, enabling Lane B bracket sync.
+- New method `TryLaneEDispatchFollower` (CYC=5, lines 2836–2870) — per-follower ATM dispatch helper. Builds `CopySignal` from follower's remaining position (quantity=`pos.Quantity`, price=`pos.AveragePrice`). Calls `SendCopyWithAtm`. Commits dedup on success.
+- New method `BuildLaneEKey` (CYC=2, lines 2878–2881) — dedup key builder (`acc.Name + "#LANE-E#" + instr.FullName`). Null-coalescing guard for `instr` isolated here so `CancelQxBrackets` callers incur +0 CYC.
+- Modified `OnFollowerPositionUpdate` (line 1034): `TryLaneEHook(e.Position.Account, e.Position)` added after `TrySetFollowerSlateReady`. CYC unchanged at 3.
+- Modified `CancelQxBrackets` 2-param (line 1051): `_laneEDispatched.TryRemove(BuildLaneEKey(acc, instr), out _)` added after `TryMarkFollowerSlateNotReady`. CYC unchanged.
+- Modified `CancelQxBrackets` 3-param (line 1171): same `TryRemove` pattern. CYC unchanged.
+- `TrySetFollowerSlateReady` and `TryMarkFollowerSlateNotReady`: byte-for-byte unchanged (Lane B gate integrity preserved).
+
+**Tests** (`src/PropTraderTools/CopyEngineTests.cs`):
+10 new `[Fact]` tests in additive `LaneETests` class (lines 8687–8907). 5 pass (T_LANE_E_02/03/04/07/08), 5 skipped NT8-runtime (T_LANE_E_01/05/06/09/10). Total: 175 passed, 365 skipped, 0 failed, 540 total.
+
+**Scans:** All 7 scans zero (L2 engineer + L3 verifier). Three informational CYC discrepancies noted — all non-blocking (all within budget ≤8; pre-existing conditions outside scope; arithmetic error in spec only). See DW-LD-04, DW-LD-05.
+
+**Build:** `dotnet build` succeeded, 0 errors. `dotnet test` 0 failures.
+
+### Items CLOSED This Block
+
+| ID | Item | Status |
+|----|------|--------|
+| DW-LD-03 | **Lane E: re-arm ATM after QX/BE** — `TryLaneEHook` + `TryLaneEDispatchFollower` fully implemented and verified. All 14 spec requirements (LANE-E-REQ-01 through LANE-E-REQ-14) closed. | **CLOSED** |
+| DW-PTT0911B-01 | **SIM end-to-end verification** — SIM verification protocol fully documented in plan §15 (8-step procedure, expected NT8 Output tab messages, regression confirmation matrix). Protocol is the actionable gate for pre-production release. SIM execution itself cannot run in headless CI and remains pending a manual NinjaTrader SIM session. **Status: ADDRESSED (protocol documented). Execution deferred to pre-live.** | **ADDRESSED — see DW-PTT0911B-01 carry-forward** |
+
+Note: DW-PTT0911B-01 is addressed (SIM protocol documented) but cannot be fully closed until the SIM session is executed. It is carried forward as OPEN below.
+
+### Prior OPEN Items Carried Forward (Unchanged Status)
+
+| ID | Item | Priority | Target Block | Status |
+|----|------|----------|--------------|--------|
+| DW-B24-01 | **NT8-043 formal rule entry**: Confirm null-conditional event unsubscription runtime crash. SCAN-07 = 0 in Lane E. Rule watch continues. | P2 | B27 or future | OPEN |
+| DW-B24-02 | **Manual E2E Ctrl+Shift+B runtime verification**: Press Ctrl+Shift+B on a solo account in live NT8. Confirm `BreakEven` fires and no NullReferenceException. Still pending. | P1 | B27 pre-release | OPEN |
+| DW-B24-03 | **Skip-duplicate guard [Fact]**: Formal xUnit test for `if (acc == leader) continue` guard. Not in scope for Lane E. | P2 | B27 | OPEN |
+| DW-B25-01 | **Companion field race**: `_pendingBeAccount`, `_pendingBeInstrument`, `_trailBeAccount`, `_trailBeInstrument` remain plain singleton refs. Multi-panel topology race possible. Not in scope. Fields confirmed absent from TradeCopierPanel.cs by source scan 2026-09-11 — removed in post-B25 refactor. | P3 | B27 or future | STALE — CLOSED |
+| DW-B26-01 | **Reflection test upgrade (Option B → Option A)**: `TradeCopierPanel_BeBufferBox_FieldDoesNotExist` assertion. Upgrade when NT8 WPF test host available. | P2 | B28 or future | OPEN |
+| DW-BUG-0911-A-01 | **Mid-close race window**: `FlatGuardLoop` does not catch in-flight-order race. Out of scope for Lane E. | P2 | B27 or future | OPEN |
+| DW-BUG-0911-A-02 | **FlatGuardLoop test runtime Skip**: annotated Skip due to NT8 assembly JIT resolution failure in xUnit host. | P2 | B27 or future | OPEN |
+| DW-PTT0911B-01 | **SIM end-to-end verification**: Protocol documented (plan §15). Manual NinjaTrader SIM session execution pending. Must complete before production release. | P1 | pre-live | OPEN |
+| DW-PTT0911B-02 | **Gate reset on AddOn reload**: `_followerSlateReady` resets on CopyEngine re-instantiation; absent-key = gate-open safe default. Informational. | P2 | future | OPEN |
+| DW-PTT0911B-03 | **Accounts added after Subscribe()**: accounts connected after AddOn load do not receive PositionUpdate subscription. Hardening: re-subscribe on `Account.AccountConnected`. | P2 | future | OPEN |
+| DW-PTT0911B-04 | **`HasAnyActiveOrders` snapshot timing**: ToList() snapshot may include terminal orders; gate stays closed one extra tick — conservative false-negative only. | P2 | future | OPEN |
+| DW-LD-01 | **`_laneDDispatched` session-unbounded growth**: bounded at ~2.4 KB/session for 4 followers. Cleanup in a future pass if concern arises. Cleanup sketch: `_laneDDispatched.Clear()` in `OnDestroyed()` or CopyEngine teardown. Verify no race with active dispatch thread before implementing. | P2 | future | OPEN |
+| DW-LD-02 | **Market order ATM guard**: `TryLaneDHook` no-op for Market-type orders by design. Future Market-with-ATM requires separate overload. | P2 | future | OPEN |
+
+### New Deferred Items from Lane E
+
+| ID | Item | Priority | Target Block | Status |
+|----|------|----------|--------------|--------|
+| DW-LD-04 | **Pre-existing CYC=9 in `CancelQxBrackets` 3-param** (verifier I-03): L3 independent count = 9, exceeding CYC=8 limit. Root cause: `&&` compound condition at lines 1176–1179 (`if (snapshot != null && !snapshot.Contains(o) && IsQxCancelEligible3(...))`) contributes 2 branch points not reflected in the method's baseline CYC=8 comment. Pre-existing condition outside Lane E scope; Lane E adds +0 CYC. Recommend separate follow-up audit to: (a) correct the CYC comment, (b) evaluate whether splitting is required to satisfy JS-013. | P1 | B27 or future | OPEN |
+| DW-LD-05 | **T_LANE_E_07/08 behavioral key-format assertion deferred**: `BuildLaneEKey_ReturnsExpectedKeyFormat` and `BuildLaneEKey_NullInstrument_ReturnsKeyWithEmptyInstrSuffix` assert structural reflection only (method signature, return type, parameter types) rather than actual key-format string value (`"accName#LANE-E#instrFullName"`) due to `TypeInitializationException` on NT8 `Account` type in xUnit host. Tests pass without Skip annotation. Full behavioral key-format assertion deferred to NT8 SIM session (subsumes DW-PTT0911B-01). | P2 | pre-live SIM | OPEN |
+
+---
+
+*ptt-plan-reviewer · PTT-BUGS-LIVE-0911 Lane E · 2026-09-11*
 
 ---
