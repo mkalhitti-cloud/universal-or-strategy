@@ -13,9 +13,20 @@
 
   <ItemGroup>
     <Compile Include="AtrSizingEngine.cs" />
+    <Compile Include="Core\PttContracts.cs" />
     <Compile Include="CopyEngine.cs" />
     <Compile Include="CopyEngineTests.cs" />
     <Compile Include="FeatureFlags.cs" />
+    <Compile Include="Features\PttBreakEven.cs" />
+    <Compile Include="Features\PttBreakEvenSwap.cs" />
+    <Compile Include="Features\PttCancel.cs" />
+    <Compile Include="Features\PttCopier.cs" />
+    <Compile Include="Features\PttFlatten.cs" />
+    <Compile Include="Features\PttFollowerStrategy.cs" />
+    <Compile Include="Features\PttGlobalBreakEven.cs" />
+    <Compile Include="Features\PttGlobalQuickExit.cs" />
+    <Compile Include="Features\PttQuickExit.cs" />
+    <Compile Include="Features\PttTrim.cs" />
     <Compile Include="LicenseClient.cs" />
     <Compile Include="TradeCopierAddOn.cs" />
     <Compile Include="TradeCopierPanel.cs" />

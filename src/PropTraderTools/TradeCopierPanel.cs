@@ -3061,9 +3061,17 @@ namespace PropTraderTools
                     _engine.CancelPendingEntries(_leaderAccount, _instrument);
                     break;
                 case Key.B:
-                    _engine.BreakEven(_leaderAccount, _instrument, _beBuffer);
+                    ExecuteBreakEven(_engine, _leaderAccount, _instrument, _beBuffer);
                     break;
             }
+        }
+
+        // T-G1: ExecuteBreakEven -- testable BE dispatch seam (internal static, InternalsVisibleTo granted).
+        // CYC=1: straight-line call. No NT8 UI deps. JS-001: no throw. JS-021: no lock.
+        internal static void ExecuteBreakEven(
+            ICopyEngine engine, Account leader, Instrument instrument, int beBuffer)
+        {
+            engine.BreakEven(leader, instrument, beBuffer);
         }
 
         // B12 T3 -- BuildRiskAtrRow: builds Risk $ + ATR % spinner row. CYC=1: straight-line construction.

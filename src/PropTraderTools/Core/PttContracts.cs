@@ -94,6 +94,9 @@ namespace PropTraderTools
 
         /// <summary>Fan out cancel entries to all follower accounts.</summary>
         void RelayCancel(CancelEventArgs e);
+
+        /// <summary>Dispatch break-even to leader and all follower accounts.</summary>
+        void BreakEven(Account leader, Instrument instrument, int bufferTicks);
     }
 
     // -------------------------------------------------------------------------
