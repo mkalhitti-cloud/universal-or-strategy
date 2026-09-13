@@ -1,0 +1,28 @@
+{
+  "epic": "PTT-BUGS-LIVE-0911",
+  "description": "Live trading bugs from 2026-09-11: BUG-1 PTT-Flatten Reverse Entry Guard (Lane A), BUG-2 Post-Exit Clean Slate fo=NULL fix (Lane B)",
+  "lanes": ["A-BUG1-FlattenGuard", "B-BUG2-CleanSlate"],
+  "execution_mode": "SEQUENTIAL (Lane A then Lane B)",
+  "phases": {
+    "lane_a": {
+      "ph1": { "status": "NOT_STARTED", "artifact": "02-architecture-plan.md" },
+      "ph2": { "status": "NOT_STARTED", "artifact": "02-plan-review.md" },
+      "ph3": { "status": "NOT_STARTED", "artifact": "04-tickets.md" },
+      "ph3_5": { "status": "NOT_STARTED", "artifact": "04-ticket-review.md" },
+      "ph4": { "status": "NOT_STARTED", "tickets": [] },
+      "ph5": { "status": "NOT_STARTED", "artifact": "05-final-review.md" }
+    },
+    "lane_b": {
+      "ph1": { "status": "NOT_STARTED", "artifact": "02-architecture-plan-lane-b.md" },
+      "ph2": { "status": "NOT_STARTED", "artifact": "02-plan-review-lane-b.md" },
+      "ph3": { "status": "NOT_STARTED", "artifact": "04-tickets-lane-b.md" },
+      "ph3_5": { "status": "NOT_STARTED", "artifact": "04-ticket-review-lane-b.md" },
+      "ph4": { "status": "NOT_STARTED", "tickets": [] },
+      "ph5": { "status": "NOT_STARTED", "artifact": "05-final-review-lane-b.md" }
+    }
+  },
+  "prev_backlog": "docs/brain/PTT-COPIER-B26/06-deferred-backlog.md",
+  "analysis_source": "docs/brain/live-trading-analysis-2026-09-11.md",
+  "created": "2026-09-11",
+  "orchestrator_version": "V2.2"
+}
