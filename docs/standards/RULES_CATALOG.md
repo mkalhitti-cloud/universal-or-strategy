@@ -419,3 +419,14 @@ Items are closed only when the implementation explicitly addresses them.
 *Assembled 2026-09-11 from: .bob/rules-v12-engineer/dna.md, docs/brain/codex_rules.md,
 docs/standards/CYC_METHODOLOGY.md, docs/brain/JANE_STREET_BASELINE_AUDIT.md,
 PTT-BUGS-LIVE-0911 Lanes A/B/C verified artifacts.*
+
+---
+
+## Section 8 — Stale / Closed Deferred Items
+
+Items previously tracked as OPEN that have been confirmed resolved or superseded.
+Preserved here for audit trail only — do not re-open.
+
+| ID | Item | Closed reason |
+|---|---|---|
+| DW-B25-01 | Companion field race (`_pendingBeAccount` / `_pendingBeInstrument` / `_trailBeAccount` / `_trailBeInstrument`) | STALE — fields confirmed removed from `TradeCopierPanel.cs` in post-B25 refactor. Source scan 2026-09-11: zero matches. |

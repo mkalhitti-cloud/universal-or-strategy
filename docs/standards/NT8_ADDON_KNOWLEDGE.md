@@ -93,5 +93,11 @@ thread must be wrapped in `Dispatcher.InvokeAsync`.
 
 ---
 
+## Confirmed Closed Items
+
+| ID | Item | Status |
+|---|---|---|
+| DW-B25-01 | Companion field race — `_pendingBeAccount` / `_pendingBeInstrument` fields | STALE — confirmed absent from `TradeCopierPanel.cs` 2026-09-11. No action required. |
+
 *Source: empirically confirmed PTT-BUGS-LIVE-0911 Lanes A/B/C, 2026-09-11*
 *Cross-reference: docs/standards/RULES_CATALOG.md Section 2*
