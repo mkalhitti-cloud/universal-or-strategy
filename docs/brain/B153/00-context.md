@@ -106,6 +106,30 @@ See [`docs/standards/RULES_CATALOG.md`](../../standards/RULES_CATALOG.md) for fu
 
 ---
 
+## JS-PUSH-01 Canonical Example
+
+B153 / BUG-2 is also the canonical reference for **JS-PUSH-01 (Push over Pull)**:
+
+The `fo == NULL` crash was a **pull bug**. `CopyEngine` stored the follower bracket reference
+in `_followerSlateReady` (a boolean flag) rather than passing the bracket object directly to
+the consumer at arm-time. The consumer had to query ("pull") whether the bracket existed via
+a flag, then reconstruct the bracket reference separately. When the flag was not re-armed after
+a partial QX/BE exit, the consumer pulled stale state (flag still `true`, object reference gone)
+and crashed on NULL dereference.
+
+The correct push pattern: the method that arms the bracket passes the bracket object directly
+as a parameter to the consumer. The consumer never queries a shared flag — it receives the
+live value at the moment it is needed.
+
+> "BUG-2 fo=NULL was a pull bug. The bracket was gated behind a boolean flag
+> (_followerSlateReady) that was never re-armed after partial exit. The fix is not to
+> re-arm the flag better -- it is to eliminate the flag as a data-transfer mechanism
+> and push the bracket object directly. See JS-PUSH-01."
+
+See [`docs/standards/RULES_CATALOG.md`](../../standards/RULES_CATALOG.md) for full JS-PUSH-01 rule text.
+
+---
+
 ## Files Modified
 
 | File | Change |

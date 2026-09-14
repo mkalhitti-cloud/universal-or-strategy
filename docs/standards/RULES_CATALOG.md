@@ -206,6 +206,45 @@ number of convergence points, not the number of broken functions.
 
 ---
 
+### JS-PUSH-01 — Prefer push over pull for state propagation (P1)
+
+When designing data flow between components, prefer **pushing** state to consumers at the
+moment it changes over **pulling** (polling / querying) on demand.
+
+**Push patterns (preferred)**:
+- Event callbacks / delegates invoked at the instant state changes
+- Observer / subscriber notifications
+- Passing computed values as parameters at call time
+- Returning values directly from the method that produced them
+
+**Pull patterns (avoid)**:
+- Reading a shared mutable field from a distant caller on a timer or in a loop
+- Repeated flag-checks (`while (!ready)`) that spin until another component sets the flag
+- Querying shared state that was set earlier by a different code path
+
+**Why**: Pull creates temporal coupling — the caller must know *when* the state is valid.
+Push makes the dependency explicit, eliminates the polling window, and removes the class
+of bugs where the consumer reads stale or uninitialized state because it checked too early.
+
+**PTT context**: This rule governs follower-state propagation in `CopyEngine`. Instead of
+follower components repeatedly reading `_followerSlateReady`, the initializer pushes
+a "slate ready" signal (or the bracket object itself) directly to the consumer at arm-time.
+The BUG-2 / fo=NULL class of bugs is a direct consequence of pull: the bracket was queried
+(`fo == null` check) rather than pushed (bracket passed as parameter to the consumer).
+
+**Three-step check (mandatory at Ph1 design and Ph3 ticket gen)**:
+
+1. **Identify the data source**: which method computes or changes the value?
+2. **Identify the consumer**: which method reads or acts on it?
+3. **Is there a direct call path from source to consumer?** If yes, pass the value as a
+   parameter (push). Only use a shared field (pull) when the source and consumer are
+   genuinely asynchronous and a parameter cannot be threaded through.
+
+**Gate**: ptt-plan-reviewer must flag any design that introduces a new shared mutable field
+read by a downstream component without documenting why push was not possible.
+
+---
+
 ### JS-100 — No magic numbers (P1)
 
 Numeric literals with domain meaning must be extracted to named constants.
