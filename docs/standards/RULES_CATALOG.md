@@ -166,6 +166,46 @@ no culture overhead).
 
 ---
 
+### JS-CONV-01 — Convergence Point Analysis before ticketing (P1)
+
+Before generating tickets for any multi-site fix, the architect MUST trace each proposed
+fix site upward through its call graph to identify the highest point at which a single
+change would cover all broken callers on that path.
+
+**Rule**: Fix the ancestor, not the leaves. The ticket count must reflect the minimum
+number of convergence points, not the number of broken functions.
+
+**Three-step check (mandatory at Ph3 ticket gen and Ph3.5 ticket review)**:
+
+1. **Trace each site to callers**: for every proposed fix location, walk up the call chain.
+   Does any ancestor call ALL of the broken sites? If yes, fix the ancestor.
+
+2. **Check for shared paths across sites**: do two or more broken sites share a common
+   caller ancestor? If yes, that ancestor is one ticket, not two.
+
+3. **Confirm independence**: if no shared ancestor exists, each site is its own fix point.
+   Document the path isolation explicitly in the architecture plan.
+
+**Gate**: ptt-ticket-reviewer must reject any ticket set where:
+- A leaf is ticketed when a common ancestor exists.
+- Multiple tickets touch functions that are all downstream of the same single-change fix.
+
+**Canonical example (B153 — 2026-09-13)**:
+- 4 broken paths (QX, BE, stop drag, BE-after-QX). No shared ancestor across paths.
+- Within each path, one convergence point covers all buttons on that path:
+  - QX: `ResolveTargetCount` covers Quick + Quick ALL (1 ticket)
+  - BE: `MoveStopToBreakEven` covers BE + BE ALL (1 ticket)
+  - Stop drag: `CaptureOtherLegTargetPrices` + coupled trio covers all drags (1 ticket)
+  - BE-after-QX: `IsPttQxTarget` (1 ticket)
+- Result: 4 tickets, not 6. No redundancy.
+
+**Not a violation**:
+- Separate tickets for genuinely independent paths (no shared ancestor = not redundant).
+- Tickets that touch different layers of one path for unavoidably coupled changes
+  (e.g. B153-03: three functions must change together because they share a type boundary).
+
+---
+
 ### JS-100 — No magic numbers (P1)
 
 Numeric literals with domain meaning must be extracted to named constants.
