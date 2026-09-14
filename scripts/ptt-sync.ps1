@@ -23,7 +23,8 @@ if (!(Test-Path $dstRoot)) {
 $files = Get-ChildItem $srcRoot -Recurse -Filter "*.cs" | Where-Object {
     $_.FullName -notmatch "\\bin\\" -and
     $_.FullName -notmatch "\\obj\\" -and
-    $_.FullName -notmatch "\\TestResults\\"
+    $_.FullName -notmatch "\\TestResults\\" -and
+    $_.Name     -notmatch "Tests\.cs$"          # xUnit test files -- NT8 cannot resolve Xunit
 }
 
 if ($files.Count -eq 0) {
