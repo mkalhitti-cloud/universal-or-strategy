@@ -579,19 +579,22 @@ namespace PropTraderTools
         }
 
         /// <summary>
-        /// Return true if name is a PTT Quick Exit target order (PTT-QX-T1, PTT-QX-T2, PTT-QX-T3).
+        /// Return true if name is a PTT Quick Exit target order (PTT-QX-T1, PTT-QX-T2, ..., PTT-QX-TN).
         /// These are plain Limit orders -- LimitPrice and Quantity are readable.
         /// BUG-B42-QX-BE-01 FIX (Direction 1): BE All after Quick All must recognise QX targets.
-        /// CYC=2: (1) length+null guard, (2) char-index body.
-        /// JS-021: no lock. JS-002: returns bool. NT8-006: no LINQ, char primitives only.
+        /// B153-REQ-04: ceiling removed -- accepts T4, T10, T22, etc.
+        /// CYC=5. JS-021: no lock. JS-002: returns bool. NT8-006: no LINQ.
         /// </summary>
+        // CYC=5
         private static bool IsPttQxTarget(string name)
         {
-            if (name == null || name.Length != 9)
+            // "PTT-QX-T" is 8 chars. Minimum valid name is "PTT-QX-T1" (length 9).
+            // Substring(8) extracts "1", "2", "10", "22" etc.
+            if (name == null || name.Length < 9)
                 return false;
-            return name.StartsWith("PTT-QX-T", StringComparison.Ordinal)
-                && name[8] >= '1'
-                && name[8] <= '3';
+            if (!name.StartsWith("PTT-QX-T", StringComparison.Ordinal))
+                return false;
+            return int.TryParse(name.Substring(8), out int n) && n >= 1;
         }
 
         /// <summary>

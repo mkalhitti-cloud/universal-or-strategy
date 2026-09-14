@@ -426,18 +426,19 @@ namespace PropTraderTools
 
         /// <summary>
         /// ResolveTargetCount: returns own count if > 0, else leaderCount if > 0, else 3.
-        /// Hard cap: never return more than 3. QX-ALL contract is always exactly 3 targets.
-        /// DW-B106: cap prevents stale prior-session partial-fill residue inflating count.
+        /// DW-B153-01: ceiling removed -- NT8 supports N targets. DeduplicateByPrice handles residue.
         /// DW-B63-01: fallback default changed 2 -> 3 (3-target ATM is the standard).
-        /// CYC=2: two ternaries. JS-002: returns int (never null).
+        /// CYC=1: single return, no branches. JS-002: returns int (never null).
         /// </summary>
+        // CYC=1
         private static int ResolveTargetCount(
             System.Collections.Generic.List<(double Price, int Qty)> own,
             int leaderCount
         )
         {
             int raw = own?.Count > 0 ? own.Count : (leaderCount > 0 ? leaderCount : 3);
-            return Math.Min(raw, 3); // DW-B106: QX-ALL contract -- always exactly 3 targets
+            // No ceiling -- NT8 supports N targets.
+            return raw;
         }
 
         /// <summary>

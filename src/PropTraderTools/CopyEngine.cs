@@ -983,6 +983,32 @@ namespace PropTraderTools
             _followerSlateReady[acc.Name] = true;
         }
 
+        // DW-B157-01: TrySetSlateReadyOnDrainFill.
+        // Restores _followerSlateReady when a PTT-Copy drain entry fills on a follower that now has an open position.
+        // Without this, TrySetFollowerSlateReady's IsAccountFlat gate keeps the slate false for the entire trade,
+        // causing FindFollowerBracketOrder to return null and breaking stop/target drag for drain followers.
+        // Guards: order non-null (1) + Filled state (2) + PTT-Copy name (3) + IsFollowerAccount (4) + open position (5).
+        // CYC<=5. JS-021: ConcurrentDictionary indexer is lock-free. JS-001: no throw. JS-002: void. ASCII-only.
+        private void TrySetSlateReadyOnDrainFill(Order order)
+        {
+            if (order == null)                                                          // (1)
+                return;
+            if (order.OrderState != OrderState.Filled)                                 // (2)
+                return;
+            if (!order.Name.StartsWith("PTT-Copy", StringComparison.Ordinal))          // (3)
+                return;
+            if (!IsFollowerAccount(order.Account))                                     // (4)
+                return;
+            if (IsFlat(FindPosition(order.Account, order.Instrument)))                 // (5) no open position -- skip
+                return;
+            _followerSlateReady[order.Account.Name] = true;
+            NinjaTrader.Code.Output.Process(
+                "[SLATE-READY-DRAIN] acct=" + order.Account.Name
+                + " instr=" + (order.Instrument?.FullName ?? "?"),
+                NinjaTrader.NinjaScript.PrintTo.OutputTab1
+            );
+        }
+
         // BUG2: Returns true when acc has no open positions across all instruments.
         // Used by TrySetFollowerSlateReady to confirm flat before marking slate ready.
         // NT8: acc.Positions is available in AddOnBase. Each Position.Quantity > 0 = open.
@@ -1711,10 +1737,23 @@ namespace PropTraderTools
             // DW-NEW-08 Option E: detect naked position within 50ms of terminal order event.
             TryNakedDetect(e);
 
+            // B154 DW-B154-01/02: sweep stale PTT-BE-* and PTT-QX-* GTC exit orders on
+            // new entry fill. Prevents prior-trade survivors hitting the new position.
+            // CYC delta=0 to OnOrderUpdate (extracted helper). See TryCancelStaleGtcExitOnEntry.
+            TryCancelStaleGtcExitOnEntry(e.Order);
+
             // DW-NEW-08 Option D: route cancel-ack to drain handler if account is in drain state.
             // BWAVE-REFACTOR-LaneB-T4: extracted drain terminal-state block to HandleDrainTerminalState.
             // Removes 2 branches from OnOrderUpdate (Cancelled/Rejected + Filled else-if).
             HandleDrainTerminalState(e.Order);
+
+            // DW-B157-01: restore _followerSlateReady after a PTT-Copy drain entry fills.
+            // Root: TryMarkFollowerSlateNotReady sets ready=false on QX/BE/flatten. TrySetFollowerSlateReady
+            // only restores it when the account is flat (IsAccountFlat gate). A drain entry fills immediately
+            // into an open position so IsAccountFlat is false for the entire trade -- slate stays false --
+            // FindFollowerBracketOrder returns null -- stop/target drag is broken for all drain followers.
+            // Fix: force ready=true the instant a PTT-Copy Filled event arrives on a follower with a position.
+            TrySetSlateReadyOnDrainFill(e.Order);
 
             // DW-NEW-08 Option D: cheap piggybacked watchdog for stuck drains (>2s).
             // Unconditional -- fires even when copy is disabled. CYC delta=0.
@@ -1892,6 +1931,30 @@ namespace PropTraderTools
             if (!IsEvictTriggerState(o))
                 return; // (2) terminal-state gate
             _entryDispatchedOrders.Clear(); // DW-B95: instrument-level reset -- fires for ALL accounts (leader + follower)
+            // DW-B156-01: leader-flat drain abort.
+            // When leader's PTT-BE-Stop fills, the leader account is flat but follower drains are still pending.
+            // Abort every follower drain whose Instrument matches this order so SubmitDrainedEntry never fires
+            // for a now-flat leader position. Must run BEFORE the IsFollowerAccount early-return below.
+            if (!IsFollowerAccount(o.Account) && o.OrderState == OrderState.Filled
+                && IsFlat(FindPosition(o.Account, o.Instrument)))
+            {
+                int abortCount = 0;
+                foreach (var kv in _pendingDispatchDrains)
+                {
+                    if (kv.Value.Instrument?.FullName == o.Instrument?.FullName)
+                    {
+                        AbortDrainOnFill(kv.Key);
+                        abortCount++;
+                    }
+                }
+                if (abortCount > 0)
+                    NinjaTrader.Code.Output.Process(
+                        "[DRAIN-ABORT-LEADER-FLAT] leader=" + o.Account.Name
+                        + " instr=" + (o.Instrument?.FullName ?? "?")
+                        + " aborted=" + abortCount,
+                        NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                    );
+            }
             if (!IsFollowerAccount(o.Account))
                 return; // (3) follower-only evictions below
             bool isFilled = o.OrderState == OrderState.Filled;
@@ -1901,6 +1964,10 @@ namespace PropTraderTools
             bool slotEvicted = _pendingFollowerBeSlots.TryRemove(accName, out _); // DW-B79-04: capture for log gate
             _beReplaceAttempts.TryRemove(accName, out _); // ALWAYS reset on terminal
             _filledBeTargetCount.TryRemove(accName, out _); // DW-B92: clear on flat
+            // B155 DW-B154-04: abort any pending drain payload when position goes flat.
+            // Prevents SubmitDrainedEntry from firing for a now-flat account.
+            // AbortDrainOnFill handles TryRemove + DrainedOrderIds cleanup; no-op if no drain exists.
+            AbortDrainOnFill(accName);
             if (slotEvicted) // DW-B79-04: only log if slot was present
                 LogBeSlotEviction(accName, o.OrderState == OrderState.Rejected);
         }
@@ -1986,7 +2053,7 @@ namespace PropTraderTools
         // Called ONLY when position is confirmed flat (TrySweptPttDragOrphans gate).
         // TB-T6: IsPttDragOrphanCancellable -- CCN<=4. Predicate for CancelPttDragOrphansForAccount filter.
         // Absorbs: state guard (Working) + instrument FullName guard + PTT drag name guard.
-        // NT8-014: "PTT-TGT-Drag" and "PTT-STP-Drag" confirmed names -- must not be generalized.
+        // StartsWith: matches suffixed variants PTT-TGT-Drag-N / PTT-STP-Drag-N (B142).
         // JS-021: no lock. JS-001: no throw. Static -- no instance state required.
         // TESTABILITY: private static; testable via IsPttDragOrphanCancellableTestable seam below.
         private static bool IsPttDragOrphanCancellable(Order o, Instrument instr)
@@ -1995,13 +2062,15 @@ namespace PropTraderTools
                 return false;
             if (o.Instrument?.FullName != instr?.FullName) // (2) ?. counts as 1 Lizard
                 return false;
-            if (o.Name != "PTT-TGT-Drag" && o.Name != "PTT-STP-Drag") // (3) && = 1 extra Lizard
+            if (!o.Name.StartsWith("PTT-TGT-Drag", StringComparison.Ordinal)
+                && !o.Name.StartsWith("PTT-STP-Drag", StringComparison.Ordinal)) // (3) && = 1 extra Lizard
                 return false;
             return true;
         }
 
         // TB-T6: test seam for IsPttDragOrphanCancellable -- accepts primitives to avoid constructing NT8 Order/Instrument in xUnit.
         // Mirrors IsEvictTriggerStateTestable pattern (L1636).
+        // StartsWith: matches suffixed variants PTT-TGT-Drag-N / PTT-STP-Drag-N (B142).
         internal static bool IsPttDragOrphanCancellableTestable(
             OrderState orderState,
             string orderInstrFullName,
@@ -2013,7 +2082,8 @@ namespace PropTraderTools
                 return false;
             if (orderInstrFullName != instrFullName)
                 return false;
-            if (orderName != "PTT-TGT-Drag" && orderName != "PTT-STP-Drag")
+            if (!orderName.StartsWith("PTT-TGT-Drag", StringComparison.Ordinal)
+                && !orderName.StartsWith("PTT-STP-Drag", StringComparison.Ordinal))
                 return false;
             return true;
         }
@@ -3174,7 +3244,7 @@ namespace PropTraderTools
             // B142-DIRECT-4: derive suffix from leaderOrder.Name ("Stop1/2/3"), NOT fo.Name.
             double? capturedTargetPrice = CaptureLinkedTargetPrice(acc, leaderOrder.Name); // B142-DIRECT-4
             // B142-DIRECT-6: capture other legs' target prices BEFORE cancel cascade kills them.
-            double[] otherLegPrices = CaptureOtherLegTargetPrices(acc, fo, legSuffix);
+            Dictionary<int, double> otherLegPrices = CaptureOtherLegTargetPrices(legSuffix, acc);
             SyncAtmFollowerBracket(acc, fo, newPrice, legSuffix, leaderOrder); // DW-B142-QTY-DESYNC-01
             if (capturedTargetPrice.HasValue) // B141
                 ResubmitTargetAfterCascade(acc, fo, capturedTargetPrice.Value, leaderOrder, legSuffix);
@@ -3394,34 +3464,51 @@ namespace PropTraderTools
         internal static double? PickBestTargetPriceTestable(double? p, double? a) =>
             PickBestTargetPrice(p, a);
 
-        // CYC=6: base(1)+if(1)+foreach(1)+for(1)+if(1)+if(1). No lock. No async. ASCII-only.
-        // B142-DIRECT-6: captures LimitPrice of all ATM target orders for legs OTHER than excludeSuffix.
-        // Called before acc.Cancel(Stop1_ATM) -- which cascade-cancels Stop2/Stop3/Target2/Target3.
-        // Returns double[3] indexed by suffix-1: prices[0]=leg1, prices[1]=leg2, prices[2]=leg3.
-        // 0 means not found (skip resubmit for that leg).
-        // Early-return guard: if fo.Name does not start with "Stop", this is a second+ drag where the
-        //   ATM group is already broken -- other legs are standalone PTT orders, not cascade victims.
-        //   Return all-zeros so ResubmitCollateralLegs no-ops. Guard adds +1 = still CYC=5.
-        // JS-002: double[] is a value array, not a reference null return.
+        // CYC=3: base(1)+foreach(1)+if(1). No lock. No async. ASCII-only.
+        // B153-REQ-03: captures LimitPrice of all ATM target orders for legs OTHER than excludeSuffix.
+        // No ceiling -- SnapshotBeTargets DeduplicateByPrice handles residue inflation.
+        // Returns Dictionary<int,double> keyed by leg index; empty dict = no-op for ResubmitCollateralLegs.
         // JS-021: no lock. NT8 Orders collection is thread-safe snapshot via ToList().
-        // B142-DIRECT-9 BUG A: prefer PTT-TGT-Drag-N price over ATM TargetN price.
-        //   When both coexist (target dragged but ATM cancel was a no-op), stop cascade used ATM price
-        //   and overwrote the dragged PTT-TGT-Drag price. Fix: PTT always overwrites; ATM only fills zeros.
-        //   Adds +1 McCabe (new else if). CYC 5->6.
-        // BWAVE-REFACTOR-LaneB-T5: CCN 9-><=4 via UpdateLegTargetPrice extraction.
-        // Residual: StartsWith guard(1)+foreach(1)+for-i(1)+UpdateLegTargetPrice call(0)=CCN<=4.
-        // JS-021: no lock. JS-001: no throw. JS-002: double[] (value array, never null).
-        private double[] CaptureOtherLegTargetPrices(Account acc, Order fo, string excludeSuffix)
+        // JS-002: Dictionary (value, never null). JS-001: no throw.
+        // DW-B158-01: IsTargetOrderLive guard added -- historical Cancelled/Filled TargetN or
+        //   PTT-TGT-Drag-N orders in acc.Orders were inflating the leg count (e.g. Target4:Cancelled
+        //   from a prior 4-leg trade caused a ghost PTT-TGT-Drag-4 on the current 3-leg trade).
+        //   && adds 0 McCabe branches per project convention. CYC stays at 3.
+        // CYC=3
+        private Dictionary<int, double> CaptureOtherLegTargetPrices(string excludeSuffix, Account acc)
         {
-            var prices = new double[3];
-            if (!fo.Name.StartsWith("Stop")) // (1) if -- second+ drag guard
-                return prices;
-            foreach (var o in acc.Orders.ToList()) // (2) foreach
+            // No ceiling -- SnapshotBeTargets DeduplicateByPrice handles residue inflation.
+            var prices = new Dictionary<int, double>();
+            foreach (var order in acc.Orders.ToList()) // (1) foreach
             {
-                for (int i = 1; i <= 3; i++) // (3) for
-                    UpdateLegTargetPrice(prices, i, o, excludeSuffix);
+                int idx = ParseTargetLegIndex(order.Name, excludeSuffix);
+                if (idx >= 1 && IsTargetOrderLive(order)) // (2) if -- DW-B158-01: live-state guard
+                    prices[idx] = order.LimitPrice;
             }
             return prices;
+        }
+
+        // CYC=5
+        // B153-REQ-03: parses leg index from NT8 native "TargetN" or PTT drag "PTT-TGT-Drag-N" order names.
+        // ASCII-only. No lock(). JS-002 compliant (returns -1 on invalid, not throw).
+        // PTT prefix checked first (PTT-preferred rule).
+        // Returns -1 on any invalid/excluded input. Callers check idx >= 1 (since -1 < 1, invalid skipped).
+        private static int ParseTargetLegIndex(string orderName, string excludeSuffix)
+        {
+            // ASCII-only. No lock(). JS-002 compliant (returns -1 on invalid, not throw).
+            if (orderName == null) return -1;
+            // Accept NT8 native "TargetN" and PTT drag "PTT-TGT-Drag-N"
+            string suffix;
+            const string pttPrefix = "PTT-TGT-Drag-";
+            const string ntPrefix = "Target";
+            if (orderName.StartsWith(pttPrefix, StringComparison.Ordinal))
+                suffix = orderName.Substring(pttPrefix.Length);
+            else if (orderName.StartsWith(ntPrefix, StringComparison.Ordinal))
+                suffix = orderName.Substring(ntPrefix.Length);
+            else
+                return -1;
+            if (suffix == excludeSuffix) return -1;
+            return int.TryParse(suffix, out int idx) && idx >= 1 ? idx : -1;
         }
 
         // BWAVE-REFACTOR-LaneB-T5: extracted from CaptureOtherLegTargetPrices for-i body.
@@ -3444,17 +3531,18 @@ namespace PropTraderTools
                 prices[i - 1] = o.LimitPrice;
         }
 
-        // CYC=3: base(1)+if(1)+if(1). Static. Pure predicate. No lock. No async.
-        // B141: extracts suffix from NT8 ATM stop name ("Stop1"->"1", "Stop2"->"2", "Stop3"->"3").
-        // Rejects null, length < 5, or suffix not in {1, 2, 3}.
-        // Uses int.TryParse to accept only valid numeric suffixes 1-3.
+        // CYC=2: base(1)+if(1)+if(1). Static. Pure predicate. No lock. No async.
+        // B141: extracts suffix from NT8 ATM stop name ("Stop1"->"1", "Stop4"->"4", etc.).
+        // Rejects null, length < 5, or suffix n < 1.
+        // B153-REQ-03: ceiling removed -- no upper bound on suffix, accepts any n >= 1.
+        // Uses int.TryParse to accept only valid numeric suffixes >= 1.
         private static bool TryParseStopSuffix(string stopName, out string suffix)
         {
             suffix = null;
             if (stopName == null || stopName.Length < 5) // (1) if -- || NOT counted
                 return false;
             string raw = stopName.Substring(4);
-            if (!int.TryParse(raw, out int n) || n < 1 || n > 3) // (2) if -- || NOT counted
+            if (!int.TryParse(raw, out int n) || n < 1) // (2) if -- || NOT counted
                 return false;
             suffix = raw;
             return true;
@@ -3605,12 +3693,11 @@ namespace PropTraderTools
             }
         }
 
-        // CYC=5: base(1)+for(1)+if(1)+if(1)+call(0)+call(0) = actually for+2 if = 4, base=1, total=4.
-        // Wait: for=+1, if-exclude=+1, if-zero=+1 = 3+base = 4. Conservative comment says 5 (safe).
-        // B142-DIRECT-6: for each collateral leg (suffix 1-3, excluding the primary leg),
-        //   if a target price was captured, resubmit PTT-STP-Drag-N + PTT-TGT-Drag-N.
+        // CYC=4: base(1)+foreach(1)+if(1)+call(0)=3+base=4. No lock. No async. ASCII-only.
+        // B153-REQ-03: for each collateral leg in otherLegPrices dictionary (all legs, no ceiling),
+        //   resubmit PTT-STP-Drag-N + PTT-TGT-Drag-N.
         // Called after SyncAtmFollowerBracket+ResubmitTargetAfterCascade -- ATM OCO group is broken.
-        // On second+ drag, otherLegPrices is all-zeros (guard in CaptureOtherLegTargetPrices) -- no-op.
+        // Empty dict = no-op (replaces all-zeros guard formerly in CaptureOtherLegTargetPrices).
         // JS-021: no lock. JS-001: delegates throw-free to ResubmitOneCollateralLeg.
         // JS-002: void. ASCII-only. No DateTime.
         // DW-B142-QTY-DESYNC-01: leaderOrder param added to thread leader qty per collateral leg.
@@ -3620,23 +3707,21 @@ namespace PropTraderTools
             Account acc,
             Order fo,
             double newPrice,
-            double[] otherLegPrices,
+            Dictionary<int, double> otherLegPrices,
             string excludeSuffix,
             Order leaderOrder
         )
         {
-            for (int i = 1; i <= 3; i++) // (1) for
+            foreach (var kvp in otherLegPrices) // (1) foreach
             {
-                string s = i.ToString();
-                if (s == excludeSuffix) // (2) if
-                    continue;
-                if (otherLegPrices[i - 1] <= 0) // (3) if
+                string s = kvp.Key.ToString();
+                double price = kvp.Value;
+                if (price <= 0) // (2) if
                     continue;
                 // DW-B142-QTY-DESYNC-01: look up the leader's per-leg bracket order for this suffix.
                 // leaderOrder.Name is e.g. "Stop2"; collateral leg s="1" or "3" -> look up "Stop1"/"Stop3".
-                // Also try "Target1"/"Target3" since CaptureOtherLegTargetPrices may have stored either.
                 Order? leaderLeg = FindLeaderCollateralOrder(leaderOrder, s);
-                ResubmitOneCollateralLeg(acc, fo, newPrice, otherLegPrices[i - 1], s, leaderLeg);
+                ResubmitOneCollateralLeg(acc, fo, newPrice, price, s, leaderLeg);
             }
         }
 
@@ -4903,6 +4988,71 @@ namespace PropTraderTools
             if (HasFilledBeTargetFast(o.Account))
                 return; // (6) DW-B92: skip if OCO cancel from target fill
             TryReplacePttBeBrackets(o);
+        }
+
+        // IsStaleGtcExitNameFor: true when o is non-null, o.Name is non-null, and Name starts with
+        // PTT-BE-* or PTT-QX-*. Extracted from TryCancelStaleGtcExitOnEntry to keep parent CYC<=8.
+        // CYC=4: base(1) + null-guard(1) + StartsWith-OR(1) + name-null-guard-||=1 implied in null-guard.
+        // JS-021: no lock. JS-001: no throw. JS-002: returns bool. ASCII-only. B154 DW-B154-01/02.
+        private static bool IsStaleGtcExitNameFor(Order o)
+        {
+            if (o == null || o.Name == null) return false;
+            return o.Name.StartsWith("PTT-BE-", StringComparison.Ordinal)
+                || o.Name.StartsWith("PTT-QX-", StringComparison.Ordinal);
+        }
+
+        // IsGtcExitCancellableState: true for states eligible for GTC exit cancel on entry fill.
+        // TriggerPending MUST be included -- HOTFIX-QX-DOUBLE-01 at CopyEngine.cs line 1039.
+        // Do NOT use IsCancelAllStateOk (omits TriggerPending). Use IsQxCancelEligible2 pattern.
+        // CYC=5: base(1) + 4 OR branches. JS-021: no lock. JS-001: no throw. ASCII-only. B154 DW-B154-01/02.
+        private static bool IsGtcExitCancellableState(OrderState s) =>
+            s == OrderState.Working
+            || s == OrderState.Accepted
+            || s == OrderState.Submitted
+            || s == OrderState.Initialized
+            || s == OrderState.TriggerPending;
+
+        /// <summary>
+        /// On a new entry fill, cancels any stale PTT-BE-* or PTT-QX-* GTC exit orders
+        /// on the same account and instrument. Prevents prior-trade survivors from
+        /// filling against the new position. CYC=8, JS-021, JS-001, JS-002,
+        /// ASCII-only, B154 DW-B154-01/02.
+        /// </summary>
+        // CYC=8, JS-021, JS-001, JS-002, ASCII-only, B154 DW-B154-01/02
+        // Branch table: (1) entry-fill guard, (2) foreach, (3) name prefix gate,
+        // (4) instrument match gate, (5) cancellable-state gate,
+        // (6) empty-stale guard, (7) try/catch. Total=7 + base(1)=8.
+        private void TryCancelStaleGtcExitOnEntry(Order order)
+        {
+            if (!IsPttCopyEntryFilled(order)) return;                              // branch 1
+
+            var acc   = order.Account;
+            var instr = order.Instrument;
+            var stale = new List<Order>();
+
+            foreach (var o in acc.Orders.ToList())                                 // branch 2 (foreach)
+            {
+                if (!IsStaleGtcExitNameFor(o)) continue;                          // branch 3
+
+                if (o.Instrument?.FullName != instr.FullName) continue;           // branch 4
+
+                if (!IsGtcExitCancellableState(o.OrderState)) continue;           // branch 5
+
+                stale.Add(o);
+            }
+
+            if (stale.Count == 0) return;                                          // branch 6
+
+            try                                                                    // branch 7
+            {
+                acc.Cancel(stale);
+            }
+            catch { }
+
+            // Unconditional log -- always fires when stale.Count > 0
+            NinjaTrader.Code.Output.Process(
+                "[BE-ENTRY-SWEEP] acc=" + acc.Name + " cancelled=" + stale.Count,
+                NinjaTrader.NinjaScript.PrintTo.OutputTab1);
         }
 
         // LogBeCancelDiag: diagnostic output for PTT-BE cancels. CYC=1 (no branches).
@@ -6699,11 +6849,7 @@ namespace PropTraderTools
             // Two-pass native-first collect: native Target1..9 take priority over
             // stale PTT-QX-T*/PTT-BE-Target-* residues (same logic as DW-B106).
             var targets = SnapshotBeTargets(acc, instrument); // (2)
-            // DW-B107: hard cap -- BE/QX contract is always exactly 3 targets max.
-            // Prevents stale partial-fill residue submitting extra OCO pairs.
-            // No LINQ -- while-loop trim per JS zero-alloc mandate.
-            while (targets.Count > 3)
-                targets.RemoveAt(targets.Count - 1);
+            // No ceiling -- SnapshotBeTargets DeduplicateByPrice handles residue inflation.
 
             // DW-B88: unified cancel+resubmit -- replaces follower acc.Change() path and leader Step B/C.
             // Old follower block (L2742-2797) and leader Step B/C (L2800-2963) preserved below as
@@ -6770,16 +6916,25 @@ namespace PropTraderTools
         }
 
         // BWAVE-REFACTOR-LaneB-T2: extracted from MoveStopToBreakEven (DW-B79-02 DIAG block).
-        // Counts total orders on acc for the given instrument across all states, logs via Output.Process.
-        // CYC<=2: foreach(1) + instrument filter(2). JS-021: no lock. JS-001: no throw. JS-002: void.
-        // ASCII-only. No DateTime.Now.
+        // DW-B157-02: count only ACTIVE orders (exclude Filled/Cancelled/Rejected).
+        // NT8 acc.Orders includes all historical terminal orders (291-304 for busy accounts).
+        // Before this fix the logged count was inflated by terminal history, misleading diagnostics.
+        // Now matches ActiveOrders filter (same exclusions: Filled, Cancelled, Rejected).
+        // CYC<=3: foreach(1) + terminal-state skip(2) + instrument filter(3). JS-021: no lock.
+        // JS-001: no throw. JS-002: void. ASCII-only. No DateTime.Now.
         [System.Reflection.ObfuscationAttribute(Feature = "rename", Exclude = true)]
         private void LogDiagOrderCount(Account acc, Instrument instrument)
         {
             int diagTotal = 0;
             foreach (Order o in acc.Orders) // (1)
-                if (o?.Instrument?.FullName == instrument?.FullName) // (2)
+            {
+                if (o.OrderState == OrderState.Filled    // (2) skip terminal states
+                    || o.OrderState == OrderState.Cancelled
+                    || o.OrderState == OrderState.Rejected)
+                    continue;
+                if (o?.Instrument?.FullName == instrument?.FullName) // (3)
                     diagTotal++;
+            }
             NinjaTrader.Code.Output.Process(
                 "[BE-DIAG] " + acc.Name + " orders-for-instr=" + diagTotal,
                 NinjaTrader.NinjaScript.PrintTo.OutputTab1
@@ -7812,6 +7967,26 @@ namespace PropTraderTools
         private static bool IsPttCopyEntry(Order o) =>
             o.Name.StartsWith("PTT-Copy", StringComparison.Ordinal) || o.Name == "Entry";
 
+        /// <summary>
+        /// Returns true when <paramref name="order"/> is a filled entry order
+        /// that should trigger a GTC exit sweep. CYC=4, JS-021, JS-001, JS-002,
+        /// ASCII-only, B154 DW-B154-01/02.
+        /// </summary>
+        // CYC=4, JS-021, JS-001, JS-002, ASCII-only, B154 DW-B154-01/02
+        private static bool IsPttCopyEntryFilled(Order order)
+        {
+            if (order == null) return false;
+            if (order.OrderState != OrderState.Filled) return false;
+            if (order.Name != "Entry" && order.Name != "PTT-Copy") return false;
+            if (order.Instrument?.FullName == null) return false;
+            return true;
+        }
+
+        internal bool IsPttCopyEntryFilledTestable(Order o) => IsPttCopyEntryFilled(o);
+
+        // B155 test seam -- exposes private SubmitDrainedEntry for unit tests.
+        internal void SubmitDrainedEntryTestable(string acctKey) => SubmitDrainedEntry(acctKey);
+
         // DW-NEW-08 Option E: thin dispatcher gate.
         // DW-LB-FL-01-V2: skip naked-position check on entry fill -- ATM brackets are about to
         // arm via StartAtmStrategy. An entry fill does NOT indicate a naked position; it is the
@@ -8124,10 +8299,12 @@ namespace PropTraderTools
         }
 
         // DW-NEW-08 Option D: submit the parked entry after all drain cancels acknowledged.
-        // CYC=4: (1) TryRemove fails early return, (2) FollowerAccount null early return,
-        //        (3) delegated to SubmitEntryDirect, (4) F3 cleanup foreach (after submit).
+        // CYC=5: (1) TryRemove fails early return, (2) FollowerAccount null early return,
+        //        (3) NEW IsFlat guard aborts submit when account is flat,
+        //        (5) delegated to SubmitEntryDirect, (6) F3 cleanup foreach (after submit).
         // R3-F2: cleanup moved after SubmitEntryDirect -- drain IDs preserved until submit completes.
         // NT8: Account.CreateOrder + Submit via SubmitEntryDirect. NO Account.Change().
+        // B155 DW-B154-04: flat guard (3) aborts submit when account is flat.
         private void SubmitDrainedEntry(string acctKey)
         {
             if (!_pendingDispatchDrains.TryRemove(acctKey, out var payload)) // (1)
@@ -8137,7 +8314,17 @@ namespace PropTraderTools
             if (follower == null) // (2)
                 return;
 
-            SubmitEntryDirect( // (3) submit first -- drain IDs still in dict here
+            if (IsFlat(FindPosition(follower, payload.Instrument))) // (3) NEW -- abort if flat
+            {
+                NinjaTrader.Code.Output.Process(
+                    "[DRAIN-ABORT-FLAT] acct=" + acctKey,
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1);
+                foreach (var id in payload.DrainedOrderIds) // (4) cleanup on abort path
+                    _drainOwnedOrderIds.TryRemove(id, out _);
+                return;
+            }
+
+            SubmitEntryDirect( // (5) submit first -- drain IDs still in dict here
                 follower,
                 payload.Instrument,
                 payload.Qty,
@@ -8147,7 +8334,7 @@ namespace PropTraderTools
             );
 
             // R3-F2: clear drain-owned IDs AFTER submit so IDs are preserved on submit failure.
-            foreach (var id in payload.DrainedOrderIds) // (4)
+            foreach (var id in payload.DrainedOrderIds) // (6)
                 _drainOwnedOrderIds.TryRemove(id, out _);
         }
 
