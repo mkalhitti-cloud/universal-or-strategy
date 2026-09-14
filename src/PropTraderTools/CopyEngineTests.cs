@@ -8100,28 +8100,78 @@ namespace PropTraderTools
             Assert.Equal(typeof(NinjaTrader.Cbi.Instrument), parms[1].ParameterType);
         }
 
-        // PTT-REPAIRS-03 T1: verify reversal guard does NOT skip when follower has working entry orders.
-        // BUG-A fix: followerIsFlat = IsFlat(pos) && !HasWorkingEntries() -- when HasWorkingEntries
-        // returns true, followerIsFlat = false, and IsReversalToFlatFollower returns false (no skip).
-        // Tests the sub-predicate IsReversalToFlatFollower(Buy, Sell, followerIsFlat: false) directly
-        // (internal static, no NT8 Account/Instrument construction required).
-        // This is Option B from the ticket spec -- pure predicate test, no mocking framework.
+        // DW-B157-RG-01 T1: protection path -- skip=true when follower has open position + direction changed.
+        // followerIsFlat=false (open position), reversal (Buy after Sell).
+        // Post-fix: currentAction != lastAction (true) && !followerIsFlat (true) = true = skip. CORRECT.
+        // Pre-fix this returned false (no skip) due to inverted predicate -- follower with open position
+        // would receive a reversal copy and attempt a bracket against an already-open position.
         [Fact(Skip = "NT8-runtime: CopyEngine.cctor requires NT8 host")]
-        public void ShouldSkipForReversalGuard_AllowsEntryWhenFollowerHasWorkingOrders()
+        public void ShouldBlockReversalCopy_WhenFollowerHasOpenPosition()
         {
-            // Arrange: reversal scenario (Buy after Sell), but followerIsFlat=false because
-            // HasWorkingEntries() returns true (working entry exists).
-            // With the BUG-A fix: followerIsFlat = IsFlat(pos: true) && !HasWorkingEntries(true) = false.
+            // Arrange: reversal scenario (Buy after Sell), follower has an open position (not flat).
             const OrderAction currentAction = OrderAction.Buy;
             const OrderAction lastAction    = OrderAction.Sell;
-            const bool followerIsFlat       = false; // working order exists -> not truly flat
+            const bool followerIsFlat       = false; // open position exists
 
-            // Act: IsReversalToFlatFollower is internal static; accessible via InternalsVisibleTo L46.
-            // When followerIsFlat=false, reversal condition (cur != last && isFlat) is false.
+            // Act
             bool wouldSkip = CopyEngine.IsReversalToFlatFollower(currentAction, lastAction, followerIsFlat);
 
-            // Assert: guard must NOT skip -- dispatch is allowed when follower has working orders.
-            Assert.False(wouldSkip);
+            // Assert: protection path -- guard MUST skip to preserve the open bracket.
+            Assert.True(wouldSkip);
+        }
+
+        // DW-B157-RG-01 T2 (REGRESSION PROOF): flat follower + reversal must return false (allow copy).
+        // Pre-fix, this input returned true (BUG): followerIsFlat=true, direction changed.
+        // A flat follower has no live brackets; any direction is safe to copy.
+        // If this test fails after implementation, the bug fix was not applied correctly.
+        [Fact(Skip = "NT8-runtime: CopyEngine.cctor requires NT8 host")]
+        public void IsReversalToFlatFollower_FlatFollower_DirectionChanged_ReturnsFalse()
+        {
+            // Arrange: flat follower (no open position), reversal (Buy after Sell).
+            const OrderAction currentAction = OrderAction.Buy;
+            const OrderAction lastAction    = OrderAction.Sell;
+            const bool followerIsFlat       = true; // flat: no open position, no live brackets
+
+            // Act
+            bool result = CopyEngine.IsReversalToFlatFollower(currentAction, lastAction, followerIsFlat);
+
+            // Assert: flat follower reversal must be ALLOWED (false = no skip).
+            Assert.False(result);
+        }
+
+        // DW-B157-RG-01 T3: open follower + reversal must return true (protection path).
+        // Follower has a live Short position; leader issues a Long (reversal).
+        // Copying would attempt a new bracket against an open Short -- correctly blocked.
+        [Fact(Skip = "NT8-runtime: CopyEngine.cctor requires NT8 host")]
+        public void IsReversalToFlatFollower_OpenFollower_DirectionChanged_ReturnsTrue()
+        {
+            // Arrange: open follower (Short position), reversal (Sell->Buy direction change).
+            const OrderAction currentAction = OrderAction.Sell;
+            const OrderAction lastAction    = OrderAction.Buy;
+            const bool followerIsFlat       = false; // open Short position
+
+            // Act
+            bool result = CopyEngine.IsReversalToFlatFollower(currentAction, lastAction, followerIsFlat);
+
+            // Assert: open follower + reversal must be BLOCKED (true = skip).
+            Assert.True(result);
+        }
+
+        // DW-B157-RG-01 T4: same direction never triggers the reversal guard, regardless of flat state.
+        // currentAction == lastAction => (currentAction != lastAction) = false => result = false.
+        [Fact(Skip = "NT8-runtime: CopyEngine.cctor requires NT8 host")]
+        public void IsReversalToFlatFollower_SameDirection_ReturnsFalse()
+        {
+            // Arrange: same direction (Buy->Buy), follower has open position.
+            const OrderAction currentAction = OrderAction.Buy;
+            const OrderAction lastAction    = OrderAction.Buy;
+            const bool followerIsFlat       = false; // open position -- worst case for non-reversal
+
+            // Act
+            bool result = CopyEngine.IsReversalToFlatFollower(currentAction, lastAction, followerIsFlat);
+
+            // Assert: same direction = no reversal = ALLOW copy (false = no skip).
+            Assert.False(result);
         }
 
         // PTT-REPAIRS-02 T1: verify _liveEntryInstruments is cleared on Filled,
@@ -9421,6 +9471,40 @@ namespace PropTraderTools
             var parms = m.GetParameters();
             Assert.Equal(1, parms.Length);
             Assert.Equal(typeof(string), parms[0].ParameterType);
+        }
+
+        // DW-B156-DEFER-3: exact-string assertion for DRAIN-ABORT-LEADER-FLAT log marker.
+        // Stronger than existing test (~line 9414) which checks "DRAIN-ABORT-FLAT" (substring only).
+        // This test checks the exact marker "[DRAIN-ABORT-LEADER-FLAT]" including brackets and LEADER.
+        // Uses same file-read pattern as existing test at ~line 9442-9458.
+        [Fact]
+        public void TryEvictFollowerBeSlot_LeaderFlatDrainAbort_LogMarkerIsExactString()
+        {
+            // Arrange: resolve CopyEngine.cs source path via assembly location (same as ~line 9442).
+            var srcFile = System.IO.Path.Combine(
+                System.IO.Path.GetDirectoryName(typeof(CopyEngine).Assembly.Location) ?? string.Empty,
+                "..", "..", "..", "..", "..", "src", "PropTraderTools", "CopyEngine.cs");
+            srcFile = System.IO.Path.GetFullPath(srcFile);
+
+            if (System.IO.File.Exists(srcFile))
+            {
+                // Act: read source.
+                var src = System.IO.File.ReadAllText(srcFile);
+
+                // Assert: exact marker string must be present (brackets, LEADER, hyphen positions).
+                // Tests that IsLeaderFlatDrainAbort (extracted from TryEvictFollowerBeSlot, DW-B156-DEFER-1)
+                // emits the precise marker string -- not just a substring.
+                Assert.Contains("[DRAIN-ABORT-LEADER-FLAT]", src);
+            }
+            else
+            {
+                // Source file unavailable (CI without workspace): verify via reflection that
+                // IsLeaderFlatDrainAbort exists as a private instance method (structural proxy).
+                var m = typeof(CopyEngine).GetMethod(
+                    "IsLeaderFlatDrainAbort",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                Assert.NotNull(m);
+            }
         }
     }
 

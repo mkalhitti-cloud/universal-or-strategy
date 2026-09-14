@@ -1,6 +1,6 @@
 # AGENTS.md - Sovereign Agent Protocol
 
-Welcome, Agent. You are operating within the **V12 Universal OR Strategy** repository. This environment is optimized for autonomous multi-agent development under the **Sovereign Droid Protocol (SDP)**.
+Welcome, Agent. You are operating within the **PTT Trade Copier (PropTraderTools)** repository. This environment is optimized for autonomous multi-agent development under the **Sovereign Droid Protocol (SDP)**.
 
 ## 1. Agent Hierarchy (The Director's Gate)
 
@@ -20,13 +20,12 @@ Welcome, Agent. You are operating within the **V12 Universal OR Strategy** repos
 - **Correctness by Construction ("Make illegal states unrepresentable")**: Structure types, enums, and data models so that it is mathematically impossible for the compiler to allow an invalid state. Do not rely on runtime if/else guards for weird edge cases   design the architecture so the edge case literally cannot exist.
 - **Lock-Free Actor Pattern**: Legacy `lock(stateLock)` blocks are **STRICTLY BANNED**. All state mutations must use the FSM/Actor `Enqueue` model or atomic primitives.
 - **ASCII-Only Compliance**: NEVER use Unicode, emoji, or curly quotes in C# string literals.
-- **Hard-Link Integrity**: Every `src/` modification MUST be followed by `powershell -File .\deploy-sync.ps1` to re-synchronize NinjaTrader hard links.
+- **Hard-Link Integrity**: Every `src/` modification MUST be followed by `powershell -File .\scripts\ptt-sync.ps1` to re-synchronize NinjaTrader hard links.
 
 ## 3. Standard Commands
 
-- **Build & Sync** (Build Pillar): `powershell -File .\scripts\build_readiness.ps1`
-- **Lint Audit** (Style Pillar): `powershell -File .\scripts\lint.ps1`
-- **Stress Test** (Testing Pillar): `powershell -File .\scripts\test_stress.ps1`
+- **PTT Sync** (Hard-Link Pillar): `powershell -File .\scripts\ptt-sync.ps1`
+- **Stress Test** (Testing Pillar): `powershell -File .\scripts\test_stress.ps1`
 - **Sovereign Audit**: `droid /review` (Focus on P0-P3 severity findings).
 - **Readiness Check**: `droid /readiness-report` (Maintain Level 2+).
 - **Forensic Scan**: `grep -r "lock(" src/` (Zero-match requirement).

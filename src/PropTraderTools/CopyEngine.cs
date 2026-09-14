@@ -988,7 +988,7 @@ namespace PropTraderTools
         // Without this, TrySetFollowerSlateReady's IsAccountFlat gate keeps the slate false for the entire trade,
         // causing FindFollowerBracketOrder to return null and breaking stop/target drag for drain followers.
         // Guards: order non-null (1) + Filled state (2) + PTT-Copy name (3) + IsFollowerAccount (4) + open position (5).
-        // CYC<=5. JS-021: ConcurrentDictionary indexer is lock-free. JS-001: no throw. JS-002: void. ASCII-only.
+        // CYC<=8. JS-021: ConcurrentDictionary indexer is lock-free. JS-001: no throw. JS-002: void. ASCII-only.
         private void TrySetSlateReadyOnDrainFill(Order order)
         {
             if (order == null)                                                          // (1)
@@ -1922,53 +1922,72 @@ namespace PropTraderTools
         //   (stop rejected but trade still live). The retry (500ms fallback) must be free to
         //   re-register a fresh slot.
         // Extracted: IsEvictTriggerState (terminal-state + name guard).
-        // JS-021: ConcurrentDictionary ops are lock-free. JS-001: no throw. JS-002: void. ASCII.
+        // DW-B156-DEFER-1: decomposed IsLeaderFlatDrainAbort + RunFollowerEvictPath to reduce CYC.
+        // CYC=7: e?.Order(1)+o==null(1)+IsEvictTriggerState(1)+o.Instrument?.FullName(1)+??(1)+IsFollowerAccount(1)=7
+        // (base=1 + 6 decision points)
+        // JS-021: no lock. JS-001: no throw. JS-002: void. ASCII-only.
         private void TryEvictFollowerBeSlot(OrderEventArgs e)
         {
-            var o = e?.Order;
-            if (o == null)
-                return; // (1) null guard
-            if (!IsEvictTriggerState(o))
-                return; // (2) terminal-state gate
+            var o = e?.Order;                                                           // ?. (+1)
+            if (o == null)                                                              // (+1)
+                return;
+            if (!IsEvictTriggerState(o))                                               // (+1)
+                return;
             _entryDispatchedOrders.Clear(); // DW-B95: instrument-level reset -- fires for ALL accounts (leader + follower)
-            // DW-B156-01: leader-flat drain abort.
-            // When leader's PTT-BE-Stop fills, the leader account is flat but follower drains are still pending.
-            // Abort every follower drain whose Instrument matches this order so SubmitDrainedEntry never fires
-            // for a now-flat leader position. Must run BEFORE the IsFollowerAccount early-return below.
-            if (!IsFollowerAccount(o.Account) && o.OrderState == OrderState.Filled
-                && IsFlat(FindPosition(o.Account, o.Instrument)))
+            string instrFull = o.Instrument?.FullName ?? string.Empty;                 // ?. (+1), ?? (+1)
+            IsLeaderFlatDrainAbort(o, instrFull);
+            if (!IsFollowerAccount(o.Account))                                         // (+1)
+                return;
+            RunFollowerEvictPath(o);
+        }
+
+        // DW-B156-DEFER-1: leader-flat drain abort path extracted from TryEvictFollowerBeSlot.
+        // When leader's PTT-BE-Stop fills and leader is flat, aborts all pending follower drains
+        // whose Instrument matches. Runs before follower-only eviction path.
+        // CYC=8: base(1)+IsFollowerAccount(1)+OrderState(1)+IsFlat(1)+foreach(1)+if kv(1)+?.(1)+abortCount>0(1)=8
+        // instrFull pre-computed by caller to avoid ?./?? cost inside this helper (JS-013).
+        // JS-021: ConcurrentDictionary foreach is lock-free snapshot. JS-001: no throw. ASCII-only.
+        private void IsLeaderFlatDrainAbort(Order o, string instrFull)
+        {
+            if (IsFollowerAccount(o.Account))                                           // guard: skip follower accounts (+1)
+                return;
+            if (o.OrderState != OrderState.Filled)                                     // (+1)
+                return;
+            if (!IsFlat(FindPosition(o.Account, o.Instrument)))                        // (+1)
+                return;
+            int abortCount = 0;
+            foreach (var kv in _pendingDispatchDrains)                                 // (+1)
             {
-                int abortCount = 0;
-                foreach (var kv in _pendingDispatchDrains)
+                if (kv.Value.Instrument?.FullName == instrFull)                        // if (+1) + ?. (+1) = +2
                 {
-                    if (kv.Value.Instrument?.FullName == o.Instrument?.FullName)
-                    {
-                        AbortDrainOnFill(kv.Key);
-                        abortCount++;
-                    }
+                    AbortDrainOnFill(kv.Key);
+                    abortCount++;
                 }
-                if (abortCount > 0)
-                    NinjaTrader.Code.Output.Process(
-                        "[DRAIN-ABORT-LEADER-FLAT] leader=" + o.Account.Name
-                        + " instr=" + (o.Instrument?.FullName ?? "?")
-                        + " aborted=" + abortCount,
-                        NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                    );
             }
-            if (!IsFollowerAccount(o.Account))
-                return; // (3) follower-only evictions below
+            if (abortCount > 0)                                                         // (+1)
+                NinjaTrader.Code.Output.Process(
+                    "[DRAIN-ABORT-LEADER-FLAT] leader=" + o.Account.Name
+                    + " instr=" + instrFull
+                    + " aborted=" + abortCount,
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
+                );
+        }
+
+        // DW-B156-DEFER-1: follower eviction path extracted from TryEvictFollowerBeSlot.
+        // Handles flat-guard, slot eviction, retry reset, drain abort, log.
+        // CYC=4: base(1)+if(isFilled&&...)(1)+&&(1)+if(slotEvicted)(1)=4.
+        // JS-021: ConcurrentDictionary TryRemove is lock-free. JS-001: no throw. ASCII-only.
+        private void RunFollowerEvictPath(Order o)
+        {
             bool isFilled = o.OrderState == OrderState.Filled;
-            if (isFilled && !IsFlat(FindPosition(o.Account, o.Instrument)))
-                return; // (4) flat-guard for Filled only
-            string accName = o.Account.Name; // safe: IsFollowerAccount confirmed non-null above
-            bool slotEvicted = _pendingFollowerBeSlots.TryRemove(accName, out _); // DW-B79-04: capture for log gate
-            _beReplaceAttempts.TryRemove(accName, out _); // ALWAYS reset on terminal
-            _filledBeTargetCount.TryRemove(accName, out _); // DW-B92: clear on flat
-            // B155 DW-B154-04: abort any pending drain payload when position goes flat.
-            // Prevents SubmitDrainedEntry from firing for a now-flat account.
-            // AbortDrainOnFill handles TryRemove + DrainedOrderIds cleanup; no-op if no drain exists.
+            if (isFilled && !IsFlat(FindPosition(o.Account, o.Instrument)))            // if(+1) + &&(+1)
+                return;
+            string accName = o.Account.Name;
+            bool slotEvicted = _pendingFollowerBeSlots.TryRemove(accName, out _);
+            _beReplaceAttempts.TryRemove(accName, out _);
+            _filledBeTargetCount.TryRemove(accName, out _);
             AbortDrainOnFill(accName);
-            if (slotEvicted) // DW-B79-04: only log if slot was present
+            if (slotEvicted)                                                            // (+1)
                 LogBeSlotEviction(accName, o.OrderState == OrderState.Rejected);
         }
 
@@ -3509,26 +3528,6 @@ namespace PropTraderTools
                 return -1;
             if (suffix == excludeSuffix) return -1;
             return int.TryParse(suffix, out int idx) && idx >= 1 ? idx : -1;
-        }
-
-        // BWAVE-REFACTOR-LaneB-T5: extracted from CaptureOtherLegTargetPrices for-i body.
-        // Absorbs: s==excludeSuffix continue; PTT preferred if; ATM fallback else if.
-        // private (non-static): calls IsTargetOrderLive which is private static -- kept non-static per ticket NT8 constraint.
-        // CCN<=4: base(1)+s==excludeSuffix(1)+PTT if(1)+ATM else if(1)=CCN<=4.
-        // JS-021: no lock (private, no shared state). JS-001: no throw. JS-002: void return.
-        private void UpdateLegTargetPrice(double[] prices, int i, Order o, string excludeSuffix)
-        {
-            string s = i.ToString();
-            if (s == excludeSuffix)
-                return;
-            if (IsTargetOrderLive(o) && o.Name == "PTT-TGT-Drag-" + s) // PTT preferred: always overwrites
-                prices[i - 1] = o.LimitPrice;
-            else if (
-                IsTargetOrderLive(o)
-                && o.Name == "Target" + s // ATM fallback: only fills zero slots
-                && prices[i - 1] == 0
-            )
-                prices[i - 1] = o.LimitPrice;
         }
 
         // CYC=2: base(1)+if(1)+if(1). Static. Pure predicate. No lock. No async.
@@ -6524,7 +6523,7 @@ namespace PropTraderTools
             bool followerIsFlat
         )
         {
-            return currentAction != lastAction && followerIsFlat;
+            return currentAction != lastAction && !followerIsFlat;
         }
 
         // B25 T1 -- DW-B25-01: ATM bracket stops use name format "12s Buy STP".
@@ -6636,14 +6635,14 @@ namespace PropTraderTools
         // NT8-007: arg11=(NinjaTrader.Cbi.CustomOrder)null. NT8-013: DateTime.MaxValue.
         // NT8-014: signal names start with "PTT-". NT8-006: no LINQ.
         // DW-B79-04 isRetry: prevents recursive retry loops.
-        // CountLeaderTargets: CYC=4. Returns the number of Working native target limit orders
+        // CountLeaderTargets: CYC=6. Returns the number of Working native target limit orders
         // (Target1..Target9, digit 1-9, no PTT- prefix) on the leader account for the given
         // instrument. Working-only (DW-B116: Accepted/Submitted removed -- transitional states
         // cause overcount). Capped at Math.Min(count,3) -- standard ATM max 3 targets.
         // Used by MoveStopToBreakEven to detect partial-target visibility on followers (DW-B79-07).
         // DW-B116 fix: removed PTT-QX-T* and PTT-BE-Target-* from isTarget predicate.
         // BWAVE-REFACTOR-LaneB-T3: extracted IsNativeLeaderTarget.
-        // CYC<=5: rule null(1) + leader null(2) + foreach(3) + o null continue(4) + IsNativeLeaderTarget(5).
+        // CYC<=6: rule null(1) + leader null(2) + foreach(3) + o null continue(4) + IsNativeLeaderTarget(5) + base(1).
         // JS-021: no lock. JS-001: no throw. JS-002: returns int (never negative). ASCII-only.
         private int CountLeaderTargets(Instrument instrument)
         {
