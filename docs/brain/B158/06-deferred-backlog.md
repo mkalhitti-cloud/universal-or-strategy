@@ -61,9 +61,9 @@ The following items were OPEN at end of B157 and were NOT addressed by B158 (exc
 
 | ID | Item | Priority | Target Block | Status |
 |----|------|----------|--------------|--------|
-| DW-B158-SIM-01 | B158 T1 SIM gate for DW-B156-01 leader-flat drain abort. Director to execute 5-step SIM scenario (documented in ticket-1-completion.md SIM Gate Documentation section). Setup: Sim101 leader + Sim103/Sim104 followers, ATM strategy. PASS criteria: Step 3 shows `[DRAIN-ABORT-LEADER-FLAT] leader=Sim101 instr=<instrument> aborted=N` (N>=1) AND Step 4 shows no ghost re-entry. If PASS: DW-B156-01 CLOSED, this item CLOSED. If FAIL (timing race): open DW-B158-DRAIN-RACE-01, escalate to Director. If INCONCLUSIVE: escalate to Director, DW-B156-01 remains OPEN. | P0 | Director (next SIM session) | OPEN -- PENDING DIRECTOR EXECUTION |
+| DW-B158-SIM-01 | B158 T1 SIM gate for DW-B156-01 leader-flat drain abort. EXECUTED 2026-09-15. OUTCOME: **FAIL**. `[DRAIN-ABORT-LEADER-FLAT]` absent from entire 1764-line output. Ghost re-entries confirmed on Sim102+Sim103 at same timestamp as PTT-BE-Stop-1/2/3 fills (CSV: 6:16:28 PM). Sim104 retained 3 contracts. DW-B156-01 remains OPEN. DW-B158-DRAIN-RACE-01 formally opened as DW-B159. Evidence: docs/output.md + docs/NinjaTrader Grid 2026-09-14 06-18 PM.csv | P0 | CLOSED -- FAIL outcome recorded | **FAIL -- DW-B159 OPENED** |
 | DW-B158-CYC6-STALE-01 | Stale CYC=6 comment at ~L1904 for TryEvictFollowerBeSlot. Pre-dates DW-B156-DEFER-1 decomposition (which produced the correct CYC=7 comment at L1926). Annotation-only cleanup with zero logic impact. Flagged by both B158 engineer and verifier. | P3 | Future annotation block | OPEN |
-| DW-B158-DRAIN-RACE-01 | **CONDITIONAL -- DO NOT OPEN UNLESS DW-B158-SIM-01 FAILS.** Leader-flat drain abort timing race: follower cancel-ack sequence completes before NT8 background thread processes leader fill event. _pendingDispatchDrains entry already removed by SubmitDrainedEntry before IsLeaderFlatDrainAbort fires. Architectural fix: leader-flat guard inside SubmitDrainedEntry (check whether any rule leader for the payload instrument is flat at the moment of submission). Requires new private helper and CYC analysis. Root cause hypothesis: pre-consume race in OnOrderUpdate fill event ordering. | P1 (conditional) | Future drain-path block | CONDITIONAL -- NOT YET OPENED |
+| DW-B158-DRAIN-RACE-01 | ~~CONDITIONAL~~ **NOW OPEN AS DW-B159.** DW-B158-SIM-01 FAIL confirmed timing race. Leader-flat drain abort fires too late -- followers' Entry orders reach Accepted state before PTT-BE-Stop-3 fills. Two-level root cause: (1) per-leg fill ordering: drain-abort checks flatness on each PTT-BE-Stop-N fill, leader not flat until Stop-N all filled, (2) PositionStateChanged race: TryEnqueueFollowerEntry fires on hasPos=True before drain-abort can intercept. Fix: _beStopDrainActive latch armed on BE-All, cleared when leader flat + all stops terminal. Gate TryEnqueueFollowerEntry on latch. See docs/brain/B159/00-intake.md. | P0 | B159 pipeline | **OPEN AS DW-B159** |
 
 ---
 
@@ -75,31 +75,28 @@ The following items were OPEN at end of B157 and were NOT addressed by B158 (exc
 | DW-B154-06 | TryTriggerBeRecovery post-deployment monitor | P2 | Post-deployment | OPEN |
 | DW-B155-01 | B155 [DRAIN-ABORT-FLAT] SIM gate pending | P2 | Post-deployment | OPEN |
 | DW-BUG-0911-A-01 | Mid-close race condition in OnOrderUpdate | P2 | Future drain-path block | OPEN |
-| DW-B156-01 | Leader-flat drain abort — implementation confirmed; SIM gate pending Director | P0 | Director (DW-B158-SIM-01) | IMPLEMENTATION_CONFIRMED / SIM_PENDING |
+| DW-B156-01 | Leader-flat drain abort -- SIM gate FAIL (DW-B158-SIM-01), drain-abort never fires, ghost re-entry reproduced | P0 | B159 pipeline | OPEN -- B159 REQUIRED |
 | DW-B157-COMMENT-01 | Stale comment at CopyEngine.cs:6517 | P3 | B158 T2 | **CLOSED** -- B158 T2 |
 | DW-B157-SIM-01 | SIM validation for IsReversalToFlatFollower post-fix | P1 | CLOSED 2026-09-14 | CLOSED -- SIM PASS |
-| DW-B158-SIM-01 | B158 T1 SIM gate for DW-B156-01 | P0 | Director (next SIM session) | OPEN -- PENDING DIRECTOR EXECUTION |
+| DW-B158-SIM-01 | B158 T1 SIM gate for DW-B156-01 | P0 | CLOSED (FAIL outcome) | **FAIL** -- DW-B159 opened |
 | DW-B158-CYC6-STALE-01 | Stale CYC=6 comment at ~L1904 for TryEvictFollowerBeSlot | P3 | Future annotation block | OPEN |
-| DW-B158-DRAIN-RACE-01 | Timing race defect card (conditional on SIM FAIL) | P1 (conditional) | Future drain-path block | CONDITIONAL -- NOT YET OPENED |
+| DW-B158-DRAIN-RACE-01 | Multi-leg PTT-BE-Stop fill timing race (ghost re-entry) | P0 | B159 pipeline | **OPEN AS DW-B159** |
+| DW-B159 | BE drain latch fix: _beStopDrainActive + TryEnqueueFollowerEntry gate | P0 | B159 pipeline | OPEN -- intake at docs/brain/B159/00-intake.md |
 
 ---
 
 ## Director Action Required
 
-**DW-B158-SIM-01 is the only blocking item for full DW-B156-01 closure.**
+**DW-B158-SIM-01 EXECUTED 2026-09-15. OUTCOME: FAIL.**
 
-To execute:
-1. Open NinjaTrader SIM environment.
-2. Configure: 1 leader (Sim101) + 2 followers (Sim103, Sim104). ATM strategy enabled. CopyEngine copy mode active.
-3. Run 5-step SIM scenario from ticket-1-completion.md (SIM Gate Documentation section).
-4. Check OutputTab1 for: `[DRAIN-ABORT-LEADER-FLAT] leader=Sim101 instr=<instrument> aborted=N`
-5. Confirm no ghost re-entry on Sim103/Sim104 after leader flat.
-6. Record outcome: PASS / FAIL (timing race) / INCONCLUSIVE.
-7. If PASS: mark DW-B156-01 CLOSED, DW-B158-SIM-01 CLOSED.
-8. If FAIL: create DW-B158-DRAIN-RACE-01 and prioritize architectural fix.
+- `[DRAIN-ABORT-LEADER-FLAT]` absent from entire 1764-line output.
+- Ghost re-entries confirmed on Sim102 + Sim103. Sim104 retained 3 contracts.
+- DW-B156-01 remains P0 OPEN.
+- DW-B158-DRAIN-RACE-01 formally opened as **DW-B159**.
+- B159 pipeline intake at: docs/brain/B159/00-intake.md
+- Spec card at: section-dw-b159 in 002-trade-copier-spec.html
 
-**CRITICAL**: Check for `[DRAIN-ABORT-LEADER-FLAT]` (Fix3 marker) NOT `[DRAIN-ABORT-FLAT]` (Fix1 marker).
-These are different fixes with different log markers. See ticket-1-completion.md CRITICAL MARKER DISTINCTION.
+**Next action:** Start B159 pipeline via ptt-orchestrator.
 
 ---
 
