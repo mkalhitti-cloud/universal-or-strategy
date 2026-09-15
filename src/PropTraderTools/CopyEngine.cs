@@ -6514,7 +6514,7 @@ namespace PropTraderTools
         }
 
         // B119: DW-B128 -- direction-change guard predicate.
-        // Returns true iff the current dispatch reverses the last direction AND the follower is flat.
+        // Returns true iff the current dispatch reverses the last direction AND the follower is NOT flat (open position + reversal = protection path).
         // CYC=2 (one && expression in a single return). JS-001: no throw. JS-021: no lock. ASCII-only.
         // internal static: directly callable from B119Tests.cs without reflection.
         internal static bool IsReversalToFlatFollower(
