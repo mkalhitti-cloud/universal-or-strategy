@@ -38,23 +38,49 @@ Ghost re-entry on followers during multi-leg PTT-BE-Stop fill sequence.
 
 ---
 
+## Two Failure Modes (updated 2026-09-15)
+
+### Failure Mode A -- Sim102/103 ghost re-entry (original diagnosis)
+- Drain-abort fires too late during multi-leg PTT-BE-Stop fill sequence
+- By the time PTT-BE-Stop-3 fills (leader flat), followers already have Entry:Accepted for next trade
+- `TryEnqueueFollowerEntry` fired on `hasPos=True` before drain-abort intercepted
+
+### Failure Mode B -- Sim104 orphaned ATM bracket (new observation 2026-09-15)
+- Evidence: Sim104 `followerOrders` at L1314 ends at `Entry:Filled` -- no Stop1/Target1 yet
+- TP4-SFB returned `fo=NULL` (bracket not yet registered, partial fill latency)
+- PTT-BE overlay created for Sim104 WITHOUT a bracket reference to replace
+- Original ATM stops (Stop1/Stop2/Stop3) remained working alongside the PTT-BE bracket
+- PTT-BE fills cancelled some PTT-BE legs; original stops held 3 contracts as orphaned open position
+- Manual flatten required to close the residual
+- NOTE: the "remaining open positions in regular bracket color" you observed ARE the original Stop1/Stop2/Stop3 orders that were never cancelled before the PTT-BE overlay was created
+
+---
+
 ## Fix Design
 
-### Primary fix -- BE drain latch
+### Fix A -- BE drain latch (addresses Failure Mode A)
 - New field: `private bool _beStopDrainActive` (or `Dictionary<string, bool>` keyed on instrument)
 - ARM: set on BE-All arm event (when PTT-BE bracket is created)
 - CLEAR: when leader `hasPos=False` confirmed AND all PTT-BE-Stop orders in terminal state
 - GATE: `TryEnqueueFollowerEntry` checks `!_beStopDrainActive` before queuing
 - Log markers: `[BE-DRAIN-LATCH-ARM]`, `[BE-DRAIN-LATCH-CLEAR]`, `[DRAIN-ABORT-LATCH-ACTIVE]`
 
+### Fix B -- fo=NULL BE overlay guard (addresses Failure Mode B)
+- In PTT-BE bracket creation path: when `fo=NULL` for a follower account:
+  - Option 1 (cancel-first): explicitly cancel all working Stop* orders for that follower before submitting PTT-BE bracket. Log: `[BE-NULL-BRACKET-CANCEL-ORIG] acc=X`
+  - Option 2 (defer): retry PTT-BE submission for that follower until `fo != NULL` (with timeout/max-retry). Log: `[BE-NULL-BRACKET-DEFER] acc=X attempt=N`
+  - Preferred: Option 1 (cancel-first) -- deterministic, no retry complexity
+- PTT architect to decide option in Ph1
+
 ### Safety net -- SubmitDrainedEntry leader-flat guard
 - Inside `SubmitDrainedEntry`: if rule leader for payload instrument is flat at submission time, abort
 - Log: `[DRAIN-ABORT-SUBMIT-FLAT] leader=X instr=Y`
-- Complementary to latch (catches race if latch clears before drain completes)
+- Complementary to Fix A (catches race if latch clears before drain completes)
 
 ### CYC constraints
 - All new helpers: CYC <= 8
 - Latch arm/clear logic: if CYC > 5, decompose into `ShouldArmBeStopDrain()` + `ShouldClearBeStopDrain()`
+- fo=NULL guard: if CYC > 5, decompose into `ShouldDeferBeOverlay()` + `CancelOriginalStopsForBe()`
 - ASCII-only, no lock(), PTT pipeline (all 7 phases mandatory)
 
 ---
