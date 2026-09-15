@@ -45,14 +45,22 @@ Ghost re-entry on followers during multi-leg PTT-BE-Stop fill sequence.
 - By the time PTT-BE-Stop-3 fills (leader flat), followers already have Entry:Accepted for next trade
 - `TryEnqueueFollowerEntry` fired on `hasPos=True` before drain-abort intercepted
 
-### Failure Mode B -- Sim104 orphaned ATM bracket (new observation 2026-09-15)
-- Evidence: Sim104 `followerOrders` at L1314 ends at `Entry:Filled` -- no Stop1/Target1 yet
-- TP4-SFB returned `fo=NULL` (bracket not yet registered, partial fill latency)
-- PTT-BE overlay created for Sim104 WITHOUT a bracket reference to replace
-- Original ATM stops (Stop1/Stop2/Stop3) remained working alongside the PTT-BE bracket
-- PTT-BE fills cancelled some PTT-BE legs; original stops held 3 contracts as orphaned open position
-- Manual flatten required to close the residual
-- NOTE: the "remaining open positions in regular bracket color" you observed ARE the original Stop1/Stop2/Stop3 orders that were never cancelled before the PTT-BE overlay was created
+### Failure Mode B -- Sim104 original stops survive at original stop price (refined 2026-09-15)
+- Visual observation confirmed: residual position brackets are ORIGINAL ATM color (Stop1/Stop2/Stop3), NOT PTT-BE color
+- This means residual contracts were protected at the ORIGINAL stop price (24t below entry), NOT at BE level
+- BE-All appeared to process Sim104 (`[BE-DIAG] Sim104 orders-for-instr=8` at L872) -- BE engine saw 8 orders
+- Sim104 Stop1/Stop2/Stop3 entered CancelPending -> CancelSubmitted (L875-938) as expected
+- BUT: ALL Sim104 PTT-BE orders were subsequently bulk-cancelled ([BE-DIAG-CANCEL] L1071-1166)
+  PTT-BE-Stop-1/2/3/4, PTT-BE-Target-3/4 all cancelled for Sim104
+- No [BE-DIAG-CANCEL] for Sim104 Stop1/Stop2/Stop3 (original stops) -- they are NOT logged by this tag
+- No confirmation that Sim104 Stop1/Stop2/Stop3 ever reached `Cancelled` state in output
+- Net result: Sim104's BE-All transition was silently rolled back
+  -- PTT-BE bracket cancelled before any fill
+  -- Original Stop1/Stop2/Stop3 may have survived the cancel race (still at original stop price)
+  -- 3 contracts held at full stop-loss exposure while leader/Sim102/Sim103 protected at BE
+- This is the worst possible failure: BE-All fires, appears to process Sim104, but silently provides no BE protection
+- Root cause hypothesis: Sim104 partial-fill bracket latency causes the BE engine order count to be inconsistent
+  at the point where NT8 processes the PTT-BE bracket submission, triggering a bulk cancel of the entire PTT-BE batch
 
 ---
 
@@ -65,12 +73,14 @@ Ghost re-entry on followers during multi-leg PTT-BE-Stop fill sequence.
 - GATE: `TryEnqueueFollowerEntry` checks `!_beStopDrainActive` before queuing
 - Log markers: `[BE-DRAIN-LATCH-ARM]`, `[BE-DRAIN-LATCH-CLEAR]`, `[DRAIN-ABORT-LATCH-ACTIVE]`
 
-### Fix B -- fo=NULL BE overlay guard (addresses Failure Mode B)
-- In PTT-BE bracket creation path: when `fo=NULL` for a follower account:
-  - Option 1 (cancel-first): explicitly cancel all working Stop* orders for that follower before submitting PTT-BE bracket. Log: `[BE-NULL-BRACKET-CANCEL-ORIG] acc=X`
-  - Option 2 (defer): retry PTT-BE submission for that follower until `fo != NULL` (with timeout/max-retry). Log: `[BE-NULL-BRACKET-DEFER] acc=X attempt=N`
-  - Preferred: Option 1 (cancel-first) -- deterministic, no retry complexity
-- PTT architect to decide option in Ph1
+### Fix B -- PTT-BE bulk-cancel rollback guard (addresses Failure Mode B)
+- After PTT-BE bracket submitted for a follower, monitor whether ALL PTT-BE orders for that follower get cancelled before any fill
+- Detection condition: follower PTT-BE order count reaches terminal state (all Cancelled) with zero fills
+- On detection: log `[BE-ROLLBACK-DETECTED] acc=X` + verify original Stop*/Target* order state
+- If original stops still working: log `[BE-ORIG-STOPS-STILL-ACTIVE] acc=X stop=Stop1 price=P` -- this is the dangerous state
+- Action: either (a) re-submit PTT-BE bracket for that follower, or (b) move original stops to BE price via Account.Change()
+- PTT architect to decide action in Ph1; note Account.Change() is AddOnBase-available but may be silent no-op on ATM-owned brackets
+- Also investigate why Sim104 PTT-BE bulk-cancels while Sim101/102/103 do not -- likely NT8 order-count validation inconsistency during partial-fill bracket lag
 
 ### Safety net -- SubmitDrainedEntry leader-flat guard
 - Inside `SubmitDrainedEntry`: if rule leader for payload instrument is flat at submission time, abort
@@ -80,8 +90,15 @@ Ghost re-entry on followers during multi-leg PTT-BE-Stop fill sequence.
 ### CYC constraints
 - All new helpers: CYC <= 8
 - Latch arm/clear logic: if CYC > 5, decompose into `ShouldArmBeStopDrain()` + `ShouldClearBeStopDrain()`
-- fo=NULL guard: if CYC > 5, decompose into `ShouldDeferBeOverlay()` + `CancelOriginalStopsForBe()`
+- Rollback detection logic: if CYC > 5, decompose into `DetectBeRollback()` + `HandleBeRollback()`
 - ASCII-only, no lock(), PTT pipeline (all 7 phases mandatory)
+
+### Log markers (all new)
+- `[BE-DRAIN-LATCH-ARM] leader=X instr=Y` -- Fix A: latch armed on BE-All
+- `[BE-DRAIN-LATCH-CLEAR] leader=X instr=Y` -- Fix A: latch cleared on leader flat + stops terminal
+- `[DRAIN-ABORT-LATCH-ACTIVE] acc=X instr=Y` -- Fix A: entry blocked by active latch
+- `[BE-ROLLBACK-DETECTED] acc=X` -- Fix B: all PTT-BE orders cancelled before any fill
+- `[BE-ORIG-STOPS-STILL-ACTIVE] acc=X stop=StopN price=P` -- Fix B: original stop confirmed still working
 
 ---
 
