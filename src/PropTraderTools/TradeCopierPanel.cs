@@ -199,6 +199,8 @@ namespace PropTraderTools
         private SelectionChangedEventHandler _accountComboSelectionChanged; // B30-B: named handler for leak-free Detach
         private TextBlock _statusText;
         private bool _copyEnabled;
+        private TextBox _beBufferBox;
+
         // Checkmark dropdown
         private ComboBox _followersDropDown;
         private readonly List<FollowerItem> _followerItems = new List<FollowerItem>();
@@ -241,9 +243,6 @@ namespace PropTraderTools
         private int _trimBuffer = 0; // HOTFIX-F5: default market (0 ticks), not limit (+1)
         private int _flattenBuffer = 0; // HOTFIX-F5: default market (0 ticks), not limit (+1)
         private int _beBuffer = 1;
-
-        // B12 T1 -- BE 3-state FSM (UI-thread-only; no volatile)
-        private BeState _beState = BeState.Idle;
 
         // B12 T1 -- Button refs for buffered section
         private Button _trimBtn2;
@@ -391,19 +390,6 @@ namespace PropTraderTools
             // Raw Account.Name is never modified. ?[0] guards null propagation when Account or Name
             // is null. Split("!")[0] without ?[0] is UNSAFE (NullReferenceException). CYC=1.
             public override string ToString() => Account?.Name?.Split('!')?[0] ?? "";
-        }
-
-        // B32 -- BE 2-state FSM enum. Connected state removed (DW-B32-04).
-        // Idle  -> click -> price check:
-        //   already at/past BE? -> MoveStopToBreakEven immediately -> stay Idle
-        //   in drawdown?        -> ArmPendingBe -> Armed (amber)
-        // Armed -> price crosses entry+buffer -> MoveStopToBreakEven once -> Idle
-        // Armed -> click again  -> DisarmPendingBe -> Idle (cancel)
-        // ATM trail owns stop after BE placement. PTT does not trail. (DW-B32-05)
-        internal enum BeState
-        {
-            Idle, // BE button shows "BE +N" -- inactive
-            Armed, // Watching price; fires once when entry+buffer crossed; amber border
         }
 
         // -- construction ---------------------------------------------------------
@@ -580,17 +566,9 @@ namespace PropTraderTools
                 TradeCopierAddOn.UnregisterClickTrader(_currentChart);
             _engine.StatusUpdate -= OnStatusUpdate;
             _engine.PositionStateChanged -= OnPositionStateChanged;
-            _engine.PendingBeFired -= OnPendingBeFiredDispatch;
-            _engine.PendingBeArmed -= OnPendingBeArmedDispatch; // HOTFIX-BEALL-SYNC-01
             _engine.GlobalBeBufferChanged -= OnGlobalBeBufferChanged; // HOTFIX-BEALL-BUFFER-SYNC-01
             _engine.GlobalQuickAllBufferChanged -= OnQuickAllBufferChanged; // HOTFIX-QUICKALL-SINGLETON-01
-            _engine.GlobalBeAllDisarmed -= OnGlobalBeAllDisarmed; // HOTFIX-BEALL-DISARM-SYNC-01
             UnsubscribeFollowerItems();
-            _engine.DisarmPendingBe(_leaderAccount);
-            // DW-C39-20: last-panel-close guard -- clear remaining global pending BE slots.
-            // TradeCopierAddOn.TryRemove ran before Detach(), so _panels is already empty if last panel.
-            if (TradeCopierAddOn.IsPanelsEmpty())
-                _engine.ClearAllPendingBeSlots();
             // B32: DisarmTrailBe removed -- PTT no longer runs trail after BE (DW-B32-05).
             _engine.CopyEnabledChanged -= OnCopyEnabledChanged;
             // B41: unsubscribe leader order/position update handlers (memory-leak prevention).
@@ -663,29 +641,6 @@ namespace PropTraderTools
             ApplyPositionButtons(hasPosition, hasEntries);
         }
 
-        // HOTFIX-F3: reset per-chart BE state when position goes flat. CCN=3.
-        private void ResetBeStateOnFlat(bool hasPosition)
-        {
-            if (!hasPosition && _beState != BeState.Idle)
-            {
-                _beState = BeState.Idle;
-                UpdateBeVisuals(BeState.Idle);
-                if (_leaderAccount != null)
-                    CopyEngine.Instance.DisarmPendingBe(_leaderAccount);
-            }
-        }
-
-        // HOTFIX-BEALL-FLAT-RESET: disarm BE ALL when position goes flat. CCN=3.
-        private void DisarmBeAllOnFlat(bool hasPosition)
-        {
-            if (!hasPosition && !CopyEngine.Instance.IsPendingSlotsEmpty())
-            {
-                if (_leaderAccount != null)
-                    CopyEngine.Instance.DisarmPendingBe(_leaderAccount);
-                CopyEngine.Instance.RaiseBeAllDisarmed();
-            }
-        }
-
         // HOTFIX-ORPHAN-STOP-CLEANUP: cancel orphan QX brackets when position goes flat. CCN=2.
         private void CancelOrphanBracketsOnFlat(bool hasPosition)
         {
@@ -693,14 +648,10 @@ namespace PropTraderTools
                 CopyEngine.Instance.CancelQxBrackets(_leaderAccount, _instrument);
         }
 
-        // UpdateButtonColors after extraction. CCN=5: base(1) + 4 unconditional calls = 1; the
-        // original ApplyButtonBackgrounds has 4 null-guard branches counted here as callee.
-        // Actual parent CYC = 1 (all calls unconditional). Conservative target = 5.
+        // UpdateButtonColors after extraction. CCN=3.
         private void UpdateButtonColors(bool hasPosition, bool hasEntries)
         {
             ApplyButtonBackgrounds(hasPosition, hasEntries);
-            ResetBeStateOnFlat(hasPosition);
-            DisarmBeAllOnFlat(hasPosition);
             CancelOrphanBracketsOnFlat(hasPosition);
         }
 
@@ -767,20 +718,29 @@ namespace PropTraderTools
         // BWAVE-CYC T1: dictionary approach replaces switch-over-5-cases (was CCN=7, now CCN=3).
         // Func<TradeCopierPanel, bool> reads license bool from the panel instance. Safe on UI thread.
         private static bool GetIsBeLicensed(TradeCopierPanel p) => p.IsBeLicensed;
+
         private static bool GetIsTrimLicensed(TradeCopierPanel p) => p.IsTrimLicensed;
+
         private static bool GetIsFlattenLicensed(TradeCopierPanel p) => p.IsFlattenLicensed;
+
         private static bool GetIsCancelLicensed(TradeCopierPanel p) => p.IsCancelLicensed;
+
         private static bool GetIsCopierLicensed(TradeCopierPanel p) => p.IsCopierLicensed;
 
-        private static readonly System.Collections.Generic.Dictionary<string, Func<TradeCopierPanel, bool>> _licenseMap =
-            new System.Collections.Generic.Dictionary<string, Func<TradeCopierPanel, bool>>
-            {
-                { "BE",     GetIsBeLicensed },
-                { "TRIM",   GetIsTrimLicensed },
-                { "FLAT",   GetIsFlattenLicensed },
-                { "CANCEL", GetIsCancelLicensed },
-                { "COPY",   GetIsCopierLicensed },
-            };
+        private static readonly System.Collections.Generic.Dictionary<
+            string,
+            Func<TradeCopierPanel, bool>
+        > _licenseMap = new System.Collections.Generic.Dictionary<
+            string,
+            Func<TradeCopierPanel, bool>
+        >
+        {
+            { "BE", GetIsBeLicensed },
+            { "TRIM", GetIsTrimLicensed },
+            { "FLAT", GetIsFlattenLicensed },
+            { "CANCEL", GetIsCancelLicensed },
+            { "COPY", GetIsCopierLicensed },
+        };
 
         private void ApplyModuleLicenses()
         {
@@ -792,74 +752,51 @@ namespace PropTraderTools
         }
 
         // -- private: deferred account population ---------------------------------
-        // OnLoaded after extraction. CCN=2.
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        // OnLoaded after extraction. CCN=7.
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             Loaded -= OnLoaded;
-            SubscribeEngineEvents();
+            _engine.PositionStateChanged += OnPositionStateChanged;
+            _engine.GlobalBeBufferChanged += OnGlobalBeBufferChanged;
+            _engine.GlobalQuickAllBufferChanged += OnQuickAllBufferChanged;
             PopulateFollowerItems();
             RestoreSavedFollowers();
             NotifyRiskChanged();
             NotifyAtrFractionChanged();
-            ApplyCopyState(_engine.IsEnabled);
-            BuildAllAccountsList();
-            RegisterAndInitializeModules();
-            ApplyModuleLicenses();
-            _engine.Subscribe();
-            WireLeaderOrderHandlers();
-            ApplyFeatureFlags(CopyEngine.Instance.Flags);
-        }
-
-        // SubscribeEngineEvents: wires all CopyEngine event handlers on load. CCN=1.
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private void SubscribeEngineEvents()
-        {
-            _engine.PositionStateChanged += OnPositionStateChanged;
-            _engine.PendingBeFired += OnPendingBeFiredDispatch;
-            _engine.PendingBeArmed += OnPendingBeArmedDispatch;
-            _engine.GlobalBeBufferChanged += OnGlobalBeBufferChanged;
-            _engine.GlobalQuickAllBufferChanged += OnQuickAllBufferChanged;
-            _engine.GlobalBeAllDisarmed += OnGlobalBeAllDisarmed;
             _engine.CopyEnabledChanged += OnCopyEnabledChanged;
-            CopyEngine.Instance.FeatureFlagsChanged += OnFeatureFlagsChanged;
-        }
+            ApplyCopyState(_engine.IsEnabled);
 
-        // BuildAllAccountsList: populates _allAccounts with leader + non-leader followers. CCN=3.
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private void BuildAllAccountsList()
-        {
+            // B33 T7 -- Build AllAccounts (leader + followers) for IPttHostContext.
             _allAccounts.Clear();
             if (_leaderAccount != null)
                 _allAccounts.Add(_leaderAccount);
             foreach (var item in _followerItems)
                 if (item.Account != null && item.Account != _leaderAccount)
                     _allAccounts.Add(item.Account);
-        }
 
-        // RegisterAndInitializeModules: clears _modules, adds 5 modules, initializes each. CCN=2.
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private void RegisterAndInitializeModules()
-        {
+            // B33 T7 -- Register and initialize all IPttModules.
             _modules.Clear();
-            AddModule(new PttBreakEven());
             AddModule(new PttTrim());
             AddModule(new PttFlatten());
             AddModule(new PttCancel());
             AddModule(new PttCopier(_engine));
             foreach (IPttModule m in _modules)
                 m.Initialize(this);
-        }
 
-        // WireLeaderOrderHandlers: wires order/position handlers if leader is non-null. CCN=2.
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private void WireLeaderOrderHandlers()
-        {
-            if (_leaderAccount == null)
-                return;
-            _leaderAccount.OrderUpdate += OnLeaderOrderUpdate;
-            _leaderAccount.PositionUpdate += OnLeaderPositionUpdate;
-            RefreshQuickDisplay(_leaderAccount, _instrument);
+            ApplyModuleLicenses();
+            _engine.Subscribe();
+
+            // B41: Site 3 -- initial display sync after panel wires up.
+            if (_leaderAccount != null)
+            {
+                _leaderAccount.OrderUpdate += OnLeaderOrderUpdate;
+                _leaderAccount.PositionUpdate += OnLeaderPositionUpdate;
+                RefreshQuickDisplay(_leaderAccount, _instrument);
+            }
+
+            // BGTM-1: Subscribe to feature-flag changes and apply current flags now.
+            CopyEngine.Instance.FeatureFlagsChanged += OnFeatureFlagsChanged;
+            ApplyFeatureFlags(CopyEngine.Instance.Flags);
         }
 
         // -- live P&L push from NT8 -----------------------------------------------
@@ -990,7 +927,10 @@ namespace PropTraderTools
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(2, 0, 0, 0),
             };
-            tightenLabel.SetResourceReference(TextBlock.ForegroundProperty, "NTBrushes.SubtleBrush");
+            tightenLabel.SetResourceReference(
+                TextBlock.ForegroundProperty,
+                "NTBrushes.SubtleBrush"
+            );
             tightenRow.Children.Add(_tightenBtn);
             tightenRow.Children.Add(_tightenTicksBox);
             tightenRow.Children.Add(tightenLabel);
@@ -1000,8 +940,6 @@ namespace PropTraderTools
 
         // B9 T2: Appends [Buy] [Sell] toggle pair and [Arm] button row to root StackPanel.
         // CYC=1 (straight-line widget construction, no branches).
-        // C-06: CCN=1. Parent after extraction: build row, call 4 helpers, set visibility.
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
         private void BuildClickTraderRow(StackPanel root)
         {
             _clickTraderRow = new StackPanel
@@ -1009,55 +947,28 @@ namespace PropTraderTools
                 Orientation = Orientation.Horizontal,
                 Margin = new Thickness(0, 4, 0, 0),
             };
-            _buyToggle = BuildBuyToggleButton();
-            _sellToggle = BuildSellToggleButton();
-            _armBtn = BuildArmButton();
-            // B41: Cancel button relocated from BuildBufferedButtonsRow Row 3 to Click Trader row.
-            _cancelBtn2 = BuildClickTraderCancelButton();
-            _clickTraderRow.Children.Add(_buyToggle);
-            _clickTraderRow.Children.Add(_sellToggle);
-            _clickTraderRow.Children.Add(_armBtn);
-            _clickTraderRow.Children.Add(_cancelBtn2);
-            root.Children.Add(_clickTraderRow);
-            _clickTraderRow.Visibility = Visibility.Collapsed; // B47 T5-B: HIDE NOT DELETE (handlers preserved)
-        }
 
-        // C-06 helper: CCN=1. Builds Buy ToggleButton (default checked, W=45, H=22).
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private ToggleButton BuildBuyToggleButton()
-        {
-            var btn = new ToggleButton
+            _buyToggle = new ToggleButton
             {
                 Content = "Buy",
                 IsChecked = true,
                 Width = 45,
                 Height = 22,
             };
-            btn.SetResourceReference(Control.StyleProperty, "NTToggleButtonStyle");
-            btn.Click += OnBuyToggleClick;
-            return btn;
-        }
+            _buyToggle.SetResourceReference(Control.StyleProperty, "NTToggleButtonStyle");
 
-        // C-06 helper: CCN=1. Builds Sell ToggleButton (W=45, H=22).
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private ToggleButton BuildSellToggleButton()
-        {
-            var btn = new ToggleButton
+            _sellToggle = new ToggleButton
             {
                 Content = "Sell",
                 Width = 45,
                 Height = 22,
             };
-            btn.SetResourceReference(Control.StyleProperty, "NTToggleButtonStyle");
-            btn.Click += OnSellToggleClick;
-            return btn;
-        }
+            _sellToggle.SetResourceReference(Control.StyleProperty, "NTToggleButtonStyle");
 
-        // C-06 helper: CCN=1. Builds Arm Button (W=48, H=22, dark background).
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private Button BuildArmButton()
-        {
-            var btn = new Button
+            _buyToggle.Click += OnBuyToggleClick;
+            _sellToggle.Click += OnSellToggleClick;
+
+            _armBtn = new Button
             {
                 Content = "Arm",
                 Width = 48,
@@ -1065,16 +976,11 @@ namespace PropTraderTools
                 Margin = new Thickness(6, 0, 0, 0),
                 Background = MakeBrush(28, 33, 51),
             };
-            btn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            btn.Click += OnArmClick;
-            return btn;
-        }
+            _armBtn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            _armBtn.Click += OnArmClick;
 
-        // C-06 helper: CCN=1. Builds Cancel Button with BrushDanger border styling.
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private Button BuildClickTraderCancelButton()
-        {
-            var btn = new Button
+            // B41: Cancel button relocated from BuildBufferedButtonsRow Row 3 to Click Trader row.
+            _cancelBtn2 = new Button
             {
                 Content = "Cancel",
                 Width = 48,
@@ -1083,42 +989,19 @@ namespace PropTraderTools
                 BorderBrush = BrushDanger,
                 BorderThickness = new Thickness(2),
             };
-            btn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            btn.Click += OnCancel2;
-            return btn;
-        }
+            _cancelBtn2.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            _cancelBtn2.Click += OnCancel2;
 
-        // B12 T1 -- OnPendingBeFiredDispatch: marshals PendingBeFired from NT8 account bg thread to UI.
-        // B12 T1: replaced FlashBeFired call with OnBeConnected call.
-        // CYC=1: straight-line Dispatcher.InvokeAsync, no branches.
-        // Called on NT8 account background thread -- never touch UI directly here.
-        private void OnPendingBeFiredDispatch(string instr, string accountName)
-        {
-            Dispatcher.InvokeAsync(() =>
-            {
-                OnBeConnected(instr, accountName);
-                // DW-B72-02: auto-reset BE ALL when last armed slot fires.
-                // Truth source: IsPendingSlotsEmpty() -- no local shadow state.
-                if (CopyEngine.Instance.IsPendingSlotsEmpty())
-                    UpdateBeAllVisuals(BeState.Idle);
-            });
-        }
-
-        // HOTFIX-BEALL-SYNC-01: marshals PendingBeArmed from NT8 bg thread to UI.
-        // Fires on ALL panels when any account slot is armed -- keeps BE ALL visual synced.
-        // CYC=1: straight-line Dispatcher.InvokeAsync, no branches.
-        private void OnPendingBeArmedDispatch(string instr, string accountName)
-        {
-            Dispatcher.InvokeAsync(() =>
-            {
-                if (!CopyEngine.Instance.IsPendingSlotsEmpty())
-                    UpdateBeAllVisuals(BeState.Armed);
-            });
+            _clickTraderRow.Children.Add(_buyToggle);
+            _clickTraderRow.Children.Add(_sellToggle);
+            _clickTraderRow.Children.Add(_armBtn);
+            _clickTraderRow.Children.Add(_cancelBtn2);
+            root.Children.Add(_clickTraderRow);
+            _clickTraderRow.Visibility = Visibility.Collapsed; // B47 T5-B: HIDE NOT DELETE (handlers preserved)
         }
 
         // HOTFIX-BUFLABEL-02: wrap in panel-local Dispatcher.InvokeAsync.
         // Application.Current.Dispatcher (where event fires) != chart-window Dispatcher (where _globalBeBtn2 was created).
-        // Reference pattern: OnGlobalBeAllDisarmed uses Dispatcher.InvokeAsync (this panel's own Dispatcher).
         private void OnGlobalBeBufferChanged(int newBuffer)
         {
             Dispatcher.InvokeAsync(() =>
@@ -1137,32 +1020,6 @@ namespace PropTraderTools
                 if (_quickAllBtn != null)
                     _quickAllBtn.Content = FormatQuickAllBuffer("Quick ALL", newT1);
             });
-        }
-
-        // HOTFIX-BEALL-DISARM-SYNC-01: all panels reset BE ALL visual when any panel disarms.
-        // CYC=1: straight-line Dispatcher.InvokeAsync, no branches.
-        private void OnGlobalBeAllDisarmed()
-        {
-            Dispatcher.InvokeAsync(() => UpdateBeAllVisuals(BeState.Idle));
-        }
-
-        // B40 -- UpdateBeAllVisuals: purple=Idle, amber=Armed. CYC=2.
-        // UI-thread only -- no Dispatcher wrap needed (all callers are on UI thread).
-        // BrushPurple and BrushCaution are pre-defined Panel brush fields.
-        private void UpdateBeAllVisuals(BeState state)
-        {
-            if (_globalBeBtn2 == null)
-                return;
-            if (state == BeState.Idle)
-            {
-                _globalBeBtn2.BorderBrush = BrushTeal;
-                _globalBeBtn2.Foreground = BrushTeal;
-                _globalBeBtn2.Background = System.Windows.Media.Brushes.Transparent;
-            }
-            else
-            {
-                _globalBeBtn2.Background = BrushActive;
-            }
         }
 
         // B47 T5-B: BuildBufferedButtonsRow -- restructured.
@@ -1197,76 +1054,112 @@ namespace PropTraderTools
                 Panel Target
             )[]
             {
-                (FormatBuffer("Trim",    _trimBuffer),                                        BrushInactive, false, OnTrimUp,     OnTrimDown,     OnTrimClick,     b => _trimBtn2     = b, row1),
-                (FormatBuffer("Flatten", _flattenBuffer),                                     BrushInactive, false, OnFlattenUp,  OnFlattenDown,  OnFlattenClick,  b => _flattenBtn2  = b, row1),
-                (FormatBuffer("BE",      _beBuffer),                                          BrushTeal,     true,  OnBeUp,       OnBeDown,       OnBeClick,       b => _beBtn2       = b, _beRowPanel),
-                (FormatGlobalBeBuffer("BE ALL", CopyEngine.Instance.GlobalBe.GlobalBeBuffer), BrushTeal,     true,  OnGlobalBeUp, OnGlobalBeDown, OnGlobalBeClick, b => _globalBeBtn2 = b, _beRowPanel),
-                (FormatBuffer("Quick",   _quickT1),                                           BrushTeal,     true,  OnQuickUp,    OnQuickDown,    OnQuickClick,    b => _quickBtn     = b, _quickRowPanel),
-                (FormatBuffer("Quick ALL", CopyEngine.Instance.GlobalQuickAllT1),             BrushTeal,     true,  OnQuickAllUp, OnQuickAllDown, OnQuickAllClick, b => _quickAllBtn  = b, _quickRowPanel),
+                (
+                    FormatBuffer("Trim", _trimBuffer),
+                    BrushInactive,
+                    false,
+                    OnTrimUp,
+                    OnTrimDown,
+                    OnTrimClick,
+                    b => _trimBtn2 = b,
+                    row1
+                ),
+                (
+                    FormatBuffer("Flatten", _flattenBuffer),
+                    BrushInactive,
+                    false,
+                    OnFlattenUp,
+                    OnFlattenDown,
+                    OnFlattenClick,
+                    b => _flattenBtn2 = b,
+                    row1
+                ),
+                (
+                    FormatBuffer("BE", _beBuffer),
+                    BrushInactive,
+                    true,
+                    OnBeUp,
+                    OnBeDown,
+                    OnBeClick,
+                    b => _beBtn2 = b,
+                    _beRowPanel
+                ),
+                (
+                    FormatGlobalBeBuffer("BE ALL", CopyEngine.Instance.GlobalBe.GlobalBeBuffer),
+                    BrushInactive,
+                    true,
+                    OnGlobalBeUp,
+                    OnGlobalBeDown,
+                    OnGlobalBeClick,
+                    b => _globalBeBtn2 = b,
+                    _beRowPanel
+                ),
+                (
+                    FormatBuffer("Quick", _quickT1),
+                    BrushInactive,
+                    true,
+                    OnQuickUp,
+                    OnQuickDown,
+                    OnQuickClick,
+                    b => _quickBtn = b,
+                    _quickRowPanel
+                ),
+                (
+                    FormatBuffer("Quick ALL", CopyEngine.Instance.GlobalQuickAllT1),
+                    BrushInactive,
+                    true,
+                    OnQuickAllUp,
+                    OnQuickAllDown,
+                    OnQuickAllClick,
+                    b => _quickAllBtn = b,
+                    _quickRowPanel
+                ),
             };
             foreach (var s in specs)
-                BuildSingleButtonCluster(s.Content, s.Teal, s.Up, s.Dn, s.Main, s.Store, s.Target);
+            {
+                var cluster = new DockPanel { LastChildFill = true };
+                var arrows = new Grid();
+                arrows.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
+                arrows.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
+                var up = new System.Windows.Controls.Primitives.RepeatButton
+                {
+                    Content = "^",
+                    Width = 18,
+                    Height = 12,
+                };
+                var dn = new System.Windows.Controls.Primitives.RepeatButton
+                {
+                    Content = "v",
+                    Width = 18,
+                    Height = 12,
+                };
+                up.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+                dn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+                up.Click += s.Up;
+                dn.Click += s.Dn;
+                Grid.SetRow(up, 0);
+                Grid.SetRow(dn, 1);
+                arrows.Children.Add(up);
+                arrows.Children.Add(dn);
+                DockPanel.SetDock(arrows, Dock.Right);
+                var btn = new Button { Content = s.Content };
+                if (s.Teal)
+                {
+                    btn.BorderBrush = BrushTeal;
+                    btn.Foreground = BrushTeal;
+                    btn.BorderThickness = new Thickness(2);
+                }
+                btn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+                btn.Background = s.Bg; // AFTER style -- explicit brush wins (DW-LaneA-06 fix)
+                btn.Click += s.Main;
+                cluster.Children.Add(arrows);
+                cluster.Children.Add(btn);
+                s.Store(btn);
+                s.Target.Children.Add(cluster);
+            }
 
             root.Children.Add(row1);
-            BuildQuickT3HiddenRow(root);
-        }
 
-        // CYC: 3 (1 foreach-entry + 1 isTeal conditional + 1 event-wire sequential).
-        // JS-021: no lock(). JS-033: synchronous void. JS-001: no throw. JS-002: no return null.
-        private void BuildSingleButtonCluster(
-            string content,
-            bool isTeal,
-            RoutedEventHandler upHandler,
-            RoutedEventHandler downHandler,
-            RoutedEventHandler mainHandler,
-            System.Action<Button> storeAction,
-            Panel targetPanel)
-        {
-            var cluster = new DockPanel { LastChildFill = true };
-            var arrows = new Grid();
-            arrows.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
-            arrows.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
-            var up = new System.Windows.Controls.Primitives.RepeatButton
-            {
-                Content = "^",
-                Width = 18,
-                Height = 12,
-            };
-            var dn = new System.Windows.Controls.Primitives.RepeatButton
-            {
-                Content = "v",
-                Width = 18,
-                Height = 12,
-            };
-            up.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            dn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            up.Click += upHandler;
-            dn.Click += downHandler;
-            Grid.SetRow(up, 0);
-            Grid.SetRow(dn, 1);
-            arrows.Children.Add(up);
-            arrows.Children.Add(dn);
-            DockPanel.SetDock(arrows, Dock.Right);
-            var btn = new Button { Content = content };
-            btn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            if (isTeal)
-            {
-                btn.BorderBrush = BrushTeal;
-                btn.Foreground = System.Windows.Media.Brushes.White; // DW-BWAVE-UI-01: white text on teal bg (was BrushTeal -- invisible)
-                btn.BorderThickness = new Thickness(2);
-            }
-            btn.Background = isTeal ? BrushTeal : BrushInactive; // AFTER style -- explicit brush wins (DW-LaneA-06 fix)
-            btn.Click += mainHandler;
-            cluster.Children.Add(arrows);
-            cluster.Children.Add(btn);
-            storeAction(btn);
-            targetPanel.Children.Add(cluster);
-        }
-
-        // CYC: 1 (sequential, no branching).
-        // JS-021: no lock(). JS-033: synchronous void. JS-001: no throw. JS-002: no return null.
-        private void BuildQuickT3HiddenRow(StackPanel root)
-        {
             _quickT3Row = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -1294,11 +1187,10 @@ namespace PropTraderTools
             {
                 Content = "Quick2t",
                 BorderBrush = BrushTeal,
+                Foreground = BrushTeal,
                 BorderThickness = new Thickness(2),
             };
             _instr2tBtn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            _instr2tBtn.Foreground = System.Windows.Media.Brushes.White; // DW-BWAVE-UI-01: white text on teal bg
-            _instr2tBtn.Background = BrushTeal; // AFTER style -- explicit brush wins
             _instr2tBtn.Click += OnInstr2tClick;
             _instrRowPanel.Children.Add(_instr2tBtn);
 
@@ -1306,11 +1198,10 @@ namespace PropTraderTools
             {
                 Content = "QAll2t",
                 BorderBrush = BrushTeal,
+                Foreground = BrushTeal,
                 BorderThickness = new Thickness(2),
             };
             _instrQAll2tBtn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            _instrQAll2tBtn.Foreground = System.Windows.Media.Brushes.White; // DW-BWAVE-UI-01: white text on teal bg
-            _instrQAll2tBtn.Background = BrushTeal; // AFTER style -- explicit brush wins
             _instrQAll2tBtn.Click += OnInstrQAll2tClick;
             _instrRowPanel.Children.Add(_instrQAll2tBtn);
         }
@@ -1354,34 +1245,13 @@ namespace PropTraderTools
             return name + " " + ticks; // int.ToString() of negative auto-includes "-"
         }
 
-        // B40: OnGlobalBeClick -- armed/wait FSM for BE ALL. CYC=4.
-        // Idle->Armed: arm all pending; if at least one slot entered Armed state, turn amber.
-        // Armed->Idle (manual disarm): loop Account.All and DisarmPendingBe for each; turn purple.
-        // JS-021: no lock(). JS-033: synchronous void event handler -- not async void.
-        // DW-B72-02: _globalBeState removed. IsPendingSlotsEmpty() is the truth source.
-        // Idle (slots empty)  -> arm all, then show Armed visual if slots were taken.
-        // Armed (slots exist) -> disarm all, show Idle visual.
-        // Both panels read the same CopyEngine singleton so state is automatically shared.
+        // B180 DW-B180-BE-SWAP-ALL: OnGlobalBeClick -- immediate BE swap all accounts.
+        // Replaces IsPendingSlotsEmpty + armed-state FSM. Click = fire = done.
+        // CYC=1 (straight-line -- no branch; PttBeSwapAll.Execute has its own flag gate).
+        // JS-021: no lock. JS-033: synchronous void. JS-001: no throw. ASCII-only.
         private void OnGlobalBeClick(object sender, RoutedEventArgs e)
         {
-            if (CopyEngine.Instance.IsPendingSlotsEmpty())
-            {
-                // Currently Idle -- arm
-                NinjaTrader.Code.Output.Process(
-                    "[BE-ALL] button: arm buf=" + CopyEngine.Instance.GlobalBe.GlobalBeBuffer,
-                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                );
-                CopyEngine.Instance.GlobalBe.Execute(CopyEngine.Instance.GlobalBe.GlobalBeBuffer);
-            }
-            else
-            {
-                // Already armed -- guard: log and return (no disarm, no re-arm)
-                NinjaTrader.Code.Output.Process(
-                    "[PTT-BE-ALL] already armed, ignoring double-press",
-                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                );
-                return;
-            }
+            PttBeSwapAll.Execute(CopyEngine.Instance.GlobalBe.GlobalBeBuffer);
         }
 
         // B39: OnGlobalBeUp -- increment shared buffer; label refresh handled by OnGlobalBeBufferChanged broadcast.
@@ -1424,7 +1294,8 @@ namespace PropTraderTools
                 return; // (1)
             _leaderAccount = _leaderAccount ?? TryResolveLeaderAccount(); // (2)
             NinjaTrader.Code.Output.Process(
-                logTag + " button: "
+                logTag
+                    + " button: "
                     + (_leaderAccount?.Name ?? "null")
                     + " "
                     + (_instrument?.FullName ?? "null"),
@@ -1479,102 +1350,18 @@ namespace PropTraderTools
             // B32: Connected state removed -- buffer change no longer triggers live reprice (DW-B32-04).
         }
 
-        // B33 T7 -- OnBeClick: 2-state FSM. Idle-immediate path dispatches to PttBreakEven module.
-        // Idle: price-at-BE -> DispatchModule("BE") (stays Idle). In drawdown -> ArmPendingBe (Armed).
-        // Armed: cancel arm -> Idle.
-        // C-08: extracted ExecuteBeIdle + ExecuteBeArmed. Parent CCN=4.
-        // B30-B: leader resolved late via _leaderAccount ?? TryResolveLeaderAccount() (DW-B30-03).
-        // JS-021: no lock(). JS-033: synchronous void event handler -- not async void.
+        // B180 DW-B180-BE-SWAP-ALL: OnBeClick -- immediate BE bracket swap.
+        // Replaces Idle/Armed FSM. Click = fire = done. No armed state.
+        // CYC=3: (1) instrument null guard, (2) leader null guard, (3) PttBeSwapOne.Execute.
+        // JS-021: no lock. JS-033: synchronous void. JS-001: no throw. JS-002: no return null. ASCII-only.
         private void OnBeClick(object sender, RoutedEventArgs e)
         {
             if (_instrument == null)
                 return;
-            _leaderAccount = _leaderAccount ?? TryResolveLeaderAccount(); // B30-B
+            _leaderAccount = _leaderAccount ?? TryResolveLeaderAccount();
             if (_leaderAccount == null)
                 return;
-            if (_beState == BeState.Idle)
-                ExecuteBeIdle(_leaderAccount, _instrument);
-            else if (_beState == BeState.Armed)
-                ExecuteBeArmed(_leaderAccount);
-        }
-
-        // C-08: ExecuteBeIdle -- handles BeState.Idle arm of OnBeClick.
-        // DW-B32-04: if price already past BE target, fire immediately (stays Idle).
-        // Otherwise arm and wait for price to cross.
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private void ExecuteBeIdle(Account leader, NinjaTrader.Cbi.Instrument instrument)
-        {
-            if (IsPriceAlreadyAtBe(leader, instrument, _beBuffer))
-            {
-                NinjaTrader.Code.Output.Process(
-                    "[BE] button: immediate fire "
-                        + leader.Name
-                        + " buf="
-                        + _beBuffer,
-                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                );
-                DispatchModule("BE");
-                // stay Idle -- ATM owns stop from here
-            }
-            else
-            {
-                NinjaTrader.Code.Output.Process(
-                    "[BE] button: arming " + leader.Name + " buf=" + _beBuffer,
-                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                );
-                _engine.ArmPendingBe(instrument, leader, _beBuffer);
-                _beState = BeState.Armed;
-                UpdateBeVisuals(BeState.Armed);
-            }
-        }
-
-        // C-08: ExecuteBeArmed -- handles BeState.Armed disarm of OnBeClick.
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private void ExecuteBeArmed(Account leader)
-        {
-            NinjaTrader.Code.Output.Process(
-                "[BE] button: disarming " + leader.Name,
-                NinjaTrader.NinjaScript.PrintTo.OutputTab1
-            );
-            _engine.DisarmPendingBe(leader);
-            _beState = BeState.Idle;
-            UpdateBeVisuals(BeState.Idle);
-        }
-
-        // BWAVE-CYC T4: extracted helpers for IsPriceAlreadyAtBe.
-
-        // ComputeBeTargetPrice: computes break-even target price. CCN=2.
-        private static double ComputeBeTargetPrice(
-            double avgPrice,
-            bool isLong,
-            int bufferTicks,
-            double tickSize
-        )
-        {
-            return avgPrice + (isLong ? 1.0 : -1.0) * bufferTicks * tickSize;
-        }
-
-        // IsPriceAtOrPastTarget: compares ref price vs target for long/short. CCN=2.
-        private static bool IsPriceAtOrPastTarget(bool isLong, double refPx, double targetPx)
-        {
-            return isLong ? (refPx >= targetPx) : (refPx <= targetPx);
-        }
-
-        // IsPriceAlreadyAtBe after extraction. CCN=5.
-        private bool IsPriceAlreadyAtBe(Account leader, Instrument instrument, int bufferTicks)
-        {
-            var pos = _engine.FindPositionPublic(leader, instrument);
-            if (pos == null)
-                return false;
-            double tickSize = instrument?.MasterInstrument?.TickSize ?? 0.0;
-            if (tickSize <= 0.0)
-                return false;
-            bool isLong = pos.MarketPosition == NinjaTrader.Cbi.MarketPosition.Long;
-            double refPx = isLong ? GetBid() : GetAsk();
-            if (refPx <= 0.0)
-                return false;
-            double target = ComputeBeTargetPrice(pos.AveragePrice, isLong, bufferTicks, tickSize);
-            return IsPriceAtOrPastTarget(isLong, refPx, target);
+            PttBeSwapOne.Execute(_leaderAccount, _instrument, _beBuffer);
         }
 
         // B12 T1 -- UpdateBeLabel: sets _beBtn2 label. CYC=1.
@@ -1582,42 +1369,6 @@ namespace PropTraderTools
         {
             if (_beBtn2 != null)
                 _beBtn2.Content = FormatBuffer("BE", _beBuffer);
-        }
-
-        // B32 -- UpdateBeVisuals: 2-state only. Connected removed (DW-B32-04). CYC=2.
-        // FIX-A: Idle case now also resets Background -- previously only Content was reset,
-        // leaving the amber BrushCaution background stuck on the button after disarm.
-        private void UpdateBeVisuals(BeState state)
-        {
-            if (_beBtn2 == null)
-                return;
-            switch (state)
-            {
-                case BeState.Idle: // (1)
-                    _beBtn2.Content = FormatBuffer("BE", _beBuffer);
-                    _beBtn2.Background = BrushInactive; // FIX-A: clear amber
-                    break;
-                case BeState.Armed: // (2)
-                    _beBtn2.Content = "BE Armed";
-                    _beBtn2.Background = BrushCaution;
-                    break;
-            }
-        }
-
-        // B32 -- OnBeConnected: fires when ArmPendingBe price trigger crossed (DW-B32-04/05).
-        // BreakEven() already called inside OnPendingBeAccountUpdate -- no duplicate call here.
-        // No ArmTrailBe -- ATM owns the stop trail after BE placement. (DW-B32-05)
-        // Reset FSM to Idle: one-shot complete. Button returns to grey/green per position state.
-        // CYC=2: account name guard(1), Dispatcher marshal(2).
-        private void OnBeConnected(string instr, string accountName)
-        {
-            if (_leaderAccount == null || _leaderAccount.Name != accountName)
-                return; // (1)
-            Dispatcher.InvokeAsync(() => // (2)
-            {
-                _beState = BeState.Idle;
-                UpdateBeVisuals(BeState.Idle);
-            });
         }
 
         // B19 T1 -- GetAsk: returns current ask price from _instrument.MarketData.Ask.Price.
@@ -1737,9 +1488,6 @@ namespace PropTraderTools
 
         // B9 T3: Appends "Mode: [Signal] [Mirror]" radio button row to root StackPanel.
         // CYC=1 (straight-line widget construction, no branches).
-        // C-05: extracted 4 helpers -- BuildSignalRadioButton, BuildMirrorRadioButton,
-        // BuildCloneRadioButton, BuildCopyToggleButton. Parent CCN=1.
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
         private void BuildModeRow(StackPanel root)
         {
             var row = new StackPanel
@@ -1753,66 +1501,24 @@ namespace PropTraderTools
                 Width = 42,
                 VerticalAlignment = VerticalAlignment.Center,
             };
-            _signalModeBtn = BuildSignalRadioButton();
-            _mirrorModeBtn = BuildMirrorRadioButton();
-            _cloneModeBtn = BuildCloneRadioButton();
-            _copyToggleBtn2 = BuildCopyToggleButton();
-            row.Children.Add(lbl);
-            row.Children.Add(_signalModeBtn);
-            row.Children.Add(_mirrorModeBtn);
-            row.Children.Add(_cloneModeBtn);
-            row.Children.Add(_copyToggleBtn2);
-            root.Children.Add(row);
-        }
-
-        // C-05 helper: CCN=1. Builds Signal RadioButton (default checked).
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private RadioButton BuildSignalRadioButton()
-        {
-            var rb = new RadioButton
+            _signalModeBtn = new RadioButton
             {
                 Content = "Signal",
                 IsChecked = true,
                 Margin = new Thickness(4, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center,
             };
-            rb.Click += OnSignalModeClick;
-            return rb;
-        }
-
-        // C-05 helper: CCN=1. Builds Mirror RadioButton.
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private RadioButton BuildMirrorRadioButton()
-        {
-            var rb = new RadioButton
+            _mirrorModeBtn = new RadioButton
             {
                 Content = "Mirror",
                 Margin = new Thickness(8, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center,
             };
-            rb.Click += OnMirrorModeClick;
-            return rb;
-        }
+            _signalModeBtn.Click += OnSignalModeClick;
+            _mirrorModeBtn.Click += OnMirrorModeClick;
 
-        // C-05 helper: CCN=1. Builds Clone RadioButton (B50 style).
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private RadioButton BuildCloneRadioButton()
-        {
-            var rb = new RadioButton
-            {
-                Content = "Clone",
-                Margin = new Thickness(8, 0, 0, 0),
-                VerticalAlignment = VerticalAlignment.Center,
-            };
-            rb.Click += OnCloneModeClick;
-            return rb;
-        }
-
-        // C-05 helper: CCN=1. Builds COPY OFF toggle Button (B41 -- inactive border styling).
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private Button BuildCopyToggleButton()
-        {
-            var btn = new Button
+            // B41: COPY ON/OFF ToggleButton relocated from BuildBufferedButtonsRow Row 3 to Mode row.
+            _copyToggleBtn2 = new Button
             {
                 Content = "\u25CF COPY OFF",
                 Margin = new Thickness(8, 0, 0, 0),
@@ -1820,9 +1526,24 @@ namespace PropTraderTools
                 BorderThickness = new Thickness(2),
                 VerticalAlignment = VerticalAlignment.Center,
             };
-            btn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            btn.Click += OnCopyToggle;
-            return btn;
+            _copyToggleBtn2.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            _copyToggleBtn2.Click += OnCopyToggle;
+
+            // B50: Clone radio button
+            _cloneModeBtn = new RadioButton
+            {
+                Content = "Clone",
+                Margin = new Thickness(8, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            _cloneModeBtn.Click += OnCloneModeClick;
+
+            row.Children.Add(lbl);
+            row.Children.Add(_signalModeBtn);
+            row.Children.Add(_mirrorModeBtn);
+            row.Children.Add(_cloneModeBtn);
+            row.Children.Add(_copyToggleBtn2);
+            root.Children.Add(row);
         }
 
         // B9 T3: CYC=1 -- straight-line engine call
@@ -1848,8 +1569,6 @@ namespace PropTraderTools
         private void OnCloneModeClick(object sender, RoutedEventArgs e)
         {
             CopyEngine.Instance.SetCopyMode(CopyMode.Clone);
-            // PTT-REPAIRS-04 BUG-F: key by this panel's instrument so each chart keeps its own ATM.
-            string instrKey = _instrument?.FullName ?? string.Empty;
             // Capture live AtmStrategy object from ChartTrader -- must be done on UI thread (we are).
             NinjaTrader.NinjaScript.AtmStrategy atmObj = null;
             if (_currentChart != null) // branch (1)
@@ -1857,9 +1576,9 @@ namespace PropTraderTools
                 var ct = TradeCopierAddOn.FindVisualChild<ChartTrader>(_currentChart);
                 atmObj = ct?.AtmStrategy;
             }
-            CopyEngine.Instance.SetCloneAtmObjectCache(instrKey, atmObj);
+            CopyEngine.Instance.SetCloneAtmObjectCache(atmObj);
             string tpl = GetLeaderAtmTemplateName(_currentChart); // string for display only
-            CopyEngine.Instance.SetCloneAtmCache(instrKey, tpl);
+            CopyEngine.Instance.SetCloneAtmCache(tpl);
             UpdateAtmComboVisibility(Visibility.Collapsed);
         }
 
@@ -2019,9 +1738,7 @@ namespace PropTraderTools
             double tickSize
         )
         {
-            double rawDiff = isLong
-                ? t1Ord.LimitPrice - avgPrice
-                : avgPrice - t1Ord.LimitPrice;
+            double rawDiff = isLong ? t1Ord.LimitPrice - avgPrice : avgPrice - t1Ord.LimitPrice;
             int liveT1 = (int)Math.Round(rawDiff / tickSize);
             if (liveT1 < 1)
                 liveT1 = 1;
@@ -2140,9 +1857,7 @@ namespace PropTraderTools
         }
 
         // B47 T1-B: BuildInlineFollowerRow -- imperative row construction, no DataTemplate.
-        // C-02: Extracted 5 helpers (BuildFollowerCheckBox, BuildFollowerNameLabel,
-        //        BuildFollowerPnlLabel, BuildFollowerAtmComboBox, WireFollowerCheckBoxHandlers).
-        // JS-021: no lock. JS-001: no throw. JS-002: no return null. JS-033: no async void.
+        // CYC=1: straight-line. JS-021: no lock. NT8-012: no FrameworkElementFactory.
         // ATM ComboBox IsEnabled is set by CheckBox Checked/Unchecked handlers (code-behind).
         // Row: [CheckBox][account TextBlock][P&L TextBlock][ATM ComboBox]  -- 4 columns per spec.
         private void BuildInlineFollowerRow(FollowerItem item)
@@ -2153,73 +1868,17 @@ namespace PropTraderTools
             // PnL and ATM combo are docked Right so they never compete with the name.
             var row = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 1, 0, 1) };
 
-            var chk = BuildFollowerCheckBox(item);
-            DockPanel.SetDock(chk, Dock.Left);
-
-            var atmCombo = BuildFollowerAtmComboBox(item);
-            DockPanel.SetDock(atmCombo, Dock.Right);
-
-            var pnlLabel = BuildFollowerPnlLabel(item);
-            DockPanel.SetDock(pnlLabel, Dock.Right);
-
-            var nameLabel = BuildFollowerNameLabel(item);
-            nameLabel.SetResourceReference(TextBlock.ForegroundProperty, "NTBrushes.SubtleBrush");
-
-            WireFollowerCheckBoxHandlers(item, chk, atmCombo);
-
-            // DockPanel child order: Left-docked first, Right-docked next (ATM then PnL),
-            // LastChildFill (name) added last so it fills the remaining centre space.
-            row.Children.Add(chk);
-            row.Children.Add(atmCombo);
-            row.Children.Add(pnlLabel);
-            row.Children.Add(nameLabel);
-            _followerScrollViewerPanel.Children.Add(row);
-        }
-
-        // C-02: BuildFollowerCheckBox -- create CheckBox bound to item.IsSelected.
-        // CCN=1: straight-line. JS-021: no lock. JS-001: no throw. JS-002: no return null.
-        private CheckBox BuildFollowerCheckBox(FollowerItem item)
-        {
-            return new CheckBox
+            // Col 0: CheckBox -- docked Left, tracks IsSelected
+            var chk = new CheckBox
             {
                 IsChecked = item.IsSelected,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 4, 0),
             };
-        }
+            DockPanel.SetDock(chk, Dock.Left);
 
-        // C-02: BuildFollowerNameLabel -- create LastChildFill TextBlock with account display name.
-        // CCN=1: straight-line. JS-021: no lock. JS-001: no throw. JS-002: no return null.
-        private TextBlock BuildFollowerNameLabel(FollowerItem item)
-        {
-            return new TextBlock
-            {
-                Text = item.ToString(),
-                VerticalAlignment = VerticalAlignment.Center,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                Margin = new Thickness(0, 0, 4, 0),
-            };
-        }
-
-        // C-02: BuildFollowerPnlLabel -- create 60px-wide P&L TextBlock with DailyPnlColor foreground.
-        // CCN=1: straight-line. JS-021: no lock. JS-001: no throw. JS-002: no return null.
-        private TextBlock BuildFollowerPnlLabel(FollowerItem item)
-        {
-            return new TextBlock
-            {
-                Text = item.DailyPnlText,
-                Width = 60,
-                TextAlignment = TextAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(2, 0, 2, 0),
-                Foreground = item.DailyPnlColor,
-            };
-        }
-
-        // C-02: BuildFollowerAtmComboBox -- create 110px ComboBox, wire LoadedEvent + SelectionChanged.
-        // CCN=1: straight-line. JS-021: no lock. JS-001: no throw. JS-002: no return null.
-        private ComboBox BuildFollowerAtmComboBox(FollowerItem item)
-        {
+            // Col 2 (docked Right): ATM ComboBox (NT8-045: populated from filesystem on Loaded event)
+            // Docked before PnL so DockPanel processes right-most first.
             var atmCombo = new ComboBox
             {
                 Width = 110,
@@ -2233,14 +1892,34 @@ namespace PropTraderTools
             );
             atmCombo.SelectionChanged += OnFollowerAtmTemplateComboChanged;
             atmCombo.DataContext = item;
-            return atmCombo;
-        }
+            DockPanel.SetDock(atmCombo, Dock.Right);
 
-        // C-02: WireFollowerCheckBoxHandlers -- wire chk.Checked and chk.Unchecked lambdas.
-        // CCN=4: 2 lambdas (each counted as branch) + 2 sequential paths inside each lambda.
-        // JS-021: no lock. JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private void WireFollowerCheckBoxHandlers(FollowerItem item, CheckBox chk, ComboBox atmCombo)
-        {
+            // Col 2 (docked Right): P&L TextBlock -- mirrors DailyPnlText/DailyPnlColor.
+            // item.DailyPnlText: formatted string e.g. "+$125.00"
+            // item.DailyPnlColor: SolidColorBrush -- green/red/neutral (already Freeze()d by FollowerItem)
+            var pnlLabel = new TextBlock
+            {
+                Text = item.DailyPnlText,
+                Width = 60,
+                TextAlignment = TextAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(2, 0, 2, 0),
+                Foreground = item.DailyPnlColor,
+            };
+            DockPanel.SetDock(pnlLabel, Dock.Right);
+
+            // Col 1 (LastChildFill): Account name label -- fills all remaining space.
+            // TextTrimming=CharacterEllipsis ensures long names degrade gracefully if panel is very narrow.
+            var nameLabel = new TextBlock
+            {
+                Text = item.ToString(),
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                Margin = new Thickness(0, 0, 4, 0),
+            };
+            nameLabel.SetResourceReference(TextBlock.ForegroundProperty, "NTBrushes.SubtleBrush");
+
+            // CheckBox event handlers: toggle IsSelected + ATM IsEnabled + sort + auto-apply
             chk.Checked += (s, e) =>
             {
                 item.IsSelected = true;
@@ -2257,6 +1936,14 @@ namespace PropTraderTools
                 UpdateCopierHeader(); // B47 T3-B
                 TryAutoApply(); // B47 T2-B
             };
+
+            // DockPanel child order: Left-docked first, Right-docked next (ATM then PnL),
+            // LastChildFill (name) added last so it fills the remaining centre space.
+            row.Children.Add(chk);
+            row.Children.Add(atmCombo);
+            row.Children.Add(pnlLabel);
+            row.Children.Add(nameLabel);
+            _followerScrollViewerPanel.Children.Add(row);
         }
 
         // B47 T4-B: SortFollowerRows -- sort _followerItems and rebuild ScrollViewer panel children.
@@ -2392,11 +2079,13 @@ namespace PropTraderTools
         private Dictionary<string, FollowerAtmMode> BuildAtmMap(Account[] followers)
         {
             var map = new Dictionary<string, FollowerAtmMode>();
-            foreach (var item in _followerItems)                                                    // +1
+            foreach (var item in _followerItems) // +1
             {
-                if (item.Account == null) continue;                                                 // +1
-                if (!IsAccountInFollowers(item.Account, followers)) continue;                       // +1
-                map[item.Account.Name] = ParseAtmModeNameLocal(item.AtmModeName ?? "Inherit");     // ?? = +1
+                if (item.Account == null)
+                    continue; // +1
+                if (!IsAccountInFollowers(item.Account, followers))
+                    continue; // +1
+                map[item.Account.Name] = ParseAtmModeNameLocal(item.AtmModeName ?? "Inherit"); // ?? = +1
             }
             return map;
         }
@@ -2428,101 +2117,81 @@ namespace PropTraderTools
         // vertically across rows regardless of account name length.
         // ColumnDefinitions added at runtime via OnRowGridLoaded (WPF FEF limitation).
         // CYC=1 (no branches -- pure factory construction).
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
         private DataTemplate BuildCheckItemTemplate()
         {
             var template = new DataTemplate(typeof(FollowerItem));
+
             var gridFactory = new FrameworkElementFactory(typeof(Grid));
             gridFactory.AddHandler(
                 FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(OnRowGridLoaded)
             );
-            gridFactory.AppendChild(BuildTemplateAccountNameColumn());
-            gridFactory.AppendChild(BuildTemplatePnlColumn());
-            gridFactory.AppendChild(BuildTemplateMultiplierColumn());
-            gridFactory.AppendChild(BuildTemplateAtmComboColumn());
-            gridFactory.AppendChild(BuildTemplateCheckBoxColumn());
-            template.VisualTree = gridFactory;
-            return template;
-        }
 
-        // [1] Account name -- Col 0: star width, ellipsis trimming.
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private FrameworkElementFactory BuildTemplateAccountNameColumn()
-        {
-            var f = new FrameworkElementFactory(typeof(TextBlock));
-            f.SetValue(Grid.ColumnProperty, 0);
-            f.SetBinding(TextBlock.TextProperty, new Binding("Account.Name"));
-            f.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis);
-            f.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
-            return f;
-        }
+            // [1] Account name -- Col 0: star width, ellipsis trimming
+            var nameFactory = new FrameworkElementFactory(typeof(TextBlock));
+            nameFactory.SetValue(Grid.ColumnProperty, 0);
+            nameFactory.SetBinding(TextBlock.TextProperty, new Binding("Account.Name"));
+            nameFactory.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis);
+            nameFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
 
-        // [2] Daily P&L -- Col 1: 62px fixed, right-aligned, color-coded.
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private FrameworkElementFactory BuildTemplatePnlColumn()
-        {
-            var f = new FrameworkElementFactory(typeof(TextBlock));
-            f.SetValue(Grid.ColumnProperty, 1);
-            f.SetBinding(TextBlock.TextProperty, new Binding("DailyPnlText"));
-            f.SetBinding(TextBlock.ForegroundProperty, new Binding("DailyPnlColor"));
-            f.SetValue(TextBlock.TextAlignmentProperty, TextAlignment.Right);
-            f.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
-            return f;
-        }
+            // [2] Daily P&L -- Col 1: 62px fixed, right-aligned, color-coded
+            var pnlFactory = new FrameworkElementFactory(typeof(TextBlock));
+            pnlFactory.SetValue(Grid.ColumnProperty, 1);
+            pnlFactory.SetBinding(TextBlock.TextProperty, new Binding("DailyPnlText"));
+            pnlFactory.SetBinding(TextBlock.ForegroundProperty, new Binding("DailyPnlColor"));
+            pnlFactory.SetValue(TextBlock.TextAlignmentProperty, TextAlignment.Right);
+            pnlFactory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
 
-        // [3] B8 T1: Multiplier TextBox -- Col 2: 30px fixed, Visibility=Collapsed.
-        // Fires on WPF UI thread -- no Dispatcher needed (JS-023 compliant).
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private FrameworkElementFactory BuildTemplateMultiplierColumn()
-        {
-            var f = new FrameworkElementFactory(typeof(TextBox));
-            f.SetValue(Grid.ColumnProperty, 2);
-            f.SetValue(TextBox.TextProperty, "1");
-            f.SetValue(TextBox.VerticalContentAlignmentProperty, VerticalAlignment.Center);
-            f.AddHandler(
+            // [3] B8 T1: Multiplier TextBox -- Col 2: 30px fixed
+            // Fires on WPF UI thread -- no Dispatcher needed (JS-023 compliant)
+            var multFactory = new FrameworkElementFactory(typeof(TextBox));
+            multFactory.SetValue(Grid.ColumnProperty, 2);
+            multFactory.SetValue(TextBox.TextProperty, "1");
+            multFactory.SetValue(
+                TextBox.VerticalContentAlignmentProperty,
+                VerticalAlignment.Center
+            );
+            multFactory.AddHandler(
                 TextBox.TextChangedEvent,
                 new TextChangedEventHandler(OnFollowerMultiplierChanged)
             );
-            f.SetValue(FrameworkElement.VisibilityProperty, Visibility.Collapsed);
-            return f;
-        }
+            multFactory.SetValue(FrameworkElement.VisibilityProperty, Visibility.Collapsed);
 
-        // [4] B43 T1: ATM template ComboBox -- Col 3: 120px, wired via FEF Loaded+SelectionChanged.
-        // NT8-012: FEF AddHandler pattern for Loaded event -- mandatory for NT8 DataTemplate wiring.
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private FrameworkElementFactory BuildTemplateAtmComboColumn()
-        {
-            var f = new FrameworkElementFactory(typeof(ComboBox));
-            f.SetValue(Grid.ColumnProperty, 3);
-            f.SetValue(ComboBox.WidthProperty, 120.0);
-            f.SetValue(ComboBox.MarginProperty, new Thickness(2));
-            f.SetValue(ComboBox.ToolTipProperty, "ATM template for this follower");
-            f.AddHandler(
+            // [4] B43 T1: ATM template ComboBox (replaces Inherit/Market/Named ComboBox + namedBox TextBox).
+            // Col 3. Width=120 to accommodate template names. Wired via FEF LoadedEvent + SelectionChangedEvent.
+            // NT8-012: FEF AddHandler pattern for Loaded event -- mandatory for NT8 DataTemplate wiring.
+            var atmTemplateFactory = new FrameworkElementFactory(typeof(ComboBox));
+            atmTemplateFactory.SetValue(Grid.ColumnProperty, 3);
+            atmTemplateFactory.SetValue(ComboBox.WidthProperty, 120.0);
+            atmTemplateFactory.SetValue(ComboBox.MarginProperty, new Thickness(2));
+            atmTemplateFactory.SetValue(ComboBox.ToolTipProperty, "ATM template for this follower");
+            atmTemplateFactory.AddHandler(
                 FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(OnFollowerAtmTemplateComboLoaded)
             );
-            f.AddHandler(
+            atmTemplateFactory.AddHandler(
                 Selector.SelectionChangedEvent,
                 new SelectionChangedEventHandler(OnFollowerAtmTemplateComboChanged)
             );
-            return f;
-        }
 
-        // [5] Checkmark -- Col 4: 20px fixed, centered, TwoWay IsSelected binding.
-        // JS-021: no lock(). JS-001: no throw. JS-002: no return null. JS-033: no async void.
-        private FrameworkElementFactory BuildTemplateCheckBoxColumn()
-        {
-            var f = new FrameworkElementFactory(typeof(CheckBox));
-            f.SetValue(Grid.ColumnProperty, 4);
-            f.SetBinding(
+            // [5] Checkmark -- Col 4: 20px fixed, centered (was col 5 -- namedBox col removed)
+            var chkFactory = new FrameworkElementFactory(typeof(CheckBox));
+            chkFactory.SetValue(Grid.ColumnProperty, 4);
+            chkFactory.SetBinding(
                 CheckBox.IsCheckedProperty,
                 new Binding("IsSelected") { Mode = BindingMode.TwoWay }
             );
-            f.AddHandler(CheckBox.ClickEvent, new RoutedEventHandler(OnFollowerChecked));
-            f.SetValue(CheckBox.VerticalAlignmentProperty, VerticalAlignment.Center);
-            f.SetValue(CheckBox.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            return f;
+            chkFactory.AddHandler(CheckBox.ClickEvent, new RoutedEventHandler(OnFollowerChecked));
+            chkFactory.SetValue(CheckBox.VerticalAlignmentProperty, VerticalAlignment.Center);
+            chkFactory.SetValue(CheckBox.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+
+            gridFactory.AppendChild(nameFactory);
+            gridFactory.AppendChild(pnlFactory);
+            gridFactory.AppendChild(multFactory);
+            gridFactory.AppendChild(atmTemplateFactory);
+            gridFactory.AppendChild(chkFactory);
+            template.VisualTree = gridFactory;
+            return template;
         }
 
         // B43 T1: Loaded handler for Grid rows materialized from BuildCheckItemTemplate.
@@ -2705,9 +2374,9 @@ namespace PropTraderTools
         private static string TryGetAtmNameFromSelector(ChartTrader ct)
         {
             var sel =
-                TradeCopierAddOn.FindVisualChild<
-                    NinjaTrader.Gui.NinjaScript.AtmStrategy.AtmStrategySelector
-                >(ct);
+                TradeCopierAddOn.FindVisualChild<NinjaTrader.Gui.NinjaScript.AtmStrategy.AtmStrategySelector>(
+                    ct
+                );
             if (sel == null)
                 return string.Empty;
             return sel.SelectedItem as string ?? string.Empty;
@@ -2745,6 +2414,16 @@ namespace PropTraderTools
                 return string.Empty;
             }
         }
+
+        // B180-2: backward-compat test seam stub for ExecuteBreakEven (BreakEven removed from ICopyEngine).
+        // TradeCopierPanel_ExecuteBreakEven_PassesBufferToEngine test is skipped with B180-2.
+        // Stub is no-op; kept for compilation of CopyEngineTests.cs at HEAD.
+        // CYC=1. JS-001: no throw. JS-021: no lock.
+        internal static void ExecuteBreakEven(
+            ICopyEngine engine,
+            NinjaTrader.Cbi.Account leader,
+            NinjaTrader.Cbi.Instrument instrument,
+            int beBuffer) { }
 
         // B43 T1: Walks the visual tree UPWARD from child, returning the DataContext of the first
         // ancestor whose DataContext is of type T. Fallback for FEF-instantiated templates where
@@ -2925,9 +2604,11 @@ namespace PropTraderTools
             var atmNames = new string[followers.Length];
             foreach (var item in _followerItems)
             {
-                if (item.Account == null) continue;
+                if (item.Account == null)
+                    continue;
                 int idx = System.Array.IndexOf(followers, item.Account);
-                if (idx < 0 || multipliers[idx] != 0) continue;
+                if (idx < 0 || multipliers[idx] != 0)
+                    continue;
                 multipliers[idx] = item.Multiplier > 0 ? item.Multiplier : 1;
                 atmNames[idx] = item.AtmModeName ?? "Inherit";
             }
@@ -3038,7 +2719,7 @@ namespace PropTraderTools
         // B19 T1 -- DispatchShortcut: keyboard shortcuts dispatch to engine methods.
         // Calls EXISTING CopyEngine public methods -- no new CopyEngine code added.
         // CYC=5: switch entry (1) + 4 case arms (2,3,4,5).
-        // BE path uses _beBuffer (int field, maintained by OnBeUp/OnBeDown) for break-even tick count.
+        // BE path reads _beBufferBox.Text for buffer ticks (UI-thread-safe; PreviewKeyDown is on UI thread).
         // Key.T: Trim limit @ ask + buffer*tick (long) or bid - buffer*tick (short). Falls back to market on zero ask/bid.
         // Key.F: Flatten limit @ ask + buffer*tick (long) or bid - buffer*tick (short). Same fallback.
         private void DispatchShortcut(Key key)
@@ -3061,17 +2742,11 @@ namespace PropTraderTools
                     _engine.CancelPendingEntries(_leaderAccount, _instrument);
                     break;
                 case Key.B:
-                    ExecuteBreakEven(_engine, _leaderAccount, _instrument, _beBuffer);
+                    int buf = 2;
+                    int.TryParse(_beBufferBox.Text, out buf);
+                    _engine.BreakEven(_leaderAccount, _instrument, buf);
                     break;
             }
-        }
-
-        // T-G1: ExecuteBreakEven -- testable BE dispatch seam (internal static, InternalsVisibleTo granted).
-        // CYC=1: straight-line call. No NT8 UI deps. JS-001: no throw. JS-021: no lock.
-        internal static void ExecuteBreakEven(
-            ICopyEngine engine, Account leader, Instrument instrument, int beBuffer)
-        {
-            engine.BreakEven(leader, instrument, beBuffer);
         }
 
         // B12 T3 -- BuildRiskAtrRow: builds Risk $ + ATR % spinner row. CYC=1: straight-line construction.
@@ -3088,7 +2763,9 @@ namespace PropTraderTools
             };
             _riskDollarsBox.SetResourceReference(Control.StyleProperty, "NTTextBoxStyle");
             _riskDollarsBox.LostFocus += OnRiskTextLostFocus;
-            _atrRow.Children.Add(BuildSpinnerColumn("Risk $", _riskDollarsBox, OnRiskUp, OnRiskDown));
+            _atrRow.Children.Add(
+                BuildSpinnerColumn("Risk $", _riskDollarsBox, OnRiskUp, OnRiskDown)
+            );
             _atrFractionBox = new TextBox
             {
                 Text = _atrFraction.ToString("F2"),
@@ -3097,7 +2774,9 @@ namespace PropTraderTools
             };
             _atrFractionBox.SetResourceReference(Control.StyleProperty, "NTTextBoxStyle");
             _atrFractionBox.LostFocus += OnAtrFractionTextLostFocus;
-            _atrRow.Children.Add(BuildSpinnerColumn("ATR %", _atrFractionBox, OnAtrFractionUp, OnAtrFractionDown));
+            _atrRow.Children.Add(
+                BuildSpinnerColumn("ATR %", _atrFractionBox, OnAtrFractionUp, OnAtrFractionDown)
+            );
             root.Children.Add(_atrRow);
             root.Children.Add(BuildAtrDisplayRow());
         }
@@ -3108,7 +2787,8 @@ namespace PropTraderTools
             string labelText,
             TextBox valueBox,
             RoutedEventHandler upClick,
-            RoutedEventHandler downClick)
+            RoutedEventHandler downClick
+        )
         {
             var col = new StackPanel { Orientation = Orientation.Horizontal };
             var label = new TextBlock

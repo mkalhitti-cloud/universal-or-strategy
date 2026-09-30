@@ -15,9 +15,11 @@
     <Compile Include="AtrSizingEngine.cs" />
     <Compile Include="Core\PttContracts.cs" />
     <Compile Include="CopyEngine.cs" />
+    <Compile Include="PttTickMath.cs" />
     <Compile Include="CopyEngineTests.cs" />
     <Compile Include="FeatureFlags.cs" />
-    <Compile Include="Features\PttBreakEven.cs" />
+    <Compile Include="Features\PttBeSwapAll.cs" />
+    <Compile Include="Features\PttBeSwapOne.cs" />
     <Compile Include="Features\PttBreakEvenSwap.cs" />
     <Compile Include="Features\PttCancel.cs" />
     <Compile Include="Features\PttCopier.cs" />
@@ -31,6 +33,7 @@
     <Compile Include="TradeCopierAddOn.cs" />
     <Compile Include="TradeCopierPanel.cs" />
     <Compile Include="TradeCopierWindow.cs" />
+    <Compile Include="Tests\B182Tests.cs" />
   </ItemGroup>
 
   <ItemGroup>

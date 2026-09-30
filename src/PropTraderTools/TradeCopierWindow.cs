@@ -116,6 +116,19 @@ namespace PropTraderTools
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
+            // Bind Account.All now -- NT8 guarantees accounts are populated by Loaded
+            try
+            {
+                foreach (var cb in _leaderBoxes)
+                    cb.ItemsSource = Account.All;
+                foreach (var lb in _followerBoxes)
+                    lb.ItemsSource = Account.All;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("PTT account bind error:\n\n" + ex.Message, "Trade Copier");
+            }
+
             try
             {
                 _engine.StatusUpdate -= OnStatusUpdate;
@@ -211,51 +224,21 @@ namespace PropTraderTools
             );
         }
 
-        // C-09: BuildUI extracted into 6 private helpers. CYC=1. JS-021/001/002/033 compliant.
         private void BuildUI()
         {
             var root = new DockPanel { LastChildFill = true };
-            var titleBlock = BuildWindowTitleBlock();
-            DockPanel.SetDock(titleBlock, Dock.Top);
-            root.Children.Add(titleBlock);
-            var toggleBtn = BuildGlobalToggleButton();
-            DockPanel.SetDock(toggleBtn, Dock.Top);
-            root.Children.Add(toggleBtn);
-            var modeSection = BuildCopyModeSection();
-            DockPanel.SetDock(modeSection, Dock.Top);
-            root.Children.Add(modeSection);
-            var sep1 = new Separator { Margin = new Thickness(0, 2, 0, 2) };
-            DockPanel.SetDock(sep1, Dock.Top);
-            root.Children.Add(sep1);
-            var rulesScroll = BuildRulesScrollSection();
-            DockPanel.SetDock(rulesScroll, Dock.Top);
-            root.Children.Add(rulesScroll);
-            var addRuleBtn = BuildAddRuleButton();
-            DockPanel.SetDock(addRuleBtn, Dock.Top);
-            root.Children.Add(addRuleBtn);
-            var sep2 = new Separator { Margin = new Thickness(0, 2, 0, 2) };
-            DockPanel.SetDock(sep2, Dock.Top);
-            root.Children.Add(sep2);
-            BuildLicenseRow(root);
-            root.Children.Add(BuildLogScrollSection());
-            Content = root;
-            UpdateButtonColors(false, false);
-        }
 
-        // C-09: Creates bold title TextBlock. CYC=1. JS-002: no return null. ASCII-only.
-        private TextBlock BuildWindowTitleBlock()
-        {
-            return new TextBlock
+            // --- Title ---
+            var titleBlock = new TextBlock
             {
                 Text = "Prop Trader Tools -- Trade Copier",
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(6, 4, 4, 2),
             };
-        }
+            DockPanel.SetDock(titleBlock, Dock.Top);
+            root.Children.Add(titleBlock);
 
-        // C-09: Creates global copy toggle Button, assigns _globalToggleBtn. CYC=1. JS-002: no return null.
-        private Button BuildGlobalToggleButton()
-        {
+            // --- Global toggle (color-coded -- no NTButtonStyle) ---
             _globalToggleBtn = new Button
             {
                 Content = "Copy All OFF",
@@ -264,11 +247,49 @@ namespace PropTraderTools
                 Background = WBrushInactive,
             };
             _globalToggleBtn.Click += OnGlobalToggle;
-            return _globalToggleBtn;
+            DockPanel.SetDock(_globalToggleBtn, Dock.Top);
+            root.Children.Add(_globalToggleBtn);
+
+            var modeRow = BuildModeRow();
+            DockPanel.SetDock(modeRow, Dock.Top);
+            root.Children.Add(modeRow);
+
+            var sep1 = new Separator { Margin = new Thickness(0, 2, 0, 2) };
+            DockPanel.SetDock(sep1, Dock.Top);
+            root.Children.Add(sep1);
+
+            var rulesScroll = BuildRulesScrollArea();
+            DockPanel.SetDock(rulesScroll, Dock.Top);
+            root.Children.Add(rulesScroll);
+
+            _addRuleBtn = new Button
+            {
+                Content = "+ Add Rule",
+                Margin = new Thickness(6, 2, 6, 2),
+                Padding = new Thickness(8, 3, 8, 3),
+            };
+            _addRuleBtn.Click += OnAddRule;
+            DockPanel.SetDock(_addRuleBtn, Dock.Top);
+            root.Children.Add(_addRuleBtn);
+
+            var sep2 = new Separator { Margin = new Thickness(0, 2, 0, 2) };
+            DockPanel.SetDock(sep2, Dock.Top);
+            root.Children.Add(sep2);
+
+            // BGTM-1: license key row docks to bottom before log fills remaining space
+            BuildLicenseRow(root);
+
+            // LastChildFill = true on DockPanel means this gets all remaining space
+            root.Children.Add(BuildLogScrollArea());
+
+            Content = root;
+
+            // V04: ensure consistent initial state (all action buttons start grey)
+            UpdateButtonColors(false, false);
         }
 
-        // C-09: Creates Copy Mode label + ComboBox row. CYC=1. JS-002: no return null. ASCII-only.
-        private StackPanel BuildCopyModeSection()
+        // R5: Builds the horizontal Copy Mode row. CYC=1. JS-002: no return null. ASCII-only.
+        private StackPanel BuildModeRow()
         {
             var row = new StackPanel
             {
@@ -292,9 +313,9 @@ namespace PropTraderTools
             return row;
         }
 
-        // C-09: Creates _rulesPanel StackPanel wrapped in ScrollViewer. CYC=1. JS-002: no return null.
-        // MaxHeight=400 per B7-F5 spec.
-        private ScrollViewer BuildRulesScrollSection()
+        // R5: Builds the rules scroll area and initialises _rulesPanel. CYC=1. JS-002: no return null. ASCII-only.
+        // B7-F5: ScrollViewer MaxHeight=400 -- DockPanel.SetDock applied by BuildUI on the returned viewer.
+        private ScrollViewer BuildRulesScrollArea()
         {
             _rulesPanel = new StackPanel();
             _rulesPanel.Children.Add(BuildRuleRow("MES"));
@@ -306,21 +327,8 @@ namespace PropTraderTools
             };
         }
 
-        // C-09: Creates "+ Add Rule" Button, assigns _addRuleBtn. CYC=1. JS-002: no return null.
-        private Button BuildAddRuleButton()
-        {
-            _addRuleBtn = new Button
-            {
-                Content = "+ Add Rule",
-                Margin = new Thickness(6, 2, 6, 2),
-                Padding = new Thickness(8, 3, 8, 3),
-            };
-            _addRuleBtn.Click += OnAddRule;
-            return _addRuleBtn;
-        }
-
-        // C-09: Creates _logPanel StackPanel wrapped in ScrollViewer. CYC=1. JS-002: no return null. ASCII-only.
-        private ScrollViewer BuildLogScrollSection()
+        // R5: Builds the log scroll area and initialises _logPanel. CYC=1. JS-002: no return null. ASCII-only.
+        private ScrollViewer BuildLogScrollArea()
         {
             _logPanel = new StackPanel { Orientation = Orientation.Vertical };
             return new ScrollViewer
@@ -421,10 +429,19 @@ namespace PropTraderTools
             ApplyButtonGroupFlag(_flattenBtns, f.TrimFlatten, "Trim/Flatten requires Pro tier");
             ApplyButtonGroupFlag(_cancelBtns, f.TrimFlatten, "Cancel requires Pro tier");
             ApplyButtonGroupFlag(_beBtns, f.BreakEven, "Break Even requires Pro tier");
-            ApplyButtonGroupFlag(_armBeBtns, f.BreakEven, "Arm Break-Even not available on this plan");
-            ApplyButtonGroupFlag(_tightenBtns, f.BreakEven, "Tighten Stop not available on this plan");
+            ApplyButtonGroupFlag(
+                _armBeBtns,
+                f.BreakEven,
+                "Arm Break-Even not available on this plan"
+            );
+            ApplyButtonGroupFlag(
+                _tightenBtns,
+                f.BreakEven,
+                "Tighten Stop not available on this plan"
+            );
             if (_modeCb != null)
             {
+                _modeCb.IsEnabled = f.MirrorMode;
                 _modeCb.ToolTip = f.MirrorMode ? null : "Mirror mode requires Elite tier";
             }
             if (_addRuleBtn != null)
@@ -467,7 +484,8 @@ namespace PropTraderTools
             return "STARTER";
         }
 
-        // PTT-REPAIRS-01 R5: Account.All bound immediately. CYC=2 (Account.All null guard).
+        // BWAVE-CYC R1: BuildRuleRow refactored to use shared helpers. LoC before=202 after=36.
+        // CYC=1 (straight-line construction; no branches in parent).
         private Grid BuildRuleRow(string instrumentName)
         {
             var grid = new Grid { Margin = new Thickness(2) };
@@ -483,25 +501,18 @@ namespace PropTraderTools
             Grid.SetColumn(instrLabel, 0);
             grid.Children.Add(instrLabel);
 
-            // Col 1: leader ComboBox
+            // Col 1: leader ComboBox -- ItemsSource set in Loaded
             var leaderCb = new ComboBox { Margin = new Thickness(2) };
             _leaderBoxes.Add(leaderCb);
             leaderCb.ItemTemplate = BuildAccountDisplayTemplate();
             Grid.SetColumn(leaderCb, 1);
             grid.Children.Add(leaderCb);
 
-            // Col 2: follower ListBox
+            // Col 2: follower ListBox -- ItemsSource set in Loaded
             var followerLb = BuildFollowerListBox();
             _followerBoxes.Add(followerLb);
             Grid.SetColumn(followerLb, 2);
             grid.Children.Add(followerLb);
-
-            // PTT-REPAIRS-01 R5: bind Account.All immediately if available (null guard for constructor timing).
-            if (Account.All != null) // (1) NEW BRANCH -- CYC becomes 2
-            {
-                leaderCb.ItemsSource = Account.All;
-                followerLb.ItemsSource = Account.All;
-            }
 
             var atmPanel = BuildAtmColumnPanel();
             BuildActionButtons(instrumentName, leaderCb, followerLb, atmPanel, grid);
@@ -584,8 +595,12 @@ namespace PropTraderTools
                 ? new GridLength(1, GridUnitType.Star)
                 : new GridLength(45);
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = col0Width });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
+            );
+            grid.ColumnDefinitions.Add(
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
+            );
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -747,123 +762,83 @@ namespace PropTraderTools
         // tag0 = instrumentName (string) or instrTextBox. Adds trim/flatten/cancel to tracking lists.
         // atmPanel: Children[0]=atmCb, Children[1]=namedBox -- passed to OnRowApply tag array.
         // Adds all 5 buttons to grid at their respective columns.
-        // C-04: CCN=1 -- straight-line delegation to 5 private helpers.
-        // All helpers: private instance, UI-thread only, CYC<=1, no lock(), no async void, no return null.
         private void BuildActionButtons(
             object tag0,
             ComboBox leaderCb,
             ListBox followerLb,
             StackPanel atmPanel,
-            Grid grid)
+            Grid grid
+        )
         {
             var atmCb = (ComboBox)atmPanel.Children[0];
             var namedBox = (TextBox)atmPanel.Children[1];
-            BuildTrimActionButton(tag0, grid);
-            BuildFlattenActionButton(tag0, grid);
-            BuildCancelActionButton(tag0, grid);
-            BuildToggleActionButton(tag0, grid);
-            BuildApplyActionButton(tag0, leaderCb, followerLb, atmCb, namedBox, grid);
-        }
 
-        // CCN=1: no branches.
-        private void BuildTrimActionButton(object tag, Grid grid)
-        {
-            var btn = new Button
+            var trimBtn = new Button
             {
                 Content = "[1/2]",
-                Tag = tag,
+                Tag = tag0,
                 Margin = new Thickness(2),
                 Background = WBrushInactive,
             };
-            btn.Click += OnRuleTrim;
-            _trimBtns.Add(btn);
-            Grid.SetColumn(btn, 3);
-            grid.Children.Add(btn);
-        }
+            trimBtn.Click += OnRuleTrim;
+            _trimBtns.Add(trimBtn);
+            Grid.SetColumn(trimBtn, 3);
+            grid.Children.Add(trimBtn);
 
-        // CCN=1: no branches.
-        private void BuildFlattenActionButton(object tag, Grid grid)
-        {
-            var btn = new Button
+            var flattenBtn = new Button
             {
                 Content = "[=]",
-                Tag = tag,
+                Tag = tag0,
                 Margin = new Thickness(2),
                 Background = WBrushInactive,
             };
-            btn.Click += OnRuleFlatten;
-            _flattenBtns.Add(btn);
-            Grid.SetColumn(btn, 4);
-            grid.Children.Add(btn);
-        }
+            flattenBtn.Click += OnRuleFlatten;
+            _flattenBtns.Add(flattenBtn);
+            Grid.SetColumn(flattenBtn, 4);
+            grid.Children.Add(flattenBtn);
 
-        // CCN=1: no branches.
-        private void BuildCancelActionButton(object tag, Grid grid)
-        {
-            var btn = new Button
+            var cancelBtn = new Button
             {
                 Content = "[x]",
-                Tag = tag,
+                Tag = tag0,
                 Margin = new Thickness(2),
                 Background = WBrushInactive,
             };
-            btn.Click += OnRuleCancel;
-            _cancelBtns.Add(btn);
-            Grid.SetColumn(btn, 5);
-            grid.Children.Add(btn);
-        }
+            cancelBtn.Click += OnRuleCancel;
+            _cancelBtns.Add(cancelBtn);
+            Grid.SetColumn(cancelBtn, 5);
+            grid.Children.Add(cancelBtn);
 
-        // CCN=1: no branches.
-        private void BuildToggleActionButton(object tag, Grid grid)
-        {
-            var btn = new Button
+            var toggleBtn = new Button
             {
                 Content = "[ON]",
-                Tag = tag,
+                Tag = tag0,
                 Margin = new Thickness(2),
                 Background = WBrushActive,
             };
-            btn.Click += OnRuleToggle;
-            Grid.SetColumn(btn, 6);
-            grid.Children.Add(btn);
+            toggleBtn.Click += OnRuleToggle;
+            Grid.SetColumn(toggleBtn, 6);
+            grid.Children.Add(toggleBtn);
+
+            var applyBtn = new Button { Content = "Apply", Margin = new Thickness(2) };
+            applyBtn.Tag = new object[] { tag0, leaderCb, followerLb, atmCb, namedBox };
+            applyBtn.Click += OnRowApply;
+            Grid.SetColumn(applyBtn, 7);
+            grid.Children.Add(applyBtn);
         }
 
-        // CCN=1: no branches.
-        private void BuildApplyActionButton(
-            object tag,
-            ComboBox leaderCb,
-            ListBox followerLb,
-            ComboBox atmCb,
-            TextBox namedBox,
-            Grid grid)
-        {
-            var btn = new Button { Content = "Apply", Margin = new Thickness(2) };
-            btn.Tag = new object[] { tag, leaderCb, followerLb, atmCb, namedBox };
-            btn.Click += OnRowApply;
-            Grid.SetColumn(btn, 7);
-            grid.Children.Add(btn);
-        }
-
-        // PTT-REPAIRS-01 R4: Mirror mode Elite gate added. CYC=5.
-        // null guard(1), Elite-gate(2), index==1(3), index==2(4), else(5).
-        // Re-entrancy: cb.SelectedIndex = 0 re-fires this handler; second call index==0, gate=false -> no loop.
-        // JS-033: WPF SelectionChangedEventArgs event handler -- void permitted.
+        // B56-LaneB: CYC=4 -- null guard (1) + 3-way if-chain for index 0/1/2 (branches 2/3/4)
         private void OnCopyModeComboChanged(object sender, SelectionChangedEventArgs e)
         {
             var cb = sender as ComboBox;
             if (cb == null)
                 return; // guard (1)
-            if (cb.SelectedIndex == 1 && !CopyEngine.Instance.Flags.MirrorMode) // (2) NEW GATE
-            {
-                cb.SelectedIndex = 0; // Revert to Signal (re-fires handler; second call: index==0, gate fails)
-                return;
-            }
             if (cb.SelectedIndex == 1)
-                CopyEngine.Instance.SetCopyMode(CopyMode.Mirror); // branch (3)
+                CopyEngine.Instance.SetCopyMode(CopyMode.Mirror); // branch (2)
             else if (cb.SelectedIndex == 2)
-                CopyEngine.Instance.SetCopyMode(CopyMode.Clone); // branch (4)
+                CopyEngine.Instance.SetCopyMode(CopyMode.Clone); // branch (3)
             else
-                CopyEngine.Instance.SetCopyMode(CopyMode.Signal); // branch (5)
+                CopyEngine.Instance.SetCopyMode(CopyMode.Signal); // branch (4)
         }
 
         private void OnGlobalToggle(object sender, RoutedEventArgs e)
@@ -941,7 +916,6 @@ namespace PropTraderTools
         {
             _rulesPanel.Children.Add(BuildDynamicRuleRow());
             ApplyFeatureFlags(CopyEngine.Instance.Flags); // gate newly-added buttons
-            CopyEngine.Instance.SaveRules();              // DW-C39-09: persist immediately
         }
 
         private void OnRuleTrim(object sender, RoutedEventArgs e)
@@ -1028,7 +1002,9 @@ namespace PropTraderTools
             return leaderCb?.SelectedItem as Account;
         }
 
-        // OnRuleArmBe after extraction. CCN=7.
+        // B180 DW-B180-BE-SWAP-ALL: OnRuleArmBe -- immediate BE bracket swap via PttBeSwapOne.
+        // Replaces ArmPendingBe call. Click = fire = done.
+        // CYC=7: tag null(1), name null(2), instr null(3), leaderAcc null(4), PttBeSwapOne(5+6+7 internal).
         private void OnRuleArmBe(object sender, RoutedEventArgs e)
         {
             var tag = (sender as Button)?.Tag as object[];
@@ -1044,7 +1020,7 @@ namespace PropTraderTools
             if (leaderAcc == null)
                 return;
             int buf = TryParseArmBeBuffer(tag);
-            _engine.ArmPendingBe(instr, leaderAcc, buf);
+            PttBeSwapOne.Execute(leaderAcc, instr, buf);
         }
 
         // TryParseTightenTicksFromTag: parses ticks from tag[1] TextBox. Default=5, clamped 1-500. CCN=3.

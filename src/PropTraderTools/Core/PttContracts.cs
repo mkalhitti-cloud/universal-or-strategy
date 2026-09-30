@@ -94,9 +94,6 @@ namespace PropTraderTools
 
         /// <summary>Fan out cancel entries to all follower accounts.</summary>
         void RelayCancel(CancelEventArgs e);
-
-        /// <summary>Dispatch break-even to leader and all follower accounts.</summary>
-        void BreakEven(Account leader, Instrument instrument, int bufferTicks);
     }
 
     // -------------------------------------------------------------------------
@@ -343,21 +340,5 @@ namespace PropTraderTools
         /// PttGlobalQuickExit.cs (constantification of those callers is
         /// deferred to a future block per B126 scope constraint).</summary>
         internal const string PttBeTargetPrefix = "PTT-BE-Target-";
-    }
-
-    // B154 DW-B154-03: pure predicate for PTT drag-orphan name matching.
-    // No NT8 runtime dependency -- safe to call from xUnit without CopyEngine.cctor.
-    // StartsWith: matches exact ("PTT-TGT-Drag") and suffixed ("PTT-TGT-Drag-N") variants.
-    // JS-021: no lock. JS-001: no throw. ASCII-only. CYC=1.
-    internal static class PttDragOrphanPredicates
-    {
-        // Returns true when name is a PTT drag-orphan order (TGT or STP, exact or suffixed).
-        // "PTT-TGT-Drag" and "PTT-TGT-Drag-N" both match (B142 suffix fix, B154 DW-B154-03).
-        internal static bool IsDragOrphanName(string name)
-        {
-            if (name == null) return false;
-            return name.StartsWith("PTT-TGT-Drag", StringComparison.Ordinal)
-                || name.StartsWith("PTT-STP-Drag", StringComparison.Ordinal);
-        }
     }
 }

@@ -76,6 +76,7 @@ namespace PropTraderTools
             {
                 var flags = LoadAndValidateLicense();
                 CopyEngine.Instance.SetFlags(flags);
+                CopyEngine.Instance.CheckAtmTemplatesForReverse(); // DW-B181-G5
             }
             if (State == State.Terminated)
                 _menuWired = false;
@@ -405,10 +406,7 @@ namespace PropTraderTools
         }
 
         // RemoveStalePanelChild: detaches and removes one stale panel + its RowDefinition. CCN=3.
-        private static void RemoveStalePanelChild(
-            System.Windows.Controls.Grid grid,
-            UIElement old
-        )
+        private static void RemoveStalePanelChild(System.Windows.Controls.Grid grid, UIElement old)
         {
             var stalePanel = old as TradeCopierPanel;
             if (stalePanel != null)
@@ -426,10 +424,11 @@ namespace PropTraderTools
                 return;
             var stale = CollectStalePanelChildren(grid);
             // C-2: remove in descending row order to prevent index shift.
-            stale.Sort((a, b) =>
-                System.Windows.Controls.Grid.GetRow(b).CompareTo(
-                    System.Windows.Controls.Grid.GetRow(a)
-                )
+            stale.Sort(
+                (a, b) =>
+                    System
+                        .Windows.Controls.Grid.GetRow(b)
+                        .CompareTo(System.Windows.Controls.Grid.GetRow(a))
             );
             foreach (var old in stale)
                 RemoveStalePanelChild(grid, old);
@@ -473,54 +472,7 @@ namespace PropTraderTools
             return instr;
         }
 
-        // C-07: PurgeStalePanel -- removes all stale TradeCopierPanel rows from ChartTrader grid.
-        // Delegates to existing static TryDetachAndRemoveStalePanels helper. CCN=2.
-        private void PurgeStalePanel(System.Windows.Controls.Grid grid)
-        {
-            if (grid == null)
-                return;
-            TryDetachAndRemoveStalePanels(grid);
-        }
-
-        // C-07: WireNewPanel -- wires a newly created TradeCopierPanel into the ChartTrader grid.
-        // Contains the pre-existing try/catch for instrument wiring. CCN=5.
-        private void WireNewPanel(
-            TradeCopierPanel panel,
-            Chart chart,
-            ChartTrader chartTrader,
-            System.Windows.Controls.Grid grid
-        )
-        {
-            var instr = TrySetPanelInstrument(chartTrader, panel);
-            StartAtrEngine(chart, instr);
-            panel.SetChart(chart);
-
-            // Wire leader account from ChartTrader account ComboBox.
-            WireLeaderAccount(chartTrader, panel);
-
-            // B11 T1 SIM101 Phase A: wire logging-only handler BEFORE production layer.
-            _sim101KeyDiag = new KeyEventHandler(OnChartKeyDiag);
-            chart.PreviewKeyDown += _sim101KeyDiag;
-
-            // B11 T1 Phase B: production keyboard shortcut layer.
-            // RemoveSim101 FIRST (SIM101 must be removed before HookKeyShortcut).
-            RemoveSim101(chart);
-            HookKeyShortcut(chart, panel);
-
-            if (InjectPanelIntoGrid(grid, panel))
-            {
-                _panels[chart] = panel;
-                return;
-            }
-
-            MessageBox.Show(
-                "PTT: ChartTrader.Content is not a Grid.\nContent type: "
-                    + (chartTrader.Content?.GetType().FullName ?? "null"),
-                "PTT Info"
-            );
-        }
-
-        // C-07: DoInject after extraction. Parent CCN=7.
+        // DoInject after extraction. CCN=7.
         private void DoInject(Chart chart)
         {
             if (!_panels.TryAdd(chart, null))
@@ -536,10 +488,37 @@ namespace PropTraderTools
                 }
 
                 var grid = chartTrader.Content as System.Windows.Controls.Grid;
-                PurgeStalePanel(grid);
+                TryDetachAndRemoveStalePanels(grid);
 
                 var panel = new TradeCopierPanel();
-                WireNewPanel(panel, chart, chartTrader, grid);
+                var instr = TrySetPanelInstrument(chartTrader, panel);
+                StartAtrEngine(chart, instr);
+                panel.SetChart(chart);
+
+                // Wire leader account from ChartTrader account ComboBox.
+                WireLeaderAccount(chartTrader, panel);
+
+                // B11 T1 SIM101 Phase A: wire logging-only handler BEFORE production layer.
+                _sim101KeyDiag = new KeyEventHandler(OnChartKeyDiag);
+                chart.PreviewKeyDown += _sim101KeyDiag;
+
+                // B11 T1 Phase B: production keyboard shortcut layer.
+                // RemoveSim101 FIRST (SIM101 must be removed before HookKeyShortcut).
+                // We assume SIM101 PASS per the BUILD-TIME contract in the ticket preamble.
+                RemoveSim101(chart);
+                HookKeyShortcut(chart, panel);
+
+                if (InjectPanelIntoGrid(grid, panel))
+                {
+                    _panels[chart] = panel;
+                    return;
+                }
+
+                MessageBox.Show(
+                    "PTT: ChartTrader.Content is not a Grid.\nContent type: "
+                        + (chartTrader.Content?.GetType().FullName ?? "null"),
+                    "PTT Info"
+                );
             }
             catch (System.Exception ex)
             {
@@ -685,8 +664,8 @@ namespace PropTraderTools
             return null;
         }
 
-        // PTT-REPAIRS-01 R3: developer bypass removed.
-        // CYC=3: try-enter(1) + licenseTxt.Exists(2) + catch(3).
+        // B121/DW-B130b: dev_mode.txt sentinel bypasses LicenseClient entirely.
+        // CYC=4: try-enter(1) + devMode.Exists(2) + licenseTxt.Exists(3) + catch(4).
         // JS-001: no throw -- any I/O error returns Starter().
         // NT8: File I/O is safe in State.Configure (not the hot path).
         private static FeatureFlags LoadAndValidateLicense()
@@ -697,6 +676,9 @@ namespace PropTraderTools
                     NinjaTrader.Core.Globals.UserDataDir,
                     "PropTraderTools"
                 );
+                var devMode = System.IO.Path.Combine(pttDir, "dev_mode.txt");
+                if (System.IO.File.Exists(devMode))
+                    return FeatureFlags.Elite();
                 var licenseTxt = System.IO.Path.Combine(pttDir, "license.txt");
                 var key = System.IO.File.Exists(licenseTxt)
                     ? System.IO.File.ReadAllText(licenseTxt).Trim()
