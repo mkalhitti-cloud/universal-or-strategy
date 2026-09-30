@@ -1,0 +1,33 @@
+{
+  "version": "V12.0",
+  "timestamp": "2026-04-06T00:00:00Z",
+  "hardware": {
+    "cpu": "AMD Ryzen 5 5625U with Radeon Graphics",
+    "cores": "1 CPU, 12 logical / 6 physical cores",
+    "os": "Windows 11 (10.0.26200.8037)",
+    "runtime": ".NET Framework 4.8"
+  },
+  "benchmarks": {
+    "V12_Performance.Benchmarks.BarUpdateBenchmark.OnBarUpdate_HotPath": {
+      "mean_ns": 100.0,
+      "stddev_ns": 5.0,
+      "allocations_bytes": 0
+    },
+    "V12_Performance.Benchmarks.BarUpdateBenchmark.BarData_Access": {
+      "mean_ns": 50.0,
+      "stddev_ns": 3.0,
+      "allocations_bytes": 0
+    },
+    "V12_Performance.Benchmarks.BarUpdateBenchmark.AccountState_Check": {
+      "mean_ns": 30.0,
+      "stddev_ns": 2.0,
+      "allocations_bytes": 0
+    }
+  },
+  "notes": [
+    "Initial baseline created from Phase 3 integration",
+    "Run 'powershell -File .\\scripts\\run_benchmarks.ps1 -UpdateBaseline' to establish actual baseline",
+    "Zero-allocation mandate: allocations_bytes MUST remain 0 for all benchmarks",
+    "Regression threshold: >5% increase in mean_ns triggers failure"
+  ]
+}
