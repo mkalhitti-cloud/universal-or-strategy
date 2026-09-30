@@ -1,0 +1,65 @@
+{
+  "epic_number": "EPIC-CCN-15",
+  "method": "ProcessOnExecutionUpdate",
+  "file": "src/V12_002.Orders.Callbacks.Execution.cs",
+  "line_start": 228,
+  "line_end": 527,
+  "initial_cyc": 67,
+  "target_cyc": 8,
+  "hotspot_score": 166.49,
+  "churn": 11,
+  "session_start": "2026-06-09T03:31:34Z",
+  "phase": "Phase 0: Hotspot Analysis",
+  "status": "in_progress",
+  "analysis": {
+    "method_length": 300,
+    "logical_sections": [
+      {
+        "name": "Deduplication Guard",
+        "lines": "241-278",
+        "complexity": "High (nested if/else with hash ring logic)",
+        "extraction_candidate": true
+      },
+      {
+        "name": "Compliance Tracking",
+        "lines": "280-287",
+        "complexity": "Low",
+        "extraction_candidate": false
+      },
+      {
+        "name": "Entry Name Extraction Helper",
+        "lines": "289-300",
+        "complexity": "Medium (lambda with string manipulation)",
+        "extraction_candidate": true
+      },
+      {
+        "name": "Stop Loss Fill Handler",
+        "lines": "302-363",
+        "complexity": "Very High (nested loops, multiple conditions)",
+        "extraction_candidate": true
+      },
+      {
+        "name": "Target Fill Handler (T1-T5)",
+        "lines": "364-449",
+        "complexity": "Very High (complex state management)",
+        "extraction_candidate": true
+      },
+      {
+        "name": "Trim Execution Handler",
+        "lines": "450-516",
+        "complexity": "High (position tracking, stop integrity)",
+        "extraction_candidate": true
+      },
+      {
+        "name": "Shadow Engine Check",
+        "lines": "518-521",
+        "complexity": "Low",
+        "extraction_candidate": false
+      }
+    ],
+    "extraction_strategy": "Extract 5 major handlers into separate methods, each targeting CYC ≤8"
+  },
+  "tickets": [],
+  "f5_verifications": [],
+  "completion_date": null
+}

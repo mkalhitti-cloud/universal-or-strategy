@@ -1,0 +1,83 @@
+{
+  "version": "1.0",
+  "session_id": "2026-06-03-14-30-00-bob-cli",
+  "started_at": "2026-06-03T14:30:00.000Z",
+  "last_updated": "2026-06-03T15:45:23.000Z",
+  "agent": "Bob CLI",
+  "task_description": "EPIC-CCN-13: Extract ShouldSkipFleet_RunHealthCheck from V12_002.SIMA.Fleet.cs",
+  "files_read": [
+    {
+      "path": "src/V12_002.SIMA.Fleet.cs",
+      "read_at": "2026-06-03T14:32:15.000Z",
+      "read_type": "outline",
+      "symbols_accessed": [
+        "ShouldSkipFleet_RunHealthCheck",
+        "RunHealthCheck",
+        "FleetState"
+      ],
+      "line_range": "1-500"
+    },
+    {
+      "path": "src/V12_002.SIMA.Fleet.cs",
+      "read_at": "2026-06-03T14:45:30.000Z",
+      "read_type": "symbol",
+      "symbols_accessed": [
+        "ShouldSkipFleet_RunHealthCheck"
+      ],
+      "line_range": "245-289"
+    },
+    {
+      "path": "src/V12_002.SIMA.FleetHealthGuard.cs",
+      "read_at": "2026-06-03T15:12:00.000Z",
+      "read_type": "full",
+      "symbols_accessed": [],
+      "line_range": ""
+    }
+  ],
+  "symbols_explored": [
+    {
+      "symbol_id": "src/V12_002.SIMA.Fleet.cs::ShouldSkipFleet_RunHealthCheck#function",
+      "symbol_name": "ShouldSkipFleet_RunHealthCheck",
+      "file": "src/V12_002.SIMA.Fleet.cs",
+      "explored_at": "2026-06-03T14:45:30.000Z"
+    },
+    {
+      "symbol_id": "src/V12_002.SIMA.Fleet.cs::RunHealthCheck#function",
+      "symbol_name": "RunHealthCheck",
+      "file": "src/V12_002.SIMA.Fleet.cs",
+      "explored_at": "2026-06-03T14:50:12.000Z"
+    },
+    {
+      "symbol_id": "src/V12_002.SIMA.Fleet.cs::FleetState#class",
+      "symbol_name": "FleetState",
+      "file": "src/V12_002.SIMA.Fleet.cs",
+      "explored_at": "2026-06-03T15:05:45.000Z"
+    }
+  ],
+  "searches_performed": [
+    {
+      "query": "ShouldSkipFleet",
+      "search_type": "search_symbols",
+      "result_count": 3,
+      "searched_at": "2026-06-03T14:35:00.000Z"
+    },
+    {
+      "query": "FleetHealthGuard",
+      "search_type": "search_symbols",
+      "result_count": 1,
+      "searched_at": "2026-06-03T15:10:30.000Z"
+    },
+    {
+      "query": "lock(",
+      "search_type": "search_text",
+      "result_count": 0,
+      "searched_at": "2026-06-03T15:20:15.000Z"
+    }
+  ],
+  "token_budget": {
+    "initial": 200000,
+    "consumed": 45230,
+    "remaining": 154770,
+    "budget_warnings": []
+  }
+}

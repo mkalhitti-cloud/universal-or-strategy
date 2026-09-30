@@ -1,0 +1,143 @@
+CODACY ERROR-PRONE ISSUES - MANUAL EXPORT
+Total: 114 issues
+Category: Error prone
+Severity: HIGH (111), MEDIUM (3)
+
+=== PATTERN BREAKDOWN ===
+1. Avoid Catching System.Exception Directly: 79 issues
+2. Enforce Correct Signature for Event Handlers: 9 issues
+3. Enforce default case in switch/select statements: 8 issues
+4. Avoid Blocking Calls to Async Methods: 8 issues
+5. Avoid Sequential Tests Checking the Same Condition: 3 issues
+6. Specify Culture for String Operations: 3 issues
+7. Others: 4 issues
+
+=== DETAILED ISSUES ===
+
+PATTERN 1: Avoid Catching System.Exception Directly (79 issues)
+- src/V12_002.Orders.Callbacks.AccountOrders.cs:171
+- src/V12_002.SIMA.Execution.cs:115
+- src/V12_002.UI.IPC.Commands.Misc.cs:234
+- src/V12_002.SIMA.Dispatch.cs:130
+- src/V12_002.REAPER.Audit.cs:607
+- src/V12_002.REAPER.Audit.cs:821
+- sandbox/R28_MmioSpscRing/MmioSpscRing.cs:157
+- src/V12_002.REAPER.Audit.cs:363
+- src/V12_002.UI.Snapshot.cs:46
+- src/V12_002.REAPER.cs:174
+- src/V12_002.StickyState.cs:122
+- src/V12_002.Entries.MOMO.cs:267
+- tests/Epic1DeltaTests.cs:57
+- src/V12_002.UI.Panel.Construction.cs:344
+- src/V12_002.LogicAudit.cs:501
+- src/V12_002.UI.IPC.Commands.Fleet.cs:424
+- src/V12_002.Photon.MmioMirror.cs:120
+- src/V12_002.UI.Callbacks.cs:122
+- src/V12_002.Orders.Management.Flatten.cs:184
+- src/V12_002.Telemetry.cs:226
+- src/V12_002.REAPER.Audit.cs:235
+- src/V12_002.UI.Panel.Helpers.cs:417
+- src/V12_002.SIMA.Dispatch.cs:80
+- src/V12_002.Lifecycle.cs:443
+- src/V12_002.Lifecycle.cs:84
+- src/V12_002.SIMA.cs:249
+- src/V12_002.Orders.Callbacks.AccountOrders.cs:681
+- benchmarks/StandaloneBench.cs:103
+- sandbox/R28_MmioSpscRing/MmioSpscRing.cs:156
+- src/V12_002.BarUpdate.cs:339
+- src/V12_002.Orders.Management.Flatten.cs:544
+- src/V12_002.DrawingHelpers.cs:132
+- src/V12_002.Orders.Callbacks.cs:254
+- src/V12_002.UI.Panel.Lifecycle.cs:90
+- src/V12_002.Orders.Management.StopSync.cs:168
+- src/V12_002.UI.IPC.Server.cs:203
+- src/V12_002.Entries.RMA.cs:69
+- src/V12_002.UI.Compliance.cs:450
+- tests/ThreadStaticSafetyTest.cs:108
+- src/V12_002.Entries.Trend.cs:199
+- src/V12_002.Orders.Management.Flatten.cs:363
+- src/V12_002.Trailing.Breakeven.cs:62
+- src/V12_002.MetadataGuard.cs:45
+- src/V12_002.REAPER.Repair.cs:284
+- src/V12_002.Trailing.StopUpdate.cs:135
+- src/V12_002.SIMA.Lifecycle.cs:69
+- src/V12_002.Orders.Callbacks.Propagation.cs:793
+- src/V12_002.UI.IPC.Server.cs:75
+- src/V12_002.Lifecycle.cs:103
+- src/V12_002.UI.IPC.Server.cs:102
+- sandbox/R28_MmioSpscRing/Program.cs:37
+- src/V12_002.REAPER.NakedStop.cs:68
+- src/V12_002.Orders.Management.cs:84
+- src/V12_002.UI.Compliance.cs:181
+- tests/T04_SnapshotPattern_ConcurrentModification_Test.cs:170
+- src/V12_002.Safety.Watchdog.cs:72
+- src/V12_002.Lifecycle.cs:907
+- src/V12_002.SIMA.Fleet.cs:67
+- src/V12_002.UI.Sizing.cs:307
+- src/V12_002.UI.IPC.cs:315
+- src/V12_002.UI.Compliance.cs:892
+- src/V12_002.REAPER.Audit.cs:318
+- src/V12_002.Orders.Callbacks.Propagation.cs:885
+- src/V12_002.Trailing.StopUpdate.cs:501
+- src/SignalBroadcaster.cs:219
+- src/V12_002.Orders.Management.StopSync.cs:669
+- src/V12_002.Entries.Retest.cs:314
+- src/V12_002.SIMA.Flatten.cs:97
+- src/V12_002.Orders.Management.Cleanup.cs:628
+- src/V12_002.Orders.Callbacks.Execution.cs:58
+- src/V12_002.Lifecycle.cs:177
+- src/V12_002.Entries.FFMA.cs:104
+- sandbox/R28_MmioSpscRing/MmioSpscRing.cs:158
+- src/V12_002.StickyState.cs:134
+- src/V12_002.SIMA.Execution.cs:740
+- src/V12_002.Orders.Callbacks.Propagation.cs:455
+- src/V12_002.Orders.Management.cs:361
+- src/V12_002.REAPER.Repair.cs:286
+- src/V12_002.Entries.OR.cs:343
+
+PATTERN 2: Enforce Correct Signature for Event Handlers (9 issues)
+- src/SignalBroadcaster.cs:164 - OnTargetAction
+- src/SignalBroadcaster.cs:174 - OnBreakevenRequest
+- src/SignalBroadcaster.cs:194 - OnExternalCommand
+- src/SignalBroadcaster.cs:184 - OnEntryUpdate
+- src/SignalBroadcaster.cs:179 - OnStopUpdate
+- src/SignalBroadcaster.cs:169 - OnFlattenAll
+- src/SignalBroadcaster.cs:159 - OnTrailUpdate
+- src/SignalBroadcaster.cs:189 - OnOrderCancel
+- src/SignalBroadcaster.cs:154 - OnTradeSignal
+
+PATTERN 3: Enforce default case in switch/select statements (8 issues)
+- src/V12_002.Orders.Management.StopSync.cs:209
+- src/V12_002.UI.Panel.StateSync.cs:133
+- src/V12_002.PositionInfo.cs:339
+- src/V12_002.UI.IPC.cs:473
+- src/V12_002.UI.Callbacks.cs:601
+- src/V12_002.UI.Panel.Construction.cs:337
+- src/V12_002.UI.Callbacks.cs:457
+- src/V12_002.Symmetry.BracketFSM.cs:314
+
+PATTERN 4: Avoid Blocking Calls to Async Methods (8 issues)
+- tests/T04_SnapshotPattern_ConcurrentModification_Test.cs:101 - Task.Wait()
+- tests/T04_SnapshotPattern_ConcurrentModification_Test.cs:296 - Task.Wait()
+- tests/V12_Performance.Tests/Core/FSMActorTests.cs:78 - Task.WhenAll().Wait()
+- tests/T04_SnapshotPattern_ConcurrentModification_Test.cs:159 - Task.Wait()
+- tests/T04_SnapshotPattern_ConcurrentModification_Test.cs:223 - Task.Wait()
+- tests/ThreadStaticSafetyTest.cs:228 - Task.WaitAll()
+- tests/Epic1DeltaTests.cs:179 - Task.WaitAll()
+- tests/ThreadStaticSafetyTest.cs:233 - Task.Result
+
+PATTERN 5: Avoid Sequential Tests Checking the Same Condition (3 issues - MEDIUM)
+- src/V12_002.Trailing.cs:113
+- src/V12_002.StickyState.cs:97
+- src/V12_002.Orders.Callbacks.Execution.cs:414
+
+PATTERN 6: Specify Culture for String Operations (3 issues)
+- src/V12_002.StickyState.cs:454 - IndexOf
+- src/V12_002.StickyState.cs:331 - ToLower
+- src/V12_002.StickyState.cs:517 - IndexOf
+
+PATTERN 7: Others (4 issues)
+- src/V12_002.DrawingHelpers.cs:59 - Provide DateTimeKind
+- src/V12_002.UI.Compliance.cs:778 - Remove unnecessary string.Format
+- tests/ThreadStaticSafetyTest.cs:299 - Do not lock on local variable
+- tests/Epic1DeltaTests.cs:150 - Verify index/key (MEDIUM)

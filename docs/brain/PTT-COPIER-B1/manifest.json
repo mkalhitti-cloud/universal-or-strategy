@@ -1,0 +1,25 @@
+{
+  "epic": "PTT-COPIER-B1",
+  "spec": "specs/002-trade-copier-spec.html",
+  "phase": "complete",
+  "pipelineComplete": "2026-07-06",
+  "tickets": {
+    "T1": { "file": "CopyEngine.cs",        "status": "verify-pass", "lines": 346 },
+    "T2": { "file": "TradeCopierPanel.cs",  "status": "verify-pass", "lines": 174 },
+    "T3": { "file": "TradeCopierWindow.cs", "status": "verify-pass", "lines": 247 }
+  },
+  "finalReview": "pass",
+  "finalReviewChecks": "31/31",
+  "scans": {
+    "SCAN-01-lock":       "PASS-0",
+    "SCAN-02-nonAscii":   "PASS-0",
+    "SCAN-03-FontFamily": "PASS-0",
+    "SCAN-04-hexColor":   "PASS-0",
+    "SCAN-05-PTTprefix":  "PASS-9",
+    "SCAN-06-DateTimeNow":"PASS-0",
+    "SCAN-07-sealedWindow":"PASS-0"
+  },
+  "deferredBacklog": "docs/brain/PTT-COPIER-B1/06-deferred-backlog.md",
+  "openItems": 5,
+  "note": "B1 plan/review/tickets authored 2026-07-06. Source files on disk reflect B5 state (424/251/462/264 lines) from prior session work B1-B5."
+}

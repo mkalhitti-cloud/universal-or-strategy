@@ -1,0 +1,4 @@
+﻿CopyEngine.cs => 1.41
+TradeCopierPanel.cs => 3.45
+TradeCopierWindow.cs => 5.81
+TradeCopierAddOn.cs => 7.91

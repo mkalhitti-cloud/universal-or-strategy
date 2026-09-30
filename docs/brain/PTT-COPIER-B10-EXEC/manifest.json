@@ -1,0 +1,160 @@
+{
+  "phase": "pending",
+  "spec": "specs/002-trade-copier-spec.html",
+  "tickets": {},
+  "epic": "PTT-COPIER-B10-EXEC",
+  "lamport_events": [
+    {
+      "clock": 1,
+      "phase": "architect",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-11T02:22:19.825370+00:00",
+      "result": "PLAN_COMPLETE"
+    },
+    {
+      "clock": 2,
+      "phase": "plan_review",
+      "event_type": "phase_failed",
+      "status": "failed",
+      "timestamp": "2026-07-11T02:25:39.208766+00:00",
+      "reason": "REVIEW_FAIL: 3 violations \u2014 T1 cancel+replace wrong (spec confirms acc.Change works), T2 wrong event/type/field, GAP-002b disposition wrong"
+    },
+    {
+      "clock": 3,
+      "phase": "architect",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-11T02:31:54.213482+00:00",
+      "result": "PLAN_COMPLETE"
+    },
+    {
+      "clock": 4,
+      "phase": "plan_review",
+      "event_type": "phase_failed",
+      "status": "failed",
+      "timestamp": "2026-07-11T02:36:44.823788+00:00",
+      "reason": "REVIEW_FAIL Cycle 2: VIOLATION-4 T4 missing ATR overlay UI methods + xUnit tests"
+    },
+    {
+      "clock": 5,
+      "phase": "architect",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-11T02:40:39.372752+00:00",
+      "result": "PLAN_COMPLETE"
+    },
+    {
+      "clock": 6,
+      "phase": "plan_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-11T02:45:11.068008+00:00",
+      "result": "REVIEW_PASS"
+    },
+    {
+      "clock": 7,
+      "phase": "tickets",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-11T02:49:55.668943+00:00",
+      "result": "TICKETS_COMPLETE"
+    },
+    {
+      "clock": 8,
+      "phase": "ticket_review",
+      "event_type": "phase_failed",
+      "status": "failed",
+      "timestamp": "2026-07-11T02:55:12.366288+00:00",
+      "reason": "TICKET_REVIEW_FAIL: duplicate lock scan (missing CYC scan), T2 missing AddOnWindow.cs, T4 StartAtrEngine static compiler error"
+    },
+    {
+      "clock": 9,
+      "phase": "tickets",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-11T02:58:23.210701+00:00",
+      "result": "TICKETS_COMPLETE"
+    },
+    {
+      "clock": 10,
+      "phase": "ticket_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-11T03:01:36.998573+00:00",
+      "result": "TICKET_REVIEW_PASS"
+    },
+    {
+      "clock": 11,
+      "phase": "engineer_T1",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-11T03:25:24.700823+00:00",
+      "result": "BUILD_PASS"
+    },
+    {
+      "clock": 12,
+      "phase": "verifier_T1",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-11T03:31:28.646459+00:00",
+      "result": "VERIFY_PASS"
+    },
+    {
+      "clock": 13,
+      "phase": "engineer_T2",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-11T03:54:54.583862+00:00",
+      "result": "BUILD_PASS"
+    },
+    {
+      "clock": 14,
+      "phase": "verifier_T2",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-11T04:05:23.944791+00:00",
+      "result": "VERIFY_PASS"
+    },
+    {
+      "clock": 15,
+      "phase": "engineer_T3",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-11T04:17:32.214319+00:00",
+      "result": "BUILD_PASS"
+    },
+    {
+      "clock": 16,
+      "phase": "verifier_T3",
+      "event_type": "phase_failed",
+      "status": "failed",
+      "timestamp": "2026-07-11T04:39:23.642503+00:00",
+      "reason": "VERIFY_FAIL: 7 T3 xUnit [Fact] tests absent from CopyEngineTests.cs"
+    },
+    {
+      "clock": 17,
+      "phase": "engineer_T3",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-11T04:49:30.233268+00:00",
+      "result": "BUILD_PASS"
+    },
+    {
+      "clock": 18,
+      "phase": "verifier_T3",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-11T05:37:13.305533+00:00",
+      "result": "VERIFY_PASS"
+    },
+    {
+      "clock": 19,
+      "phase": "final_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-11T06:05:07.844507+00:00",
+      "result": "FINAL_PASS"
+    }
+  ]
+}

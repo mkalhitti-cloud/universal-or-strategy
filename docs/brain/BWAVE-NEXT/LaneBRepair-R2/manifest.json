@@ -1,0 +1,29 @@
+{
+  "epic": "BWAVE-NEXT LaneBRepair-R2",
+  "brain_dir": "docs/brain/BWAVE-NEXT/LaneBRepair-R2",
+  "branch": "bwave-next-lane-b",
+  "pr": 43,
+  "source_file": "src/PropTraderTools/CopyEngine.cs",
+  "created": "2026-09-05",
+  "completed": "2026-09-05",
+  "phases": {
+    "Ph1": { "status": "COMPLETE", "artifact": "02-architecture-plan.md", "result": "PLAN_COMPLETE" },
+    "Ph2": { "status": "COMPLETE", "artifact": "02-plan-review.md", "result": "REVIEW_PASS", "cycles": 3 },
+    "Ph3": { "status": "COMPLETE", "artifact": "04-tickets.md", "result": "TICKETS_COMPLETE" },
+    "Ph3_5": { "status": "COMPLETE", "artifact": "04-ticket-review.md", "result": "TICKET_REVIEW_PASS" },
+    "Ph4a_T1": { "status": "COMPLETE", "artifact": "ticket-1-completion.md", "result": "BUILD_PASS" },
+    "Ph4b_T1": { "status": "COMPLETE", "artifact": "ticket-1-verification.md", "result": "VERIFY_PASS" },
+    "Ph5": { "status": "COMPLETE", "artifacts": ["05-final-review.md", "06-deferred-backlog.md"], "result": "FINAL_PASS" }
+  },
+  "changes_shipped": {
+    "R2-F2": "CopyEngine.cs line 6533 — _pendingDispatchDrains indexer overwrite replaced with TryAdd guard",
+    "R2-V1": "CopyEngine.cs lines 867-868 — TryReplaceOnAtmCancel guarded against drain-active accounts",
+    "R2-F1": "STALE — static lambda not present in source",
+    "R2-V2": "STALE — both entryCandidates predicates confirmed present"
+  },
+  "deferred": {
+    "DW-NEXT-B-01": "OPEN (carried forward)",
+    "DW-NEXT-B-02": "OPEN (carried forward)",
+    "DW-NEXT-B-03": "OPEN (new — behavioral test coverage gap)"
+  }
+}

@@ -1,0 +1,59 @@
+{
+    "epic": "PTT-COPIER-B10",
+    "phase": "pending",
+    "spec": "specs/002-trade-copier-spec.html",
+    "b9_baseline_tests": 60,
+    "b10_target_tests": 80,
+    "wave_workspace": "c:\\WSGTA\\universal-or-strategy\\src\\PropTraderTools\\",
+    "director_workspace": "c:\\WSGTA\\universal-or-strategy-director\\",
+    "sim101_prerequisites": {
+        "GAP-001d": {
+            "file": "docs/brain/PTT-COPIER-B9/GAP-001-trailing-stop-order-type-preservation.md",
+            "status": "PENDING",
+            "blocks": ["T1-GAP-001a", "T1-GAP-001b", "T1-GAP-002b"]
+        },
+        "GAP-002": {
+            "file": "docs/brain/PTT-COPIER-B9/GAP-002-pending-be-and-trailing-stop-compatibility.md",
+            "status": "PENDING",
+            "blocks": ["T2-GAP-002a"]
+        }
+    },
+    "tickets": {
+        "T1": {
+            "feature": "Trailing Stop Policy (Mode 2 + BE + detection helpers)",
+            "deferred_items": ["DW-B9-GAP-001a", "DW-B9-GAP-001b", "DW-B10-GAP-002b"],
+            "priority": "P1",
+            "new_tests": 7,
+            "test_range": "T-B10-01..07",
+            "build_gate": "67 tests",
+            "status": "pending"
+        },
+        "T2": {
+            "feature": "Pending BE Price Watcher",
+            "deferred_items": ["DW-B10-GAP-002a"],
+            "priority": "P1",
+            "new_tests": 6,
+            "test_range": "T-B10-08..13",
+            "build_gate": "73 tests",
+            "status": "pending"
+        },
+        "T3": {
+            "feature": "Tighten Stop button (one-shot)",
+            "deferred_items": ["DW-B9-GAP-001c"],
+            "priority": "P2",
+            "new_tests": 4,
+            "test_range": "T-B10-14..17",
+            "build_gate": "77 tests",
+            "status": "pending"
+        },
+        "T4": {
+            "feature": "NT8 chart attachment API + ATR box visualization",
+            "deferred_items": ["DW-B9-02", "DW-B9-01"],
+            "priority": "P1/P2",
+            "new_tests": 3,
+            "test_range": "T-B10-18..20",
+            "build_gate": "80 tests",
+            "status": "pending"
+        }
+    }
+}

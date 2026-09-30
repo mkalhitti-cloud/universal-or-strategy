@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-06-03T19:30:00Z",
+  "entries": [
+    {
+      "query": "CSRF protection",
+      "search_type": "search_symbols",
+      "verdict": "no_implementation_found",
+      "searched_at": "2026-06-03T19:30:00Z",
+      "searched_by": "Advanced mode",
+      "related_files": [
+        "src/V12_002.cs",
+        "src/V12_002.Atm.cs",
+        "src/V12_002.DrawingHelpers.cs"
+      ],
+      "notes": "Searched for CSRF token validation, anti-forgery middleware, and request verification. No implementation found in codebase. This is a NinjaTrader strategy, not a web application, so CSRF protection is not applicable."
+    },
+    {
+      "query": "rate limiting",
+      "search_type": "search_symbols",
+      "verdict": "no_implementation_found",
+      "searched_at": "2026-06-03T19:30:00Z",
+      "searched_by": "Bob CLI",
+      "related_files": [
+        "src/V12_002.cs",
+        "src/V12_002.OrderManagement.cs"
+      ],
+      "notes": "Searched for rate limiter, throttle, request limit patterns. No explicit rate limiting implementation found. Order management uses FSM/Actor pattern for sequential processing, which provides implicit rate control through queue-based execution."
+    }
+  ]
+}

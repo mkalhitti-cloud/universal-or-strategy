@@ -1,0 +1,22 @@
+{
+  "epic": "BWAVE-NEXT-LaneBRepair-R4",
+  "branch": "bwave-next-lane-b",
+  "pr": 43,
+  "brain_dir": "docs/brain/BWAVE-NEXT/LaneBRepair-R4/",
+  "phases": {
+    "Ph1": { "status": "COMPLETE", "artifact": "02-architecture-plan.md" },
+    "Ph2": { "status": "COMPLETE", "artifact": "02-plan-review.md", "gate": "REVIEW_PASS" },
+    "Ph3": { "status": "COMPLETE", "artifact": "04-tickets.md" },
+    "Ph3.5": { "status": "COMPLETE", "artifact": "04-ticket-review.md", "gate": "TICKET_REVIEW_PASS" },
+    "Ph4a": { "status": "COMPLETE", "artifact": "ticket-1-completion.md", "gate": "BUILD_PASS" },
+    "Ph4b": { "status": "COMPLETE", "artifact": "ticket-1-verification.md", "gate": "VERIFY_PASS" },
+    "Ph5": { "status": "COMPLETE", "artifact": "05-final-review.md", "gate": "FINAL_PASS" }
+  },
+  "deferred_backlog": "docs/brain/BWAVE-NEXT/LaneBRepair-R4/06-deferred-backlog.md",
+  "prior_backlog": "docs/brain/BWAVE-NEXT/LaneBRepair-R2/06-deferred-backlog.md",
+  "finding": "R4-F1 STALE -- cleanup already after submit (R3-F2 fix confirmed)",
+  "production_change": false,
+  "test_added": "src/PropTraderTools/Tests/BwaveNextLaneBRepairR4Tests.cs",
+  "pipeline_status": "PIPELINE_COMPLETE",
+  "completed": "2026-09-05"
+}

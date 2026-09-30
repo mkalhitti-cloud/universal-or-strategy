@@ -1,0 +1,148 @@
+{
+  "wave": 7,
+  "description": "Wave 7 cluster PRs \u2014 CYC reduction, 161 methods to CYC<=8",
+  "created": "2026-06-22",
+  "phase7_status": "complete",
+  "phase7_completed": "2026-07-04",
+  "phase7_lamport_clock": 231,
+  "phase7_notes": "All 5 lanes complete. PR#26 APPROVED. PRs #20-24 gates GREEN, @coderabbitai review triggered. Director must dismiss stale CR CHANGES_REQUESTED reviews on GitHub to unblock merges.",
+  "debt_summary": {
+    "deferred_debt_entries": 18,
+    "needs_director_entries": 5,
+    "okf_violations_remaining": 45
+  },
+  "cluster_prs": [
+    {
+      "pr": 20,
+      "branch": "wave7/pr1-s2-execution",
+      "cluster": "S2 Execution Engine",
+      "files": 12,
+      "repairs_committed": true,
+      "gate_status": "WARN_153k_raw_129k_stripped",
+      "lane": "L1"
+    },
+    {
+      "pr": 21,
+      "branch": "wave7/pr2-s3-ui-ipc",
+      "cluster": "S3 UI & IPC",
+      "files": 14,
+      "repairs_committed": true,
+      "gate_status": "PASS",
+      "lane": "L2"
+    },
+    {
+      "pr": 22,
+      "branch": "wave7/pr3-s1-sima-core",
+      "cluster": "S1 SIMA Core",
+      "files": 3,
+      "repairs_committed": true,
+      "gate_status": "PASS",
+      "lane": "L3"
+    },
+    {
+      "pr": 23,
+      "branch": "wave7/pr4-s4-reaper-defense",
+      "cluster": "S4 REAPER Defense",
+      "files": 3,
+      "repairs_committed": true,
+      "gate_status": "PASS",
+      "lane": "L4"
+    },
+    {
+      "pr": 24,
+      "branch": "wave7/pr5-s5-signals",
+      "cluster": "S5 Signals & Entries",
+      "files": 6,
+      "repairs_committed": true,
+      "gate_status": "PASS",
+      "lane": "L5"
+    },
+    {
+      "pr": 25,
+      "branch": "wave7/pr6-s6-kernel-infra",
+      "cluster": "S6 Kernel Infra",
+      "files": 4,
+      "repairs_committed": true,
+      "gate_status": "PASS",
+      "lane": "L6",
+      "status": "closed_contaminated",
+      "replaced_by": 26
+    },
+    {
+      "pr": 26,
+      "branch": "wave7/pr6-s6-kernel-infra-v2",
+      "cluster": "S6 Kernel Infra",
+      "files": 4,
+      "replaces": 25,
+      "gate_status": "CLEAN",
+      "lane": "L6"
+    }
+  ],
+  "lanes": {
+    "L1": {
+      "pr": 20,
+      "branch": "wave7/pr1-s2-execution",
+      "status": "complete",
+      "worktree": "/tmp/wt-pr20",
+      "completed": "2026-07-04",
+      "cr_state": "CHANGES_REQUESTED_STALE",
+      "fixed_findings": 11,
+      "gate_status": "PASS",
+      "final_commit": "49b7fc96",
+      "needs_director": ["F6-PropagateMasterTargetMove", "NEW-F5-OrderId-fallback", "NEW-F6-cascade-suppression", "NEW-F7-ghost-order-window", "NEW-F3-snapshot-dedup"],
+      "deferred_debt": ["DD-002", "DD-003", "DD-004", "DD-005", "DD-006", "DD-007", "DD-008"]
+    },
+    "L2": {
+      "pr": 21,
+      "branch": "wave7/pr2-s3-ui-ipc",
+      "status": "complete",
+      "worktree": "/tmp/wt-pr21",
+      "completed": "2026-07-04",
+      "cr_state": "CHANGES_REQUESTED_STALE",
+      "fixed_findings": 2,
+      "sa1204_fixes": ["68ce2559 CancelAll_IsBracketOrder", "69fdad80 IsLongOrShort"],
+      "gate_status": "PASS",
+      "deferred_debt": ["DD-014", "DD-015", "DD-016", "DD-017", "DD-018", "DD-019"]
+    },
+    "L3": {
+      "pr": 22,
+      "branch": "wave7/pr3-s1-sima-core",
+      "status": "complete",
+      "worktree": "/tmp/wt-pr22",
+      "completed": "2026-07-04",
+      "cr_state": "CHANGES_REQUESTED_STALE_status_context_SUCCESS",
+      "fixed_findings": 2,
+      "total_fixed_all_sessions": 9,
+      "deferred_findings": 5,
+      "gate_status": "PASS",
+      "commit": "4e2e211e"
+    },
+    "L4": {
+      "pr": 23,
+      "branch": "wave7/pr4-s4-reaper-defense",
+      "status": "complete",
+      "worktree": "/tmp/wt-pr23",
+      "completed": "2026-07-04",
+      "cr_state": "CHANGES_REQUESTED_STALE",
+      "fixed_findings": 8,
+      "gate_status": "PASS"
+    },
+    "L5": {
+      "pr": 24,
+      "branch": "wave7/pr5-s5-signals",
+      "status": "complete",
+      "worktree": "/tmp/wt-pr24",
+      "completed": "2026-07-04",
+      "cr_state": "COMMENTED",
+      "fixed_findings": 8,
+      "gate_status": "PASS",
+      "gitleaks_status": "SUCCESS"
+    },
+    "L6": {
+      "pr": 26,
+      "branch": "wave7/pr6-s6-kernel-infra-v2",
+      "status": "pending",
+      "worktree": "/tmp/wt-pr25-clean"
+    }
+  }
+}

@@ -1,0 +1,2228 @@
+[
+    {
+        "issueId":  "a119c0ab3d46d416817d5dc9b1c9d469",
+        "resultDataId":  131495993287,
+        "filePath":  "src/V12_002.Orders.Management.Flatten.cs",
+        "fileId":  208660224362,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  68,
+        "message":  "Method V12_002::ManageCIT has 70 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void ManageCIT()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "a794471e38492b3e0724069bc0194fdc",
+        "resultDataId":  131495993241,
+        "filePath":  "src/V12_002.SIMA.Dispatch.cs",
+        "fileId":  208660224349,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  880,
+        "message":  "Method V12_002::Dispatch_PublishLimitEntryToPhoton has 125 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void Dispatch_PublishLimitEntryToPhoton(",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "de217f99de0b76a588f31ead959dbaf7",
+        "resultDataId":  131496794429,
+        "filePath":  "src/V12_002.SIMA.Lifecycle.cs",
+        "fileId":  208660224396,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  408,
+        "message":  "Method V12_002::ClassifyAndRouteFleetOrder has 60 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private ConcurrentDictionary\u003cstring, Order\u003e ClassifyAndRouteFleetOrder(",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "25b55d5babc7c4b64469fd8c801d8689cb68dc4a",
+                           "commiter":  "mkalhitti@gmail.com",
+                           "commiterName":  "mdasdispatch-hash",
+                           "timestamp":  "2026-05-26T21:40:25Z"
+                       }
+    },
+    {
+        "issueId":  "c0fc96785e0e47b5a897ec2e79f0fe35",
+        "resultDataId":  131495993217,
+        "filePath":  "src/V12_002.UI.Panel.StateSync.cs",
+        "fileId":  208660224566,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  271,
+        "message":  "Method V12_002::UpdateComplianceDisplay has a cyclomatic complexity of 15 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void UpdateComplianceDisplay(UIStateSnapshot snapshot)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "9c82e17d4e2be2f67c2004fe7426f2ae",
+        "resultDataId":  131495993309,
+        "filePath":  "src/V12_002.Orders.Callbacks.Propagation.cs",
+        "fileId":  208660224557,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  697,
+        "message":  "Method V12_002::SubmitFollowerReplacement_ReassertExpected has a cyclomatic complexity of 9 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void SubmitFollowerReplacement_ReassertExpected(",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "d54a20cd3de1d2dfc3b218081fad7b21",
+        "resultDataId":  131495993307,
+        "filePath":  "src/V12_002.UI.IPC.Commands.Fleet.cs",
+        "fileId":  208660224374,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  645,
+        "message":  "Method V12_002::TryHandleFleet_MoveTarget has a cyclomatic complexity of 14 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private bool TryHandleFleet_MoveTarget(string action, string[] parts)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "86a99257c24cf54c684ea4229a3a315a",
+        "resultDataId":  131495993132,
+        "filePath":  "src/V12_002.Trailing.Breakeven.cs",
+        "fileId":  208660224527,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  73,
+        "message":  "Method V12_002::MoveStop_SinglePosition has a cyclomatic complexity of 14 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void MoveStop_SinglePosition(",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "fd1ecc949d81f05ee0917e946c976fe8",
+        "resultDataId":  131495993339,
+        "filePath":  "tests/Epic1DeltaTests.cs",
+        "fileId":  208660224558,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  538,
+        "message":  "Method Epic1DeltaTests::ConcurrentDictionary_HighStressMutations_NoKeyNotFoundException has 52 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        public void ConcurrentDictionary_HighStressMutations_NoKeyNotFoundException()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "40fc202625e1e1b21fb780189894f26f",
+        "resultDataId":  131495993390,
+        "filePath":  "src/V12_002.SIMA.Lifecycle.cs",
+        "fileId":  208660224396,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  588,
+        "message":  "Method V12_002::AdoptMasterWorkingOrders has a cyclomatic complexity of 9 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void AdoptMasterWorkingOrders(ref int adoptedCount)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "794cf53821e4082184d132aa7f1bcf3b",
+        "resultDataId":  131495993113,
+        "filePath":  "src/V12_002.SIMA.Fleet.cs",
+        "fileId":  208660224422,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  120,
+        "message":  "Method V12_002::InitializeFollowerBracketFSM has 51 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void InitializeFollowerBracketFSM(",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "57e63d085cefe57fcffd6034aeb478d4b51e91cd",
+                           "commiter":  "mkalhitti@gmail.com",
+                           "commiterName":  "mdasdispatch-hash",
+                           "timestamp":  "2026-05-25T22:25:59Z"
+                       }
+    },
+    {
+        "issueId":  "b70c8a6e270ea9b0cff75c219708e5fd",
+        "resultDataId":  131495993376,
+        "filePath":  "src/V12_002.SIMA.Execution.cs",
+        "fileId":  208660224489,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  686,
+        "message":  "Method RMABracketPrices::ExecuteRMAEntryV2 has 128 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void ExecuteRMAEntryV2(double price, MarketPosition direction, int contracts)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "65a39a7b946419f97283263ce3f93b5c",
+        "resultDataId":  131495993361,
+        "filePath":  "src/V12_002.UI.Panel.Construction.cs",
+        "fileId":  208660224341,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  507,
+        "message":  "Method V12_002::CreateSection0_Identity has 166 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private Border CreateSection0_Identity()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "bcb257c301831def4062545f04901111",
+        "resultDataId":  131495993185,
+        "filePath":  "src/V12_002.SIMA.Lifecycle.cs",
+        "fileId":  208660224396,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  844,
+        "message":  "Method V12_002::HydrateFSM_MapOrderStateToFsmState has a cyclomatic complexity of 9 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private FollowerBracketState HydrateFSM_MapOrderStateToFsmState(OrderState entryState)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "57acae4157d7f2c84de8dfc10f72e977",
+        "resultDataId":  131495993110,
+        "filePath":  "src/V12_002.Trailing.Breakeven.cs",
+        "fileId":  208660224527,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  335,
+        "message":  "Method V12_002::MoveSpecificTarget has a cyclomatic complexity of 11 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void MoveSpecificTarget(int targetNum, double profitPoints)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "98830c1b901dca2ec6b5c3fd9dd445e5",
+        "resultDataId":  131495993159,
+        "filePath":  "src/V12_002.UI.Panel.Helpers.cs",
+        "fileId":  208660224401,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  353,
+        "message":  "Method V12_002::DumpVisualTree has a cyclomatic complexity of 10 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void DumpVisualTree()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "c08e28c3db18cc4eb6de8836b1ea7e83",
+        "resultDataId":  131495993174,
+        "filePath":  "src/V12_002.UI.Panel.Construction.cs",
+        "fileId":  208660224341,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  1000,
+        "message":  "Method V12_002::CreateSection2_Telemetry has 93 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private Border CreateSection2_Telemetry()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "14ede265b6e0c28383b0d8552da14a75",
+        "resultDataId":  131495993350,
+        "filePath":  "src/V12_002.REAPER.Audit.cs",
+        "fileId":  208660224532,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  121,
+        "message":  "Method V12_002::AuditSingleFleetAccount has 64 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private bool AuditSingleFleetAccount(Account acct, bool shouldLog)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "f84f0ad2d621c013194462e9c805d372",
+        "resultDataId":  131495993129,
+        "filePath":  "src/V12_002.Entries.Retest.cs",
+        "fileId":  208660224476,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  329,
+        "message":  "Method V12_002::ExecuteRetestManualEntry has a cyclomatic complexity of 13 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void ExecuteRetestManualEntry(double manualPrice, MarketPosition direction, int contracts)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "419a5552c8bf1d18c9996536ac8a857",
+        "resultDataId":  131495993176,
+        "filePath":  "tests/Epic1DeltaTests.cs",
+        "fileId":  208660224558,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  538,
+        "message":  "Method Epic1DeltaTests::ConcurrentDictionary_HighStressMutations_NoKeyNotFoundException has a cyclomatic complexity of 9 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        public void ConcurrentDictionary_HighStressMutations_NoKeyNotFoundException()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "9991382c8f79bb5b111be0d3c5ff04a8",
+        "resultDataId":  131495993156,
+        "filePath":  "src/V12_002.SIMA.Dispatch.cs",
+        "fileId":  208660224349,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  880,
+        "message":  "Method V12_002::Dispatch_PublishLimitEntryToPhoton has a cyclomatic complexity of 14 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void Dispatch_PublishLimitEntryToPhoton(",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "4e275ec79567c8f97cea32952af49669",
+        "resultDataId":  131495993306,
+        "filePath":  "src/V12_002.Orders.Callbacks.cs",
+        "fileId":  208660224356,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  91,
+        "message":  "Method V12_002::RequestStopCancelLifecycleSafe has a cyclomatic complexity of 12 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void RequestStopCancelLifecycleSafe(string entryName)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "69758f184805c5eb641e3b27cebdaf4a",
+        "resultDataId":  131495993152,
+        "filePath":  "src/V12_002.Lifecycle.cs",
+        "fileId":  208660224424,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  583,
+        "message":  "Method V12_002::Init_SessionLogging has 75 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void Init_SessionLogging(string symbol)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "c954ef6ab702e51e0ff5fc3d038c317a",
+        "resultDataId":  131495993100,
+        "filePath":  "src/V12_002.Orders.Management.Flatten.cs",
+        "fileId":  208660224362,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  487,
+        "message":  "Method V12_002::CancelAllBracketOrdersForPosition has a cyclomatic complexity of 11 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void CancelAllBracketOrdersForPosition(string entryName, PositionInfo pos)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "e149149de0cc8a1f2f8b941951b7f1c2",
+        "resultDataId":  131496794438,
+        "filePath":  "src/V12_002.Orders.Management.Cleanup.cs",
+        "fileId":  208660224417,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  277,
+        "message":  "Method V12_002::ScanAndRemoveGhostReferences has 72 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private (bool foundInDict, string removedLabel, string removedKey) ScanAndRemoveGhostReferences(",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "25b55d5babc7c4b64469fd8c801d8689cb68dc4a",
+                           "commiter":  "mkalhitti@gmail.com",
+                           "commiterName":  "mdasdispatch-hash",
+                           "timestamp":  "2026-05-26T21:40:25Z"
+                       }
+    },
+    {
+        "issueId":  "a10c8578f1c63696120e544e504820f6",
+        "resultDataId":  131495993272,
+        "filePath":  "tests/T04_SnapshotPattern_ConcurrentModification_Test.cs",
+        "fileId":  208660224555,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  177,
+        "message":  "Method T04_SnapshotPattern_ConcurrentModification_Test::Test_SnapshotWithMixedOperations has a cyclomatic complexity of 9 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private static void Test_SnapshotWithMixedOperations(int iterations)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "b9262759b8b1cc6668498ae24ecdd527",
+        "resultDataId":  131496794447,
+        "filePath":  "src/V12_002.UI.IPC.Commands.Config.cs",
+        "fileId":  208660224482,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  37,
+        "message":  "Method V12_002::HandleTrimCommand has 101 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void HandleTrimCommand(string action, string[] parts)",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "8d92c5d2e5b5f61caaa35ef9f6b4d0a3051cf5e2",
+                           "commiter":  "malhitticrypto@gmail.com",
+                           "commiterName":  "malhitticrypto-debug",
+                           "timestamp":  "2026-05-26T03:10:58Z"
+                       }
+    },
+    {
+        "issueId":  "152b875a78db4e1bda26e569490517d8",
+        "resultDataId":  131495993263,
+        "filePath":  "src/V12_002.Trailing.StopUpdate.cs",
+        "fileId":  208660224498,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  510,
+        "message":  "Method V12_002::CalculateStopForLevel has a cyclomatic complexity of 9 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private double CalculateStopForLevel(PositionInfo pos, int level)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "4502f894db38b270fc09fe7d8ef389f5",
+        "resultDataId":  131495993399,
+        "filePath":  "src/V12_002.Orders.Callbacks.Propagation.cs",
+        "fileId":  208660224557,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  82,
+        "message":  "Method V12_002::PropagateMaster_IdentifyMove has a cyclomatic complexity of 15 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private bool PropagateMaster_IdentifyMove(",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "afea85fa4eba104e69a63c970bfc3635",
+        "resultDataId":  131495993115,
+        "filePath":  "src/V12_002.Orders.Management.Cleanup.cs",
+        "fileId":  208660224417,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  359,
+        "message":  "Method V12_002::EvaluateZombiePurgeEligibility has a cyclomatic complexity of 9 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void EvaluateZombiePurgeEligibility(string removedKey)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "7dd5c557a5b43c2575368af2df95d5a8",
+        "resultDataId":  131496794445,
+        "filePath":  "src/V12_002.Orders.Management.Cleanup.cs",
+        "fileId":  208660224417,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  94,
+        "message":  "Method V12_002::CancelAllOrdersForEntry has a cyclomatic complexity of 12 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private (int cancelledStops, int cancelledTargets, int cancelledEntries) CancelAllOrdersForEntry(",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "25b55d5babc7c4b64469fd8c801d8689cb68dc4a",
+                           "commiter":  "mkalhitti@gmail.com",
+                           "commiterName":  "mdasdispatch-hash",
+                           "timestamp":  "2026-05-26T21:40:25Z"
+                       }
+    },
+    {
+        "issueId":  "f9895cbc9f861d109d55e0c4d3979d9e",
+        "resultDataId":  131495993178,
+        "filePath":  "src/V12_002.SIMA.Dispatch.cs",
+        "fileId":  208660224349,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  448,
+        "message":  "Method V12_002::Dispatch_BuildFollowerOrders has 130 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private bool Dispatch_BuildFollowerOrders(",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "19946a2d063fa6aa1234b5980000a566",
+        "resultDataId":  131495993280,
+        "filePath":  "src/V12_002.Orders.Management.Flatten.cs",
+        "fileId":  208660224362,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  68,
+        "message":  "Method V12_002::ManageCIT has a cyclomatic complexity of 21 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void ManageCIT()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "664804fbd053905562b4e27bd8ca39b7",
+        "resultDataId":  131496754227,
+        "filePath":  "src/V12_002.UI.IPC.Server.cs",
+        "fileId":  208660224366,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  451,
+        "message":  "Method V12_002::StopIpcServer has 55 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void StopIpcServer()",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "8d92c5d2e5b5f61caaa35ef9f6b4d0a3051cf5e2",
+                           "commiter":  "malhitticrypto@gmail.com",
+                           "commiterName":  "malhitticrypto-debug",
+                           "timestamp":  "2026-05-26T03:10:58Z"
+                       }
+    },
+    {
+        "issueId":  "d7defa685c2e9c11d9f93f2e546e9f79",
+        "resultDataId":  131496794425,
+        "filePath":  "src/V12_002.Orders.Management.cs",
+        "fileId":  208660224406,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  314,
+        "message":  "Method V12_002::SubmitStopOrderSafe has 87 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private Order SubmitStopOrderSafe(",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "25b55d5babc7c4b64469fd8c801d8689cb68dc4a",
+                           "commiter":  "mkalhitti@gmail.com",
+                           "commiterName":  "mdasdispatch-hash",
+                           "timestamp":  "2026-05-26T21:40:25Z"
+                       }
+    },
+    {
+        "issueId":  "70275b358d4b350926291649cd4bdd38",
+        "resultDataId":  131495993209,
+        "filePath":  "src/V12_002.DrawingHelpers.cs",
+        "fileId":  208660224358,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  36,
+        "message":  "Method V12_002::DrawORBox has a cyclomatic complexity of 12 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void DrawORBox()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "6295c7559e58b4f37f13143319124bc2",
+        "resultDataId":  131495993180,
+        "filePath":  "src/V12_002.UI.Panel.Helpers.cs",
+        "fileId":  208660224401,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  700,
+        "message":  "Method V12_002::FindChartTabGrid has a cyclomatic complexity of 10 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private Grid FindChartTabGrid(DependencyObject child)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "d26721c0e93607c2f8af307e87c500c6",
+        "resultDataId":  131495993149,
+        "filePath":  "src/V12_002.REAPER.Audit.cs",
+        "fileId":  208660224532,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  582,
+        "message":  "Method V12_002::AuditMaster_HandleDesyncFlatten has a cyclomatic complexity of 9 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void AuditMaster_HandleDesyncFlatten(bool shouldLog, int masterActualQty, int masterExpectedQty)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "a9b9e7883a2ffdfdb73d34398ff9d3d0",
+        "resultDataId":  131495993325,
+        "filePath":  "src/V12_002.SIMA.Flatten.cs",
+        "fileId":  208660224450,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  312,
+        "message":  "Method V12_002::EmergencyFlattenSingleFleetAccount has a cyclomatic complexity of 13 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void EmergencyFlattenSingleFleetAccount(Account acct)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "c5127f59fcad349eaa613ee6772580b3",
+        "resultDataId":  131495993200,
+        "filePath":  "src/V12_002.Orders.Callbacks.Propagation.cs",
+        "fileId":  208660224557,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  395,
+        "message":  "Method V12_002::PropagateMasterTargetMove has 68 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void PropagateMasterTargetMove(string fleetEntryName, PositionInfo pos, int targetNum, double newLimit)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "b234066186bab62ede595234cd88ae40",
+        "resultDataId":  131495993236,
+        "filePath":  "tests/ThreadStaticSafetyTest.cs",
+        "fileId":  208660224344,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  270,
+        "message":  "Method ThreadStaticSafetyTest::Test4_ThreadReuseDetection has 102 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private static bool Test4_ThreadReuseDetection()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "685bbb929406726f79d6ac092af74ea8",
+        "resultDataId":  131495993177,
+        "filePath":  "src/V12_002.UI.Panel.Construction.cs",
+        "fileId":  208660224341,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  320,
+        "message":  "Method V12_002::DestroyPanel has a cyclomatic complexity of 16 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void DestroyPanel()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "89864511d4a5a7fb1e3180704994ae17",
+        "resultDataId":  131495993171,
+        "filePath":  "src/V12_002.Symmetry.BracketFSM.cs",
+        "fileId":  208660224500,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  272,
+        "message":  "Method AccountEvent::HandleFsmFilled has a cyclomatic complexity of 13 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void HandleFsmFilled(AccountEvent evt, FollowerBracketFSM fsm)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "91d904ff3d56d3d74549bb9ca9478f35",
+        "resultDataId":  131495993279,
+        "filePath":  "src/V12_002.Orders.Callbacks.cs",
+        "fileId":  208660224356,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  190,
+        "message":  "Method V12_002::ProcessOnOrderUpdate has a cyclomatic complexity of 16 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void ProcessOnOrderUpdate(",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "59571bec2b27d8c322eadeea2ec33568",
+        "resultDataId":  131495993259,
+        "filePath":  "src/V12_002.Trailing.cs",
+        "fileId":  208660224405,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  39,
+        "message":  "Method V12_002::ManageTrailingStops has a cyclomatic complexity of 13 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void ManageTrailingStops()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "7b2dc859a0a74e073c32056f46468ff7",
+        "resultDataId":  131495993290,
+        "filePath":  "src/V12_002.REAPER.Audit.cs",
+        "fileId":  208660224532,
+        "patternInfo":  {
+                            "id":  "Lizard_parameter-count-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  382,
+        "message":  "Method V12_002::AuditFleet_CalculateExpectedActual has 10 parameters (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void AuditFleet_CalculateExpectedActual(",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "64ffc2da2718db4b72f8976916dc4adc",
+        "resultDataId":  131495993163,
+        "filePath":  "src/V12_002.UI.IPC.Commands.Config.cs",
+        "fileId":  208660224482,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  209,
+        "message":  "Method V12_002::TryApplyConfigTarget_Value has a cyclomatic complexity of 17 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private bool TryApplyConfigTarget_Value(string key, string val)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "392f047893dab7fa0f50ba7c0fec7db3",
+        "resultDataId":  131496794436,
+        "filePath":  "src/V12_002.Orders.Management.cs",
+        "fileId":  208660224406,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  176,
+        "message":  "Method V12_002::SubmitTargetOrdersLoop has 122 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void SubmitTargetOrdersLoop(",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "25b55d5babc7c4b64469fd8c801d8689cb68dc4a",
+                           "commiter":  "mkalhitti@gmail.com",
+                           "commiterName":  "mdasdispatch-hash",
+                           "timestamp":  "2026-05-26T21:40:25Z"
+                       }
+    },
+    {
+        "issueId":  "e05e7ec5a9e1555767b26e439a01089a",
+        "resultDataId":  131495993289,
+        "filePath":  "sandbox/R28_MmioSpscRing/Program.cs",
+        "fileId":  208660224574,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  55,
+        "message":  "Method Program::Test1_Roundtrip has a cyclomatic complexity of 11 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private static void Test1_Roundtrip()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "2597431101dd4cc34744c98251c31014",
+        "resultDataId":  131495993253,
+        "filePath":  "src/V12_002.Orders.Management.Cleanup.cs",
+        "fileId":  208660224417,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  409,
+        "message":  "Method V12_002::ClassifyOrphanReason has a cyclomatic complexity of 12 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void ClassifyOrphanReason(Order order, string reason)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "3a02065b0509d5fdfb0897021f51cce6",
+        "resultDataId":  131496088356,
+        "filePath":  "src/V12_002.SIMA.Fleet.cs",
+        "fileId":  208660224422,
+        "patternInfo":  {
+                            "id":  "Lizard_file-nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  1,
+        "message":  "File src/V12_002.SIMA.Fleet.cs has 501 non-comment lines of code",
+        "language":  "CSharp",
+        "lineText":  "// Build 971: SIMA Fleet -- PumpFleetDispatch, ShouldSkipFleetAccount, UnsubscribeFromFleetAccounts",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "57e63d085cefe57fcffd6034aeb478d4b51e91cd",
+                           "commiter":  "mkalhitti@gmail.com",
+                           "commiterName":  "mdasdispatch-hash",
+                           "timestamp":  "2026-05-25T22:25:59Z"
+                       }
+    },
+    {
+        "issueId":  "ac1d3c093ec14754123f2556ac297a6e",
+        "resultDataId":  131495993460,
+        "filePath":  "src/V12_002.Perf.LatencyProbe.cs",
+        "fileId":  208660224397,
+        "patternInfo":  {
+                            "id":  "SonarCSharp_S3990",
+                            "category":  "Compatibility",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "8954dff3-f19c-429c-ac76-c45fa5e73b62",
+                         "name":  "SonarC#"
+                     },
+        "lineNumber":  1,
+        "message":  "Provide a \u0027CLSCompliant\u0027 attribute for assembly \u0027srcassembly.dll\u0027.",
+        "language":  "CSharp",
+        "lineText":  "using System;",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "ce16e0186fabd2db8d204c68f91c9671",
+        "resultDataId":  131495993125,
+        "filePath":  "src/V12_002.DrawingHelpers.cs",
+        "fileId":  208660224358,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  36,
+        "message":  "Method V12_002::DrawORBox has 71 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void DrawORBox()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "521638ac6ebe6ae882fe2dd526aaf5d1",
+        "resultDataId":  131496754226,
+        "filePath":  "src/V12_002.StickyState.cs",
+        "fileId":  208660224567,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  441,
+        "message":  "Method StateSnapshot::DeserializeSnapshot has 57 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private StateSnapshot DeserializeSnapshot(string json)",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "8d92c5d2e5b5f61caaa35ef9f6b4d0a3051cf5e2",
+                           "commiter":  "malhitticrypto@gmail.com",
+                           "commiterName":  "malhitticrypto-debug",
+                           "timestamp":  "2026-05-26T03:10:58Z"
+                       }
+    },
+    {
+        "issueId":  "7d33febfe6c355e446a4e08f5862592e",
+        "resultDataId":  131496794459,
+        "filePath":  "src/V12_002.Symmetry.Follower.cs",
+        "fileId":  208660224490,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  129,
+        "message":  "Method V12_002::SymmetryGuardTryResolveFollower has 103 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private bool SymmetryGuardTryResolveFollower(",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "25b55d5babc7c4b64469fd8c801d8689cb68dc4a",
+                           "commiter":  "mkalhitti@gmail.com",
+                           "commiterName":  "mdasdispatch-hash",
+                           "timestamp":  "2026-05-26T21:40:25Z"
+                       }
+    },
+    {
+        "issueId":  "8f42f021db3b5f373c7874996b247dbc",
+        "resultDataId":  131495993154,
+        "filePath":  "src/V12_002.SIMA.Fleet.cs",
+        "fileId":  208660224422,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  285,
+        "message":  "Method V12_002::DrainAllDispatchQueuesOnAbort has a cyclomatic complexity of 12 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void DrainAllDispatchQueuesOnAbort()",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "57e63d085cefe57fcffd6034aeb478d4b51e91cd",
+                           "commiter":  "mkalhitti@gmail.com",
+                           "commiterName":  "mdasdispatch-hash",
+                           "timestamp":  "2026-05-25T22:25:59Z"
+                       }
+    },
+    {
+        "issueId":  "b1d753bf3bd6296c6cf2fece5cf39e1",
+        "resultDataId":  131496794448,
+        "filePath":  "src/V12_002.SIMA.Lifecycle.cs",
+        "fileId":  208660224396,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  41,
+        "message":  "Method V12_002::ProcessApplySimaState has 51 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void ProcessApplySimaState(bool enabled)",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "8d92c5d2e5b5f61caaa35ef9f6b4d0a3051cf5e2",
+                           "commiter":  "malhitticrypto@gmail.com",
+                           "commiterName":  "malhitticrypto-debug",
+                           "timestamp":  "2026-05-26T03:10:58Z"
+                       }
+    },
+    {
+        "issueId":  "98241de9927d42e7d6402fb1d361836a",
+        "resultDataId":  131496794455,
+        "filePath":  "src/V12_002.Orders.Management.StopSync.cs",
+        "fileId":  208660224398,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  930,
+        "message":  "Method V12_002::ValidateStopPrice has a cyclomatic complexity of 10 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private double ValidateStopPrice(",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "25b55d5babc7c4b64469fd8c801d8689cb68dc4a",
+                           "commiter":  "mkalhitti@gmail.com",
+                           "commiterName":  "mdasdispatch-hash",
+                           "timestamp":  "2026-05-26T21:40:25Z"
+                       }
+    },
+    {
+        "issueId":  "5fa124ae93e5f8d23e794bf0747a67c",
+        "resultDataId":  131495994031,
+        "filePath":  "src/V12_002.PositionInfo.cs",
+        "fileId":  208660224418,
+        "patternInfo":  {
+                            "id":  "SonarCSharp_S3459",
+                            "category":  "BestPractice",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "8954dff3-f19c-429c-ac76-c45fa5e73b62",
+                         "name":  "SonarC#"
+                     },
+        "lineNumber":  41,
+        "message":  "Remove unassigned field \u0027T1Contracts\u0027, or set its value.",
+        "language":  "CSharp",
+        "lineText":  "            public int T1Contracts;   // v5.13: 20% - Fixed 1pt quick profit",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "f0d227d40fbfa881b84f0a0d4f6b32c5",
+        "resultDataId":  131495993124,
+        "filePath":  "src/V12_002.Entries.FFMA.cs",
+        "fileId":  208660224468,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  114,
+        "message":  "Method V12_002::ExecuteFFMAEntry has a cyclomatic complexity of 14 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void ExecuteFFMAEntry(MarketPosition direction, int contracts)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "8b7215068a7ca19f7fd7d6ad53c57f3c",
+        "resultDataId":  131495993120,
+        "filePath":  "src/V12_002.Orders.Callbacks.Propagation.cs",
+        "fileId":  208660224557,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  296,
+        "message":  "Method V12_002::IsValidTradeTypeToken has a cyclomatic complexity of 13 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private bool IsValidTradeTypeToken(string token)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "a3102af2aa7f32d5bb5fc312b62cd49e",
+        "resultDataId":  131496794430,
+        "filePath":  "src/V12_002.Symmetry.Follower.cs",
+        "fileId":  208660224490,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  17,
+        "message":  "Method V12_002::SymmetryGuardOnFollowerFill has 60 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private bool SymmetryGuardOnFollowerFill(",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "25b55d5babc7c4b64469fd8c801d8689cb68dc4a",
+                           "commiter":  "mkalhitti@gmail.com",
+                           "commiterName":  "mdasdispatch-hash",
+                           "timestamp":  "2026-05-26T21:40:25Z"
+                       }
+    },
+    {
+        "issueId":  "20246b4710945aaf72111d00dbc468",
+        "resultDataId":  131495993363,
+        "filePath":  "src/V12_002.UI.Panel.Helpers.cs",
+        "fileId":  208660224401,
+        "patternInfo":  {
+                            "id":  "Lizard_file-nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  1,
+        "message":  "File src/V12_002.UI.Panel.Helpers.cs has 681 non-comment lines of code",
+        "language":  "CSharp",
+        "lineText":  "// Build 1105: V12_001 panel port -- factories + Chart Trader discovery",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "c5037df1df40fcc15ace4bba0a7eb684",
+        "resultDataId":  131495993331,
+        "filePath":  "src/V12_002.Symmetry.Follower.cs",
+        "fileId":  208660224490,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  285,
+        "message":  "Method V12_002::SymmetryGuardSubmitFollowerBracket has 79 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void SymmetryGuardSubmitFollowerBracket(string fleetEntryName, PositionInfo pos)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "539d1f6f24e6c652ac16d17bf53f656c",
+        "resultDataId":  131496794480,
+        "filePath":  "src/V12_002.LogicAudit.cs",
+        "fileId":  208660224505,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  406,
+        "message":  "Method V12_002::AuditCase9_ReaperDesync has 57 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void AuditCase9_ReaperDesync()",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "8d92c5d2e5b5f61caaa35ef9f6b4d0a3051cf5e2",
+                           "commiter":  "malhitticrypto@gmail.com",
+                           "commiterName":  "malhitticrypto-debug",
+                           "timestamp":  "2026-05-26T03:10:58Z"
+                       }
+    },
+    {
+        "issueId":  "b40688bf72134a8336ed194d7bade17",
+        "resultDataId":  131496794437,
+        "filePath":  "src/V12_002.UI.IPC.Commands.Mode.cs",
+        "fileId":  208660224502,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  240,
+        "message":  "Method V12_002::TryHandleRisk_SetTrail has 54 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private bool TryHandleRisk_SetTrail(string action, string[] parts)",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "8d92c5d2e5b5f61caaa35ef9f6b4d0a3051cf5e2",
+                           "commiter":  "malhitticrypto@gmail.com",
+                           "commiterName":  "malhitticrypto-debug",
+                           "timestamp":  "2026-05-26T03:10:58Z"
+                       }
+    },
+    {
+        "issueId":  "bc86223082974615179465a590548365",
+        "resultDataId":  131495993378,
+        "filePath":  "src/V12_002.UI.IPC.Commands.Fleet.cs",
+        "fileId":  208660224374,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  383,
+        "message":  "Method V12_002::TryHandleFleet_LongShort has 71 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private bool TryHandleFleet_LongShort(string action, string cmdId)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "d0afa03af048a407c0bbc9e7955ac0d0",
+        "resultDataId":  131495993126,
+        "filePath":  "src/V12_002.Trailing.Breakeven.cs",
+        "fileId":  208660224527,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  186,
+        "message":  "Method V12_002::FindTargetOrderForPosition has a cyclomatic complexity of 9 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private Order FindTargetOrderForPosition(",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "126f4e3daf453b2348578adc6afde412",
+        "resultDataId":  131495993223,
+        "filePath":  "src/V12_002.Entries.MOMO.cs",
+        "fileId":  208660224339,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  44,
+        "message":  "Method V12_002::ExecuteMOMOEntry has a cyclomatic complexity of 16 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void ExecuteMOMOEntry(double clickPrice, int contracts)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "f4a35ee869454c15352abc7d4a51a068",
+        "resultDataId":  131495993373,
+        "filePath":  "src/V12_002.Lifecycle.cs",
+        "fileId":  208660224424,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  233,
+        "message":  "Method V12_002::OnStateChangeSetDefaults has 100 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void OnStateChangeSetDefaults()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "6a52b7eb0288aea5b215eb6647a81adb",
+        "resultDataId":  131495993258,
+        "filePath":  "src/V12_002.UI.Panel.Handlers.cs",
+        "fileId":  208660224479,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  96,
+        "message":  "Method TargetConfig::AttachExecutionPanelHandlers has a cyclomatic complexity of 12 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void AttachExecutionPanelHandlers()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "b28d96f60c510cc5a7ba84a616472298",
+        "resultDataId":  131495993342,
+        "filePath":  "src/V12_002.UI.Compliance.cs",
+        "fileId":  208660224452,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  717,
+        "message":  "Method V12_002::ProcessQueuedExecution_SyncFlatPosition has a cyclomatic complexity of 13 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void ProcessQueuedExecution_SyncFlatPosition(QueuedAccountExecution item)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "78da4c13be80b41ebb4f04444ba53e82",
+        "resultDataId":  131495993207,
+        "filePath":  "tests/Epic1DeltaTests.cs",
+        "fileId":  208660224558,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  119,
+        "message":  "Method Epic1DeltaTests::Sideband_ConcurrentReleaseAcquire_NoStaleReads has a cyclomatic complexity of 9 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        public void Sideband_ConcurrentReleaseAcquire_NoStaleReads()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "7b4c78f2f9818161ac792cbf1c7d27e8",
+        "resultDataId":  131495993308,
+        "filePath":  "src/V12_002.UI.Panel.StateSync.cs",
+        "fileId":  208660224566,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  331,
+        "message":  "Method V12_002::UpdateTrendIndicator has a cyclomatic complexity of 10 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void UpdateTrendIndicator(UIStateSnapshot snapshot)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "fcf979b91806ee9a44c00ff8e2ad6d19",
+        "resultDataId":  131495993150,
+        "filePath":  "src/V12_002.UI.Compliance.cs",
+        "fileId":  208660224452,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  798,
+        "message":  "Method V12_002::LogApexPerformance has a cyclomatic complexity of 19 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void LogApexPerformance()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "b2a968855e64735f144ab1fa7c5b9c9e",
+        "resultDataId":  131495993360,
+        "filePath":  "src/V12_002.Orders.Management.Cleanup.cs",
+        "fileId":  208660224417,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  550,
+        "message":  "Method V12_002::PurgeGhostOrderReferences has a cyclomatic complexity of 10 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private int PurgeGhostOrderReferences(string reason, HashSet\u003cstring\u003e liveBrokerOrderIds)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "aa83361db40b790874dd93fc6ab5c17a",
+        "resultDataId":  131495993252,
+        "filePath":  "src/V12_002.UI.Panel.Handlers.cs",
+        "fileId":  208660224479,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  689,
+        "message":  "Method TargetConfig::ShowModeSpecificControls has a cyclomatic complexity of 20 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void ShowModeSpecificControls(string mode)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "427b9285ef052263c9ea62a343c7d94a",
+        "resultDataId":  131496794442,
+        "filePath":  "src/V12_002.SIMA.Lifecycle.cs",
+        "fileId":  208660224396,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  1056,
+        "message":  "Method V12_002::HydrateFSM_RecoverFromOpenPositions has 52 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void HydrateFSM_RecoverFromOpenPositions(ref int fsmCreated, ref int ordersIndexed)",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "8d92c5d2e5b5f61caaa35ef9f6b4d0a3051cf5e2",
+                           "commiter":  "malhitticrypto@gmail.com",
+                           "commiterName":  "malhitticrypto-debug",
+                           "timestamp":  "2026-05-26T03:10:58Z"
+                       }
+    },
+    {
+        "issueId":  "5301cfcc1fe47f3d08e003236eef8ede",
+        "resultDataId":  131495993250,
+        "filePath":  "src/V12_002.Orders.Callbacks.Propagation.cs",
+        "fileId":  208660224557,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  395,
+        "message":  "Method V12_002::PropagateMasterTargetMove has a cyclomatic complexity of 10 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void PropagateMasterTargetMove(string fleetEntryName, PositionInfo pos, int targetNum, double newLimit)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "c42255d6f0d245c3807d6cf2b4af3af6",
+        "resultDataId":  131495993144,
+        "filePath":  "src/V12_002.UI.Snapshot.cs",
+        "fileId":  208660224431,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  211,
+        "message":  "Method V12_002::PublishUiSnapshot has a cyclomatic complexity of 10 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void PublishUiSnapshot()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "9d1fe00aea7f5b7fab439369b506f8e",
+        "resultDataId":  131495993364,
+        "filePath":  "src/V12_002.Entries.Trend.cs",
+        "fileId":  208660224464,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  432,
+        "message":  "Method V12_002::ExecuteTREND_SubmitLeg1 has 53 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private bool ExecuteTREND_SubmitLeg1(",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "3a5cc81858209d106af2a6476d3cd690",
+        "resultDataId":  131495993189,
+        "filePath":  "src/V12_002.Orders.Callbacks.AccountOrders.cs",
+        "fileId":  208660224488,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  405,
+        "message":  "Method V12_002::ProcessFollowerCancellationSafe has a cyclomatic complexity of 12 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private bool ProcessFollowerCancellationSafe(",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "c639b9026f1d6571a478f1514cbcd98f",
+        "resultDataId":  131495995017,
+        "filePath":  "extract.py",
+        "fileId":  208660224460,
+        "patternInfo":  {
+                            "id":  "PyLintPython3_W0611",
+                            "category":  "UnusedCode",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "31677b6d-4ae0-4f56-8041-606a8d7a8e61",
+                         "name":  "Pylint"
+                     },
+        "lineNumber":  2,
+        "message":  "Unused import os",
+        "language":  "Python",
+        "lineText":  "import os",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "a718c7182f254d03dadb5086e21a5b0b",
+        "resultDataId":  131495993261,
+        "filePath":  "src/V12_002.REAPER.Audit.cs",
+        "fileId":  208660224532,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  624,
+        "message":  "Method V12_002::AuditMaster_HandleNakedPosition has a cyclomatic complexity of 15 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void AuditMaster_HandleNakedPosition(Position masterPos, int masterActualQty, string masterExpectedKey)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "638fa3ded0ea0824edd53caa8bbfea48",
+        "resultDataId":  131495993371,
+        "filePath":  "src/V12_002.SIMA.Fleet.cs",
+        "fileId":  208660224422,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  174,
+        "message":  "Method V12_002::SubmitAndRegisterFleetOrders has a cyclomatic complexity of 11 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void SubmitAndRegisterFleetOrders(",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "57e63d085cefe57fcffd6034aeb478d4b51e91cd",
+                           "commiter":  "mkalhitti@gmail.com",
+                           "commiterName":  "mdasdispatch-hash",
+                           "timestamp":  "2026-05-25T22:25:59Z"
+                       }
+    },
+    {
+        "issueId":  "84e8d821bd8cefdd1a838a982c57c1d2",
+        "resultDataId":  131495993406,
+        "filePath":  "src/V12_002.SIMA.Fleet.cs",
+        "fileId":  208660224422,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  475,
+        "message":  "Method V12_002::ShouldSkipFleet_RunHealthCheck has 81 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void ShouldSkipFleet_RunHealthCheck(Account acct, StringBuilder dispatchLog)",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "57e63d085cefe57fcffd6034aeb478d4b51e91cd",
+                           "commiter":  "mkalhitti@gmail.com",
+                           "commiterName":  "mdasdispatch-hash",
+                           "timestamp":  "2026-05-25T22:25:59Z"
+                       }
+    },
+    {
+        "issueId":  "31926eb4233adc356e297275c7cc2300",
+        "resultDataId":  131495993332,
+        "filePath":  "src/V12_002.Entries.RMA.cs",
+        "fileId":  208660224426,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  128,
+        "message":  "Method V12_002::SubmitTrendSplitBrackets has 148 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private TrendSplitBrackets SubmitTrendSplitBrackets(TrendSplitLevels levels)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "28a61cbe8991e607ab3e5a7ef3b4270a",
+        "resultDataId":  131495993330,
+        "filePath":  "src/V12_002.Safety.Watchdog.cs",
+        "fileId":  208660224445,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  268,
+        "message":  "Method V12_002::CancelDirectFallbackOrders has a cyclomatic complexity of 10 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void CancelDirectFallbackOrders(Account masterAccount, string instrumentName)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "a1cbf370657d40ba94c0c10a24d50efd",
+        "resultDataId":  131495993247,
+        "filePath":  "tests/ThreadStaticSafetyTest.cs",
+        "fileId":  208660224344,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  122,
+        "message":  "Method ThreadStaticSafetyTest::Test2_MultiThreadedIsolation has 63 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private static bool Test2_MultiThreadedIsolation()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "f52e807fe889e84d5ccecd22ad8f6886",
+        "resultDataId":  131495993128,
+        "filePath":  "src/V12_002.Entries.OR.cs",
+        "fileId":  208660224492,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  125,
+        "message":  "Method V12_002::EnterORPosition has 96 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void EnterORPosition(MarketPosition direction, double entryPrice, double stopPrice, int contracts)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "d9ff51d04976c2a2363eec0663d81068",
+        "resultDataId":  131495993188,
+        "filePath":  "src/V12_002.Entries.Trend.cs",
+        "fileId":  208660224464,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  91,
+        "message":  "Method V12_002::ExecuteTRENDEntry has 106 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void ExecuteTRENDEntry(int contracts)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "fff926d65a57d5f4776d4d6e3e5d17d9",
+        "resultDataId":  131495993278,
+        "filePath":  "src/V12_002.Orders.Callbacks.AccountOrders.cs",
+        "fileId":  208660224488,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  559,
+        "message":  "Method V12_002::HandleMatchedFollower_PendingCancelReplace has a cyclomatic complexity of 12 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private bool HandleMatchedFollower_PendingCancelReplace(string matchedEntry, Order order, string acctName)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "38f9d7ec98dd061ea3573d327ebe6cfc",
+        "resultDataId":  131495993231,
+        "filePath":  "src/V12_002.Orders.Callbacks.AccountOrders.cs",
+        "fileId":  208660224488,
+        "patternInfo":  {
+                            "id":  "Lizard_file-nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  1,
+        "message":  "File src/V12_002.Orders.Callbacks.AccountOrders.cs has 922 non-comment lines of code",
+        "language":  "CSharp",
+        "lineText":  "// Build 971: Orders.Callbacks.AccountOrders -- OnAccountOrderUpdate, ProcessAccountOrderQueue, TryFindOrderInPosition, HandleMatchedFollowerOrder, ExecuteFollowerCascadeCleanup, ProcessQueuedAccountOrder",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "c69ee239c67309d337d0825c993c1d59",
+        "resultDataId":  131495993285,
+        "filePath":  "src/V12_002.Orders.Callbacks.cs",
+        "fileId":  208660224356,
+        "patternInfo":  {
+                            "id":  "Lizard_parameter-count-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  190,
+        "message":  "Method V12_002::ProcessOnOrderUpdate has 9 parameters (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void ProcessOnOrderUpdate(",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "4e48d468c9a08f1c85008a815d10601a",
+        "resultDataId":  131495993281,
+        "filePath":  "src/V12_002.Orders.Management.Flatten.cs",
+        "fileId":  208660224362,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  510,
+        "message":  "Method V12_002::SubmitEmergencyFlattenOrder has a cyclomatic complexity of 12 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void SubmitEmergencyFlattenOrder(string entryName, PositionInfo pos)",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "9af7a307eddad8d66e77ce49bc81caac",
+        "resultDataId":  131496754230,
+        "filePath":  "src/V12_002.Orders.Callbacks.Propagation.cs",
+        "fileId":  208660224557,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  866,
+        "message":  "Method V12_002::SubmitFollowerTargetReplacement has 55 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private void SubmitFollowerTargetReplacement(string tFsmKey, FollowerTargetReplaceSpec spec)",
+        "falsePositiveThreshold":  80,
+        "commitInfo":  {
+                           "sha":  "8d92c5d2e5b5f61caaa35ef9f6b4d0a3051cf5e2",
+                           "commiter":  "malhitticrypto@gmail.com",
+                           "commiterName":  "malhitticrypto-debug",
+                           "timestamp":  "2026-05-26T03:10:58Z"
+                       }
+    },
+    {
+        "issueId":  "d5e30839106a3eeefe1fcfc306987e72",
+        "resultDataId":  131495993315,
+        "filePath":  "src/V12_002.Entries.Trend.cs",
+        "fileId":  208660224464,
+        "patternInfo":  {
+                            "id":  "Lizard_nloc-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  604,
+        "message":  "Method V12_002::CreateTRENDPosition has 57 lines of code (limit is 50)",
+        "language":  "CSharp",
+        "lineText":  "        private PositionInfo CreateTRENDPosition(",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "fdd0eb1841252af1aecaab1e1cb816bd",
+        "resultDataId":  131495994573,
+        "filePath":  "tests/ThreadStaticSafetyTest.cs",
+        "fileId":  208660224344,
+        "patternInfo":  {
+                            "id":  "SonarCSharp_S1118",
+                            "category":  "BestPractice",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "8954dff3-f19c-429c-ac76-c45fa5e73b62",
+                         "name":  "SonarC#"
+                     },
+        "lineNumber":  16,
+        "message":  "Add a \u0027protected\u0027 constructor or the \u0027static\u0027 keyword to the class declaration.",
+        "language":  "CSharp",
+        "lineText":  "    public class ThreadStaticSafetyTest",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "d206381d310b6b11af38ce4d6719c860",
+        "resultDataId":  131495993222,
+        "filePath":  "src/V12_002.UI.Panel.Construction.cs",
+        "fileId":  208660224341,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  507,
+        "message":  "Method V12_002::CreateSection0_Identity has a cyclomatic complexity of 12 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private Border CreateSection0_Identity()",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "201174b9a724800d593df83a84960909",
+        "resultDataId":  131495993140,
+        "filePath":  "src/V12_002.SIMA.Dispatch.cs",
+        "fileId":  208660224349,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  448,
+        "message":  "Method V12_002::Dispatch_BuildFollowerOrders has a cyclomatic complexity of 10 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private bool Dispatch_BuildFollowerOrders(",
+        "falsePositiveThreshold":  80
+    },
+    {
+        "issueId":  "a382daae6adc9af5f354f5a8cc5ac823",
+        "resultDataId":  131495993305,
+        "filePath":  "src/V12_002.UI.Snapshot.cs",
+        "fileId":  208660224431,
+        "patternInfo":  {
+                            "id":  "Lizard_ccn-medium",
+                            "category":  "Complexity",
+                            "level":  "Warning",
+                            "severityLevel":  "Warning"
+                        },
+        "toolInfo":  {
+                         "uuid":  "76348462-84b3-409a-90d3-955e90abfb87",
+                         "name":  "Lizard"
+                     },
+        "lineNumber":  142,
+        "message":  "Method V12_002::PopulateTargetSnapshots has a cyclomatic complexity of 9 (limit is 8)",
+        "language":  "CSharp",
+        "lineText":  "        private void PopulateTargetSnapshots(UILivePositionSnapshot live, PositionInfo masterPos, string entryName)",
+        "falsePositiveThreshold":  80
+    }
+]

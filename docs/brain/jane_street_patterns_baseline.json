@@ -1,0 +1,19 @@
+{
+  "violations": [
+    {
+      "severity": "P0",
+      "rule": "MUTABLE_SHARED_STATE",
+      "file": "SignalBroadcaster.cs",
+      "line": 10,
+      "column": 5,
+      "message": "Mutable shared state detected",
+      "code_snippet": "   7 |     /// Static signal broadcasting service for Master/Slave multi-account architecture.\n   8 |     /// Master strategy generates signals, Slave strategies listen and execute.\n   9 |     /// </summary>\n  10 |     public static class SignalBroadcaster\n  11 |     {\n  12 |         #region Signal Data Classes\n  13 | ",
+      "fix_suggestion": "Use readonly/const or Actor pattern for shared state"
+    }
+  ],
+  "summary": {
+    "P0": 48,
+    "P1": 1838,
+    "P2": 31
+  }
+}

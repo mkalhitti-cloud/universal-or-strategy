@@ -1,0 +1,10 @@
+{
+  "epic": "PTT-COPIER-B3",
+  "phase": "complete",
+  "tickets": {
+    "T1": { "file": "CopyEngine.cs", "status": "verify-pass" },
+    "T2": { "file": "TradeCopierWindow.cs", "status": "verify-pass" },
+    "T3": { "file": "CopyEngineTests.cs", "status": "verify-pass" }
+  },
+  "finalReview": "pass"
+}

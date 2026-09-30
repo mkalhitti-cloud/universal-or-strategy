@@ -1,0 +1,27 @@
+{
+  "violations": [
+    {
+      "rule_id": "JS-001",
+      "severity": "P0",
+      "category": "Type Safety",
+      "file": "src\\SignalBroadcaster.cs",
+      "line": 286,
+      "column": 17,
+      "message": "Use Result<T,E> instead of exceptions in hot paths",
+      "fix_suggestion": "Replace exception with Result<T,E>.Err(error)",
+      "code_snippet": "throw new ArgumentException(\"SignalId cannot be null or empty\", nameof(signal));"
+    }
+  ],
+  "summary": {
+    "total": 299,
+    "P0": 299,
+    "P1": 0,
+    "P2": 0
+  },
+  "by_category": {
+    "Type Safety": 69,
+    "Philosophy": 223,
+    "Concurrency": 5,
+    "Performance": 2
+  }
+}

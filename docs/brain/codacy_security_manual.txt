@@ -1,0 +1,72 @@
+CODACY SECURITY ISSUES - MANUAL EXPORT
+Total: 16 issues
+Category: Security - Insecure Modules Libraries
+Severity: HIGH
+
+=== PATTERN 1: Avoid Using Unsafe Code Blocks (9 issues) ===
+
+1. benchmarks/StandaloneBench.cs:25
+   Message: Make sure that using "unsafe" is safe here.
+   Code: public unsafe sealed class SpscRingV148 : IDisposable {
+
+2. benchmarks/StandaloneBench.cs:15
+   Message: Make sure that using "unsafe" is safe here.
+   Code: public static unsafe void AllocAligned(int capacity, out CoreLane* ptr, out IntPtr handle) {
+
+3. benchmarks/StandaloneBench.cs:9
+   Message: Make sure that using "unsafe" is safe here.
+   Code: public unsafe struct CoreLane {
+
+4. sandbox/R28_MmioSpscRing/XorShadow.cs:8
+   Message: Make sure that using "unsafe" is safe here.
+   Code: internal static unsafe class XorShadow
+
+5. benchmarks/StandaloneBench.cs:57
+   Message: Make sure that using "unsafe" is safe here.
+   Code: public unsafe bool TryDequeue(out double payload) {
+
+6. sandbox/R28_MmioSpscRing/MmioSpscRing.cs:15
+   Message: Make sure that using "unsafe" is safe here.
+   Code: internal sealed unsafe class MmioSpscRing<T> : IDisposable where T : unmanaged
+
+7. sandbox/R28_MmioSpscRing/Program.cs:8
+   Message: Make sure that using "unsafe" is safe here.
+   Code: internal static unsafe class Program
+
+8. benchmarks/StandaloneBench.cs:45
+   Message: Make sure that using "unsafe" is safe here.
+   Code: public unsafe bool TryEnqueue(double payload) {
+
+9. benchmarks/StandaloneBench.cs:14
+   Message: Make sure that using "unsafe" is safe here.
+   Code: public static unsafe class CoreLaneAllocator {
+
+=== PATTERN 2: Avoid Ignoring Generic Exceptions (7 issues) ===
+
+10. src/V12_002.REAPER.Repair.cs:284
+    Message: Handle the exception or explain in a comment why it can be ignored.
+    Code: catch { }
+
+11. src/V12_002.Orders.Management.Flatten.cs:544
+    Message: Handle the exception or explain in a comment why it can be ignored.
+    Code: catch { }
+
+12. sandbox/R28_MmioSpscRing/MmioSpscRing.cs:156
+    Message: Handle the exception or explain in a comment why it can be ignored.
+    Code: try { _accessor.SafeMemoryMappedViewHandle.ReleasePointer(); } catch { }
+
+13. sandbox/R28_MmioSpscRing/MmioSpscRing.cs:158
+    Message: Handle the exception or explain in a comment why it can be ignored.
+    Code: try { _mmf.Dispose(); } catch { }
+
+14. sandbox/R28_MmioSpscRing/MmioSpscRing.cs:157
+    Message: Handle the exception or explain in a comment why it can be ignored.
+    Code: try { _accessor.Dispose(); } catch { }
+
+15. src/V12_002.Photon.MmioMirror.cs:120
+    Message: Handle the exception or explain in a comment why it can be ignored.
+    Code: catch { }
+
+16. src/V12_002.UI.Compliance.cs:413
+    Message: Handle the exception or explain in a comment why it can be ignored.
+    Code: catch { }

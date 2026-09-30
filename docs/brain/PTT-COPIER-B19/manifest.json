@@ -1,0 +1,120 @@
+{
+  "epic": "PTT-COPIER-B19",
+  "description": "Trim/Flatten limit price ask/bid anchor fix \u2014 replace refPrice with (ask, bid) in CopyEngine overloads and TradeCopierPanel helpers",
+  "ticket_id": "DW-B19-LIMIT-PRICE-01",
+  "priority": "P1",
+  "created_at": "2026-07-11",
+  "prev_block": "PTT-COPIER-B12",
+  "prev_backlog": "docs/brain/PTT-COPIER-B12/06-deferred-backlog.md",
+  "phases": {
+    "architect": {
+      "status": "completed",
+      "output": "docs/brain/PTT-COPIER-B19/02-architecture-plan.md"
+    },
+    "plan_review": {
+      "status": "completed",
+      "output": "docs/brain/PTT-COPIER-B19/02-plan-review.md"
+    },
+    "tickets": {
+      "status": "completed",
+      "output": "docs/brain/PTT-COPIER-B19/04-tickets.md"
+    },
+    "ticket_review": {
+      "status": "completed",
+      "output": "docs/brain/PTT-COPIER-B19/04-ticket-review.md"
+    },
+    "engineer_T1": {
+      "status": "completed",
+      "output": "docs/brain/PTT-COPIER-B19/ticket-1-completion.md"
+    },
+    "verifier_T1": {
+      "status": "completed",
+      "output": "docs/brain/PTT-COPIER-B19/ticket-1-verification.md"
+    },
+    "engineer_T2": {
+      "status": "completed",
+      "output": "docs/brain/PTT-COPIER-B19/ticket-2-completion.md"
+    },
+    "verifier_T2": {
+      "status": "completed",
+      "output": "docs/brain/PTT-COPIER-B19/ticket-2-verification.md"
+    },
+    "final_review": {
+      "status": "completed",
+      "output": "docs/brain/PTT-COPIER-B19/05-final-review.md"
+    }
+  },
+  "files_touched": [
+    "c:/WSGTA/universal-or-strategy/src/PropTraderTools/CopyEngine.cs",
+    "c:/WSGTA/universal-or-strategy/src/PropTraderTools/TradeCopierPanel.cs",
+    "c:/WSGTA/universal-or-strategy/src/PropTraderTools/CopyEngineTests.cs"
+  ],
+  "lamport_clock": "docs/brain/PTT-COPIER-B19/../../.lamport/ptt/PTT-COPIER-B19/global_clock.json",
+  "lamport_events": [
+    {
+      "clock": 1,
+      "phase": "architect",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-14T01:29:33.565262+00:00",
+      "result": "PLAN_COMPLETE"
+    },
+    {
+      "clock": 2,
+      "phase": "plan_review",
+      "event_type": "phase_failed",
+      "status": "failed",
+      "timestamp": "2026-07-14T01:32:35.165447+00:00",
+      "reason": "NT8-032 cited in plan but not registered in NT8_COMPILER_RULES.md"
+    },
+    {
+      "clock": 3,
+      "phase": "plan_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-14T01:36:09.073785+00:00",
+      "result": "REVIEW_PASS"
+    },
+    {
+      "clock": 4,
+      "phase": "tickets",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-14T01:39:35.936149+00:00",
+      "result": "TICKETS_COMPLETE"
+    },
+    {
+      "clock": 5,
+      "phase": "ticket_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-14T03:56:53.951753+00:00",
+      "result": "TICKET_REVIEW_PASS"
+    },
+    {
+      "clock": 6,
+      "phase": "engineer_T1",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-14T03:56:57.970590+00:00",
+      "result": "BUILD_PASS"
+    },
+    {
+      "clock": 7,
+      "phase": "verifier_T1",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-14T03:57:02.735055+00:00",
+      "result": "VERIFY_PASS"
+    },
+    {
+      "clock": 8,
+      "phase": "final_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-14T03:57:03.033151+00:00",
+      "result": "FINAL_PASS"
+    }
+  ],
+  "phase": "final_review"
+}

@@ -1,0 +1,215 @@
+{
+  "block": "PTT-COPIER-B16",
+  "created": "2026-07-14",
+  "prior_block": "PTT-COPIER-B15",
+  "prior_backlog": "docs/brain/PTT-COPIER-B15/06-deferred-backlog.md",
+  "mission": "DW-B16-01: Fix DW-B8-04 properly \u2014 find ChartScale Y-to-price API via extended VT walk + MessageBox. DW-B16-02: Fix TightenOneStop cancel+replace bug \u2014 kills native ATM bracket and trail; replace with acc.Change() path (GAP-001d confirmed safe). Rename ~ button label.",
+  "known_tasks": [
+    {
+      "id": "DW-B16-01",
+      "title": "ChartScale Y-to-price investigation",
+      "priority": "P2",
+      "files": [
+        "src/PropTraderTools/TradeCopierPanel.cs"
+      ],
+      "status": "closed"
+    },
+    {
+      "id": "DW-B16-02",
+      "title": "Fix TightenOneStop cancel+replace \u2014 kills native ATM bracket and trail",
+      "priority": "P1",
+      "files": [
+        "src/PropTraderTools/CopyEngine.cs",
+        "src/PropTraderTools/TradeCopierPanel.cs"
+      ],
+      "fix": "Remove if (IsTrailingStop(order)) { acc.Cancel + acc.CreateOrder } branch from TightenOneStop(). Use acc.Change() for all stop types \u2014 same as MoveStopToBreakEven() (GAP-001d CONFIRMED: acc.Change does NOT kill trail). Rename '~' button label to communicate one-shot tighten not trail.",
+      "evidence": "GAP-001d confirmed in CopyEngine.cs line 1132. IsTrailingStop() uses StopMarket proxy which matches all StopMarket orders including ATM bracket stops. cancel+replace creates orphaned PTT-Tighten-Stop order with no FromEntrySignal link, killing ATM target OCO partner.",
+      "status": "closed"
+    }
+  ],
+  "tickets": 2,
+  "phases": {
+    "architect": {
+      "status": "completed",
+      "artifact": "docs/brain/PTT-COPIER-B16/02-architecture-plan.md"
+    },
+    "plan_review": {
+      "status": "completed",
+      "artifact": "docs/brain/PTT-COPIER-B16/02-plan-review.md"
+    },
+    "tickets": {
+      "status": "completed",
+      "artifact": "docs/brain/PTT-COPIER-B16/04-tickets.md"
+    },
+    "ticket_review": {
+      "status": "completed",
+      "artifact": "docs/brain/PTT-COPIER-B16/04-ticket-review.md"
+    },
+    "engineer_T1": {
+      "status": "running",
+      "artifact": "docs/brain/PTT-COPIER-B16/ticket-1-completion.md"
+    },
+    "verifier_T1": {
+      "status": "pending",
+      "artifact": "docs/brain/PTT-COPIER-B16/ticket-1-verification.md"
+    },
+    "engineer_T2": {
+      "status": "pending",
+      "artifact": "docs/brain/PTT-COPIER-B16/ticket-2-completion.md"
+    },
+    "verifier_T2": {
+      "status": "pending",
+      "artifact": "docs/brain/PTT-COPIER-B16/ticket-2-verification.md"
+    },
+    "final_review": {
+      "status": "completed",
+      "artifact": "docs/brain/PTT-COPIER-B16/05-final-review.md"
+    }
+  },
+  "lamport_events": [
+    {
+      "clock": 2,
+      "phase": "architect",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-12T22:50:24.033254+00:00",
+      "result": "PLAN_COMPLETE"
+    },
+    {
+      "clock": 3,
+      "phase": "plan_review",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-12T22:50:33.012375+00:00"
+    },
+    {
+      "clock": 4,
+      "phase": "plan_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-12T22:53:31.520864+00:00",
+      "result": "REVIEW_PASS"
+    },
+    {
+      "clock": 5,
+      "phase": "tickets",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-12T22:53:31.775599+00:00"
+    },
+    {
+      "clock": 6,
+      "phase": "tickets",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-12T23:01:20.465608+00:00",
+      "result": "TICKETS_COMPLETE"
+    },
+    {
+      "clock": 7,
+      "phase": "ticket_review",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-12T23:01:20.720837+00:00"
+    },
+    {
+      "clock": 8,
+      "phase": "ticket_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-12T23:12:14.469865+00:00",
+      "result": "TICKET_REVIEW_PASS"
+    },
+    {
+      "clock": 9,
+      "phase": "tickets_amended",
+      "event_type": "amendment",
+      "status": "completed",
+      "timestamp": "2026-07-15T00:00:00.000000+00:00",
+      "result": "DW-B16-02 injected into T2 scope pre-T1 start. 04-tickets.md amended: Step 0 (TightenOneStop fix), Step 0b (button rename), 10 tests (was 8), 9 scans (was 7), CopyEngine.cs added to T2 files. Authority: Director."
+    },
+    {
+      "clock": 10,
+      "phase": "engineer_T1",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-15T00:00:00.000001+00:00"
+    },
+    {
+      "clock": 9,
+      "phase": "engineer_T1",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-12T23:22:58.180218+00:00"
+    },
+    {
+      "clock": 10,
+      "phase": "engineer_T1",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-12T23:32:15.942902+00:00",
+      "result": "BUILD_PASS"
+    },
+    {
+      "clock": 11,
+      "phase": "verifier_T1",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-12T23:46:39.070102+00:00"
+    },
+    {
+      "clock": 12,
+      "phase": "verifier_T1",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-12T23:59:06.370273+00:00",
+      "result": "VERIFY_PASS"
+    },
+    {
+      "clock": 13,
+      "phase": "engineer_T2",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-13T00:01:39.390769+00:00"
+    },
+    {
+      "clock": 14,
+      "phase": "engineer_T2",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T00:18:18.292255+00:00",
+      "result": "BUILD_PASS"
+    },
+    {
+      "clock": 15,
+      "phase": "verifier_T2",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-13T00:18:23.546680+00:00"
+    },
+    {
+      "clock": 16,
+      "phase": "verifier_T2",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T00:24:44.050043+00:00",
+      "result": "VERIFY_PASS"
+    },
+    {
+      "clock": 17,
+      "phase": "final_review",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-13T00:24:58.956943+00:00"
+    },
+    {
+      "clock": 18,
+      "phase": "final_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T00:30:21.069955+00:00",
+      "result": "FINAL_PASS"
+    }
+  ],
+  "phase": "final_review"
+}

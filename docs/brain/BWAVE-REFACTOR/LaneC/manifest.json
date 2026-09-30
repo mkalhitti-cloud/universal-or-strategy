@@ -1,0 +1,51 @@
+﻿{
+    "epic":  "BWAVE-REFACTOR",
+    "lane":  "C",
+    "branch":  "bwave-refactor-lane-c",
+    "worktree":  "C:\\WSGTA\\ptt-lane-c\\",
+    "brain_dir":  "docs/brain/BWAVE-REFACTOR/LaneC/",
+    "scope":  "Features/*.cs CCN \u003e 8 extraction to CCN \u003c= 8",
+    "tickets":  [
+                    "C-1",
+                    "C-2"
+                ],
+    "notes":  "14 CCN violations across 6 files measured 2026-09-06. Single-pipeline (Q2=YES).",
+    "phases":  {
+                   "phase1":  {
+                                  "status":  "complete",
+                                  "artifact":  "02-architecture-plan.md"
+                              },
+                   "phase2":  {
+                                  "status":  "pending",
+                                  "artifact":  "02-plan-review.md"
+                              },
+                   "phase3":  {
+                                  "status":  "complete",
+                                  "artifact":  "04-tickets.md"
+                              },
+                   "phase3_5":  {
+                                    "status":  "pending",
+                                    "artifact":  "04-ticket-review.md"
+                                },
+                   "phase4a_t1":  {
+                                      "status":  "pending",
+                                      "artifact":  "ticket-1-completion.md"
+                                  },
+                   "phase4b_t1":  {
+                                      "status":  "pending",
+                                      "artifact":  "ticket-1-verification.md"
+                                  },
+                   "phase4a_t2":  {
+                                      "status":  "pending",
+                                      "artifact":  "ticket-2-completion.md"
+                                  },
+                   "phase4b_t2":  {
+                                      "status":  "pending",
+                                      "artifact":  "ticket-2-verification.md"
+                                  },
+                   "phase5":  {
+                                  "status":  "pending",
+                                  "artifact":  "05-final-review.md"
+                              }
+               }
+}

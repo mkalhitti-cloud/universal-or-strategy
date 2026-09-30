@@ -1,0 +1,273 @@
+# PTT-COPIER-B10-EXEC Ticket T3 -- Verification Report (CYCLE 2)
+
+**Ticket**: T3 -- TightenStop + TightenOneStop + CopyRule.TightenTicks
+**Verifier**: ptt-verifier (Phase 4b independent verification)
+**Cycle**: 2 (re-verify after Cycle 1 FAIL: 0/7 required T3 xUnit tests)
+**Date**: 2025-07-13
+**Wave Workspace (READ-ONLY)**: c:\WSGTA\universal-or-strategy\src\PropTraderTools\
+
+**VERDICT: VERIFY_PASS**
+
+---
+
+## CYCLE 1 FAILURE SUMMARY
+
+Cycle 1 failed: CopyEngineTests.cs had 0 of 7 required T3 [Fact] tests (T-B10-T3-01
+through T-B10-T3-07). Engineer retry (Cycle 2) added all 7 tests and repaired the
+file structure (1091 lines -> 1307 lines, valid closing braces).
+
+---
+
+## STEP 1 -- FILE DISCOVERY
+
+| File | Lines | Present |
+|------|-------|---------|
+| CopyEngine.cs | 1372 | YES |
+| CopyEngineTests.cs | 1307 | YES |
+| TradeCopierPanel.cs | 1058 | YES |
+| TradeCopierWindow.cs | 674 | YES |
+| TradeCopierAddOn.cs | -- | YES |
+| AtrSizingEngine.cs | -- | YES |
+
+---
+
+## STEP 2 -- COPYENGINETESTS.CS VERIFICATION
+
+### File Structure
+
+- Total lines: 1307
+- Proper closing braces: YES -- Class at L1306, namespace at L1307
+- No corrupted structure: YES
+
+### [Fact] Test Count
+
+Command: Select-String CopyEngineTests.cs -Pattern [Fact] | Measure-Object
+Result: Count = 68
+
+Expected ~68 (61 prior + 7 new T3). CONFIRMED: 68 [Fact] tests. PASS.
+
+### T3 Tests Present (T-B10-T3-01 through T-B10-T3-07)
+
+| Test ID | Method Name | Line | Present |
+|---------|-------------|------|---------|
+| T-B10-T3-01 | TightenStop_LongPosition_MovesStopToTargetPrice | L1100 | YES |
+| T-B10-T3-02 | TightenStop_ShortPosition_MovesStopToTargetPrice | L1127 | YES |
+| T-B10-T3-03 | TightenOneStop_TrailingStop_CancelsAndReplaces | L1145 | YES |
+| T-B10-T3-04 | TightenOneStop_FixedStop_UsesAccChange | L1179 | YES |
+| T-B10-T3-05 | CopyRule_TightenTicks_DefaultIsFive | L1195 | YES |
+| T-B10-T3-06 | CopyRule_TightenTicks_XmlRoundTrip | L1227 | YES |
+| T-B10-T3-07 | CopyRule_TightenTicks_BackwardCompat | L1255 | YES |
+
+All 7 T3 tests present. PASS.
+
+### xUnit Compliance
+
+- [Fact] attribute: YES -- all 7 use [Fact] (not [Test] or [TestMethod])
+- Assert style: YES -- Assert.Null/NotNull/Equal/True/False (xUnit-native)
+- Framework import: YES -- using Xunit; at L7
+
+---
+
+## STEP 3 -- SOURCE FILE VERIFICATION (READ-ONLY)
+
+### CopyEngine.cs
+
+CopyRule.TightenTicks (L122): internal readonly int TightenTicks
+- readonly field on readonly struct (JS-008 compliant; NT8-001: not init-only)
+- Default: TightenTicks = tightenTicks > 0 ? tightenTicks : 5 (L141)
+- Factory: int tightenTicks = 5 (L153)
+- CopyRuleDto.TightenTicks: public int TightenTicks { get; set; } = 0 (L1194)
+- RuleToDto emits TightenTicks at L1243
+- DtoToRule backward compat: dto.TightenTicks > 0 ? dto.TightenTicks : 5 (L1292)
+
+TightenStop (L1027): internal void TightenStop(Instrument instrument, int ticks)
+- Null guard: if (rule == null) return at L1030
+- IsStopAlreadyAtBe helper: present at L506-513
+- CYC=5: rule null(1), foreach acc(2), pos flat(3), foreach orders(4), stop type(5)
+
+TightenOneStop (L1066): private void TightenOneStop(Account, Instrument, Order, double, double)
+- 5 parameters
+- Trailing stop path L1079-1095: acc.Cancel + acc.CreateOrder(PTT-Tighten-Stop)
+- Fixed stop path L1097-1101: order.StopPrice = targetPrice; acc.Change(...)
+- NT8-007: (NinjaTrader.Cbi.CustomOrder)null at L1094
+- CYC=4: null guard(1), alreadyTighter(2), IsTrailingStop(3)
+
+### TradeCopierPanel.cs
+
+- _tightenBtn defined L97, created L382-389
+- _tightenTicksBox defined L98, created L376-380
+- OnTightenStop handler L546-554
+- async void FlashBeFired only async void: L530 (one permitted UI event handler)
+
+### TradeCopierWindow.cs
+
+- tightenTicksBox10 Col 10 static rows: L365, default 5
+- tightenTicksBoxDyn Col 10 dynamic rows: L503, default 5
+- OnRuleTightenStop handler: L595
+- tightenBtnDyn.Click += OnRuleTightenStop at L509
+
+---
+
+## STEP 4 -- 7-SCAN RESULTS (Independent Layer 3)
+
+### SCAN-01 -- lock() usage
+
+Command: Select-String -Pattern block-paren (shell)
+
+Results:
+  CopyEngine.cs:279  -- COMMENT only: // ConcurrentBag rebuild pattern -- no lock (JS-021)
+  CopyEngine.cs:516  -- COMMENT only: // CYC=5: ... try block(0).
+  CopyEngine.cs:747  -- COMMENT only: // ConcurrentBag rebuild pattern -- no lock (JS-021).
+  CopyEngine.cs:1062 -- COMMENT only: // CYC=4: ... try block(0).
+
+All 4 hits verified as comments by reading source lines. Zero actual lock() calls.
+SCAN-01: PASS -- 0 code-level lock() violations.
+
+### SCAN-02 -- Non-ASCII characters
+
+Command: Get-ChildItem ... | NonAscii byte count
+
+Results:
+  AtrSizingEngine.cs: 0
+  CopyEngine.cs: 0
+  CopyEngineTests.cs: 0
+  TradeCopierAddOn.cs: 0
+  TradeCopierPanel.cs: 0
+  TradeCopierWindow.cs: 0
+
+SCAN-02: PASS -- Zero non-ASCII bytes in all 6 files.
+
+### SCAN-03 -- FontFamily
+
+Command: Select-String -Pattern FontFamily | Measure-Object
+Result: Count = 0
+SCAN-03: PASS.
+
+### SCAN-04 -- Hex color strings
+
+Command: Select-String -Pattern #[0-9A-Fa-f]{6}
+
+Results: 8 hits -- ALL in code COMMENTS (end-of-line color annotations):
+  TradeCopierPanel.cs:110-113: MakeBrush(r,g,b) annotated with // color #xxxxxx
+  TradeCopierWindow.cs:53-56: MakeWinBrush(r,g,b) annotated with // color #xxxxxx
+
+Verified by reading L108-115 and L50-60: all brushes use decimal RGB, no hex strings.
+SCAN-04: PASS -- 0 hex color strings in actual code.
+
+### SCAN-05 -- CreateOrder PTT- prefix
+
+| File | Line | Signal Name | PTT- OK |
+|------|------|-------------|---------|
+| CopyEngine.cs | 411 | PTT-Mirror-Close | YES |
+| CopyEngine.cs | 689 | PTT-Copy (at L672) | YES |
+| CopyEngine.cs | 783 | PTT-Trim | YES |
+| CopyEngine.cs | 821 | PTT-Flatten | YES |
+| CopyEngine.cs | 1082 | PTT-Tighten-Stop | YES (T3 new) |
+| TradeCopierPanel.cs | 830 | PTT-Click | YES |
+
+SCAN-05: PASS -- All 6 CreateOrder calls use PTT- prefixed signal names.
+
+### SCAN-06 -- DateTime.Now
+
+Command: Select-String -Pattern DateTime\\.Now[^U]
+Result: 0 matches
+SCAN-06: PASS.
+
+### SCAN-07 -- CYC complexity
+
+| Method | File | CYC | OK |
+|--------|------|-----|----|
+| TightenStop | CopyEngine.cs:1027 | 5 | YES |
+| TightenOneStop | CopyEngine.cs:1066 | 4 | YES |
+| IsStopAlreadyAtBe | CopyEngine.cs:506 | 3 | YES |
+| OnTightenStop | TradeCopierPanel.cs:546 | 3 | YES |
+| OnRuleTightenStop | TradeCopierWindow.cs:595 | 4 | YES |
+
+SCAN-07: PASS -- All T3 methods CYC <= 8.
+
+---
+
+## STEP 5 -- REQUIREMENT CHECKS
+
+| Requirement | File:Line | Status |
+|-------------|-----------|--------|
+| CopyRule.TightenTicks field with serialization | CopyEngine.cs:122 + CopyRuleDto:1194 | PASS |
+| TightenStop method present | CopyEngine.cs:1027 | PASS |
+| TightenOneStop trailing: cancel+replace PTT-Tighten-Stop | CopyEngine.cs:1079-1095 | PASS |
+| TightenOneStop fixed: acc.Change() | CopyEngine.cs:1097-1101 | PASS |
+| Panel has Tighten Stop button | TradeCopierPanel.cs:97, 382-389 | PASS |
+| Window has TightenTicks TextBox per rule row | TradeCopierWindow.cs:365, 503 | PASS |
+| No lock() anywhere in code | All lock hits in comments only | PASS |
+| No async void except FlashBeFired | TradeCopierPanel.cs:530 only | PASS |
+| All CYC <= 8 | TightenStop=5, TightenOneStop=4 | PASS |
+| Signal names start with PTT- | PTT-Tighten-Stop, PTT-Copy, etc. | PASS |
+| Brush.Freeze() via MakeBrush() | static readonly + Freeze on construction | PASS |
+| No throw new XxxException in hot paths | try/catch pattern used | PASS |
+| No return null for non-null expected | Order? nullable type explicit | PASS |
+| DateTime.UtcNow not DateTime.Now | SCAN-06: 0 | PASS |
+| xUnit [Fact] tests for T3 (7 of 7) | CopyEngineTests.cs L1099-1305 | PASS |
+
+---
+
+## 7-SCAN SUMMARY TABLE
+
+| Scan | Pattern | Result | Verdict |
+|------|---------|--------|---------|
+| SCAN-01 | lock( in code | 0 code hits (4 in comments) | PASS |
+| SCAN-02 | Non-ASCII chars | 0 across all 6 files | PASS |
+| SCAN-03 | FontFamily | 0 | PASS |
+| SCAN-04 | #RRGGBB hex strings | 0 in code (8 in comments) | PASS |
+| SCAN-05 | CreateOrder without PTT- | 0 violations (6 calls, all PTT-) | PASS |
+| SCAN-06 | DateTime.Now[^U] | 0 | PASS |
+| SCAN-07 | CYC > 8 | 0 violations (T3 methods max: 5) | PASS |
+
+---
+
+## DNA RULE COMPLIANCE
+
+| Rule | Check | Status |
+|------|-------|--------|
+| JS-021 (lock forbidden) | No lock( in code | PASS |
+| JS-023 (UI mutation via Dispatcher) | async void FlashBeFired only | PASS |
+| JS-001 (no throw in hot paths) | try/catch wraps all NT8 calls | PASS |
+| JS-002 (no return null) | Order? nullable return type explicit | PASS |
+| JS-008 (immutability/Freeze) | MakeBrush() + static readonly = Freeze()d | PASS |
+| JS-010 (private constructors) | CopyEngine singleton; CopyRule private ctor | PASS |
+| NT8 (no async/await in OnInitialize) | No new async/await introduced | PASS |
+| NT8 (no sealed TradeCopierWindow) | Not present | PASS |
+| NT8-007 (CreateOrder arg 12) | (NinjaTrader.Cbi.CustomOrder)null at L1094 | PASS |
+
+---
+
+## ENGINEER LAYER 2 vs VERIFIER LAYER 3
+
+| Claim | Engineer Reported | Independent Verification |
+|-------|------------------|--------------------------|
+| 7 T3 tests present | YES | YES confirmed at L1099-L1305 |
+| File structure valid | YES | YES L1306-1307 properly close class+namespace |
+| [Fact] count 68 | YES | YES Count = 68 |
+| SCAN-01 lock = 0 code hits | YES | YES confirmed comment-only |
+| SCAN-06 DateTime.Now = 0 | YES | YES confirmed 0 |
+| All CreateOrder use PTT- | YES | YES all 6 verified individually |
+
+No discrepancies found between engineer self-report and independent verification.
+
+---
+
+## FINAL VERDICT
+
+VERIFY_PASS
+
+All 7 T3 xUnit [Fact] tests (T-B10-T3-01 through T-B10-T3-07) are present and correctly
+structured. All 7 scans pass. All DNA rules compliant. All T3 functional requirements
+satisfied. No violations found.
+
+Cycle 2 resolution: Engineer added 7 T3 tests (L1090-L1305) and maintained proper
+file structure (1307 lines). File grew from 1091 lines (Cycle 1) to 1307 lines (+216
+lines of test coverage).
+
+---
+
+Written by: ptt-verifier (Phase 5.V, Layer 3)
+Workspace: c:\WSGTA\universal-or-strategy (Wave, READ ONLY)
+Date: 2025-07-13

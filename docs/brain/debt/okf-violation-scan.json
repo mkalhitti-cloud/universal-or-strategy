@@ -1,0 +1,418 @@
+{
+  "generated": "2026-07-04T19:40:17.802830+00:00",
+  "total": 45,
+  "by_priority": {
+    "P0": 0,
+    "P1": 24,
+    "P2": 21,
+    "P3": 0,
+    "P4": 0
+  },
+  "findings": [
+    {
+      "file": "src/SignalBroadcaster.cs",
+      "line": 289,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "            signal.Timestamp = DateTime.Now;"
+    },
+    {
+      "file": "src/SignalBroadcaster.cs",
+      "line": 306,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "            update.Timestamp = DateTime.Now;"
+    },
+    {
+      "file": "src/SignalBroadcaster.cs",
+      "line": 321,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "            action.Timestamp = DateTime.Now;"
+    },
+    {
+      "file": "src/SignalBroadcaster.cs",
+      "line": 330,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "            var signal = new FlattenSignal { Reason = reason ?? \"Manual flatten\", Timestamp = DateTime.Now };"
+    },
+    {
+      "file": "src/SignalBroadcaster.cs",
+      "line": 340,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "            var signal = new BreakevenSignal { SignalId = signalId, Timestamp = DateTime.Now };"
+    },
+    {
+      "file": "src/SignalBroadcaster.cs",
+      "line": 355,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "                Timestamp = DateTime.Now,"
+    },
+    {
+      "file": "src/SignalBroadcaster.cs",
+      "line": 370,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "                Timestamp = DateTime.Now,"
+    },
+    {
+      "file": "src/SignalBroadcaster.cs",
+      "line": 385,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "                Timestamp = DateTime.Now,"
+    },
+    {
+      "file": "src/SignalBroadcaster.cs",
+      "line": 400,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "                Timestamp = DateTime.Now,"
+    },
+    {
+      "file": "src/V12_002.Entries.OR.cs",
+      "line": 62,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "                    lastArmedTime = DateTime.Now;"
+    },
+    {
+      "file": "src/V12_002.Entries.OR.cs",
+      "line": 106,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "                    lastArmedTime = DateTime.Now;"
+    },
+    {
+      "file": "src/V12_002.Orders.Management.StopSync.cs",
+      "line": 763,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "                double ocoLatencyMs = (DateTime.Now - pendingForLatency.CreatedTime).TotalMilliseconds;"
+    },
+    {
+      "file": "src/V12_002.Orders.Management.StopSync.cs",
+      "line": 968,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "                string suffix = (DateTime.Now.Ticks % 100000000).ToString();"
+    },
+    {
+      "file": "src/V12_002.SIMA.Execution.cs",
+      "line": 360,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "            string ocoId = action.ToString() + \"_\" + DateTime.Now.Ticks;"
+    },
+    {
+      "file": "src/V12_002.SIMA.Execution.cs",
+      "line": 992,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "                string baseSignal = \"RMA_\" + DateTime.Now.Ticks;"
+    },
+    {
+      "file": "src/V12_002.Trailing.StopUpdate.cs",
+      "line": 176,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "                CreatedTime = DateTime.Now,"
+    },
+    {
+      "file": "src/V12_002.Trailing.StopUpdate.cs",
+      "line": 188,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "                    circuitBreakerActivatedTime = DateTime.Now;"
+    },
+    {
+      "file": "src/V12_002.Trailing.StopUpdate.cs",
+      "line": 342,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "                circuitBreakerActivatedTime = DateTime.Now;"
+    },
+    {
+      "file": "src/V12_002.Trailing.cs",
+      "line": 215,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "            DateTime now = DateTime.Now;"
+    },
+    {
+      "file": "src/V12_002.UI.Compliance.cs",
+      "line": 45,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "            return ConvertToSelectedTimeZone(DateTime.Now);"
+    },
+    {
+      "file": "src/V12_002.UI.Compliance.cs",
+      "line": 915,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "                lastComplianceLog = DateTime.Now;"
+    },
+    {
+      "file": "src/V12_002.UI.Compliance.cs",
+      "line": 931,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "            if ((DateTime.Now - lastComplianceLog).TotalSeconds < 5)"
+    },
+    {
+      "file": "src/V12_002.UI.Sizing.cs",
+      "line": 130,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "            if ((DateTime.Now - _lastSyncFailureTime).TotalMilliseconds < 500)"
+    },
+    {
+      "file": "src/V12_002.UI.Sizing.cs",
+      "line": 314,
+      "priority": "P1",
+      "rule": "Rule 3 -- FSM Determinism",
+      "description": "DateTime.Now -- use DateTime.UtcNow",
+      "pattern_key": "P1_datetime_now",
+      "code_snippet": "                _lastSyncFailureTime = DateTime.Now;"
+    },
+    {
+      "file": "src/V12_002.Orders.Management.Cleanup.cs",
+      "line": 521,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (defense in depth)",
+      "description": "acct.Orders enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_orders_no_toarray",
+      "code_snippet": "            foreach (Order order in Account.Orders)"
+    },
+    {
+      "file": "src/V12_002.Orders.Management.Cleanup.cs",
+      "line": 623,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (independent_tracking)",
+      "description": "Account.All enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_account_all_no_toarray",
+      "code_snippet": "            foreach (Account acct in Account.All)"
+    },
+    {
+      "file": "src/V12_002.Orders.Management.Cleanup.cs",
+      "line": 627,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (defense in depth)",
+      "description": "acct.Orders enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_orders_no_toarray",
+      "code_snippet": "                foreach (Order fleetOrder in acct.Orders)"
+    },
+    {
+      "file": "src/V12_002.Orders.Management.Cleanup.cs",
+      "line": 639,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (defense in depth)",
+      "description": "acct.Orders enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_orders_no_toarray",
+      "code_snippet": "            foreach (Order brokerOrder in Account.Orders)"
+    },
+    {
+      "file": "src/V12_002.Orders.Management.StopSync.cs",
+      "line": 479,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (defense in depth)",
+      "description": "acct.Orders enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_orders_no_toarray",
+      "code_snippet": "            foreach (Order o in Account.Orders)"
+    },
+    {
+      "file": "src/V12_002.REAPER.Audit.cs",
+      "line": 912,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (independent_tracking)",
+      "description": "Account.All enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_account_all_no_toarray",
+      "code_snippet": "            foreach (Account acct in Account.All)"
+    },
+    {
+      "file": "src/V12_002.SIMA.Execution.cs",
+      "line": 60,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (independent_tracking)",
+      "description": "Account.All enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_account_all_no_toarray",
+      "code_snippet": "            foreach (Account acct in Account.All)"
+    },
+    {
+      "file": "src/V12_002.SIMA.Execution.cs",
+      "line": 252,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (independent_tracking)",
+      "description": "Account.All enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_account_all_no_toarray",
+      "code_snippet": "            foreach (Account acct in Account.All)"
+    },
+    {
+      "file": "src/V12_002.SIMA.Execution.cs",
+      "line": 1064,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (independent_tracking)",
+      "description": "Account.All enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_account_all_no_toarray",
+      "code_snippet": "                foreach (Account acct in Account.All)"
+    },
+    {
+      "file": "src/V12_002.SIMA.Flatten.cs",
+      "line": 241,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (defense in depth)",
+      "description": "acct.Positions enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_positions_no_toarray",
+      "code_snippet": "            foreach (Position position in acct.Positions)"
+    },
+    {
+      "file": "src/V12_002.SIMA.Flatten.cs",
+      "line": 471,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (defense in depth)",
+      "description": "acct.Orders enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_orders_no_toarray",
+      "code_snippet": "            foreach (Order o in acct.Orders)"
+    },
+    {
+      "file": "src/V12_002.SIMA.Fleet.cs",
+      "line": 576,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (defense in depth)",
+      "description": "acct.Positions enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_positions_no_toarray",
+      "code_snippet": "                if (acct == null || acct.Positions == null)"
+    },
+    {
+      "file": "src/V12_002.SIMA.Lifecycle.cs",
+      "line": 157,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (independent_tracking)",
+      "description": "Account.All enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_account_all_no_toarray",
+      "code_snippet": "            foreach (Account acct in Account.All)"
+    },
+    {
+      "file": "src/V12_002.SIMA.Lifecycle.cs",
+      "line": 1419,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (independent_tracking)",
+      "description": "Account.All enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_account_all_no_toarray",
+      "code_snippet": "            foreach (Account acct in Account.All)"
+    },
+    {
+      "file": "src/V12_002.SIMA.cs",
+      "line": 221,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (independent_tracking)",
+      "description": "Account.All enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_account_all_no_toarray",
+      "code_snippet": "            foreach (Account acct in Account.All)"
+    },
+    {
+      "file": "src/V12_002.UI.Compliance.cs",
+      "line": 302,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (independent_tracking)",
+      "description": "Account.All enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_account_all_no_toarray",
+      "code_snippet": "                foreach (Account acct in Account.All)"
+    },
+    {
+      "file": "src/V12_002.UI.IPC.Commands.Fleet.cs",
+      "line": 234,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (defense in depth)",
+      "description": "acct.Orders enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_orders_no_toarray",
+      "code_snippet": "            foreach (Order order in Account.Orders)"
+    },
+    {
+      "file": "src/V12_002.UI.IPC.Commands.Fleet.cs",
+      "line": 317,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (independent_tracking)",
+      "description": "Account.All enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_account_all_no_toarray",
+      "code_snippet": "            foreach (Account acct in Account.All)"
+    },
+    {
+      "file": "src/V12_002.UI.IPC.Commands.Fleet.cs",
+      "line": 338,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (defense in depth)",
+      "description": "acct.Orders enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_orders_no_toarray",
+      "code_snippet": "            foreach (Order order in acct.Orders)"
+    },
+    {
+      "file": "src/V12_002.UI.IPC.Commands.Fleet.cs",
+      "line": 404,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (independent_tracking)",
+      "description": "Account.All enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_account_all_no_toarray",
+      "code_snippet": "            foreach (Account acct in Account.All)"
+    },
+    {
+      "file": "src/V12_002.UI.IPC.Commands.Misc.cs",
+      "line": 141,
+      "priority": "P2",
+      "rule": "Rule 5 -- Production Safety (independent_tracking)",
+      "description": "Account.All enumerated without .ToArray() snapshot",
+      "pattern_key": "P2_account_all_no_toarray",
+      "code_snippet": "            foreach (Account acct in Account.All)"
+    }
+  ]
+}

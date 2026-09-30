@@ -1,0 +1,26 @@
+{
+  "epic": "PTT-COPIER-B25",
+  "lane": "B",
+  "defect": "DW-B25-02",
+  "description": "Singleton BE State Isolation — per-account ConcurrentDictionary slots for _pendingBeState and _trailBeState",
+  "prev_epic": "PTT-COPIER-B24",
+  "phases": {
+    "plan": { "status": "complete", "artifact": "02-architecture-plan.md", "cycles": 2 },
+    "plan_review": { "status": "complete", "artifact": "02-plan-review.md", "result": "REVIEW_PASS" },
+    "tickets": { "status": "complete", "artifact": "04-tickets.md" },
+    "ticket_review": { "status": "complete", "artifact": "04-ticket-review.md", "result": "TICKET_REVIEW_PASS" },
+    "ticket_1": { "status": "complete", "artifact": "ticket-1-completion.md", "result": "BUILD_PASS", "commit": "e8045854" },
+    "ticket_1_verify": { "status": "complete", "artifact": "ticket-1-verification.md", "result": "VERIFY_PASS" },
+    "final_review": { "status": "complete", "artifact": "05-final-review.md", "result": "FINAL_PASS" },
+    "deferred_backlog": { "status": "complete", "artifact": "06-deferred-backlog.md" }
+  },
+  "write_set": [
+    "src/PropTraderTools/CopyEngine.cs",
+    "src/PropTraderTools/TradeCopierPanel.cs",
+    "src/PropTraderTools/CopyEngineTests.cs"
+  ],
+  "baseline": {
+    "fact_count": 128,
+    "f5_status": "GREEN"
+  }
+}

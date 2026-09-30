@@ -1,0 +1,224 @@
+{
+  "main": {
+    "id": "ac3e7c2701407928",
+    "type": "split",
+    "children": [
+      {
+        "id": "662799a5d27716e0",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "87d3efb2f2276cb8",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "WORKSPACE_CONSOLIDATION_STATUS.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "WORKSPACE_CONSOLIDATION_STATUS"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "412287cdcfb262e1",
+    "type": "split",
+    "children": [
+      {
+        "id": "ed061f601e1433d5",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "510b210ce54af497",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "09f7560ad668cdb5",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "5f92af732397bf4c",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 615.5
+  },
+  "right": {
+    "id": "6a92cda68f7e3f5b",
+    "type": "split",
+    "children": [
+      {
+        "id": "09513434df57a57a",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "50bbc985f9a2523e",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "pr_4_forensics.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for pr_4_forensics"
+            }
+          },
+          {
+            "id": "d7ab96538a49dacf",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "pr_4_forensics.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from pr_4_forensics"
+            }
+          },
+          {
+            "id": "95989e1c180d3d1a",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "4ef27dd1de47cf7b",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "f1fcc7ae2b49d691",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "pr_4_forensics.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of pr_4_forensics"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "510b210ce54af497",
+  "lastOpenFiles": [
+    "EPIC-CCN-115/manifest.json",
+    "EPIC-CCN-115",
+    "EPIC-CCN-114/manifest.json",
+    "EPIC-CCN-114",
+    "EPIC-CCN-113/manifest.json",
+    "EPIC-CCN-113",
+    "EPIC-CCN-112/manifest.json",
+    "EPIC-CCN-112",
+    "EPIC-CCN-111/manifest.json",
+    "EPIC-CCN-111",
+    "pr_6_suppress_queue.md",
+    "audit_codex.md",
+    "arena_forensics_synthesis.md",
+    "audit_v28_1_platinum.md",
+    "audit_v14_2_photon.md",
+    "audit_jules.md",
+    "audit_gemini.md",
+    "pr_3_iteration_2_categorization.md",
+    "pr_3_iteration_2_fix_queue.md",
+    "pr_3_iteration_2_summary.md",
+    "pr_2_suppress_queue.md",
+    "PR_2_JANE_STREET_ANALYSIS.md",
+    "pr_2_forensics.md",
+    "PR_3_JANE_STREET_ANALYSIS.md",
+    "pr_2_fix_queue.md",
+    "pr_4_branch_contamination_rca.md",
+    "pr_3_phs_iteration_1.md",
+    "pr_4_forensics.md",
+    "pr_4_fix_summary.md",
+    "pr_4_fix_queue.md",
+    "pr_5_fix_queue.md",
+    "pr_5_iteration4_categorization.md",
+    "pr_5_forensics.md",
+    "pr_5_iteration6_repair_design.md",
+    "EPIC-4-STICKY-STATE-IPC/PR-SUMMARY.md"
+  ]
+}

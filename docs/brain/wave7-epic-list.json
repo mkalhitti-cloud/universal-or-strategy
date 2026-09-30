@@ -1,0 +1,1129 @@
+[
+  {
+    "epic_id": "EPIC-W7-001",
+    "method_name": "ShouldSkipFleet_RunHealthCheck",
+    "cyc": 31,
+    "source_file": "V12_002.SIMA.Fleet.cs",
+    "num": 1
+  },
+  {
+    "epic_id": "EPIC-W7-002",
+    "method_name": "SymmetryGuardTryResolveFollowersForDispatch",
+    "cyc": 16,
+    "source_file": "src/V12_002.Symmetry.Replace.cs",
+    "num": 2
+  },
+  {
+    "epic_id": "EPIC-W7-003",
+    "method_name": "IsOrderAllowed",
+    "cyc": 21,
+    "source_file": "src/V12_002.UI.Compliance.cs",
+    "num": 3
+  },
+  {
+    "epic_id": "EPIC-W7-004",
+    "method_name": "HandleFleetTargetFill",
+    "cyc": 34,
+    "source_file": "src/V12_002.UI.Compliance.cs",
+    "num": 4
+  },
+  {
+    "epic_id": "EPIC-W7-005",
+    "method_name": "ClassifyAndRouteFleetOrder",
+    "cyc": 0,
+    "source_file": "",
+    "num": 5
+  },
+  {
+    "epic_id": "EPIC-W7-006",
+    "method_name": "AdoptFleetWorkingOrders",
+    "cyc": 0,
+    "source_file": "src-vm-backup/V12_002.SIMA.Lifecycle.cs (backup location)",
+    "num": 6
+  },
+  {
+    "epic_id": "EPIC-W7-007",
+    "method_name": "",
+    "cyc": 4,
+    "source_file": "",
+    "num": 7
+  },
+  {
+    "epic_id": "EPIC-W7-008",
+    "method_name": "ManageCIT",
+    "cyc": 19,
+    "source_file": "V12_002.Orders.Management.Flatten.cs",
+    "num": 8
+  },
+  {
+    "epic_id": "EPIC-W7-009",
+    "method_name": "FindChartTraderViaChartTab",
+    "cyc": 9,
+    "source_file": "src/V12_002.UI.Panel.Helpers.cs",
+    "num": 9
+  },
+  {
+    "epic_id": "EPIC-W7-010",
+    "method_name": "ShowModeSpecificControls",
+    "cyc": 8,
+    "source_file": "src/V12_002.UI.Panel.Handlers.cs",
+    "num": 10
+  },
+  {
+    "epic_id": "EPIC-W7-011",
+    "method_name": "DestroyPanel",
+    "cyc": 0,
+    "source_file": "src/V12_002.UI.Panel.Construction.cs",
+    "num": 11
+  },
+  {
+    "epic_id": "EPIC-W7-012",
+    "method_name": "SyncPanelConfigFromSnapshot",
+    "cyc": 34,
+    "source_file": "src/V12_002.UI.Panel.StateSync.cs",
+    "num": 12
+  },
+  {
+    "epic_id": "EPIC-W7-013",
+    "method_name": "UpdatePanelState",
+    "cyc": 8,
+    "source_file": "src/V12_002.UI.Panel.StateSync.cs",
+    "num": 13
+  },
+  {
+    "epic_id": "EPIC-W7-014",
+    "method_name": "TryHandleFleetCommand",
+    "cyc": 0,
+    "source_file": "src/V12_002.UI.IPC.Commands.Fleet.cs",
+    "num": 14
+  },
+  {
+    "epic_id": "EPIC-W7-015",
+    "method_name": "CancelAll_ProcessSingleFleetAccount",
+    "cyc": 18,
+    "source_file": "src/V12_002.UI.IPC.Commands.Fleet.cs",
+    "num": 15
+  },
+  {
+    "epic_id": "EPIC-W7-016",
+    "method_name": "TryHandleFleet_CancelAll",
+    "cyc": 21,
+    "source_file": "src/V12_002.UI.IPC.Commands.Fleet.cs",
+    "num": 16
+  },
+  {
+    "epic_id": "EPIC-W7-017",
+    "method_name": "TryApplyConfigTarget_Value",
+    "cyc": 22,
+    "source_file": "src/V12_002.UI.IPC.Commands.Config.cs",
+    "num": 17
+  },
+  {
+    "epic_id": "EPIC-W7-018",
+    "method_name": "IsSymbolMatch",
+    "cyc": 0,
+    "source_file": "src/V12_002.UI.IPC.cs",
+    "num": 18
+  },
+  {
+    "epic_id": "EPIC-W7-019",
+    "method_name": "TryHandleFleet_MoveTarget",
+    "cyc": 17,
+    "source_file": "src/V12_002.UI.IPC.Commands.Fleet.cs",
+    "num": 19
+  },
+  {
+    "epic_id": "EPIC-W7-020",
+    "method_name": "HandleSecondaryOrderFilled",
+    "cyc": 34,
+    "source_file": "src/V12_002.Orders.Callbacks.cs",
+    "num": 20
+  },
+  {
+    "epic_id": "EPIC-W7-021",
+    "method_name": "ProcessOnOrderUpdate",
+    "cyc": 16,
+    "source_file": "src/V12_002.Orders.Callbacks.cs",
+    "num": 21
+  },
+  {
+    "epic_id": "EPIC-W7-022",
+    "method_name": "PropagateMaster_IdentifyMove",
+    "cyc": 0,
+    "source_file": "src/V12_002.Orders.Callbacks.Propagation.cs",
+    "num": 22
+  },
+  {
+    "epic_id": "EPIC-W7-023",
+    "method_name": "HandleFlatPositionUpdate",
+    "cyc": 19,
+    "source_file": "src/V12_002.Orders.Callbacks.Execution.cs",
+    "num": 23
+  },
+  {
+    "epic_id": "EPIC-W7-024",
+    "method_name": "MonitorRmaProximity",
+    "cyc": 34,
+    "source_file": "src/V12_002.Entries.RMA.cs",
+    "num": 24
+  },
+  {
+    "epic_id": "EPIC-W7-025",
+    "method_name": "CheckFFMAConditions",
+    "cyc": 2,
+    "source_file": "src/V12_002.Entries.FFMA.cs",
+    "num": 25
+  },
+  {
+    "epic_id": "EPIC-W7-026",
+    "method_name": "ProcessQueuedAccountOrder",
+    "cyc": 17,
+    "source_file": "src/V12_002.Orders.Callbacks.AccountOrders.cs",
+    "num": 26
+  },
+  {
+    "epic_id": "EPIC-W7-027",
+    "method_name": "Dispatch_PublishMarketBracketToPhoton",
+    "cyc": 9,
+    "source_file": "src/V12_002.SIMA.Dispatch.cs",
+    "num": 27
+  },
+  {
+    "epic_id": "EPIC-W7-028",
+    "method_name": "ProcessFlattenWorkItem_CancelOrders",
+    "cyc": 0,
+    "source_file": "src/V12_002.SIMA.Flatten.cs",
+    "num": 28
+  },
+  {
+    "epic_id": "EPIC-W7-029",
+    "method_name": "ShouldSkipFleet_RunHealthCheck",
+    "cyc": 0,
+    "source_file": "src/V12_002.SIMA.Fleet.cs",
+    "num": 29
+  },
+  {
+    "epic_id": "EPIC-W7-030",
+    "method_name": "ValidateOrphanedMasterOrders",
+    "cyc": 0,
+    "source_file": "src/V12_002.Orders.Management.Cleanup.cs",
+    "num": 30
+  },
+  {
+    "epic_id": "EPIC-W7-031",
+    "method_name": "AuditMaster_HandleNakedPosition",
+    "cyc": 19,
+    "source_file": "src/V12_002.REAPER.Audit.cs",
+    "num": 31
+  },
+  {
+    "epic_id": "EPIC-W7-032",
+    "method_name": "RestoreCascadedTargets",
+    "cyc": 23,
+    "source_file": "src/V12_002.Orders.Management.StopSync.cs",
+    "num": 32
+  },
+  {
+    "epic_id": "EPIC-W7-033",
+    "method_name": "FlattenSinglePosition",
+    "cyc": 27,
+    "source_file": "src/V12_002.Orders.Management.Flatten.cs",
+    "num": 33
+  },
+  {
+    "epic_id": "EPIC-W7-034",
+    "method_name": "ManageCIT",
+    "cyc": 11,
+    "source_file": "src/V12_002.Orders.Management.Flatten.cs",
+    "num": 34
+  },
+  {
+    "epic_id": "EPIC-W7-035",
+    "method_name": "SyncLimitTarget",
+    "cyc": 34,
+    "source_file": "src/V12_002.Orders.Management.StopSync.cs",
+    "num": 35
+  },
+  {
+    "epic_id": "EPIC-W7-036",
+    "method_name": "MoveStop_SinglePosition",
+    "cyc": 34,
+    "source_file": "src/V12_002.Trailing.Breakeven.cs",
+    "num": 36
+  },
+  {
+    "epic_id": "EPIC-W7-037",
+    "method_name": "SymmetryNormalizeTradeType",
+    "cyc": 0,
+    "source_file": "src/V12_002.Symmetry.Replace.cs",
+    "num": 37
+  },
+  {
+    "epic_id": "EPIC-W7-038",
+    "method_name": "VerifyPhotonSlotIntegrity",
+    "cyc": 9,
+    "source_file": "V12_002.SIMA.Fleet.cs",
+    "num": 38
+  },
+  {
+    "epic_id": "EPIC-W7-039",
+    "method_name": "ManageTrailingStops",
+    "cyc": 13,
+    "source_file": "src/V12_002.Trailing.cs",
+    "num": 39
+  },
+  {
+    "epic_id": "EPIC-W7-040",
+    "method_name": "FindTargetOrderForPosition",
+    "cyc": 10,
+    "source_file": "src/V12_002.Trailing.Breakeven.cs",
+    "num": 40
+  },
+  {
+    "epic_id": "EPIC-W7-041",
+    "method_name": "",
+    "cyc": 8,
+    "source_file": "",
+    "num": 41
+  },
+  {
+    "epic_id": "EPIC-W7-042",
+    "method_name": "SymmetryGuardOnFollowerFill",
+    "cyc": 16,
+    "source_file": "src/V12_002.Symmetry.Follower.cs",
+    "num": 42
+  },
+  {
+    "epic_id": "EPIC-W7-043",
+    "method_name": "SymmetryGuardSubmitFollowerBracket",
+    "cyc": 0,
+    "source_file": "src/V12_002.Symmetry.Follower.cs",
+    "num": 43
+  },
+  {
+    "epic_id": "EPIC-W7-044",
+    "method_name": "SymmetryGuardCascadeFollowerCleanup",
+    "cyc": 11,
+    "source_file": "src/V12_002.Symmetry.Replace.cs",
+    "num": 44
+  },
+  {
+    "epic_id": "EPIC-W7-045",
+    "method_name": "OnKeyDown",
+    "cyc": 0,
+    "source_file": "src/V12_002.UI.Callbacks.cs",
+    "num": 45
+  },
+  {
+    "epic_id": "EPIC-W7-046",
+    "method_name": "HandleChartClick_ConvertPrice",
+    "cyc": 12,
+    "source_file": "src/V12_002.UI.Callbacks.cs",
+    "num": 46
+  },
+  {
+    "epic_id": "EPIC-W7-047",
+    "method_name": "CancelOrphanedTargets",
+    "cyc": 13,
+    "source_file": "src/V12_002.UI.Compliance.cs",
+    "num": 47
+  },
+  {
+    "epic_id": "EPIC-W7-048",
+    "method_name": "UpdateExistingPendingReplacement",
+    "cyc": 0,
+    "source_file": "src/V12_002.Trailing.StopUpdate.cs",
+    "num": 48
+  },
+  {
+    "epic_id": "EPIC-W7-049",
+    "method_name": "ManageTrail_RunPerTradeBranches",
+    "cyc": 11,
+    "source_file": "src/V12_002.Trailing.cs",
+    "num": 49
+  },
+  {
+    "epic_id": "EPIC-W7-050",
+    "method_name": "FleetSync_SyncFollowersToLevel",
+    "cyc": 34,
+    "source_file": "src/V12_002.Trailing.cs",
+    "num": 50
+  },
+  {
+    "epic_id": "EPIC-W7-051",
+    "method_name": "UpdateStopOrder",
+    "cyc": 0,
+    "source_file": "src/V12_002.Trailing.StopUpdate.cs",
+    "num": 51
+  },
+  {
+    "epic_id": "EPIC-W7-052",
+    "method_name": "CleanupStalePendingReplacements",
+    "cyc": 11,
+    "source_file": "src/V12_002.Trailing.StopUpdate.cs",
+    "num": 52
+  },
+  {
+    "epic_id": "EPIC-W7-053",
+    "method_name": "InitiateStopReplacement",
+    "cyc": 0,
+    "source_file": "src/V12_002.Trailing.StopUpdate.cs",
+    "num": 53
+  },
+  {
+    "epic_id": "EPIC-W7-054",
+    "method_name": "",
+    "cyc": 20,
+    "source_file": "",
+    "num": 54
+  },
+  {
+    "epic_id": "EPIC-W7-055",
+    "method_name": "DrainPhotonQueuesOnShutdown",
+    "cyc": 8,
+    "source_file": "src/V12_002.SIMA.Lifecycle.cs",
+    "num": 55
+  },
+  {
+    "epic_id": "EPIC-W7-056",
+    "method_name": "SweepBrokerOrders",
+    "cyc": 28,
+    "source_file": "src/V12_002.SIMA.Lifecycle.cs",
+    "num": 56
+  },
+  {
+    "epic_id": "EPIC-W7-057",
+    "method_name": "",
+    "cyc": 10,
+    "source_file": "",
+    "num": 57
+  },
+  {
+    "epic_id": "EPIC-W7-058",
+    "method_name": "MapOrderStateToFSMState",
+    "cyc": 34,
+    "source_file": "src/V12_002.SIMA.Lifecycle.cs",
+    "num": 58
+  },
+  {
+    "epic_id": "EPIC-W7-059",
+    "method_name": "AdoptMasterWorkingOrders",
+    "cyc": 34,
+    "source_file": "src/V12_002.SIMA.Lifecycle.cs (also in src-vm-backup/)",
+    "num": 59
+  },
+  {
+    "epic_id": "EPIC-W7-060",
+    "method_name": "SweepTrackedOrders",
+    "cyc": 0,
+    "source_file": "src/V12_002.SIMA.Lifecycle.cs",
+    "num": 60
+  },
+  {
+    "epic_id": "EPIC-W7-061",
+    "method_name": "SubmitAndRegisterFleetOrders",
+    "cyc": 12,
+    "source_file": "src/V12_002.SIMA.Fleet.cs",
+    "num": 61
+  },
+  {
+    "epic_id": "EPIC-W7-062",
+    "method_name": "ProcessFleetSlot",
+    "cyc": 13,
+    "source_file": "src/V12_002.SIMA.Fleet.cs",
+    "num": 62
+  },
+  {
+    "epic_id": "EPIC-W7-063",
+    "method_name": "DrainAllDispatchQueuesOnAbort",
+    "cyc": 0,
+    "source_file": "src/V12_002.SIMA.Fleet.cs",
+    "num": 63
+  },
+  {
+    "epic_id": "EPIC-W7-064",
+    "method_name": "ResolveFsm_ByScan",
+    "cyc": 11,
+    "source_file": "src/V12_002.Symmetry.BracketFSM.cs",
+    "num": 64
+  },
+  {
+    "epic_id": "EPIC-W7-065",
+    "method_name": "HandleFsmFilled",
+    "cyc": 14,
+    "source_file": "src/V12_002.Symmetry.BracketFSM.cs",
+    "num": 65
+  },
+  {
+    "epic_id": "EPIC-W7-066",
+    "method_name": "RemoveFsmOrderIdMappings",
+    "cyc": 10,
+    "source_file": "src/V12_002.Symmetry.BracketFSM.cs",
+    "num": 66
+  },
+  {
+    "epic_id": "EPIC-W7-067",
+    "method_name": "SymmetryFindDispatchForMasterFill",
+    "cyc": 8,
+    "source_file": "src/V12_002.Symmetry.cs",
+    "num": 67
+  },
+  {
+    "epic_id": "EPIC-W7-068",
+    "method_name": "TryParseTargetMode",
+    "cyc": 0,
+    "source_file": "V12_002.UI.IPC.cs",
+    "num": 68
+  },
+  {
+    "epic_id": "EPIC-W7-069",
+    "method_name": "GetFsmExpectedPosition",
+    "cyc": 0,
+    "source_file": "src/V12_002.Symmetry.BracketFSM.cs",
+    "num": 69
+  },
+  {
+    "epic_id": "EPIC-W7-070",
+    "method_name": "",
+    "cyc": 13,
+    "source_file": "",
+    "num": 70
+  },
+  {
+    "epic_id": "EPIC-W7-071",
+    "method_name": "ShadowProcessFollowerStopUpdate",
+    "cyc": 13,
+    "source_file": "src/V12_002.SIMA.Shadow.cs",
+    "num": 71
+  },
+  {
+    "epic_id": "EPIC-W7-072",
+    "method_name": "ProcessAccountOrder_UpdateMasterExpected",
+    "cyc": 12,
+    "source_file": "V12_002.Orders.Callbacks.AccountOrders.cs",
+    "num": 72
+  },
+  {
+    "epic_id": "EPIC-W7-073",
+    "method_name": "DeserializeSnapshot",
+    "cyc": 8,
+    "source_file": "src/V12_002.StickyState.cs",
+    "num": 73
+  },
+  {
+    "epic_id": "EPIC-W7-074",
+    "method_name": "AttachExecutionPanelHandlers",
+    "cyc": 12,
+    "source_file": "src/V12_002.UI.Panel.Handlers.cs",
+    "num": 74
+  },
+  {
+    "epic_id": "EPIC-W7-075",
+    "method_name": "OnSubmitClick",
+    "cyc": 34,
+    "source_file": "src/V12_002.UI.Panel.Handlers.cs",
+    "num": 75
+  },
+  {
+    "epic_id": "EPIC-W7-076",
+    "method_name": "CollapseAllExecutionControls",
+    "cyc": 0,
+    "source_file": "src/V12_002.UI.Panel.Handlers.cs",
+    "num": 76
+  },
+  {
+    "epic_id": "EPIC-W7-077",
+    "method_name": "ProcessClientStream",
+    "cyc": 0,
+    "source_file": "src/V12_002.UI.IPC.Server.cs",
+    "num": 77
+  },
+  {
+    "epic_id": "EPIC-W7-078",
+    "method_name": "StopIpcServer",
+    "cyc": 0,
+    "source_file": "src/V12_002.UI.IPC.Server.cs",
+    "num": 78
+  },
+  {
+    "epic_id": "EPIC-W7-079",
+    "method_name": "CreateSection0_Identity",
+    "cyc": 0,
+    "source_file": "src/V12_002.UI.Panel.Construction.cs",
+    "num": 79
+  },
+  {
+    "epic_id": "EPIC-W7-080",
+    "method_name": "PlacePanel",
+    "cyc": 13,
+    "source_file": "src/V12_002.UI.Panel.Construction.cs",
+    "num": 80
+  },
+  {
+    "epic_id": "EPIC-W7-081",
+    "method_name": "AuditMaster_HandleNakedPosition",
+    "cyc": 0,
+    "source_file": "src/V12_002.REAPER.Audit.cs",
+    "num": 81
+  },
+  {
+    "epic_id": "EPIC-W7-082",
+    "method_name": "AuditSingleFleetAccount",
+    "cyc": 90,
+    "source_file": "src/V12_002.REAPER.Audit.cs",
+    "num": 82
+  },
+  {
+    "epic_id": "EPIC-W7-083",
+    "method_name": "AuditMaster_CheckExpectedActual",
+    "cyc": 13,
+    "source_file": "src/V12_002.REAPER.Audit.cs",
+    "num": 83
+  },
+  {
+    "epic_id": "EPIC-W7-084",
+    "method_name": "AuditFleet_CalculateExpectedActual",
+    "cyc": 0,
+    "source_file": "src/V12_002.REAPER.Audit.cs",
+    "num": 84
+  },
+  {
+    "epic_id": "EPIC-W7-085",
+    "method_name": "AuditMaster_HandleDesyncFlatten",
+    "cyc": 0,
+    "source_file": "src/V12_002.REAPER.Audit.cs",
+    "num": 85
+  },
+  {
+    "epic_id": "EPIC-W7-086",
+    "method_name": "ProcessReaperFlatten_CancelWorkingOrders",
+    "cyc": 34,
+    "source_file": "src/V12_002.REAPER.Audit.cs",
+    "num": 86
+  },
+  {
+    "epic_id": "EPIC-W7-087",
+    "method_name": "AuditFleet_CheckWorkingStop",
+    "cyc": 0,
+    "source_file": "src/V12_002.REAPER.Audit.cs",
+    "num": 87
+  },
+  {
+    "epic_id": "EPIC-W7-088",
+    "method_name": "SubmitRepairOrderWithAuthorization",
+    "cyc": 34,
+    "source_file": "src/V12_002.REAPER.Repair.cs",
+    "num": 88
+  },
+  {
+    "epic_id": "EPIC-W7-089",
+    "method_name": "CancelWatchdogWorkingOrders",
+    "cyc": 10,
+    "source_file": "src/V12_002.Safety.Watchdog.cs",
+    "num": 89
+  },
+  {
+    "epic_id": "EPIC-W7-090",
+    "method_name": "OnWatchdogTimer",
+    "cyc": 0,
+    "source_file": "src/V12_002.Safety.Watchdog.cs",
+    "num": 90
+  },
+  {
+    "epic_id": "EPIC-W7-091",
+    "method_name": "CancelDirectFallbackOrders",
+    "cyc": 0,
+    "source_file": "src/V12_002.Safety.Watchdog.cs",
+    "num": 91
+  },
+  {
+    "epic_id": "EPIC-W7-092",
+    "method_name": "",
+    "cyc": 13,
+    "source_file": "",
+    "num": 92
+  },
+  {
+    "epic_id": "EPIC-W7-093",
+    "method_name": "Dispatch_ProcessFleetLoop",
+    "cyc": 0,
+    "source_file": "src/V12_002.SIMA.Dispatch.cs",
+    "num": 93
+  },
+  {
+    "epic_id": "EPIC-W7-094",
+    "method_name": "ExecuteMultiAccountMarket",
+    "cyc": 17,
+    "source_file": "src/V12_002.SIMA.Execution.cs",
+    "num": 94
+  },
+  {
+    "epic_id": "EPIC-W7-095",
+    "method_name": "ProcessSingleFleetRMAAccount",
+    "cyc": 0,
+    "source_file": "src/V12_002.SIMA.Execution.cs",
+    "num": 95
+  },
+  {
+    "epic_id": "EPIC-W7-096",
+    "method_name": "ExecuteMultiAccountBracket",
+    "cyc": 34,
+    "source_file": "src/V12_002.SIMA.Execution.cs",
+    "num": 96
+  },
+  {
+    "epic_id": "EPIC-W7-097",
+    "method_name": "ExecuteRMAEntryV2",
+    "cyc": 0,
+    "source_file": "src/V12_002.SIMA.Execution.cs",
+    "num": 97
+  },
+  {
+    "epic_id": "EPIC-W7-098",
+    "method_name": "ProcessFlattenWorkItem_CancelOrders",
+    "cyc": 17,
+    "source_file": "src/V12_002.SIMA.Flatten.cs",
+    "num": 98
+  },
+  {
+    "epic_id": "EPIC-W7-099",
+    "method_name": "PurgePositionIfEligible",
+    "cyc": 11,
+    "source_file": "V12_002.Orders.Management.Cleanup.cs",
+    "num": 99
+  },
+  {
+    "epic_id": "EPIC-W7-100",
+    "method_name": "ClosePositionsOnlyApexAccounts",
+    "cyc": 0,
+    "source_file": "src/V12_002.SIMA.Flatten.cs",
+    "num": 100
+  },
+  {
+    "epic_id": "EPIC-W7-101",
+    "method_name": "VerifyPhotonSlotIntegrity",
+    "cyc": 16,
+    "source_file": "src/V12_002.SIMA.Fleet.cs",
+    "num": 101
+  },
+  {
+    "epic_id": "EPIC-W7-102",
+    "method_name": "",
+    "cyc": 14,
+    "source_file": "",
+    "num": 102
+  },
+  {
+    "epic_id": "EPIC-W7-103",
+    "method_name": "ProcessFleetSlot",
+    "cyc": 13,
+    "source_file": "src/V12_002.SIMA.Fleet.cs",
+    "num": 103
+  },
+  {
+    "epic_id": "EPIC-W7-104",
+    "method_name": "SubmitAndRegisterFleetOrders",
+    "cyc": 12,
+    "source_file": "src/V12_002.SIMA.Fleet.cs",
+    "num": 104
+  },
+  {
+    "epic_id": "EPIC-W7-105",
+    "method_name": "DrainAllDispatchQueuesOnAbort",
+    "cyc": 12,
+    "source_file": "src/V12_002.SIMA.Fleet.cs",
+    "num": 105
+  },
+  {
+    "epic_id": "EPIC-W7-106",
+    "method_name": "LogHealthCheckResult",
+    "cyc": 0,
+    "source_file": "src/V12_002.SIMA.Fleet.cs",
+    "num": 106
+  },
+  {
+    "epic_id": "EPIC-W7-107",
+    "method_name": "HydrateFromOpenPositions",
+    "cyc": 34,
+    "source_file": "src/V12_002.SIMA.Lifecycle.cs",
+    "num": 107
+  },
+  {
+    "epic_id": "EPIC-W7-108",
+    "method_name": "DrainPhotonQueuesOnShutdown",
+    "cyc": 0,
+    "source_file": "V12_002.SIMA.Lifecycle.cs",
+    "num": 108
+  },
+  {
+    "epic_id": "EPIC-W7-109",
+    "method_name": "HydrateWorkingOrdersFromBroker",
+    "cyc": 34,
+    "source_file": "src/V12_002.SIMA.Lifecycle.cs",
+    "num": 109
+  },
+  {
+    "epic_id": "EPIC-W7-110",
+    "method_name": "AdoptMasterOrders",
+    "cyc": 22,
+    "source_file": "src/V12_002.SIMA.Lifecycle.cs",
+    "num": 110
+  },
+  {
+    "epic_id": "EPIC-W7-111",
+    "method_name": "HydrateExpectedPositionsFromBroker",
+    "cyc": 0,
+    "source_file": "src/V12_002.SIMA.Lifecycle.cs",
+    "num": 111
+  },
+  {
+    "epic_id": "EPIC-W7-112",
+    "method_name": "ClassifyOrderByPrefix",
+    "cyc": 20,
+    "source_file": "src/V12_002.SIMA.Lifecycle.cs",
+    "num": 112
+  },
+  {
+    "epic_id": "EPIC-W7-113",
+    "method_name": "HydrateFSMsFromWorkingOrders",
+    "cyc": 0,
+    "source_file": "src/V12_002.SIMA.Lifecycle.cs",
+    "num": 113
+  },
+  {
+    "epic_id": "EPIC-W7-114",
+    "method_name": "ProcessShutdownSIMA",
+    "cyc": 0,
+    "source_file": "src/V12_002.SIMA.Lifecycle.cs",
+    "num": 114
+  },
+  {
+    "epic_id": "EPIC-W7-115",
+    "method_name": "SweepTrackedOrders",
+    "cyc": 34,
+    "source_file": "src/V12_002.SIMA.Lifecycle.cs",
+    "num": 115
+  },
+  {
+    "epic_id": "EPIC-W7-116",
+    "method_name": "",
+    "cyc": 13,
+    "source_file": "",
+    "num": 116
+  },
+  {
+    "epic_id": "EPIC-W7-117",
+    "method_name": "",
+    "cyc": 9,
+    "source_file": "",
+    "num": 117
+  },
+  {
+    "epic_id": "EPIC-W7-118",
+    "method_name": "DeserializeSnapshot",
+    "cyc": 0,
+    "source_file": "src/V12_002.StickyState.cs",
+    "num": 118
+  },
+  {
+    "epic_id": "EPIC-W7-119",
+    "method_name": "",
+    "cyc": 14,
+    "source_file": "",
+    "num": 119
+  },
+  {
+    "epic_id": "EPIC-W7-120",
+    "method_name": "HandleFsmFilled",
+    "cyc": 14,
+    "source_file": "src/V12_002.Symmetry.BracketFSM.cs",
+    "num": 120
+  },
+  {
+    "epic_id": "EPIC-W7-121",
+    "method_name": "SymmetryGuardCascadeFollowerCleanup",
+    "cyc": 10,
+    "source_file": "V12_002.Symmetry.Replace.cs",
+    "num": 121
+  },
+  {
+    "epic_id": "EPIC-W7-122",
+    "method_name": "RemoveFsmOrderIdMappings",
+    "cyc": 10,
+    "source_file": "src/V12_002.Symmetry.BracketFSM.cs",
+    "num": 122
+  },
+  {
+    "epic_id": "EPIC-W7-123",
+    "method_name": "HandleMatchedFollowerOrder",
+    "cyc": 14,
+    "source_file": "src/V12_002.Orders.Callbacks.AccountOrders.cs",
+    "num": 123
+  },
+  {
+    "epic_id": "EPIC-W7-124",
+    "method_name": "SymmetryFindDispatchForMasterFill",
+    "cyc": 0,
+    "source_file": "src/V12_002.Symmetry.cs",
+    "num": 124
+  },
+  {
+    "epic_id": "EPIC-W7-125",
+    "method_name": "",
+    "cyc": 20,
+    "source_file": "",
+    "num": 125
+  },
+  {
+    "epic_id": "EPIC-W7-126",
+    "method_name": "SymmetryGuardSubmitFollowerBracket",
+    "cyc": 16,
+    "source_file": "src/V12_002.Symmetry.Follower.cs",
+    "num": 126
+  },
+  {
+    "epic_id": "EPIC-W7-127",
+    "method_name": "SymmetryGuardOnFollowerFill",
+    "cyc": 16,
+    "source_file": "src/V12_002.Symmetry.Follower.cs",
+    "num": 127
+  },
+  {
+    "epic_id": "EPIC-W7-128",
+    "method_name": "SymmetryGuardReplaceExistingFollowerTarget",
+    "cyc": 20,
+    "source_file": "src/V12_002.Symmetry.Replace.cs",
+    "num": 128
+  },
+  {
+    "epic_id": "EPIC-W7-129",
+    "method_name": "",
+    "cyc": 16,
+    "source_file": "",
+    "num": 129
+  },
+  {
+    "epic_id": "EPIC-W7-130",
+    "method_name": "SymmetryGuardCascadeFollowerCleanup",
+    "cyc": 0,
+    "source_file": "src/V12_002.Symmetry.Replace.cs",
+    "num": 130
+  },
+  {
+    "epic_id": "EPIC-W7-131",
+    "method_name": "SymmetryGuardPruneDispatches",
+    "cyc": 34,
+    "source_file": "src/V12_002.Symmetry.Replace.cs",
+    "num": 131
+  },
+  {
+    "epic_id": "EPIC-W7-132",
+    "method_name": "SymmetryNormalizeTradeType",
+    "cyc": 0,
+    "source_file": "src/V12_002.Symmetry.Replace.cs",
+    "num": 132
+  },
+  {
+    "epic_id": "EPIC-W7-133",
+    "method_name": "MoveStop_SinglePosition",
+    "cyc": 21,
+    "source_file": "src/V12_002.Trailing.Breakeven.cs",
+    "num": 133
+  },
+  {
+    "epic_id": "EPIC-W7-134",
+    "method_name": "MoveSpecificTarget",
+    "cyc": 0,
+    "source_file": "src/V12_002.Trailing.Breakeven.cs",
+    "num": 134
+  },
+  {
+    "epic_id": "EPIC-W7-135",
+    "method_name": "FindTargetOrderForPosition",
+    "cyc": 10,
+    "source_file": "src/V12_002.Trailing.Breakeven.cs",
+    "num": 135
+  },
+  {
+    "epic_id": "EPIC-W7-136",
+    "method_name": "ManageTrailingStops",
+    "cyc": 0,
+    "source_file": "src/V12_002.Trailing.cs",
+    "num": 136
+  },
+  {
+    "epic_id": "EPIC-W7-137",
+    "method_name": "FleetSync_SyncFollowersToLevel",
+    "cyc": 0,
+    "source_file": "src/V12_002.Trailing.cs",
+    "num": 137
+  },
+  {
+    "epic_id": "EPIC-W7-138",
+    "method_name": "ManageTrail_RunPerTradeBranches",
+    "cyc": 11,
+    "source_file": "src/V12_002.Trailing.cs",
+    "num": 138
+  },
+  {
+    "epic_id": "EPIC-W7-139",
+    "method_name": "UpdateStopOrder",
+    "cyc": 0,
+    "source_file": "src/V12_002.Trailing.StopUpdate.cs",
+    "num": 139
+  },
+  {
+    "epic_id": "EPIC-W7-140",
+    "method_name": "InitiateStopReplacement",
+    "cyc": 0,
+    "source_file": "src/V12_002.Trailing.StopUpdate.cs",
+    "num": 140
+  },
+  {
+    "epic_id": "EPIC-W7-141",
+    "method_name": "AuditFleet_CheckWorkingStop",
+    "cyc": 0,
+    "source_file": "V12_002.REAPER.Audit.cs",
+    "num": 141
+  },
+  {
+    "epic_id": "EPIC-W7-142",
+    "method_name": "HandleChartClick_ConvertPrice",
+    "cyc": 8,
+    "source_file": "src/V12_002.UI.Callbacks.cs",
+    "num": 142
+  },
+  {
+    "epic_id": "EPIC-W7-143",
+    "method_name": "OnKeyDown",
+    "cyc": 0,
+    "source_file": "src/V12_002.UI.Callbacks.cs",
+    "num": 143
+  },
+  {
+    "epic_id": "EPIC-W7-144",
+    "method_name": "IsOrderAllowed",
+    "cyc": 20,
+    "source_file": "src/V12_002.UI.Compliance.cs",
+    "num": 144
+  },
+  {
+    "epic_id": "EPIC-W7-145",
+    "method_name": "HandleFleetTargetFill",
+    "cyc": 17,
+    "source_file": "src/V12_002.UI.Compliance.cs",
+    "num": 145
+  },
+  {
+    "epic_id": "EPIC-W7-146",
+    "method_name": "CancelOrphanedTargets",
+    "cyc": 13,
+    "source_file": "src/V12_002.UI.Compliance.cs",
+    "num": 146
+  },
+  {
+    "epic_id": "EPIC-W7-147",
+    "method_name": "ProcessQueuedExecution_HandleFleetOCO",
+    "cyc": 15,
+    "source_file": "src/V12_002.UI.Compliance.cs",
+    "num": 147
+  },
+  {
+    "epic_id": "EPIC-W7-148",
+    "method_name": "",
+    "cyc": 16,
+    "source_file": "",
+    "num": 148
+  },
+  {
+    "epic_id": "EPIC-W7-149",
+    "method_name": "LogApexPerformance",
+    "cyc": 20,
+    "source_file": "src/V12_002.UI.Compliance.cs",
+    "num": 149
+  },
+  {
+    "epic_id": "EPIC-W7-150",
+    "method_name": "ProcessQueuedExecution_HandleFleetBrackets",
+    "cyc": 10,
+    "source_file": "src/V12_002.UI.Compliance.cs",
+    "num": 150
+  },
+  {
+    "epic_id": "EPIC-W7-151",
+    "method_name": "",
+    "cyc": 9,
+    "source_file": "",
+    "num": 151
+  },
+  {
+    "epic_id": "EPIC-W7-152",
+    "method_name": "TryApplyConfigTarget_Value",
+    "cyc": 0,
+    "source_file": "src/V12_002.UI.IPC.Commands.Config.cs",
+    "num": 152
+  },
+  {
+    "epic_id": "EPIC-W7-153",
+    "method_name": "HandleTrimCommand",
+    "cyc": 20,
+    "source_file": "src/V12_002.UI.IPC.Commands.Config.cs",
+    "num": 153
+  },
+  {
+    "epic_id": "EPIC-W7-154",
+    "method_name": "",
+    "cyc": 11,
+    "source_file": "",
+    "num": 154
+  },
+  {
+    "epic_id": "EPIC-W7-155",
+    "method_name": "TryHandleFleetCommand",
+    "cyc": 0,
+    "source_file": "src/V12_002.UI.IPC.Commands.Fleet.cs",
+    "num": 155
+  },
+  {
+    "epic_id": "EPIC-W7-156",
+    "method_name": "CancelAll_ProcessSingleFleetAccount",
+    "cyc": 18,
+    "source_file": "src/V12_002.UI.IPC.Commands.Fleet.cs",
+    "num": 156
+  },
+  {
+    "epic_id": "EPIC-W7-157",
+    "method_name": "TryHandleFleet_MoveTarget",
+    "cyc": 17,
+    "source_file": "src/V12_002.UI.IPC.Commands.Fleet.cs",
+    "num": 157
+  },
+  {
+    "epic_id": "EPIC-W7-158",
+    "method_name": "SyncModeChipVisuals",
+    "cyc": 9,
+    "source_file": "V12_002.UI.Panel.StateSync.cs",
+    "num": 158
+  },
+  {
+    "epic_id": "EPIC-W7-159",
+    "method_name": "TryHandleFleet_LongShort",
+    "cyc": 21,
+    "source_file": "src/V12_002.UI.IPC.Commands.Fleet.cs",
+    "num": 159
+  },
+  {
+    "epic_id": "EPIC-W7-160",
+    "method_name": "",
+    "cyc": 10,
+    "source_file": "",
+    "num": 160
+  },
+  {
+    "epic_id": "EPIC-W7-161",
+    "method_name": "",
+    "cyc": 10,
+    "source_file": "",
+    "num": 161
+  }
+]

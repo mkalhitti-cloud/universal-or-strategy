@@ -1,0 +1,23 @@
+{
+  "epic": "PTT-COPIER-B4",
+  "spec": "specs/002-trade-copier-spec.html",
+  "phase": "complete",
+  "tickets": {
+    "T1": { "file": "CopyEngine.cs", "lines": 424, "status": "verify-pass", "changes": "IsFlat, IsStopLeg, MoveStopToBreakEven, BreakEven (4 methods, all CYC<=8)" },
+    "T2": { "file": "TradeCopierPanel.cs", "lines": 231, "status": "verify-pass", "changes": "_beBtn, _beBufferBox (Width=30), BE cluster, OnBreakEven, Shift+B binding" },
+    "T3": { "file": "TradeCopierWindow.cs", "lines": 399, "status": "verify-pass", "changes": "col 8 BE cluster in BuildRuleRow + BuildDynamicRuleRow, OnRuleBreakEven" }
+  },
+  "finalReview": "pass",
+  "finalReviewChecks": "24/24",
+  "deferredBacklog": "docs/brain/PTT-COPIER-B4/06-deferred-backlog.md",
+  "openItems": 4,
+  "scans": {
+    "lock": 0,
+    "nonAscii": 0,
+    "fontFamily": 0,
+    "hexLiteral": 0,
+    "dateTimeNow": 0,
+    "sealedTradeCopierWindow": 0,
+    "newCopyEngineCount": 1
+  }
+}

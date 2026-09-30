@@ -1,0 +1,95 @@
+## Autonomous Refactor Mode - Custom Instructions (Paste into .bob/custom_modes.yaml)
+
+**PRIMARY REFERENCE**: docs/brain/WAVE8_COMPLETE_REFERENCE.md (MANDATORY FIRST READ)
+
+### Mission
+Orchestrate Wave 8 autonomous refactoring: 180 methods to CYC ≤8 (Jane Street strict standard)
+
+### Current State
+- ✅ Wave 6 Phase 0-1: 79 epics complete
+- ❌ Wave 6 Phase 1.5: FROZEN (script bug - fix ready at building-blocks/autonomous-refactoring/phase1_5_template_v12_52_FIXED.sh)
+- ⏳ Wave 7 Phase 0-1: 101 epics pending
+- ⏳ Wave 8 Phase 1.5-6: 180 epics unified execution
+- Timeline: 6 days (25% faster than sequential)
+
+### Critical Protocols (NEVER FORGET)
+
+1. **Building-Blocks Method (MANDATORY)**
+   - ALWAYS copy scripts from previous wave/phase
+   - NEVER generate from scratch
+   - SOP: docs/workflow/WAVE_PHASE_SCRIPT_GENERATION_SOP_V3.md
+   - Templates: building-blocks/autonomous-refactoring/
+
+2. **Bob CLI Pattern (MANDATORY)**
+   ```bash
+   cat > /tmp/phaseX_msg_$EPIC_ID.txt << 'EOFMSG'
+   [message]
+   EOFMSG
+   bob --yolo --chat-mode MODE "$(cat /tmp/phaseX_msg_$EPIC_ID.txt)"
+   ```
+   - ❌ NEVER inline messages (causes freeze)
+   - ✅ ALWAYS temp file + command substitution
+   - VM Bob: ~/.npm-global/bin/bob
+
+3. **100% Completion Mandate (V12.28)**
+   - NEVER dismiss epics as "not our concern"
+   - Naming mismatches ≠ exemption
+   - Missing files → execute missing phases first
+   - Goal: ALWAYS N/N (100%), never N-1/N
+
+4. **No Scope Creep (V12.23)**
+   - ONE EPIC = ONE CONCERN
+   - Phase 1.5 = MANDATORY gate
+   - Unrelated fixes → separate PRs
+
+5. **Jane Street Violations (69.8% overlap)**
+   - Fix DURING refactoring, not separately
+   - Philosophy (223): Magic numbers → constants
+   - Type Safety (69): Exceptions → Result<T,E>
+   - Concurrency (5): Locks → Actor pattern
+   - Performance (2): Heap → Span/ArrayPool
+   - Reference: docs/brain/JANE_STREET_VIOLATION_CATEGORIES_EXPLAINED.md
+
+6. **Cost-Optimized Polling**
+   - 4-minute intervals (88% cost reduction)
+   - Reuse jCodemunch index
+   - Protocol: docs/protocol/COST_OPTIMIZED_POLLING_PROTOCOL.md
+
+### Wave 8 Execution Flow
+1. Wave 7 Catch-Up (1 day): Phase 0-1 for 101 epics
+2. Wave 8 Merge Prep (0.5 days): Unified manifest + scripts
+3. Wave 8 Pilot (1 day): 3 epics Phase 1.5-6
+4. Wave 8 Full (2-3 days): 180 epics Phase 1.5-6
+5. Final Validation (1 day): Complexity + Jane Street compliance
+
+### Special Cases
+- EPIC-003: Local (due to .dll)
+- EPIC-024: Excluded (missing Phase 0)
+- EPIC-027: Excluded (user confirmed)
+- VM: 34.60.155.195 (malhitticrypto@universal-or-epic-cluster-1)
+
+### Quality Gates
+- Pre-push: pre_push_validation.ps1 (13 checks)
+- Per-phase: See docs/brain/WAVE8_COMPLETE_REFERENCE.md → Quality Gates
+
+### Recovery Protocol
+Epic fails → identify phase → fix → update manifest → re-run
+VM freezes → STOP → check inline messages → apply temp file fix → restart
+
+### Reference Index
+1. Wave 8 Complete Reference: docs/brain/WAVE8_COMPLETE_REFERENCE.md ← START HERE
+2. Script Generation SOP: docs/workflow/WAVE_PHASE_SCRIPT_GENERATION_SOP_V3.md
+3. Jane Street Violations: docs/brain/JANE_STREET_VIOLATION_CATEGORIES_EXPLAINED.md
+4. Phase 1.5 Freeze: docs/brain/PHASE1_5_FREEZE_COMPLETE_ANALYSIS.md
+5. Building-Blocks Architecture: building-blocks/autonomous-refactoring/ARCHITECTURE.md
+6. Templates: building-blocks/autonomous-refactoring/phase{0-6}_template_v12_52.sh
+
+### Emergency Procedures
+- VM Freeze: Stop VM → apply temp file fix → restart
+- Script Error: Find template → copy → modify params only → test 1 epic
+- Scope Creep: STOP → close PR → separate concerns → restart
+
+### Post-Wave Audit (MANDATORY)
+After completion: Review scripts → document deviations → update templates → state "building-blocks(wave-X): no gaps identified"
+
+**Version**: 2.0 | **Date**: 2026-06-19 | **Status**: ACTIVE

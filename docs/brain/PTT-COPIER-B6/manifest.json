@@ -1,0 +1,32 @@
+{
+  "epic": "PTT-COPIER-B6",
+  "spec": "specs/002-trade-copier-spec.html",
+  "phase": "complete",
+  "tickets": {
+    "T1": { "file": "CopyEngine.cs",                        "lines": 606, "status": "verify-pass" },
+    "T2": { "file": "TradeCopierWindow.cs",                 "lines": 464, "status": "verify-pass" },
+    "T3": { "file": "CopyEngineTests.cs",                   "lines": 345, "status": "verify-pass" },
+    "T4": { "file": "specs/002-trade-copier-spec.html",     "lines": 0,   "status": "verify-pass", "note": "doc-only, line count not tracked" }
+  },
+  "lineCounts": {
+    "CopyEngine.cs":              606,
+    "TradeCopierPanel.cs":        251,
+    "TradeCopierWindow.cs":       464,
+    "CopyEngineTests.cs":         345
+  },
+  "testCount": 22,
+  "finalReview": "pass",
+  "scans": "all-7-pass",
+  "openItems": 0,
+  "openItemIds": [],
+  "deferredBacklog": "docs/brain/PTT-COPIER-B6/06-deferred-backlog.md",
+  "backlogStatus": "empty — all items closed after B6",
+  "postB6RuntimeFix": {
+    "date": "applied in Director session",
+    "changes": [
+      "TradeCopierAddOn.cs: added _menuItem != null guard in OnWindowCreated to prevent duplicate menu entries",
+      "TradeCopierWindow.cs: switched base class from NTWindow to System.Windows.Window to fix window-not-appearing; removed NinjaTrader.Gui/Gui.Tools imports; removed AccountComboBoxStyle resource refs; added MinWidth/MinHeight/ResizeMode; stack trace in init error MessageBox"
+    ],
+    "scans": "all-7-pass after fix"
+  }
+}

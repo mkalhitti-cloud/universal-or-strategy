@@ -1,0 +1,10 @@
+﻿info: src/PropTraderTools/TradeCopierAddOn.cs:1: Code health score: 7.91
+warn: src/PropTraderTools/TradeCopierAddOn.cs:1: Overall Code Complexity
+warn: src/PropTraderTools/TradeCopierAddOn.cs:114: Bumpy Road Ahead (bumps = 2)
+warn: src/PropTraderTools/TradeCopierAddOn.cs:114: Complex Method (cc = 12)
+warn: src/PropTraderTools/TradeCopierAddOn.cs:384: Bumpy Road Ahead (bumps = 2)
+warn: src/PropTraderTools/TradeCopierAddOn.cs:384: Complex Method (cc = 15)
+warn: src/PropTraderTools/TradeCopierAddOn.cs:384: Large Method (LoC = 77 lines)
+warn: src/PropTraderTools/TradeCopierAddOn.cs:528: Code Duplication (null)
+warn: src/PropTraderTools/TradeCopierAddOn.cs:552: Code Duplication (null)
+warn: src/PropTraderTools/TradeCopierAddOn.cs:609: Code Duplication (null)

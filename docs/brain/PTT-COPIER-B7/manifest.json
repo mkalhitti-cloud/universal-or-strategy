@@ -1,0 +1,60 @@
+{
+  "epic": "PTT-COPIER-B7",
+  "spec": "specs/002-trade-copier-spec.html",
+  "phase": "f5-gate-passed",
+  "chartTraderInjection": {
+    "status": "WORKING",
+    "confirmedDate": "2026-07-08",
+    "solution": "Chart(Window) -> visual tree -> ChartTrader -> Content as Grid -> RowDefinitions.Add()",
+    "iterationsToSolve": 5,
+    "keyInsight": "Diagnostic MessageBox revealed ChartTrader.Content = System.Windows.Controls.Grid",
+    "knowledgeDoc": "docs/standards/NT8_ADDON_KNOWLEDGE.md"
+  },
+  "f5GateStatus": "PASSED",
+  "compiledClean": true,
+  "panelVisible": true,
+  "panelInstrument": "MES SEP26 (auto-detected from ChartTrader.Instrument)",
+  "menuDuplicateFix": "volatile bool _menuWired (FIX4)",
+  "openItems": [
+    "B7-F0: Bracket mirroring (stop+target follow leader drags) -- P0",
+    "B7-F1: Button color coding -- P2",
+    "B7-F2: Live P&L + Pos per account in grid -- P2",
+    "B7-F3: Per-account qty multiplier (1x/2x/3x) -- P2",
+    "B7-F4: ATR dynamic sizing engine -- P1",
+    "B7-F5: ScrollViewer on TradeCopierWindow rule grid -- P2"
+  ],
+  "completedThisSession": [
+    "TradeCopierPanel.cs: followers dropdown rows now show [account name][daily P&L][checkmark] left-to-right",
+    "P&L source: AccountItem.RealizedProfitLoss via Account.AccountItemUpdate push event (NT8 native)",
+    "FollowerItem: INotifyPropertyChanged + DailyPnlText + DailyPnlColor (green/red/dim)",
+    "MakeBrush() helper added -- all brushes Freeze()d (JS-008 compliant)",
+    "Dispatcher.InvokeAsync on AccountItemUpdate handler (JS-023 compliant)",
+    "Subscribe in OnLoaded, unsubscribe in Detach() -- no event leak",
+    "7/7 scans PASS -- SCAN-01 through SCAN-07 all zero"
+  ],
+  "competitorIntelligence": {
+    "source": "affordableindicators.com Accounts Dashboard 24.6.14.1",
+    "analysisFile": "specs/assets/competitor-reference/accounts-dashboard-full-analysis.md",
+    "keyDiscoveries": [
+      "Mode column = per-follower ATM template selector (Default / Executions / [template name])",
+      "Per-account multiplier: 1x/2x/3x inline badge in row",
+      "30+ account grid with scrolling",
+      "Fade mode per account (reverse signal direction)",
+      "Exit Shield (auto-flatten at daily loss limit)",
+      "Competitor uses standalone floating window (not ChartTrader injection) for their copier"
+    ]
+  },
+  "twoModes": {
+    "confirmed": true,
+    "mode1": "Executions (market order on followers) -- BUILT",
+    "mode2": "Default / ATM template per follower -- B8 candidate"
+  },
+  "scans": "all-7-pass",
+  "sourceFiles": {
+    "CopyEngine.cs": "534 lines (B6-complete)",
+    "TradeCopierPanel.cs": "225 lines (B6-FIX6)",
+    "TradeCopierWindow.cs": "392 lines (B6-FIX4)",
+    "TradeCopierAddOn.cs": "230 lines (B7-FIX5 -- working ChartTrader injection)",
+    "CopyEngineTests.cs": "345 lines (22 xUnit tests)"
+  }
+}

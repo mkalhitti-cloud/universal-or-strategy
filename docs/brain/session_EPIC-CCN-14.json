@@ -1,0 +1,17 @@
+{
+  "epic_number": "EPIC-CCN-14",
+  "target_method": "ProcessIpcCommands",
+  "target_file": "src/V12_002.UI.IPC.cs",
+  "target_line": 260,
+  "initial_complexity": 76,
+  "initial_nesting": 6,
+  "target_complexity": 8,
+  "churn": 12,
+  "hotspot_score": 194.94,
+  "status": "in_progress",
+  "phase": "0_hotspot_analysis",
+  "started_at": "2026-06-09T02:58:00Z",
+  "phases_completed": [],
+  "tickets": [],
+  "f5_verifications": []
+}

@@ -1,0 +1,14 @@
+﻿info: src/PropTraderTools/TradeCopierWindow.cs:1: Code health score: 5.81
+warn: src/PropTraderTools/TradeCopierWindow.cs:1: Low Cohesion
+warn: src/PropTraderTools/TradeCopierWindow.cs:1: Overall Code Complexity
+warn: src/PropTraderTools/TradeCopierWindow.cs:1: Primitive Obsession
+warn: src/PropTraderTools/TradeCopierWindow.cs:201: Complex Method (cc = 10)
+warn: src/PropTraderTools/TradeCopierWindow.cs:226: Large Method (LoC = 80 lines)
+warn: src/PropTraderTools/TradeCopierWindow.cs:399: Complex Method (cc = 13)
+warn: src/PropTraderTools/TradeCopierWindow.cs:466: Large Method (LoC = 202 lines)
+warn: src/PropTraderTools/TradeCopierWindow.cs:708: Large Method (LoC = 210 lines)
+warn: src/PropTraderTools/TradeCopierWindow.cs:1082: Complex Method (cc = 9)
+warn: src/PropTraderTools/TradeCopierWindow.cs:1156: Bumpy Road Ahead (bumps = 2)
+warn: src/PropTraderTools/TradeCopierWindow.cs:1156: Complex Method (cc = 18)
+warn: src/PropTraderTools/TradeCopierWindow.cs:1177: Complex Conditional (2 complex conditional expressions)
+warn: src/PropTraderTools/TradeCopierWindow.cs:1181: Complex Conditional (3 complex conditional expressions)

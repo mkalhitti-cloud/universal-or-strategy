@@ -1,0 +1,32 @@
+{
+  "version": "1.0",
+  "session_id": "2026-06-04-epic-ccn-13",
+  "started_at": "2026-06-04T19:58:32.482187+00:00",
+  "last_updated": "2026-06-04T19:59:15.322486+00:00",
+  "agent": "v12-epic-planner",
+  "task_description": "Extract MonitorRmaProximity (CYC 32\u2192\u22648)",
+  "files_read": [
+    {
+      "path": "src/V12_002.Entries.RMA.cs",
+      "read_at": "2026-06-04T19:59:03.876268+00:00",
+      "read_type": "outline",
+      "symbols_accessed": [],
+      "line_range": ""
+    }
+  ],
+  "symbols_explored": [
+    {
+      "symbol_id": "src/V12_002.Entries.RMA.cs::V12_002.MonitorRmaProximity#method",
+      "symbol_name": "MonitorRmaProximity",
+      "file": "src/V12_002.Entries.RMA.cs",
+      "explored_at": "2026-06-04T19:59:15.322486+00:00"
+    }
+  ],
+  "searches_performed": [],
+  "token_budget": {
+    "initial": 200000,
+    "consumed": 0,
+    "remaining": 200000,
+    "budget_warnings": []
+  }
+}

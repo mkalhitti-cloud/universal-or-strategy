@@ -1,0 +1,68 @@
+{
+  "epic": "PTT-COPIER-B2",
+  "phase": "complete",
+  "completed": "2026-07-06",
+  "tickets": {
+    "T1": {
+      "status": "verify-pass",
+      "file": "src/PropTraderTools/CopyEngine.cs",
+      "changes": ["List<CopyRule> → ConcurrentBag<CopyRule>", "AddRule(string, Account, Account[]) overload added"],
+      "completion": "docs/brain/PTT-COPIER-B2/ticket-1-completion.md",
+      "verification": "docs/brain/PTT-COPIER-B2/ticket-1-verification.md"
+    },
+    "T2": {
+      "status": "verify-pass",
+      "file": "src/PropTraderTools/TradeCopierWindow.cs",
+      "changes": [
+        "_engine.Subscribe() in OnInitialize",
+        "_engine.Unsubscribe() in OnDestroyed",
+        "NTBrushes.BorderBrush for sep1 and sep2",
+        "catch (Exception) instead of bare catch",
+        "followerCb.ItemsSource = Account.All",
+        "Apply button + OnRowApply per rule row"
+      ],
+      "completion": "docs/brain/PTT-COPIER-B2/ticket-2-completion.md",
+      "verification": "docs/brain/PTT-COPIER-B2/ticket-2-verification.md"
+    },
+    "T3": {
+      "status": "verify-pass",
+      "file": "src/PropTraderTools/TradeCopierPanel.cs",
+      "changes": [
+        "IsEnabled = true for _trimBtn, _flattenBtn, _cancelBtn",
+        "_leaderCombo/_followersCombo promoted to fields",
+        "ItemsSource = Account.All for both ComboBoxes",
+        "Apply Rule button added",
+        "OnApplyRule method added"
+      ],
+      "completion": "docs/brain/PTT-COPIER-B2/ticket-3-completion.md",
+      "verification": "docs/brain/PTT-COPIER-B2/ticket-3-verification.md"
+    },
+    "T4": {
+      "status": "verify-pass",
+      "file": "specs/002-trade-copier-spec.html",
+      "changes": ["SD-1 through SD-10: 10 surgical text replacements applied"],
+      "completion": "docs/brain/PTT-COPIER-B2/ticket-4-completion.md",
+      "verification": "docs/brain/PTT-COPIER-B2/ticket-4-verification.md"
+    }
+  },
+  "final_review": "docs/brain/PTT-COPIER-B2/05-final-review.md",
+  "verdict": "FINAL_PASS",
+  "scans": {
+    "SCAN-01_lock": "0",
+    "SCAN-02_nonASCII": "0",
+    "SCAN-03_FontFamily": "0",
+    "SCAN-04_hexColor": "0",
+    "SCAN-05_PTTprefix": "confirmed",
+    "SCAN-06_DateTimeNow": "0",
+    "SCAN-07_lockRegex": "0",
+    "SCAN-B2-01_SubscribeInWindow": "2",
+    "SCAN-B2-02_SubscribeInPanel": "0",
+    "SCAN-B2-03_ConcurrentBagInEngine": "1",
+    "SCAN-B2-04_ListCopyRuleInEngine": "0",
+    "SCAN-B2-05_IsEnabledFalseInPanel": "0",
+    "SCAN-B2-06_AddRuleInWindow": "5",
+    "SCAN-B2-07_AddRuleInPanel": "1",
+    "SCAN-B2-08_BareBorderBrushInWindow": "0",
+    "SCAN-B2-09_BareCatchInWindow": "0"
+  }
+}

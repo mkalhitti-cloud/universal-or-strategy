@@ -1,0 +1,20 @@
+{
+  "session_id": "test-session-001",
+  "agent_name": "Advanced Mode",
+  "task_description": "Testing snapshot infrastructure",
+  "start_time": "2026-06-09T00:40:16.602350+00:00",
+  "files_accessed": [],
+  "symbols_explored": [],
+  "searches_performed": [],
+  "token_budget": {
+    "total": 200000,
+    "consumed": 0,
+    "remaining": 200000,
+    "last_update": "2026-06-09T00:40:16.602350+00:00"
+  },
+  "negative_evidence": [],
+  "metadata": {
+    "version": "1.0",
+    "created_by": "session_snapshot.py"
+  }
+}

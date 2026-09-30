@@ -1,0 +1,34 @@
+{
+  "epic": "PTT-COPIER-B8",
+  "spec": "specs/002-trade-copier-spec.html",
+  "phase": "FINAL_PASS",
+  "baseline": "B7 FINAL_PASS -- 5 files, 27 passing [Fact] tests, all 7 scans green",
+  "deliverables": {
+    "DW-B7-01": "CLOSED -- FollowerMultipliers int[] parallel to FollowerAccounts on CopyRule. GetMultiplier() helper. Panel per-follower TextBox. Window defaults 1x. XML round-trip. 4 new [Fact] tests.",
+    "DW-B7-03": "CLOSED -- FollowerAtmMode dispatch wired. SendCopy mode switch (Inherit/Market/Named). Panel per-follower ATM ComboBox. Window per-rule ATM ComboBox. ParseAtmModeName/AtmModeToString helpers. 6 new [Fact] tests."
+  },
+  "sourceFiles": {
+    "CopyEngine.cs": "1039 lines",
+    "CopyEngineTests.cs": "891 lines",
+    "TradeCopierAddOn.cs": "230 lines (unchanged)",
+    "TradeCopierPanel.cs": "543 lines",
+    "TradeCopierWindow.cs": "560 lines"
+  },
+  "totalLines": 3263,
+  "tests": {
+    "passing": 37,
+    "added_this_block": 10
+  },
+  "scans": "all-7-pass",
+  "p0Violations": "zero new",
+  "deferredToB9": [
+    "DW-B7-02: ATR dynamic sizing engine (MarketData/AddOnBase incompatibility -- detached Indicator host required)",
+    "DW-B8-04: Click trader (ChartControl.MouseDown -- requires B8 ATM mode as prerequisite, now satisfied)",
+    "DW-B8-05: ATR box visualization (depends on DW-B7-02 engine)",
+    "DW-B8-06: Full mirror mode / Mode 2 (OnOrderUpdate relay -- requires B8 ATM wiring, now satisfied)",
+    "DW-B8-01: JS-002 return null cleanup in CopyEngine.cs (4 query helpers)",
+    "DW-B8-02: Gate hook path fix for PropTraderTools repo detection",
+    "DW-B8-03: Named ATM inline template name TextBox in UI"
+  ],
+  "lamport_events": []
+}

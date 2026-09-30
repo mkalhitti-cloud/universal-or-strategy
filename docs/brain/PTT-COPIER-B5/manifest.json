@@ -1,0 +1,20 @@
+{
+  "epic": "PTT-COPIER-B5",
+  "spec": "specs/002-trade-copier-spec.html",
+  "phase": "complete",
+  "tickets": {
+    "T1": { "file": "TradeCopierPanel.cs", "lines": 251, "status": "verify-pass" },
+    "T2": { "file": "TradeCopierWindow.cs", "lines": 462, "status": "verify-pass" },
+    "T3": { "file": "CopyEngineTests.cs",   "lines": 264, "status": "verify-pass" }
+  },
+  "lineCounts": {
+    "CopyEngine.cs":      424,
+    "TradeCopierPanel.cs": 251,
+    "TradeCopierWindow.cs": 462,
+    "CopyEngineTests.cs":  264
+  },
+  "finalReview": "pass",
+  "scans": "all-7-pass",
+  "openItems": 2,
+  "openItemIds": ["DW-B5-03", "DW-B5-04"]
+}

@@ -1,0 +1,103 @@
+{
+  "epic": "PTT-COPIER-B10-UI-01",
+  "spec": "specs/002-trade-copier-spec.html",
+  "phase": "complete",
+  "tickets": {
+    "T1": {
+      "feature": "BuildCheckItemTemplate: StackPanel -> Grid row factory with OnRowGridLoaded",
+      "status": "complete",
+      "result": "BUILD_PASS + VERIFY_PASS"
+    }
+  },
+  "lamport_events": [
+    {
+      "clock": 1,
+      "phase": "architect",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-08T21:48:39.498172+00:00",
+      "result": "PLAN_COMPLETE"
+    },
+    {
+      "clock": 2,
+      "phase": "plan_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-08T21:51:58.389192+00:00",
+      "result": "REVIEW_PASS"
+    },
+    {
+      "clock": 3,
+      "phase": "tickets",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-08T21:54:27.857867+00:00",
+      "result": "TICKETS_COMPLETE"
+    },
+    {
+      "clock": 4,
+      "phase": "ticket_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-08T21:57:34.802243+00:00",
+      "result": "TICKET_REVIEW_PASS"
+    },
+    {
+      "clock": 5,
+      "phase": "engineer_T1",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-08T22:07:56.437006+00:00",
+      "result": "BUILD_PASS"
+    },
+    {
+      "clock": 6,
+      "phase": "verifier_T1",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-08T22:17:22.923572+00:00",
+      "result": "VERIFY_PASS"
+    },
+    {
+      "clock": 7,
+      "phase": "engineer_T2",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-08T22:17:36.917574+00:00",
+      "result": "BUILD_PASS"
+    },
+    {
+      "clock": 8,
+      "phase": "engineer_T3",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-08T22:17:36.956734+00:00",
+      "result": "BUILD_PASS"
+    },
+    {
+      "clock": 9,
+      "phase": "verifier_T3",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-08T22:17:36.966522+00:00",
+      "result": "VERIFY_PASS"
+    },
+    {
+      "clock": 10,
+      "phase": "final_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-08T22:23:26.308222+00:00",
+      "result": "FINAL_PASS"
+    },
+    {
+      "clock": 11,
+      "phase": "production_verified",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-09T00:00:00.000000+00:00",
+      "result": "SCREENSHOT_VERIFIED",
+      "notes": "NT8 restart required after compile to flush WPF item container pool. 17 accounts confirmed pixel-perfect alignment across all 6 columns. Spec HTML updated. GAP-001d and GAP-002 Sim101 tests still pending (gate B10 T1 and T2)."
+    }
+  ]
+}

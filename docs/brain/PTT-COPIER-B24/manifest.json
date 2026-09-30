@@ -1,0 +1,24 @@
+{
+  "epic": "PTT-COPIER-B24",
+  "lane": "B",
+  "defect": "DW-B23-BE-ALLACCOUNTS-01",
+  "priority": "P0",
+  "write_set": ["CopyEngine.cs", "TradeCopierPanel.cs", "CopyEngineTests.cs"],
+  "fact_baseline": 126,
+  "fact_target": 128,
+  "fact_actual": 128,
+  "phases": {
+    "phase1_architect": "complete",
+    "phase2_plan_review": "REVIEW_PASS",
+    "phase3_tickets": "TICKETS_COMPLETE",
+    "phase3_5_ticket_review": "TICKET_REVIEW_PASS",
+    "phase4a_t1_engineer": "BUILD_PASS",
+    "phase4b_t1_verifier": "VERIFY_PASS",
+    "phase4a_t2_engineer": "BUILD_PASS",
+    "phase4b_t2_verifier": "VERIFY_PASS",
+    "phase5_final_review": "FINAL_PASS"
+  },
+  "deferred_backlog": "docs/brain/PTT-COPIER-B24/06-deferred-backlog.md",
+  "completed": "2026-07-07",
+  "pipeline_status": "PIPELINE_COMPLETE"
+}

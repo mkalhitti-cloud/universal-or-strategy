@@ -1,0 +1,11 @@
+{
+  "session_id": "TEST-SESSION-001",
+  "checkpoint": 1,
+  "timestamp": "2026-06-03T20:56:40.448276+00:00",
+  "tokens_consumed": 50000,
+  "tokens_at_checkpoint": 50000,
+  "files_read": [],
+  "symbols_explored": [],
+  "searches_performed": [],
+  "context_summary": "No activity yet"
+}

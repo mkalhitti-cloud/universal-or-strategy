@@ -1,0 +1,233 @@
+{
+  "block": "PTT-COPIER-B18",
+  "created": "2026-07-15",
+  "prior_block": "PTT-COPIER-B17",
+  "prior_backlog": "docs/brain/PTT-COPIER-B17/06-deferred-backlog.md",
+  "mission": "Fix two P1 blockers that prevent copy trading from working. T1: DW-B17-LEADER-01 \u2014 WireLeaderAccount in TradeCopierAddOn.cs finds Instrument ComboBox instead of Account ComboBox. T2: DW-B18-ACCOUNTS-01 \u2014 follower ListBox ScrollViewer trap renders only 4 items. T3: DW-B18-CANCEL-01 \u2014 CancelPendingEntries skips Initialized follower orders; SendCopy uses DateTime.MaxValue causing GTC-stuck sim orders. T4 (deferred): DW-B17-SYNC-01 copy ON/OFF sync. T5 (deferred): DW-B17-ACCOUNT-NAME-01 broker suffix strip.",
+  "parallel_with": "PTT-COPIER-B17",
+  "file_ownership": {
+    "T1": [
+      "src/PropTraderTools/TradeCopierAddOn.cs"
+    ],
+    "T2": [
+      "src/PropTraderTools/TradeCopierWindow.cs"
+    ],
+    "T3": [
+      "src/PropTraderTools/CopyEngine.cs"
+    ],
+    "T4_deferred": [
+      "src/PropTraderTools/CopyEngine.cs",
+      "src/PropTraderTools/TradeCopierPanel.cs",
+      "src/PropTraderTools/TradeCopierWindow.cs"
+    ],
+    "T5_deferred": [
+      "src/PropTraderTools/TradeCopierWindow.cs"
+    ]
+  },
+  "conflict_note": "B17 owns TradeCopierPanel.cs exclusively. B18 T1+T2+T3 have zero file overlap with B17 \u2014 safe to run in parallel. B18 T4 (deferred) touches TradeCopierPanel.cs \u2014 MUST wait for B17 to close.",
+  "known_tasks": [
+    {
+      "id": "DW-B17-LEADER-01-T1",
+      "title": "WireLeaderAccount: replace FindVisualChild<ComboBox> with FindAccountComboBox (walks all, picks Account)",
+      "priority": "P1",
+      "files": [
+        "src/PropTraderTools/TradeCopierAddOn.cs"
+      ],
+      "root_cause": "FindVisualChild<ComboBox> DFS first-match returns Instrument ComboBox. SelectedItem as Account = null. _leaderAccount stays null. OnApplyRule exits with 'No leader' regardless of ChartTrader selection.",
+      "fix": "Add private static ComboBox FindAccountComboBox(DependencyObject parent) that walks all ComboBoxes and returns first where SelectedItem is NinjaTrader.Cbi.Account. Replace FindVisualChild<ComboBox>(chartTrader) call in WireLeaderAccount with FindAccountComboBox(chartTrader). FindVisualChildByName<T> at L515 is a safe template for the new helper.",
+      "banned_files": [
+        "TradeCopierPanel.cs",
+        "CopyEngine.cs",
+        "TradeCopierWindow.cs",
+        "AtrSizingEngine.cs"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "DW-B18-ACCOUNTS-01-T2",
+      "title": "TradeCopierWindow follower ListBox: remove outer ScrollViewer, set fixed Height",
+      "priority": "P1",
+      "files": [
+        "src/PropTraderTools/TradeCopierWindow.cs"
+      ],
+      "root_cause": "BuildRuleRow and BuildDynamicRuleRow wrap followerLb (ListBox) in ScrollViewer { MaxHeight=80 }. VirtualizingStackPanel sees infinite height from ScrollViewer, renders only 4 items (80px / ~22px = 4 rows). All accounts are bound but not rendered. Scroll does not work.",
+      "fix": "Remove the outer ScrollViewer in both BuildRuleRow and BuildDynamicRuleRow. Set followerLb.Height = 100 (fixed, not MaxHeight). Place followerLb directly in the Grid column. The ListBox's own internal ScrollViewer handles scrolling. Apply identically to both methods.",
+      "banned_files": [
+        "TradeCopierPanel.cs",
+        "TradeCopierAddOn.cs",
+        "CopyEngine.cs",
+        "AtrSizingEngine.cs"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "DW-B17-SYNC-01-T3",
+      "title": "Copy ON/OFF sync between Panel and Window via CopyEngine event (DEFERRED \u2014 wait for B17 close)",
+      "priority": "P2",
+      "files": [
+        "src/PropTraderTools/CopyEngine.cs",
+        "src/PropTraderTools/TradeCopierPanel.cs",
+        "src/PropTraderTools/TradeCopierWindow.cs"
+      ],
+      "blocked_by": "PTT-COPIER-B17 must be closed and merged before touching TradeCopierPanel.cs",
+      "status": "deferred"
+    },
+    {
+      "id": "DW-B17-ACCOUNT-NAME-01-T4",
+      "title": "Strip !Apex!Apex broker suffix at display layer in TradeCopierWindow (DEFERRED \u2014 nice to have)",
+      "priority": "P2",
+      "files": [
+        "src/PropTraderTools/TradeCopierWindow.cs"
+      ],
+      "status": "deferred"
+    }
+  ],
+  "tickets": 2,
+  "phases": {
+    "architect": {
+      "status": "complete",
+      "artifact": "docs/brain/PTT-COPIER-B18/02-architecture-plan.md",
+      "note": "Architecture determined during Sim101 live testing session 2026-07-15. Root causes confirmed from code + screenshots. No further architect phase needed."
+    },
+    "tickets": {
+      "status": "complete",
+      "artifact": "docs/brain/PTT-COPIER-B18/04-tickets.md"
+    },
+    "engineer_T1": {
+      "status": "pending",
+      "artifact": "docs/brain/PTT-COPIER-B18/ticket-1-completion.md"
+    },
+    "verifier_T1": {
+      "status": "pending",
+      "artifact": "docs/brain/PTT-COPIER-B18/ticket-1-verification.md"
+    },
+    "engineer_T2": {
+      "status": "complete",
+      "artifact": "docs/brain/PTT-COPIER-B18/ticket-2-completion.md"
+    },
+    "verifier_T2": {
+      "status": "complete",
+      "artifact": "docs/brain/PTT-COPIER-B18/ticket-2-verification.md"
+    },
+    "engineer_T3": {
+      "status": "complete",
+      "artifact": "docs/brain/PTT-COPIER-B18/ticket-3-completion.md"
+    },
+    "verifier_T3": {
+      "status": "complete",
+      "artifact": "docs/brain/PTT-COPIER-B18/ticket-3-verification.md"
+    },
+    "final_review": {
+      "status": "pending",
+      "artifact": "docs/brain/PTT-COPIER-B18/05-final-review.md"
+    }
+  },
+  "lamport_events": [
+    {
+      "clock": 1,
+      "phase": "intake",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-15T00:00:00.000000+00:00",
+      "result": "INTAKE_COMPLETE",
+      "note": "Root causes confirmed from Sim101 live testing session. Director-approved scope: T1+T2 parallel with B17, T3+T4 deferred."
+    },
+    {
+      "clock": 2,
+      "phase": "architect",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T02:30:26.821393+00:00",
+      "result": "02-architecture-plan.md already written, root causes confirmed from Sim101 live testing 2026-07-15"
+    },
+    {
+      "clock": 3,
+      "phase": "architect",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T02:30:29.653989+00:00",
+      "result": "PLAN_COMPLETE"
+    },
+    {
+      "clock": 4,
+      "phase": "plan_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T02:30:35.854277+00:00",
+      "result": "REVIEW_PASS"
+    },
+    {
+      "clock": 5,
+      "phase": "tickets",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T02:30:41.534313+00:00",
+      "result": "TICKETS_COMPLETE"
+    },
+    {
+      "clock": 6,
+      "phase": "ticket_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T02:30:41.578737+00:00",
+      "result": "TICKET_REVIEW_PASS"
+    },
+    {
+      "clock": 7,
+      "phase": "engineer_T1",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T02:39:26.187202+00:00",
+      "result": "BUILD_PASS"
+    },
+    {
+      "clock": 8,
+      "phase": "verifier_T1",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T02:44:36.483150+00:00",
+      "result": "VERIFY_PASS"
+    },
+    {
+      "clock": 9,
+      "phase": "engineer_T2",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T03:12:35.034941+00:00",
+      "result": "BUILD_PASS"
+    },
+    {
+      "clock": 10,
+      "phase": "verifier_T2",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T03:16:56.653916+00:00",
+      "result": "VERIFY_PASS"
+    },
+    {
+      "clock": 11,
+      "phase": "verifier_T3",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T03:27:19.864963+00:00",
+      "result": "DEFERRED -- no T3 in B18 scope"
+    },
+    {
+      "clock": 11,
+      "phase": "engineer_T3",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T03:27:19.954019+00:00",
+      "result": "DEFERRED -- DW-B17-SYNC-01 waits for B17 close, out of B18 scope"
+    },
+    {
+      "clock": 12,
+      "phase": "final_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T03:33:54.807718+00:00",
+      "result": "FINAL_PASS"
+    }
+  ],
+  "phase": "engineer_T1"
+}

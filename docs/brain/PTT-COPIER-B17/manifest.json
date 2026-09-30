@@ -1,0 +1,231 @@
+{
+  "block": "PTT-COPIER-B17",
+  "created": "2026-07-15",
+  "prior_block": "PTT-COPIER-B16",
+  "prior_backlog": "docs/brain/PTT-COPIER-B16/06-deferred-backlog.md",
+  "mission": "DW-B17-01: Fix GetPriceAtY() returns 0.0 at runtime -- FindVisualChild<ChartPanel>(cc) DFS first-match finds ChartTrader sidebar panel (ActualWidth=139.33, MaxValue=0) instead of price canvas. T1: diagnostic + interim fallback. T2: permanent fix (Option B preferred: ChartControl.Charts; Option A fallback: FindPriceCanvasPanel by largest-width + MaxValue>0).",
+  "known_tasks": [
+    {
+      "id": "DW-B17-01-T1",
+      "title": "Diagnostic EnumerateAllChartPanels + interim GetRefPrice fallback",
+      "priority": "P1",
+      "files": [
+        "src/PropTraderTools/TradeCopierPanel.cs",
+        "docs/standards/NT8_ADDON_KNOWLEDGE.md"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "DW-B17-01-T2",
+      "title": "Permanent fix: replace FindVisualChild<ChartPanel> with confirmed path (Option B or A)",
+      "priority": "P1",
+      "files": [
+        "src/PropTraderTools/TradeCopierPanel.cs",
+        "src/PropTraderTools/CopyEngineTests.cs",
+        "docs/standards/NT8_ADDON_KNOWLEDGE.md"
+      ],
+      "status": "blocked_on_T1_F5"
+    }
+  ],
+  "tickets": 2,
+  "phases": {
+    "architect": {
+      "status": "running",
+      "artifact": "docs/brain/PTT-COPIER-B17/02-architecture-plan.md"
+    },
+    "plan_review": {
+      "status": "pending",
+      "artifact": "docs/brain/PTT-COPIER-B17/02-plan-review.md"
+    },
+    "tickets": {
+      "status": "pending",
+      "artifact": "docs/brain/PTT-COPIER-B17/04-tickets.md"
+    },
+    "ticket_review": {
+      "status": "pending",
+      "artifact": "docs/brain/PTT-COPIER-B17/04-ticket-review.md"
+    },
+    "engineer_T1": {
+      "status": "pending",
+      "artifact": "docs/brain/PTT-COPIER-B17/ticket-1-completion.md"
+    },
+    "verifier_T1": {
+      "status": "pending",
+      "artifact": "docs/brain/PTT-COPIER-B17/ticket-1-verification.md"
+    },
+    "engineer_T2": {
+      "status": "pending",
+      "artifact": "docs/brain/PTT-COPIER-B17/ticket-2-completion.md"
+    },
+    "verifier_T2": {
+      "status": "pending",
+      "artifact": "docs/brain/PTT-COPIER-B17/ticket-2-verification.md"
+    },
+    "final_review": {
+      "status": "pending",
+      "artifact": "docs/brain/PTT-COPIER-B17/05-final-review.md"
+    }
+  },
+  "lamport_events": [
+    {
+      "clock": 2,
+      "phase": "architect",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T01:18:29.928135+00:00",
+      "result": "PLAN_COMPLETE"
+    },
+    {
+      "clock": 3,
+      "phase": "plan_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T01:21:37.497735+00:00",
+      "result": "REVIEW_FAIL"
+    },
+    {
+      "clock": 4,
+      "phase": "plan_review",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-13T01:23:36.711296+00:00"
+    },
+    {
+      "clock": 5,
+      "phase": "plan_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T01:26:37.900641+00:00",
+      "result": "REVIEW_PASS"
+    },
+    {
+      "clock": 6,
+      "phase": "tickets",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-13T01:26:38.018496+00:00"
+    },
+    {
+      "clock": 7,
+      "phase": "tickets",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T01:33:18.384072+00:00",
+      "result": "TICKETS_COMPLETE"
+    },
+    {
+      "clock": 8,
+      "phase": "ticket_review",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-13T01:33:18.504167+00:00"
+    },
+    {
+      "clock": 9,
+      "phase": "ticket_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T01:37:26.442895+00:00",
+      "result": "TICKET_REVIEW_PASS"
+    },
+    {
+      "clock": 10,
+      "phase": "engineer_T1",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-13T01:37:26.601049+00:00"
+    },
+    {
+      "clock": 11,
+      "phase": "engineer_T1",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T01:46:17.003686+00:00",
+      "result": "BUILD_PASS"
+    },
+    {
+      "clock": 12,
+      "phase": "verifier_T1",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-13T01:46:17.121862+00:00"
+    },
+    {
+      "clock": 13,
+      "phase": "verifier_T1",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T02:17:17.933943+00:00",
+      "result": "VERIFY_PASS"
+    },
+    {
+      "clock": 14,
+      "phase": "engineer_T1",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-13T02:21:38.616081+00:00"
+    },
+    {
+      "clock": 15,
+      "phase": "engineer_T1",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T02:30:39.658881+00:00",
+      "result": "BUILD_PASS"
+    },
+    {
+      "clock": 16,
+      "phase": "verifier_T1",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T02:34:46.467615+00:00",
+      "result": "VERIFY_PASS"
+    },
+    {
+      "clock": 17,
+      "phase": "engineer_T2",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-13T02:36:59.704486+00:00"
+    },
+    {
+      "clock": 18,
+      "phase": "engineer_T2",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T02:51:35.401128+00:00",
+      "result": "BUILD_PASS"
+    },
+    {
+      "clock": 19,
+      "phase": "verifier_T2",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-13T02:51:35.567841+00:00"
+    },
+    {
+      "clock": 20,
+      "phase": "verifier_T2",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T03:17:06.415346+00:00",
+      "result": "VERIFY_PASS"
+    },
+    {
+      "clock": 21,
+      "phase": "final_review",
+      "event_type": "phase_running",
+      "status": "running",
+      "timestamp": "2026-07-13T03:17:06.571292+00:00"
+    },
+    {
+      "clock": 22,
+      "phase": "final_review",
+      "event_type": "phase_complete",
+      "status": "completed",
+      "timestamp": "2026-07-13T03:32:59.494954+00:00",
+      "result": "FINAL_PASS"
+    }
+  ],
+  "phase": "final_review"
+}
