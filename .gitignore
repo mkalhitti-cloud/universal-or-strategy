@@ -82,3 +82,34 @@ backups/
 website/
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
+
+# Agent tool state dirs (runtime state, not source)
+.continue/
+.epic-locks/
+.graphify/
+.kiro/
+.lamport/
+.specify/
+src/.obsidian/
+
+# Build/test scratch output files
+build_out.txt
+build_out2.txt
+build_out3.txt
+build_output_b72.txt
+complexity_out.txt
+cs_delta_out.txt
+cs_delta_t6.txt
+cs_delta_t6_err.txt
+test2.txt
+test3.txt
+test_list_output.txt
+test_r10_out.txt
+test_results.txt
+website.tgz
+~/
+
+# Session/task artifacts
+bob-task-*.json
+archive/
+confuserex.crproj
