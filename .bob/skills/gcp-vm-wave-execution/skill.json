@@ -1,0 +1,9 @@
+{
+  "name": "GCP VM Wave Execution",
+  "version": "2.2.0",
+  "description": "Launch autonomous epic execution waves on GCP VMs with self-healing file persistence verification, bobcoin tracking, and correct API key environment variable (BOBSHELL_API_KEY)",
+  "tags": ["gcp", "infrastructure", "autonomous", "parallel-execution", "bob-shell", "self-healing", "api-key-fix"],
+  "author": "V12 Team",
+  "created": "2026-06-12",
+  "updated": "2026-06-12"
+}

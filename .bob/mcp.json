@@ -1,0 +1,73 @@
+{
+  "mcpServers": {
+    "jcodemunch-mcp": {
+      "type": "stdio",
+      "command": "C:\\Users\\Mohammed Khalid\\.local\\bin\\jcodemunch-mcp.exe",
+      "args": [],
+      "alwaysAllow": [
+        "resolve_repo",
+        "index_folder",
+        "suggest_queries",
+        "search_symbols",
+        "search_text",
+        "get_file_outline",
+        "get_symbol_source",
+        "get_context_bundle",
+        "get_file_content",
+        "get_repo_outline",
+        "get_file_tree",
+        "find_importers",
+        "find_references",
+        "check_references",
+        "get_dependency_graph",
+        "get_blast_radius",
+        "get_changed_symbols",
+        "find_dead_code",
+        "get_class_hierarchy",
+        "plan_turn",
+        "get_session_context",
+        "register_edit",
+        "announce_model",
+        "list_repos",
+        "get_symbol_complexity",
+        "get_dead_code_v2"
+      ]
+    },
+    "greptile": {
+      "url": "https://api.greptile.com/mcp",
+      "type": "streamable-http",
+      "headers": {
+        "Authorization": "Bearer pS4L5AeiV35cwkTbNyKVunYcJWQhbD+CI1M8hk6Hf4aMiLKR"
+      },
+      "alwaysAllow": [
+        "query",
+        "search",
+        "search_codebase",
+        "query_codebase",
+        "semantic_search",
+        "search_custom_context",
+        "list_merge_requests",
+        "list_merge_request_comments"
+      ],
+      "disabled": true
+    },
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "C:\\Program Files\\nodejs\\npx.cmd",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "env": {
+        "PATH": "C:\\Program Files\\nodejs;C:\\Users\\Mohammed Khalid\\AppData\\Roaming\\npm;C:\\Users\\Mohammed Khalid\\.local\\bin"
+      },
+      "alwaysAllow": [
+        "create_thought",
+        "update_thought",
+        "get_thoughts",
+        "delete_thought",
+        "sequentialthinking"
+      ]
+    }
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "hooks": {
+    "pre_task_rules_gate": {
+      "enabled": true,
+      "script": ".bob/hooks/pre_task_rules_gate.py",
+      "description": "V12.36 HARD BLOCKER: Verifies RULES_CATALOG.md is UTF-8 readable and scans src/ for P0 violations. Exit 0=PASS, Exit 1=P0 VIOLATION (work stops), Exit 2=CATALOG UNREADABLE (work stops). Runs FIRST before all other hooks.",
+      "run_order": 0,
+      "blocking": true,
+      "exit_codes": {
+        "0": "GATE PASS — task proceeds",
+        "1": "GATE BLOCKED — P0 violation in src/, work stops, report to Director",
+        "2": "GATE BLOCKED — RULES_CATALOG.md unreadable, fix encoding first"
+      }
+    },
+    "utf8_repair": {
+      "enabled": true,
+      "script": ".bob/hooks/utf8_repair.py",
+      "description": "V12.35 AUTO-REPAIR: Scans all .md/.yaml/.json/.cs/.ps1 files for UTF-16 BOM or UTF-8 BOM encoding and silently converts to UTF-8 no-BOM. Prevents the 'wide-character encoded (UTF-16)' agent warning permanently. Non-blocking — always exits 0.",
+      "run_order": 1,
+      "blocking": false,
+      "exit_codes": {
+        "0": "PASS — all files UTF-8 clean (may have auto-repaired some)"
+      }
+    },
+    "ptt_phase_gate": {
+      "enabled": true,
+      "script": ".bob/hooks/ptt_phase_gate.py",
+      "description": "V12.36 PTT GATE: Reads PTT_EPIC_ID + PTT_PHASE env vars. If set, verifies via ptt_lamport.py that all prerequisite phases are complete before this phase runs. Also logs phase_start to Lamport event log. Non-PTT tasks: skips silently (exit 0). PTT gate fail: exit 1 (blocking).",
+      "run_order": 2,
+      "blocking": true,
+      "trigger": "pre_task",
+      "env_vars": {
+        "PTT_EPIC_ID": "Epic identifier, e.g. PTT-COPIER-B9",
+        "PTT_PHASE": "Phase slug: architect | plan_review | tickets | ticket_review | engineer_T1 | verifier_T1 | engineer_T2 | verifier_T2 | engineer_T3 | verifier_T3 | final_review"
+      },
+      "exit_codes": {
+        "0": "GATE OPEN — prerequisites satisfied, phase_start logged, proceed",
+        "1": "GATE CLOSED — prerequisite not complete, work stops",
+        "2": "CONFIG ERROR — ptt_lamport.py not found"
+      }
+    },
+    "ptt_phase_complete": {
+      "enabled": true,
+      "script": ".bob/hooks/ptt_phase_complete.py",
+      "description": "V12.36 PTT COMPLETE: Reads PTT_EPIC_ID + PTT_PHASE + PTT_RESULT env vars. Records phase_complete or phase_fail to Lamport event log and syncs manifest.json lamport_events array. Non-PTT tasks: skips silently. Called by orchestrator after each start_subtask returns.",
+      "run_order": 10,
+      "blocking": false,
+      "trigger": "after_task_complete",
+      "env_vars": {
+        "PTT_EPIC_ID": "Epic identifier, e.g. PTT-COPIER-B9",
+        "PTT_PHASE": "Phase slug (same as ptt_phase_gate)",
+        "PTT_RESULT": "Result token: PLAN_COMPLETE | REVIEW_PASS | REVIEW_FAIL | TICKETS_COMPLETE | TICKET_REVIEW_PASS | TICKET_REVIEW_FAIL | BUILD_PASS | BUILD_FAIL | VERIFY_PASS | VERIFY_FAIL | FINAL_PASS | FINAL_FAIL"
+      },
+      "exit_codes": {
+        "0": "Recorded COMPLETE (or not a PTT task)",
+        "1": "Recorded FAIL (result was a _FAIL token)",
+        "2": "CONFIG ERROR"
+      }
+    },
+    "before_new_task": {
+      "enabled": true,
+      "script": ".bob/hooks/before_new_task.py",
+      "description": "Auto-create GitButler virtual branch for new tasks"
+    },
+    "after_task_complete": {
+      "enabled": true,
+      "script": ".bob/hooks/after_task_complete.py",
+      "description": "Auto-commit to GitButler virtual branch with V12 message format"
+    },
+    "after_edit": {
+      "enabled": false,
+      "script": ".bob/hooks/after_edit.py",
+      "description": "Auto-assign edited files to current virtual branch (experimental)"
+    },
+    "after_subagent_batch": {
+      "enabled": true,
+      "script": ".bob/hooks/after_subagent_batch.py",
+      "description": "V2.8: Deterministic MCP compliance audit after every wave-7 batch. Reads WAVE7_BATCH_PHASE + WAVE7_BATCH_EPICS env vars. Exit 0=all pass, Exit 1=failures (redo list at /tmp/wave7_redo.txt), Exit 2=hook error.",
+      "trigger": "manual_and_wave_orch",
+      "env_vars": {
+        "WAVE7_BATCH_PHASE": "Phase being audited (0, 1, 1.5, 2, 3, 4, 4.5, 5, 5v, 6)",
+        "WAVE7_BATCH_EPICS": "Space-separated EPIC-W7-NNN IDs in the completed batch",
+        "WAVE7_BATCH_TICKET": "(optional) Ticket ID for phase 5/5v"
+      },
+      "output_files": {
+        "/tmp/wave7_redo.txt":          "Failed epic IDs, one per line — read by orchestrator redo loop",
+        "/tmp/wave7_audit_result.json": "Full JSON audit result for this batch"
+      },
+      "audit_script": "scripts/wave7_batch_audit.py",
+      "exit_codes": {
+        "0": "ALL_PASS — orchestrator may proceed to next batch",
+        "1": "HAS_FAILURES — orchestrator reads /tmp/wave7_redo.txt and re-spawns those epics",
+        "2": "HOOK_ERROR — missing args or script not found; escalate to Director"
+      }
+    }
+  },
+  "gitbutler": {
+    "enabled": true,
+    "cli_path": "but",
+    "auto_stage": true,
+    "auto_commit": false,
+    "branch_prefix": {
+      "src": "src/",
+      "docs": "docs/",
+      "infra": "infra/",
+      "protocol": "protocol/"
+    }
+  }
+}
