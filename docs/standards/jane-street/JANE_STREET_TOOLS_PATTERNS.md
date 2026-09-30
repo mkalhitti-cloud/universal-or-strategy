@@ -1,0 +1,812 @@
+# Jane Street Tools Patterns: V12 Translation Guide
+
+**Version**: 1.0  
+**Last Updated**: 2026-06-03  
+**Status**: Active Standard  
+**Compliance**: V12 DNA Mandatory
+
+---
+
+## Overview
+
+This document translates Jane Street's development tools and workflows from OCaml into V12-aligned C# implementations. Jane Street emphasizes **fast feedback loops**, **automated tooling**, and **developer productivity**ÔÇöprinciples that directly impact code quality and velocity.
+
+### Jane Street Tools Philosophy
+
+Jane Street's tooling strategy prioritizes:
+- **Fast Compilation**: Incremental builds in <1 second
+- **Integrated Testing**: Tests run automatically on save
+- **Static Analysis**: Catch bugs before runtime
+- **Code Generation**: Eliminate boilerplate
+- **Developer Experience**: Minimize friction
+
+### V12 Alignment
+
+V12 DNA implements these principles:
+- Ô£à **Mise**: Unified tool management
+- Ô£à **CSharpier**: Automated formatting
+- Ô£à **Roslyn Analyzers**: Static analysis
+- Ô£à **Source Generators**: Code generation
+- Ô£à **Hot Reload**: Fast feedback loops
+
+---
+
+## Pattern 1: Fast Compilation (Incremental Builds)
+
+### Jane Street Approach (OCaml)
+
+```ocaml
+(* Jane Street: Dune for fast incremental builds *)
+(* dune file *)
+(library
+ (name order_book)
+ (libraries core async)
+ (preprocess (pps ppx_jane)))
+
+(* Incremental compilation: only rebuild changed modules *)
+(* dune build --watch *)
+```
+
+### V12 Translation (C#)
+
+```csharp
+// V12: MSBuild with incremental compilation
+// Directory.Build.props
+/*
+<Project>
+  <PropertyGroup>
+    <!-- Enable incremental build -->
+    <Deterministic>true</Deterministic>
+    <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+    
+    <!-- Fast compilation -->
+    <UseSharedCompilation>true</UseSharedCompilation>
+    <BuildInParallel>true</BuildInParallel>
+    
+    <!-- Hot reload -->
+    <EnforceExtendedAnalyzerRules>false</EnforceExtendedAnalyzerRules>
+  </PropertyGroup>
+</Project>
+*/
+
+// Watch mode: dotnet watch run
+// Hot reload: dotnet watch --no-hot-reload=false
+
+// Mise integration for consistent builds
+/*
+[tools]
+dotnet = "8.0"
+
+[tasks.build]
+run = "dotnet build --no-incremental=false"
+
+[tasks.watch]
+run = "dotnet watch run"
+
+[tasks.test-watch]
+run = "dotnet watch test"
+*/
+```
+
+**V12 DNA Alignment:**
+- Ô£à Fast: Incremental builds <1 second
+- Ô£à Consistent: Mise ensures tool versions
+- Ô£à Automated: Watch mode for continuous feedback
+- Ô£à Parallel: Multi-core compilation
+
+**DO:**
+- Ô£à Enable incremental compilation
+- Ô£à Use watch mode during development
+- Ô£à Use Mise for tool management
+- Ô£à Enable parallel builds
+
+**DON'T:**
+- ÔØî Disable incremental builds (slow feedback)
+- ÔØî Use `--no-incremental` in development
+- ÔØî Ignore build warnings (technical debt)
+- ÔØî Skip Mise setup (inconsistent environments)
+
+---
+
+## Pattern 2: Automated Formatting (Code Style)
+
+### Jane Street Approach (OCaml)
+
+```ocaml
+(* Jane Street: ocamlformat for consistent style *)
+(* .ocamlformat *)
+(*
+profile = janestreet
+break-infix = fit-or-vertical
+*)
+
+(* Format on save in editor *)
+(* dune build @fmt --auto-promote *)
+```
+
+### V12 Translation (C#)
+
+```csharp
+// V12: CSharpier for opinionated formatting
+// .csharpierrc.json
+/*
+{
+  "printWidth": 100,
+  "useTabs": false,
+  "tabWidth": 4,
+  "endOfLine": "lf"
+}
+*/
+
+// Mise integration
+/*
+[tools]
+"dotnet:csharpier" = "latest"
+
+[tasks.format]
+run = "dotnet csharpier ."
+
+[tasks.format-check]
+run = "dotnet csharpier --check ."
+*/
+
+// Pre-commit hook (.git/hooks/pre-commit)
+/*
+#!/bin/sh
+dotnet csharpier --check . || {
+  echo "Code formatting issues detected. Run 'dotnet csharpier .' to fix."
+  exit 1
+}
+*/
+
+// VS Code integration (settings.json)
+/*
+{
+  "editor.formatOnSave": true,
+  "[csharp]": {
+    "editor.defaultFormatter": "csharpier.csharpier-vscode"
+  }
+}
+*/
+```
+
+**V12 DNA Alignment:**
+- Ô£à Consistent: Opinionated formatting
+- Ô£à Automated: Format on save
+- Ô£à Enforced: Pre-commit hooks
+- Ô£à Fast: <1 second for entire codebase
+
+**DO:**
+- Ô£à Use CSharpier for all C# code
+- Ô£à Enable format-on-save in editor
+- Ô£à Add pre-commit hooks
+- Ô£à Run format check in CI
+
+**DON'T:**
+- ÔØî Manually format code (waste of time)
+- ÔØî Debate style in code reviews (use formatter)
+- ÔØî Skip formatting checks in CI
+- ÔØî Use multiple formatters (inconsistency)
+
+---
+
+## Pattern 3: Static Analysis (Linting)
+
+### Jane Street Approach (OCaml)
+
+```ocaml
+(* Jane Street: ppx_js_style for linting *)
+(* Enforces Jane Street coding standards *)
+(library
+ (name my_lib)
+ (preprocess (pps ppx_js_style)))
+
+(* Catches common mistakes at compile time *)
+```
+
+### V12 Translation (C#)
+
+```csharp
+// V12: Roslyn Analyzers + EditorConfig
+// .editorconfig
+/*
+root = true
+
+[*.cs]
+# V12 DNA Rules
+dotnet_diagnostic.CA1062.severity = error  # Validate arguments
+dotnet_diagnostic.CA2007.severity = error  # ConfigureAwait
+dotnet_diagnostic.CA1031.severity = warning  # Catch specific exceptions
+
+# Naming conventions
+dotnet_naming_rule.private_fields_underscore.severity = error
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_prefix
+
+# Code quality
+dotnet_code_quality.CA1062.exclude_extension_method_this_parameter = true
+*/
+
+// Custom Roslyn Analyzer
+[DiagnosticAnalyzer(LanguageNames.CSharp)]
+public class V12DNAAnalyzer : DiagnosticAnalyzer
+{
+    private static readonly DiagnosticDescriptor LockUsageRule = new(
+        id: "V12001",
+        title: "Lock usage detected",
+        messageFormat: "Lock usage is banned in V12 DNA. Use Actor pattern instead.",
+        category: "V12DNA",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor UnicodeStringRule = new(
+        id: "V12002",
+        title: "Unicode string detected",
+        messageFormat: "Unicode strings are banned in V12 DNA. Use ASCII only.",
+        category: "V12DNA",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
+        ImmutableArray.Create(LockUsageRule, UnicodeStringRule);
+
+    public override void Initialize(AnalysisContext context)
+    {
+        context.ConfigureGeneratedCodeAnalysis(
+            GeneratedCodeAnalysisFlags.None);
+        context.EnableConcurrentExecution();
+
+        context.RegisterSyntaxNodeAction(AnalyzeLockStatement, 
+            SyntaxKind.LockStatement);
+        context.RegisterSyntaxNodeAction(AnalyzeStringLiteral, 
+            SyntaxKind.StringLiteralExpression);
+    }
+
+    private void AnalyzeLockStatement(SyntaxNodeAnalysisContext context)
+    {
+        var diagnostic = Diagnostic.Create(
+            LockUsageRule, 
+            context.Node.GetLocation());
+        context.ReportDiagnostic(diagnostic);
+    }
+
+    private void AnalyzeStringLiteral(SyntaxNodeAnalysisContext context)
+    {
+        var literal = (LiteralExpressionSyntax)context.Node;
+        var text = literal.Token.ValueText;
+
+        if (text.Any(c => c > 127))
+        {
+            var diagnostic = Diagnostic.Create(
+                UnicodeStringRule, 
+                context.Node.GetLocation());
+            context.ReportDiagnostic(diagnostic);
+        }
+    }
+}
+
+// Mise integration
+/*
+[tasks.lint]
+run = "dotnet build /p:TreatWarningsAsErrors=true"
+
+[tasks.lint-fix]
+run = "dotnet format"
+*/
+```
+
+**V12 DNA Alignment:**
+- Ô£à Enforced: Compile-time checks
+- Ô£à Custom: V12 DNA-specific rules
+- Ô£à Fast: Incremental analysis
+- Ô£à Automated: Runs on every build
+
+**DO:**
+- Ô£à Create custom analyzers for V12 DNA rules
+- Ô£à Treat warnings as errors in CI
+- Ô£à Use EditorConfig for team consistency
+- Ô£à Run analyzers on every build
+
+**DON'T:**
+- ÔØî Disable analyzers (loses safety)
+- ÔØî Ignore warnings (technical debt)
+- ÔØî Skip analyzer updates (miss new rules)
+- ÔØî Use `#pragma warning disable` without justification
+
+---
+
+## Pattern 4: Code Generation (Boilerplate Elimination)
+
+### Jane Street Approach (OCaml)
+
+```ocaml
+(* Jane Street: PPX for code generation *)
+type order = {
+  order_id: int64;
+  price: float;
+  quantity: int;
+} [@@deriving sexp, bin_io, compare, hash]
+
+(* Generates: *)
+(* - Serialization (sexp, bin_io) *)
+(* - Comparison (compare) *)
+(* - Hashing (hash) *)
+```
+
+### V12 Translation (C#)
+
+```csharp
+// V12: Source Generators for boilerplate
+[Generator]
+public class SerializationGenerator : ISourceGenerator
+{
+    public void Initialize(GeneratorInitializationContext context)
+    {
+        context.RegisterForSyntaxNotifications(() => new SyntaxReceiver());
+    }
+
+    public void Execute(GeneratorExecutionContext context)
+    {
+        if (context.SyntaxReceiver is not SyntaxReceiver receiver)
+            return;
+
+        foreach (var recordDecl in receiver.RecordDeclarations)
+        {
+            var source = GenerateSerializationCode(recordDecl);
+            context.AddSource($"{recordDecl.Identifier}.Serialization.g.cs", source);
+        }
+    }
+
+    private string GenerateSerializationCode(RecordDeclarationSyntax record)
+    {
+        var className = record.Identifier.Text;
+        return $@"
+// <auto-generated/>
+partial record {className}
+{{
+    public void WriteTo(Span<byte> buffer)
+    {{
+        // Generated serialization code
+    }}
+
+    public static Result<{className}, string> ReadFrom(ReadOnlySpan<byte> buffer)
+    {{
+        // Generated deserialization code
+    }}
+}}";
+    }
+
+    private class SyntaxReceiver : ISyntaxReceiver
+    {
+        public List<RecordDeclarationSyntax> RecordDeclarations { get; } = new();
+
+        public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
+        {
+            if (syntaxNode is RecordDeclarationSyntax record &&
+                record.AttributeLists.Any(al => 
+                    al.Attributes.Any(a => a.Name.ToString() == "Serializable")))
+            {
+                RecordDeclarations.Add(record);
+            }
+        }
+    }
+}
+
+// Usage: Attribute-driven generation
+[Serializable]
+public partial record Order(long OrderId, double Price, int Quantity);
+
+// Generated code provides:
+// - WriteTo(Span<byte>)
+// - ReadFrom(ReadOnlySpan<byte>)
+// - GetHashCode()
+// - Equals()
+```
+
+**V12 DNA Alignment:**
+- Ô£à Zero-runtime cost: Generated at compile time
+- Ô£à Type-safe: Compiler-enforced
+- Ô£à Maintainable: Single source of truth
+- Ô£à Fast: Incremental generation
+
+**DO:**
+- Ô£à Use source generators for repetitive code
+- Ô£à Generate serialization, equality, hashing
+- Ô£à Use attributes to drive generation
+- Ô£à Test generated code
+
+**DON'T:**
+- ÔØî Generate complex logic (keep it simple)
+- ÔØî Ignore generated code in reviews
+- ÔØî Use reflection at runtime (use source generators)
+- ÔØî Generate code manually (use tools)
+
+---
+
+## Pattern 5: Continuous Testing (Test Automation)
+
+### Jane Street Approach (OCaml)
+
+```ocaml
+(* Jane Street: Inline tests with ppx_inline_test *)
+let%test "order matching" =
+  let book = OrderBook.empty in
+  let book = OrderBook.add book buy_order in
+  let book = OrderBook.add book sell_order in
+  let matches = OrderBook.match_orders book in
+  List.length matches = 1
+
+(* Tests run automatically on file save *)
+(* dune runtest --watch *)
+```
+
+### V12 Translation (C#)
+
+```csharp
+// V12: Continuous testing with dotnet watch
+// Mise integration
+/*
+[tasks.test-watch]
+run = "dotnet watch test --filter 'FullyQualifiedName~UnitTests'"
+
+[tasks.test-fast]
+run = "dotnet test --filter 'Category=Fast'"
+
+[tasks.test-all]
+run = "dotnet test"
+*/
+
+// Fast test categorization
+[Trait("Category", "Fast")]
+public class OrderBookFastTests
+{
+    [Fact]
+    public void AddOrder()
+    {
+        var book = OrderBook.Empty.Add(new Order(1, 100.0, 10));
+        Assert.Equal(1, book.Size);
+    }
+}
+
+[Trait("Category", "Slow")]
+public class OrderBookSlowTests
+{
+    [Fact]
+    public async Task StressTest()
+    {
+        // Slow test (>1 second)
+    }
+}
+
+// VS Code tasks.json
+/*
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "test-watch",
+      "command": "dotnet",
+      "args": ["watch", "test", "--filter", "Category=Fast"],
+      "type": "shell",
+      "isBackground": true,
+      "problemMatcher": "$msCompile"
+    }
+  ]
+}
+*/
+
+// Pre-push hook (.git/hooks/pre-push)
+/*
+#!/bin/sh
+dotnet test --filter 'Category=Fast' || {
+  echo "Fast tests failed. Fix before pushing."
+  exit 1
+}
+*/
+```
+
+**V12 DNA Alignment:**
+- Ô£à Fast: Tests run in <1 second
+- Ô£à Automated: Run on file save
+- Ô£à Categorized: Fast vs slow tests
+- Ô£à Enforced: Pre-push hooks
+
+**DO:**
+- Ô£à Use watch mode during development
+- Ô£à Categorize tests by speed
+- Ô£à Run fast tests on every save
+- Ô£à Add pre-push hooks
+
+**DON'T:**
+- ÔØî Run slow tests in watch mode
+- ÔØî Skip tests before pushing
+- ÔØî Write slow tests (keep them <10ms)
+- ÔØî Ignore test failures
+
+---
+
+## Pattern 6: Developer Productivity (IDE Integration)
+
+### Jane Street Approach (OCaml)
+
+```ocaml
+(* Jane Street: Merlin for IDE integration *)
+(* .merlin *)
+(*
+S src
+B _build/default/src
+PKG core async
+*)
+
+(* Provides: *)
+(* - Type inference on hover *)
+(* - Jump to definition *)
+(* - Auto-completion *)
+(* - Error highlighting *)
+```
+
+### V12 Translation (C#)
+
+```csharp
+// V12: OmniSharp + VS Code integration
+// .vscode/settings.json
+/*
+{
+  "omnisharp.enableRoslynAnalyzers": true,
+  "omnisharp.enableEditorConfigSupport": true,
+  "omnisharp.enableImportCompletion": true,
+  
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": true,
+    "source.organizeImports": true
+  },
+  
+  "csharp.inlayHints.parameters.enabled": true,
+  "csharp.inlayHints.types.enabled": true,
+  
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/bin/**": true,
+    "**/obj/**": true
+  }
+}
+*/
+
+// .vscode/launch.json
+/*
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": ".NET Core Launch (console)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/bin/Debug/net8.0/V12.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole",
+      "stopAtEntry": false
+    }
+  ]
+}
+*/
+
+// .vscode/extensions.json
+/*
+{
+  "recommendations": [
+    "ms-dotnettools.csharp",
+    "csharpier.csharpier-vscode",
+    "eamodio.gitlens",
+    "github.copilot"
+  ]
+}
+*/
+```
+
+**V12 DNA Alignment:**
+- Ô£à Fast: IntelliSense in <100ms
+- Ô£à Accurate: Roslyn-powered
+- Ô£à Integrated: Format, lint, test in editor
+- Ô£à Consistent: Team-wide settings
+
+**DO:**
+- Ô£à Use OmniSharp for C# development
+- Ô£à Enable inlay hints for type inference
+- Ô£à Configure format-on-save
+- Ô£à Share VS Code settings in repo
+
+**DON'T:**
+- ÔØî Use outdated IDE extensions
+- ÔØî Disable IntelliSense (loses productivity)
+- ÔØî Ignore IDE warnings (technical debt)
+- ÔØî Skip IDE configuration (inconsistent experience)
+
+---
+
+## Pattern 7: Build Automation (CI/CD)
+
+### Jane Street Approach (OCaml)
+
+```ocaml
+(* Jane Street: Automated CI with dune *)
+(* .github/workflows/ci.yml *)
+(*
+name: CI
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ocaml/setup-ocaml@v2
+      - run: opam install . --deps-only
+      - run: dune build
+      - run: dune runtest
+*)
+```
+
+### V12 Translation (C#)
+
+```csharp
+// V12: GitHub Actions with Mise
+// .github/workflows/ci.yml
+/*
+name: V12 CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Mise
+        uses: jdx/mise-action@v2
+        with:
+          install: true
+      
+      - name: Restore dependencies
+        run: mise run restore
+      
+      - name: Build
+        run: mise run build
+      
+      - name: Run fast tests
+        run: mise run test-fast
+      
+      - name: Run linters
+        run: mise run lint
+      
+      - name: Check formatting
+        run: mise run format-check
+      
+      - name: Run complexity audit
+        run: mise run complexity
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Snyk
+        uses: snyk/actions/dotnet@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+*/
+
+// Mise tasks for CI
+/*
+[tasks.ci]
+depends = ["restore", "build", "test-fast", "lint", "format-check", "complexity"]
+
+[tasks.restore]
+run = "dotnet restore"
+
+[tasks.build]
+run = "dotnet build --no-restore"
+
+[tasks.test-fast]
+run = "dotnet test --no-build --filter 'Category=Fast'"
+
+[tasks.lint]
+run = "dotnet build /p:TreatWarningsAsErrors=true"
+
+[tasks.format-check]
+run = "dotnet csharpier --check ."
+
+[tasks.complexity]
+run = "python scripts/complexity_audit.py"
+*/
+```
+
+**V12 DNA Alignment:**
+- Ô£à Fast: CI runs in <5 minutes
+- Ô£à Comprehensive: Build, test, lint, format
+- Ô£à Consistent: Mise ensures reproducibility
+- Ô£à Automated: Runs on every push
+
+**DO:**
+- Ô£à Use Mise for CI reproducibility
+- Ô£à Run fast tests in CI
+- Ô£à Cache dependencies
+- Ô£à Fail fast on errors
+
+**DON'T:**
+- ÔØî Run slow tests in CI (use nightly builds)
+- ÔØî Skip linting in CI
+- ÔØî Ignore CI failures
+- ÔØî Use different tools in CI vs local
+
+---
+
+## Summary Checklist
+
+### Tools Patterns Compliance
+
+- [ ] **Fast Compilation**: Use incremental builds with Mise
+- [ ] **Automated Formatting**: Use CSharpier with pre-commit hooks
+- [ ] **Static Analysis**: Use Roslyn Analyzers with custom V12 DNA rules
+- [ ] **Code Generation**: Use Source Generators for boilerplate
+- [ ] **Continuous Testing**: Use watch mode with fast test categorization
+- [ ] **IDE Integration**: Use OmniSharp with team-wide VS Code settings
+- [ ] **Build Automation**: Use GitHub Actions with Mise for reproducibility
+
+### V12 DNA Compliance Matrix
+
+| Pattern | Fast | Automated | Consistent | Enforced |
+|---------|------|-----------|------------|----------|
+| Fast Compilation | Ô£à | Ô£à | Ô£à | Ô£à |
+| Automated Formatting | Ô£à | Ô£à | Ô£à | Ô£à |
+| Static Analysis | Ô£à | Ô£à | Ô£à | Ô£à |
+| Code Generation | Ô£à | Ô£à | Ô£à | Ô£à |
+| Continuous Testing | Ô£à | Ô£à | Ô£à | Ô£à |
+| IDE Integration | Ô£à | ÔÜá´©Å | Ô£à | ÔÜá´©Å |
+| Build Automation | Ô£à | Ô£à | Ô£à | Ô£à |
+
+**Legend**: Ô£à Full compliance | ÔÜá´©Å Acceptable | ÔØî Not applicable
+
+---
+
+## References
+
+### Jane Street Resources
+- **Firestore KB**: `henry_tools_for_traders_2025` (Building Tools for Traders)
+- **Firestore KB**: `jane_street_trading_billions_2023` (Production Engineering When Trading Billions)
+
+### V12 Standards
+- [`AGENTS.md`](../../AGENTS.md) - Section 1.5: Agent Tool Requirements (Mise Integration)
+- [`docs/protocol/MISE_IMPLEMENTATION_SUMMARY.md`](../../protocol/MISE_IMPLEMENTATION_SUMMARY.md)
+- [`docs/protocol/BOB_MISE_INTEGRATION.md`](../../protocol/BOB_MISE_INTEGRATION.md)
+
+### Related Documents
+- [`JANE_STREET_TESTING_PATTERNS.md`](./JANE_STREET_TESTING_PATTERNS.md) - Testing automation
+- [`JANE_STREET_CODE_REVIEW.md`](./JANE_STREET_CODE_REVIEW.md) - Code review tools
+
+### External Resources
+- **Mise**: https://mise.jdx.dev/
+- **CSharpier**: https://csharpier.com/
+- **Roslyn Analyzers**: https://learn.microsoft.com/en-us/dotnet/csharp/roslyn-sdk/
+
+---
+
+**Document Status**: Ô£à Complete (7 patterns documented)  
+**Next Review**: 2026-07-03  
+**Maintainer**: V12 Architecture Team
