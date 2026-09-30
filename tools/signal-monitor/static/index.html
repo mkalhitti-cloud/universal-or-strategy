@@ -1,0 +1,2966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WSGTA Signal Monitor</title>
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+       Design tokens matching specs/003-wsgta-signal-monitor-spec.html
+       ═══════════════════════════════════════════════════════════ */
+    :root {
+      --bg: #0d0f12;
+      --surface: #13161b;
+      --surface-hover: #1a1e24;
+      --border: #2a2f38;
+      --text: #e8eaed;
+      --text-dim: #9aa0a6;
+      --green: #00e676;
+      --red: #ff4444;
+      --gold: #ffc107;
+      --blue: #4fc3f7;
+      --purple: #ce93d8;
+      --orange: #ff9800;
+      --amber: #ffb74d;
+      --yellow: #fff176;
+      --cyan: #80deea;
+      --pink: #f48fb1;
+      --teal: #4db6ac;
+      --dark-green: #00897b;
+      --dark-red: #c62828;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      padding: 16px;
+    }
+
+    /* ── Header ──────────────────────────────────────────────── */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .header-meta {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .focus-btn {
+      padding: 6px 16px;
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .focus-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .focus-btn.active {
+      background: var(--gold);
+      color: #000;
+      border-color: var(--gold);
+    }
+    .mode-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .mode-badge.demo { background: var(--orange); color: #000; }
+    .mode-badge.live { background: var(--green); color: #000; }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    .cards { display: flex; flex-direction: column; gap: 16px; }
+    /* 3 ruler columns each take 1fr */
+    .rulers-container {
+      display: contents; /* children participate in parent grid */
+    }
+    .ruler-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      position: sticky;
+      top: 16px;
+      height: fit-content;
+      max-height: 95vh;
+      overflow-y: auto;
+    }
+
+    /* ── Instrument cards ─────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-header h2 {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+    .price-info {
+      text-align: right;
+      font-family: "JetBrains Mono", "SF Mono", "Courier New", monospace;
+    }
+    .price { font-size: 24px; font-weight: 700; color: var(--text); }
+    .price-change { font-size: 13px; margin-top: 4px; }
+    .price-change.positive { color: var(--green); }
+    .price-change.negative { color: var(--red); }
+
+    /* ── ATR Bar ──────────────────────────────────────────────── */
+    .atr-bar {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+    .atr-bar .label { color: var(--text-dim); }
+    .atr-bar .value {
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    .atr-status {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .atr-status.ideal { background: var(--green); color: #000; }
+    .atr-status.normal { background: var(--yellow); color: #000; }
+    .atr-status.caution { background: var(--orange); color: #000; }
+    .atr-status.no-trade-low, .atr-status.no-trade-high {
+      background: var(--red); color: #fff;
+    }
+
+    /* ── Trend Trade Banner ────────────────────────────────────── */
+    .trend-banner {
+      background: rgba(206,147,216,0.08);
+      border: 1px solid rgba(206,147,216,0.2);
+      border-radius: 6px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+    .trend-banner.invalid {
+      opacity: 0.5;
+      background: rgba(154,160,166,0.08);
+      border-color: rgba(154,160,166,0.2);
+    }
+    .trend-label { color: var(--purple); font-weight: 600; }
+    .trend-banner.invalid .trend-label { color: var(--text-dim); }
+    .trend-gap {
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-weight: 600;
+    }
+
+    /* ── Signal rows ──────────────────────────────────────────── */
+    .signal-row {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .signal-row.no-signal {
+      opacity: 0.5;
+      text-align: center;
+      padding: 12px;
+      color: var(--text-dim);
+    }
+    .signal-direction {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+    .signal-direction.long { color: var(--green); }
+    .signal-direction.short { color: var(--red); }
+    .signal-direction.trend { color: var(--purple); }
+
+    .signal-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .signal-info {
+      flex: 1;
+    }
+    .level-name {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .signal-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      font-size: 12px;
+    }
+    .chip {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(255,255,255,0.08);
+      color: var(--text-dim);
+    }
+    .chip.timeframe { background: var(--blue); color: #000; }
+    .chip.confluence { background: var(--gold); color: #000; }
+
+    .signal-price {
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .signal-distance {
+      font-size: 12px;
+      color: var(--text-dim);
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .copy-btn {
+      padding: 10px 18px;
+      background: var(--purple);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .copy-btn:hover { background: var(--gold); transform: translateY(-1px); }
+    .copy-btn:active { transform: translateY(0); }
+
+    /* ── Ruler Panel ───────────────────────────────────────────── */
+    .ruler-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold);
+      text-align: center;
+      padding: 6px 0 10px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 10px;
+    }
+    .ruler-current-price { display: none; }
+
+    .ruler-content {
+      position: relative;
+    }
+
+    .ruler-levels {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* ── SuperDOM-style current price row ─────────────────────── */
+    .ruler-price-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 4px 0;
+    }
+    .ruler-price-row-line {
+      flex: 1;
+      height: 2px;
+      background: var(--gold);
+    }
+    .ruler-price-row-label {
+      background: var(--gold);
+      color: #000;
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 5px 14px;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .ruler-level {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 6px;
+      border-left: 3px solid var(--text-dim);
+      transition: all 0.15s;
+    }
+    .ruler-level:hover { background: rgba(255,255,255,0.05); }
+    .ruler-level.inactive { opacity: 0.4; }
+
+    /* Color coding per level type */
+    .ruler-level.ema200 { border-left-color: white; }
+    .ruler-level.ema65 { border-left-color: var(--amber); }
+    .ruler-level.ema30 { border-left-color: var(--yellow); }
+    .ruler-level.ema9, .ruler-level.ema15 { border-left-color: gray; }
+    .ruler-level.ema9.trend-valid, .ruler-level.ema15.trend-valid {
+      border-left-color: var(--purple);
+    }
+    .ruler-level.vwap { border-left-color: var(--cyan); }
+    .ruler-level.vwap_band { border-left-color: rgba(128,222,234,0.6); }
+    .ruler-level.pdh { border-left-color: var(--green); }
+    .ruler-level.pdl { border-left-color: var(--red); }
+    .ruler-level.pdc { border-left-color: gray; }
+    .ruler-level.pwh { border-left-color: var(--dark-green); }
+    .ruler-level.pwl { border-left-color: var(--dark-red); }
+    .ruler-level.pivot_r { border-left-color: var(--pink); }
+    .ruler-level.pivot_s { border-left-color: var(--teal); }
+    .ruler-level.pivot_pp { border-left-color: var(--purple); }
+
+    .ruler-level.has-confluence {
+      border-left-width: 5px;
+      font-weight: 600;
+    }
+
+    .ruler-level-info { flex: 1; }
+    .ruler-level-name {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .ruler-level-price {
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .ruler-level-meta {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .ruler-level-copy-btn {
+      padding: 6px 10px;
+      background: rgba(255,255,255,0.1);
+      color: var(--text);
+      border: none;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .ruler-level-copy-btn:hover { background: var(--purple); color: #000; }
+
+    /* ── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 1200px) {
+      .container { grid-template-columns: 1fr; }
+      .ruler-panel { position: static; }
+    }
+
+    /* ── Loading ─────────────────────────────────────────────────── */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-dim);
+      font-size: 15px;
+    }
+    .loading::after {
+      content: '...';
+      animation: dots 1.5s infinite;
+    }
+    @keyframes dots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60%, 100% { content: '...'; }
+    }
+  /* ── Tab Navigation ──────────────────────────────────────────── */
+  .tab-nav {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+  .tab-btn {
+    padding: 10px 20px;
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.02em;
+    position: relative;
+    bottom: -1px;
+  }
+  .tab-btn:hover { color: var(--text); border-color: var(--border); }
+  .tab-btn.active {
+    background: var(--surface);
+    color: var(--gold);
+    border-color: var(--border);
+    border-bottom-color: var(--surface);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── Risk Calculator Tab ─────────────────────────────────────── */
+  .calc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 900px) { .calc-grid { grid-template-columns: 1fr; } }
+
+  .calc-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+  }
+  .calc-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .calc-card-title .step-num {
+    display: inline-block;
+    width: 26px;
+    height: 26px;
+    line-height: 26px;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--gold);
+    color: #000;
+    font-size: 13px;
+    font-weight: 800;
+    margin-right: 8px;
+  }
+  .calc-card-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+
+  .calc-field { margin-bottom: 16px; }
+  .calc-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .calc-field .field-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    font-style: italic;
+  }
+  .calc-input-wrap {
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .calc-input-wrap:focus-within { border-color: var(--gold); }
+  .calc-input-wrap input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 10px 14px;
+    font-family: "JetBrains Mono", "SF Mono", monospace;
+    width: 100%;
+  }
+  .calc-input-wrap .unit {
+    padding: 10px 14px;
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(255,255,255,0.03);
+    border-left: 1px solid var(--border);
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--gold);
+    cursor: pointer;
+  }
+
+  .calc-separator {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+  }
+
+  .calc-result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .calc-ratio-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .calc-ratio-box .ratio-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .calc-ratio-box .ratio-value {
+    font-family: "JetBrains Mono", "SF Mono", monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .calc-result-banner {
+    border-radius: 8px;
+    padding: 16px 20px;
+    text-align: center;
+  }
+  .calc-result-banner.result-max-risk {
+    background: rgba(255,68,68,0.08);
+    border: 1px solid rgba(255,68,68,0.3);
+  }
+  .calc-result-banner.result-min-profit {
+    background: rgba(0,230,118,0.08);
+    border: 1px solid rgba(0,230,118,0.3);
+  }
+  .calc-result-banner .result-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .calc-result-banner .result-label::before {
+    content: '▶';
+    font-size: 9px;
+    color: var(--gold);
+  }
+  .calc-result-banner .result-amount {
+    font-family: "JetBrains Mono", "SF Mono", monospace;
+    font-size: 34px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .calc-result-banner.result-max-risk .result-amount { color: var(--red); }
+  .calc-result-banner.result-min-profit .result-amount { color: var(--green); }
+  .calc-result-banner .result-note {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  /* ── Edge Demo (coin flip) ───────────────────────────────────── */
+  .edge-section {
+    margin-top: 24px;
+  }
+  .edge-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+  .edge-section-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  .edge-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 900px) { .edge-layout { grid-template-columns: 1fr; } }
+
+  .edge-coin-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+  }
+  .coin-btns {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .coin-choice-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.04em;
+  }
+  .coin-choice-btn.selected-heads {
+    background: rgba(255,193,7,0.12);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+  .coin-choice-btn.selected-tails {
+    background: rgba(255,193,7,0.12);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+  .coin-display {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #3a3f4b, #1e2129);
+    border: 3px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0 auto 20px;
+    transition: all 0.3s;
+    letter-spacing: 0.02em;
+  }
+  .coin-display.win { background: linear-gradient(145deg, #1b4332, #0a2e1a); border-color: var(--green); color: var(--green); }
+  .coin-display.loss { background: linear-gradient(145deg, #4a1010, #2e0a0a); border-color: var(--red); color: var(--red); }
+  .coin-action-btns {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .coin-action-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .coin-action-btn:hover { background: var(--gold); color: #000; border-color: var(--gold); }
+  .coin-stats-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+  .coin-stats-row .stat-lbl { color: var(--text-dim); }
+  .coin-stats-row .stat-val { font-weight: 700; font-family: "JetBrains Mono", monospace; }
+  .coin-stats-row .stat-val.positive { color: var(--green); }
+  .coin-stats-row .stat-val.negative { color: var(--red); }
+  .coin-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 12px;
+    justify-content: center;
+    max-height: 100px;
+    overflow: hidden;
+  }
+  .coin-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+  .coin-dot.win { background: var(--green); }
+  .coin-dot.loss { background: var(--red); }
+
+  .edge-settings-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+  }
+  .edge-preset-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .edge-preset-btn {
+    padding: 14px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .edge-preset-btn:hover { border-color: var(--gold); }
+  .edge-preset-btn .preset-label { font-size: 11px; color: var(--text-dim); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .edge-preset-btn .preset-values { font-size: 12px; color: var(--text); font-weight: 600; }
+  .edge-run-btns {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+  .edge-run-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .edge-run-btn:hover { background: var(--purple); color: #000; border-color: var(--purple); }
+  .edge-last-run {
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    min-height: 20px;
+  }
+
+  /* ── Preset buttons (Trade Calculator) ─────────────────────────── */
+  .tc-preset-btn {
+    padding: 6px 12px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.04);
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .tc-preset-btn:hover { background: var(--gold); color: #000; border-color: var(--gold); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>WSGTA Signal Monitor</h1>
+    <div class="header-meta">
+      <button class="focus-btn" id="focus-btn" onclick="toggleFocus()">⊙ FOCUS</button>
+      <span class="mode-badge" id="mode-badge">DEMO</span>
+      <span id="last-update">Last updated: —</span>
+    </div>
+  </header>
+
+  <!-- Tab navigation -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('signals', this)">📡 Signal Monitor</button>
+    <button class="tab-btn" onclick="switchTab('calculator', this)">🧮 Risk Calculator</button>
+    <button class="tab-btn" onclick="switchTab('tradecalc', this)">📊 Trade Calculator</button>
+    <button class="tab-btn" onclick="switchTab('apex', this)">💰 Apex Payout Tracker</button>
+  </nav>
+
+  <!-- Tab: Signal Monitor -->
+  <div class="tab-content active" id="tab-signals">
+  <div class="container">
+    <div class="cards" id="cards-container">
+      <div class="loading">Loading instruments</div>
+    </div>
+    <!-- 3 ruler columns — always visible -->
+    <div class="ruler-panel" id="ruler-ES">
+      <div class="ruler-title">ES</div>
+      <div class="ruler-current-price" id="ruler-price-ES">—</div>
+      <div class="ruler-content" id="ruler-content-ES"><div class="loading">Loading</div></div>
+    </div>
+    <div class="ruler-panel" id="ruler-GC">
+      <div class="ruler-title">GC</div>
+      <div class="ruler-current-price" id="ruler-price-GC">—</div>
+      <div class="ruler-content" id="ruler-content-GC"><div class="loading">Loading</div></div>
+    </div>
+    <div class="ruler-panel" id="ruler-CL">
+      <div class="ruler-title">CL</div>
+      <div class="ruler-current-price" id="ruler-price-CL">—</div>
+      <div class="ruler-content" id="ruler-content-CL"><div class="loading">Loading</div></div>
+    </div>
+  </div>
+  </div><!-- /tab-signals -->
+
+  <!-- Tab: Risk Calculator -->
+  <div class="tab-content" id="tab-calculator">
+
+    <div class="calc-grid">
+      <!-- Calculator 1: Find Max Risk -->
+      <div class="calc-card" id="calc1">
+        <div class="calc-card-title"><span class="step-num">1</span>Find Your Max Risk</div>
+        <div class="calc-card-desc">Use this if you already know how much money you want to target on a trade, and need to know the maximum safety cushion you can risk.</div>
+
+        <div class="calc-field">
+          <label>Your Win Rate</label>
+          <div class="field-hint">The historical percentage of trades you expect to win.</div>
+          <div class="calc-input-wrap">
+            <input type="number" id="c1-winrate" min="1" max="99" value="67" oninput="calc1Update()">
+            <span class="unit">%</span>
+          </div>
+          <input type="range" id="c1-winrate-slider" min="1" max="99" value="67" oninput="c1SliderSync(this.value)">
+        </div>
+
+        <div class="calc-field">
+          <label>Desired Profit Target</label>
+          <div class="field-hint">The dollar amount you plan to gain when this trade hits its target.</div>
+          <div class="calc-input-wrap">
+            <input type="number" id="c1-profit" min="1" value="100" oninput="calc1Update()">
+            <span class="unit">$</span>
+          </div>
+        </div>
+
+        <hr class="calc-separator">
+
+        <div class="calc-result-grid">
+          <div class="calc-ratio-box">
+            <div class="ratio-label">Breakeven Ratio</div>
+            <div class="ratio-value" id="c1-breakeven">—</div>
+          </div>
+          <div class="calc-ratio-box">
+            <div class="ratio-label">Inverted Ratio</div>
+            <div class="ratio-value" id="c1-inverted">—</div>
+          </div>
+        </div>
+
+        <div class="calc-result-banner result-max-risk">
+          <div class="result-label">Maximum Allowable Risk</div>
+          <div class="result-amount" id="c1-result">—</div>
+          <div class="result-note" id="c1-note">Enter values above to see your max risk.</div>
+        </div>
+      </div>
+
+      <!-- Calculator 2: Find Required Profit -->
+      <div class="calc-card" id="calc2">
+        <div class="calc-card-title"><span class="step-num">2</span>Find Your Required Profit</div>
+        <div class="calc-card-desc">Use this if your stop-loss or risk amount is fixed, and you need to calculate the minimum price target you must hit to remain profitable.</div>
+
+        <div class="calc-field">
+          <label>Your Win Rate</label>
+          <div class="field-hint">The historical percentage of trades you expect to win.</div>
+          <div class="calc-input-wrap">
+            <input type="number" id="c2-winrate" min="1" max="99" value="60" oninput="calc2Update()">
+            <span class="unit">%</span>
+          </div>
+          <input type="range" id="c2-winrate-slider" min="1" max="99" value="60" oninput="c2SliderSync(this.value)">
+        </div>
+
+        <div class="calc-field">
+          <label>Fixed Dollar Risk</label>
+          <div class="field-hint">The actual dollar amount you stand to lose if your stop-loss gets hit.</div>
+          <div class="calc-input-wrap">
+            <input type="number" id="c2-risk" min="1" value="75" oninput="calc2Update()">
+            <span class="unit">$</span>
+          </div>
+        </div>
+
+        <hr class="calc-separator">
+
+        <div class="calc-result-grid">
+          <div class="calc-ratio-box">
+            <div class="ratio-label">Breakeven Ratio</div>
+            <div class="ratio-value" id="c2-breakeven">—</div>
+          </div>
+          <div class="calc-ratio-box">
+            <div class="ratio-label">Inverted Ratio</div>
+            <div class="ratio-value" id="c2-inverted">—</div>
+          </div>
+        </div>
+
+        <div class="calc-result-banner result-min-profit">
+          <div class="result-label">Minimum Profit Target</div>
+          <div class="result-amount" id="c2-result">—</div>
+          <div class="result-note" id="c2-note">Enter values above to see your required profit.</div>
+        </div>
+      </div>
+    </div><!-- /calc-grid -->
+
+    <!-- Edge Demo Section -->
+    <div class="edge-section">
+      <div class="edge-section-title">Edge Demo</div>
+      <div class="edge-section-desc">Show-and-tell visuals for consistency, streaks, and sample size. Visualize how your win rate plays out over many trades.</div>
+
+      <div class="edge-layout">
+        <!-- Coin flip panel -->
+        <div class="edge-coin-panel">
+          <div class="coin-btns">
+            <button class="coin-choice-btn selected-heads" id="coin-heads-btn" onclick="selectCoin('H')">H &nbsp; HEADS</button>
+            <button class="coin-choice-btn" id="coin-tails-btn" onclick="selectCoin('T')">T &nbsp; TAILS</button>
+          </div>
+          <div class="coin-display" id="coin-display">?</div>
+          <div class="coin-action-btns">
+            <button class="coin-action-btn" onclick="flipOnce()">Flip</button>
+            <button class="coin-action-btn" onclick="resetCoin()">Reset</button>
+          </div>
+          <div class="coin-stats-row">
+            <span class="stat-lbl">Wins / Losses</span>
+            <span class="stat-val" id="coin-wl">0 / 0</span>
+          </div>
+          <div class="coin-stats-row">
+            <span class="stat-lbl">Net P/L</span>
+            <span class="stat-val" id="coin-net">$0.00</span>
+          </div>
+          <div class="coin-stats-row">
+            <span class="stat-lbl">Win Rate</span>
+            <span class="stat-val" id="coin-rate">—</span>
+          </div>
+          <div class="coin-dots" id="coin-dots"></div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:8px;">Green = win, Red = loss</div>
+        </div>
+
+        <!-- Settings panel -->
+        <div class="edge-settings-panel">
+          <div class="calc-field" style="margin-bottom:20px;">
+            <label>Win Rate for Simulation</label>
+            <div class="field-hint">The probability the coin lands on your chosen side.</div>
+            <div class="calc-input-wrap">
+              <input type="number" id="edge-winrate" min="1" max="99" value="60" oninput="edgeWinrateSync()">
+              <span class="unit">%</span>
+            </div>
+            <input type="range" id="edge-winrate-slider" min="1" max="99" value="60" oninput="edgeSliderSync(this.value)">
+          </div>
+
+          <div class="edge-preset-row">
+            <div class="edge-preset-btn" onclick="setEdgePreset(50,1,1)">
+              <div class="preset-label">50%</div>
+              <div class="preset-values">+$1.00 / −$1.00</div>
+            </div>
+            <div class="edge-preset-btn" onclick="setEdgePreset(60,1,1)">
+              <div class="preset-label">60%</div>
+              <div class="preset-values">+$1.00 / −$1.00</div>
+            </div>
+            <div class="edge-preset-btn" onclick="setEdgePreset(50,1.5,1)">
+              <div class="preset-label">50%</div>
+              <div class="preset-values">+$1.50 / −$1.00</div>
+            </div>
+            <div class="edge-preset-btn" onclick="setEdgePreset(60,1.5,1)">
+              <div class="preset-label">60%</div>
+              <div class="preset-values">+$1.50 / −$1.00</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+            <div class="calc-field" style="margin-bottom:0;">
+              <label>Win $ per trade</label>
+              <div class="calc-input-wrap">
+                <input type="number" id="edge-win-amt" min="0.01" step="0.01" value="1.00" oninput="updateEdgeAmounts()">
+                <span class="unit">$</span>
+              </div>
+            </div>
+            <div class="calc-field" style="margin-bottom:0;">
+              <label>Loss $ per trade</label>
+              <div class="calc-input-wrap">
+                <input type="number" id="edge-loss-amt" min="0.01" step="0.01" value="1.00" oninput="updateEdgeAmounts()">
+                <span class="unit">$</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="edge-run-btns">
+            <button class="edge-run-btn" onclick="runFlips(10)">Run 10</button>
+            <button class="edge-run-btn" onclick="runFlips(100)">Run 100</button>
+            <button class="edge-run-btn" onclick="runFlips(1000)">Run 1000</button>
+            <button class="edge-run-btn" onclick="resetCoin()">Reset</button>
+          </div>
+          <div class="edge-last-run" id="edge-last-run"></div>
+        </div>
+      </div>
+    </div><!-- /edge-section -->
+
+  </div><!-- /tab-calculator -->
+
+  <!-- Tab: Trade Calculator -->
+  <div class="tab-content" id="tab-tradecalc">
+  <style>
+  /* ── Trade Calculator scoped styles ──────────────────────────── */
+  .tc-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 0 40px;
+  }
+  .tc-page-header {
+    margin-bottom: 28px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tc-page-header h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    margin-bottom: 6px;
+  }
+  .tc-page-header p {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  /* top row: 2 main calculators */
+  .tc-top-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 900px) { .tc-top-row { grid-template-columns: 1fr; } }
+
+  .tc-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+  }
+  .tc-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .tc-card-title .tc-step {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: #000;
+    font-size: 13px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .tc-card-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 22px;
+    line-height: 1.6;
+    padding-left: 38px;
+  }
+  .tc-field { margin-bottom: 16px; }
+  .tc-field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+  }
+  .tc-field .tc-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    font-style: italic;
+  }
+  .tc-input-row {
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .tc-input-row:focus-within { border-color: var(--gold); }
+  .tc-input-row input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 10px 14px;
+    font-family: "JetBrains Mono","SF Mono",monospace;
+    width: 100%;
+  }
+  .tc-input-row .tc-unit {
+    padding: 10px 14px;
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(255,255,255,0.03);
+    border-left: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .tc-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 5px;
+    background: var(--border);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  .tc-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--gold);
+    cursor: pointer;
+  }
+  .tc-sep {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+  }
+
+  /* result area */
+  .tc-verdict {
+    border-radius: 8px;
+    padding: 18px 20px;
+    text-align: center;
+    margin-bottom: 14px;
+    transition: all 0.2s;
+  }
+  .tc-verdict.profitable {
+    background: rgba(0,230,118,0.08);
+    border: 1px solid rgba(0,230,118,0.3);
+  }
+  .tc-verdict.losing {
+    background: rgba(255,68,68,0.08);
+    border: 1px solid rgba(255,68,68,0.3);
+  }
+  .tc-verdict.neutral {
+    background: rgba(255,193,7,0.08);
+    border: 1px solid rgba(255,193,7,0.3);
+  }
+  .tc-verdict-badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .tc-verdict.profitable .tc-verdict-badge { color: var(--green); }
+  .tc-verdict.losing     .tc-verdict-badge { color: var(--red); }
+  .tc-verdict.neutral    .tc-verdict-badge { color: var(--gold); }
+  .tc-verdict-ev {
+    font-family: "JetBrains Mono","SF Mono",monospace;
+    font-size: 36px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .tc-verdict.profitable .tc-verdict-ev { color: var(--green); }
+  .tc-verdict.losing     .tc-verdict-ev { color: var(--red); }
+  .tc-verdict.neutral    .tc-verdict-ev { color: var(--gold); }
+  .tc-verdict-note {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  .tc-ratio-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .tc-ratio-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .tc-ratio-box .tc-r-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+  }
+  .tc-ratio-box .tc-r-value {
+    font-family: "JetBrains Mono","SF Mono",monospace;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .tc-ratio-box .tc-r-sub {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 3px;
+  }
+
+  /* --- Position Size calculator --- */
+  .tc-pos-result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .tc-pos-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .tc-pos-box .tc-p-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .tc-pos-box .tc-p-value {
+    font-family: "JetBrains Mono","SF Mono",monospace;
+    font-size: 26px;
+    font-weight: 800;
+  }
+  .tc-pos-box .tc-p-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 3px;
+  }
+
+  /* --- Session planner --- */
+  .tc-planner-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 700px) { .tc-planner-row { grid-template-columns: 1fr; } }
+
+  /* --- Profitability matrix --- */
+  .tc-matrix-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .tc-matrix-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+  .tc-matrix-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 18px;
+    line-height: 1.5;
+  }
+  .tc-matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: "JetBrains Mono","SF Mono",monospace;
+    font-size: 12px;
+    overflow-x: auto;
+    display: block;
+  }
+  .tc-matrix-table th {
+    padding: 8px 10px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .tc-matrix-table td {
+    padding: 8px 10px;
+    text-align: center;
+    border: 1px solid var(--border);
+    font-weight: 700;
+    font-size: 12px;
+    transition: background 0.15s;
+    cursor: default;
+  }
+  .tc-matrix-table td.tc-m-header {
+    color: var(--text-dim);
+    font-weight: 700;
+    font-size: 11px;
+    background: rgba(255,255,255,0.02);
+  }
+  .tc-matrix-table td.tc-m-good   { background: rgba(0,230,118,0.14); color: var(--green); }
+  .tc-matrix-table td.tc-m-ok     { background: rgba(255,193,7,0.10); color: var(--gold); }
+  .tc-matrix-table td.tc-m-break  { background: rgba(255,193,7,0.06); color: var(--amber); }
+  .tc-matrix-table td.tc-m-bad    { background: rgba(255,68,68,0.10); color: var(--red); }
+  .tc-matrix-table td.tc-m-cur    { outline: 2px solid var(--gold); outline-offset: -2px; }
+
+  /* scenario bar */
+  .tc-scenario-bar {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+  .tc-scenario-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .tc-scenario-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  </style>
+
+  <div class="tc-wrap">
+    <div class="tc-page-header">
+      <h2>Trade Setup Calculator</h2>
+      <p>Enter your win rate, stop loss size, and profit target to instantly see if your setup is profitable, what your expected value per trade is, and how many trades you need to reach your daily goal.</p>
+    </div>
+
+    <!-- Row 1: Two main calculators side by side -->
+    <div class="tc-top-row">
+
+      <!-- Calc A: Is my setup profitable? -->
+      <div class="tc-card" id="tca-card">
+        <div class="tc-card-title">
+          <span class="tc-step">A</span>
+          Is My Setup Profitable?
+        </div>
+        <div class="tc-card-desc">Enter your win rate, stop loss, and target. See if you have positive expected value and whether the numbers are aligned.</div>
+
+        <div class="tc-field">
+          <label>Win Rate</label>
+          <div class="tc-hint">Historical % of trades you expect to win.</div>
+          <div class="tc-input-row">
+            <input type="number" id="tca-wr" min="1" max="99" value="60" oninput="tcaUpdate()">
+            <span class="tc-unit">%</span>
+          </div>
+          <input type="range" class="tc-slider" id="tca-wr-slider" min="1" max="99" value="60" oninput="tcaSlider(this.value)">
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="tc-field" style="margin-bottom:0;">
+            <label>Stop Loss Distance</label>
+            <div class="tc-hint">SL distance in points/ticks.</div>
+            <div class="tc-input-row">
+              <input type="number" id="tca-sl" min="0.25" step="0.25" value="4" oninput="tcaUpdate()">
+              <span class="tc-unit">pts</span>
+            </div>
+          </div>
+          <div class="tc-field" style="margin-bottom:0;">
+            <label>Target Distance</label>
+            <div class="tc-hint">Profit target in points/ticks.</div>
+            <div class="tc-input-row">
+              <input type="number" id="tca-tp" min="0.25" step="0.25" value="8" oninput="tcaUpdate()">
+              <span class="tc-unit">pts</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tc-field" style="margin-top:14px;">
+          <label>Dollar Value per Point</label>
+          <div class="tc-hint">ES = $50/pt, MES = $5/pt, GC = $100/pt, MCG = $10/pt, CL = $1,000/bbl, MCL = $100/bbl.</div>
+          <div class="tc-input-row">
+            <input type="number" id="tca-pts-val" min="1" step="0.25" value="5" oninput="tcaUpdate()">
+            <span class="tc-unit">$/pt</span>
+          </div>
+        </div>
+
+        <hr class="tc-sep">
+
+        <!-- Ratio summary row -->
+        <div class="tc-ratio-grid">
+          <div class="tc-ratio-box">
+            <div class="tc-r-label">R:R Ratio</div>
+            <div class="tc-r-value" id="tca-rr">—</div>
+            <div class="tc-r-sub">target / SL</div>
+          </div>
+          <div class="tc-ratio-box">
+            <div class="tc-r-label">Break-Even WR</div>
+            <div class="tc-r-value" id="tca-bewR">—</div>
+            <div class="tc-r-sub">min WR needed</div>
+          </div>
+          <div class="tc-ratio-box">
+            <div class="tc-r-label">Your Edge</div>
+            <div class="tc-r-value" id="tca-edge">—</div>
+            <div class="tc-r-sub">WR vs break-even</div>
+          </div>
+        </div>
+
+        <!-- Verdict banner -->
+        <div class="tc-verdict neutral" id="tca-verdict">
+          <div class="tc-verdict-badge" id="tca-vbadge">Enter values above</div>
+          <div class="tc-verdict-ev" id="tca-ev">—</div>
+          <div class="tc-verdict-note" id="tca-vnote">Expected value per trade will appear here.</div>
+        </div>
+        <div style="font-size:11px;color:var(--text-dim);text-align:center;margin-top:6px;" id="tca-dollar-note"></div>
+      </div>
+
+      <!-- Calc B: Position Size -->
+      <div class="tc-card" id="tcb-card">
+        <div class="tc-card-title">
+          <span class="tc-step">B</span>
+          Position Size Calculator
+        </div>
+        <div class="tc-card-desc">How many contracts can you trade based on your account size and max risk? Keeps you sized correctly for your SL.</div>
+
+        <div class="tc-field">
+          <label>Account Size</label>
+          <div class="tc-hint">Total funded or personal account balance.</div>
+          <div class="tc-input-row">
+            <input type="number" id="tcb-acct" min="100" step="100" value="50000" oninput="tcbUpdate()">
+            <span class="tc-unit">$</span>
+          </div>
+        </div>
+
+        <div class="tc-field">
+          <label>Max Risk Per Trade</label>
+          <div class="tc-hint">% of account you're willing to lose on one trade.</div>
+          <div class="tc-input-row">
+            <input type="number" id="tcb-riskpct" min="0.1" max="10" step="0.1" value="1" oninput="tcbUpdate()">
+            <span class="tc-unit">%</span>
+          </div>
+          <input type="range" class="tc-slider" id="tcb-rp-slider" min="0.1" max="5" step="0.1" value="1" oninput="tcbSlider(this.value)">
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="tc-field" style="margin-bottom:0;">
+            <label>SL Distance (pts)</label>
+            <div class="tc-input-row">
+              <input type="number" id="tcb-sl" min="0.25" step="0.25" value="4" oninput="tcbUpdate()">
+              <span class="tc-unit">pts</span>
+            </div>
+          </div>
+          <div class="tc-field" style="margin-bottom:0;">
+            <label>Dollar / Point</label>
+            <div class="tc-input-row">
+              <input type="number" id="tcb-ptsval" min="1" step="0.25" value="5" oninput="tcbUpdate()">
+              <span class="tc-unit">$/pt</span>
+            </div>
+          </div>
+        </div>
+
+        <hr class="tc-sep">
+
+        <div class="tc-pos-result-grid">
+          <div class="tc-pos-box">
+            <div class="tc-p-label">Max $ at Risk</div>
+            <div class="tc-p-value" id="tcb-maxrisk" style="color:var(--red);">—</div>
+            <div class="tc-p-sub">per trade</div>
+          </div>
+          <div class="tc-pos-box">
+            <div class="tc-p-label">Max Contracts</div>
+            <div class="tc-p-value" id="tcb-contracts" style="color:var(--green);">—</div>
+            <div class="tc-p-sub">floor(maxRisk / SL$)</div>
+          </div>
+        </div>
+        <div class="tc-pos-result-grid">
+          <div class="tc-pos-box">
+            <div class="tc-p-label">Actual Risk Used</div>
+            <div class="tc-p-value" id="tcb-actual-risk" style="color:var(--amber);">—</div>
+            <div class="tc-p-sub">contracts × SL$</div>
+          </div>
+          <div class="tc-pos-box">
+            <div class="tc-p-label">Potential Profit</div>
+            <div class="tc-p-value" id="tcb-potential" style="color:var(--blue);">—</div>
+            <div class="tc-p-sub">if target hit (from Calc A)</div>
+          </div>
+        </div>
+
+        <!-- Quick presets for common instruments -->
+        <div style="margin-top:8px;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:8px;">Quick Instrument Presets</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="tc-preset-btn" onclick="tcbPreset(5,'MES')">MES $5/pt</button>
+            <button class="tc-preset-btn" onclick="tcbPreset(50,'ES')">ES $50/pt</button>
+            <button class="tc-preset-btn" onclick="tcbPreset(10,'MGC')">MGC $10/pt</button>
+            <button class="tc-preset-btn" onclick="tcbPreset(100,'GC')">GC $100/pt</button>
+            <button class="tc-preset-btn" onclick="tcbPreset(100,'MCL')">MCL $100/pt</button>
+            <button class="tc-preset-btn" onclick="tcbPreset(1000,'CL')">CL $1000/pt</button>
+          </div>
+        </div>
+      </div>
+    </div><!-- /tc-top-row -->
+
+    <!-- Row 2: Session Planner -->
+    <div class="tc-card" style="margin-bottom:20px;" id="tcc-card">
+      <div class="tc-card-title">
+        <span class="tc-step">C</span>
+        Session Profitability Planner
+      </div>
+      <div class="tc-card-desc" style="padding-left:38px;">How many winning trades do you need to hit your daily goal? Adjust win rate to see the realistic number of trades required.</div>
+
+      <div class="tc-planner-row">
+        <div class="tc-field" style="margin-bottom:0;">
+          <label>Daily Profit Goal</label>
+          <div class="tc-hint">Target you want to make this session.</div>
+          <div class="tc-input-row">
+            <input type="number" id="tcc-goal" min="10" step="10" value="500" oninput="tccUpdate()">
+            <span class="tc-unit">$</span>
+          </div>
+        </div>
+        <div class="tc-field" style="margin-bottom:0;">
+          <label>Win Rate</label>
+          <div class="tc-hint">Your historical trade win %.</div>
+          <div class="tc-input-row">
+            <input type="number" id="tcc-wr" min="1" max="99" value="60" oninput="tccUpdate()">
+            <span class="tc-unit">%</span>
+          </div>
+          <input type="range" class="tc-slider" id="tcc-wr-slider" min="1" max="99" value="60" oninput="tccSlider(this.value)">
+        </div>
+        <div class="tc-field" style="margin-bottom:0;">
+          <label>Profit per Win ($)</label>
+          <div class="tc-hint">Avg dollar gain on a winning trade.</div>
+          <div class="tc-input-row">
+            <input type="number" id="tcc-winval" min="1" step="5" value="40" oninput="tccUpdate()">
+            <span class="tc-unit">$</span>
+          </div>
+        </div>
+      </div>
+      <div class="tc-planner-row" style="margin-bottom:0;">
+        <div class="tc-field" style="margin-bottom:0;">
+          <label>Loss per Losing Trade ($)</label>
+          <div class="tc-hint">Avg dollar loss on a losing trade.</div>
+          <div class="tc-input-row">
+            <input type="number" id="tcc-lossval" min="1" step="5" value="20" oninput="tccUpdate()">
+            <span class="tc-unit">$</span>
+          </div>
+        </div>
+        <div class="tc-field" style="margin-bottom:0;">
+          <label>Max Trades per Day</label>
+          <div class="tc-hint">Self-imposed trade limit (discipline).</div>
+          <div class="tc-input-row">
+            <input type="number" id="tcc-maxtrades" min="1" max="50" value="10" oninput="tccUpdate()">
+            <span class="tc-unit">trades</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-end;padding-bottom:0;">
+          <!-- placeholder to keep grid balanced -->
+        </div>
+      </div>
+
+      <hr class="tc-sep">
+      <div id="tcc-result-area"></div>
+    </div>
+
+    <!-- Row 3: Profitability Matrix -->
+    <div class="tc-matrix-section">
+      <div class="tc-matrix-title">Profitability Matrix — Expected Value by Win Rate &amp; R:R</div>
+      <div class="tc-matrix-desc">Each cell shows the expected value per $1 risked at that combination. Green = profitable, yellow = near break-even, red = losing edge. Your current inputs from Calc A are highlighted.</div>
+      <div id="tc-matrix-container" style="overflow-x:auto;"></div>
+      <div class="tc-scenario-bar">
+        <div class="tc-scenario-item"><div class="tc-scenario-swatch" style="background:rgba(0,230,118,0.3);border:1px solid var(--green);"></div> Profitable (EV &gt; +0.05)</div>
+        <div class="tc-scenario-item"><div class="tc-scenario-swatch" style="background:rgba(255,193,7,0.2);border:1px solid var(--gold);"></div> Near break-even (±0.05)</div>
+        <div class="tc-scenario-item"><div class="tc-scenario-swatch" style="background:rgba(255,68,68,0.15);border:1px solid var(--red);"></div> Losing edge (EV &lt; -0.05)</div>
+        <div class="tc-scenario-item"><div class="tc-scenario-swatch" style="outline:2px solid var(--gold);background:transparent;"></div> Your current setup</div>
+      </div>
+    </div>
+
+  </div><!-- /.tc-wrap -->
+  </div><!-- /tab-tradecalc -->
+
+  <!-- Tab: Apex Payout Tracker -->
+  <div class="tab-content" id="tab-apex">
+  <style>
+  /* ── Apex tab scoped styles ─────────────────────────────────────
+     All variables prefixed --ax- to avoid colliding with the
+     Signal Monitor's own :root variables.
+  ─────────────────────────────────────────────────────────────── */
+  .apex-tab {
+    --ax-bg:        #05070d;
+    --ax-surface:   #0b0e18;
+    --ax-raised:    #111827;
+    --ax-border:    #1e2a3a;
+    --ax-accent:    #3b82f6;
+    --ax-green:     #22c55e;
+    --ax-green-lo:  rgba(34,197,94,0.10);
+    --ax-amber:     #f59e0b;
+    --ax-amber-lo:  rgba(245,158,11,0.10);
+    --ax-red:       #ef4444;
+    --ax-red-lo:    rgba(239,68,68,0.10);
+    --ax-purple:    #a855f7;
+    --ax-purple-lo: rgba(168,85,247,0.10);
+    --ax-dim:       #4b5563;
+    --ax-mid:       #9ca3af;
+    --ax-bright:    #f1f5f9;
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 4px 0 40px;
+    color: var(--ax-bright);
+  }
+  .apex-tab h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+  .apex-tab h2 { font-size: 14px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ax-mid); margin-bottom: 12px; }
+  .apex-tab h3 { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+
+  .apex-tab .ax-page-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 1px solid var(--ax-border);
+    padding-bottom: 18px; margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
+  }
+  .apex-tab .ax-header-left { display: flex; flex-direction: column; gap: 4px; }
+  .apex-tab .ax-tag {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 4px;
+  }
+  .apex-tab .ax-tag-green  { background: var(--ax-green-lo);  color: var(--ax-green);  border: 1px solid rgba(34,197,94,0.25); }
+  .apex-tab .ax-tag-amber  { background: var(--ax-amber-lo);  color: var(--ax-amber);  border: 1px solid rgba(245,158,11,0.25); }
+  .apex-tab .ax-tag-red    { background: var(--ax-red-lo);    color: var(--ax-red);    border: 1px solid rgba(239,68,68,0.25); }
+  .apex-tab .ax-tag-purple { background: var(--ax-purple-lo); color: var(--ax-purple); border: 1px solid rgba(168,85,247,0.25); }
+  .apex-tab .ax-tag-blue   { background: rgba(59,130,246,0.10); color: var(--ax-accent); border: 1px solid rgba(59,130,246,0.25); }
+  .apex-tab .ax-tag-dim    { background: rgba(75,85,99,0.15);   color: var(--ax-mid);    border: 1px solid rgba(75,85,99,0.30); }
+
+  .apex-tab .ax-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .apex-tab .ax-cycle-label { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--ax-dim); }
+
+  .apex-tab .ax-rule-box {
+    background: var(--ax-surface); border: 1px solid var(--ax-border);
+    border-radius: 8px; padding: 14px 18px; margin-bottom: 28px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;
+  }
+  .apex-tab .ax-rule-item { display: flex; flex-direction: column; gap: 3px; }
+  .apex-tab .ax-rule-label { font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--ax-dim); text-transform: uppercase; letter-spacing: 0.07em; }
+  .apex-tab .ax-rule-value { font-family: "IBM Plex Mono", monospace; font-size: 15px; font-weight: 700; color: var(--ax-bright); }
+  .apex-tab .ax-rule-sub   { font-size: 11px; color: var(--ax-mid); }
+
+  .apex-tab .ax-accounts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px; margin-bottom: 32px;
+  }
+  .apex-tab .ax-account-card {
+    background: var(--ax-surface); border: 1px solid var(--ax-border);
+    border-radius: 10px; overflow: hidden;
+  }
+  .apex-tab .ax-account-card.ax-is-acct6 { border-color: rgba(168,85,247,0.35); }
+  .apex-tab .ax-card-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; border-bottom: 1px solid var(--ax-border);
+    background: var(--ax-raised);
+  }
+  .apex-tab .ax-card-title { font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 700; }
+  .apex-tab .ax-card-status { display: flex; align-items: center; gap: 6px; }
+  .apex-tab .ax-card-body { padding: 14px 16px; }
+
+  .apex-tab .ax-days-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  .apex-tab .ax-days-table th {
+    font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--ax-dim);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 4px 6px; text-align: left; border-bottom: 1px solid var(--ax-border);
+  }
+  .apex-tab .ax-days-table td { padding: 5px 6px; border-bottom: 1px solid rgba(30,42,58,0.5); }
+  .apex-tab .ax-days-table tr:last-child td { border-bottom: none; }
+  .apex-tab .ax-day-num { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--ax-dim); }
+
+  .apex-tab input.ax-profit-input {
+    background: var(--ax-bg); border: 1px solid var(--ax-border);
+    border-radius: 4px; color: var(--ax-bright);
+    font-family: "IBM Plex Mono", monospace; font-size: 12px;
+    padding: 3px 7px; width: 80px; text-align: left;
+    outline: none; transition: border-color 0.15s;
+  }
+  .apex-tab input.ax-profit-input:focus { border-color: var(--ax-accent); }
+  .apex-tab input.ax-profit-input.safe    { border-color: rgba(34,197,94,0.5);  color: var(--ax-green); }
+  .apex-tab input.ax-profit-input.warn    { border-color: rgba(245,158,11,0.5); color: var(--ax-amber); }
+  .apex-tab input.ax-profit-input.danger  { border-color: rgba(239,68,68,0.5);  color: var(--ax-red); }
+  .apex-tab input.ax-profit-input.empty   { color: var(--ax-dim); }
+
+  .apex-tab .ax-pct-cell { font-family: "IBM Plex Mono", monospace; font-size: 11px; text-align: right; width: 52px; }
+
+  .apex-tab .ax-stat-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .apex-tab .ax-stat-box { background: var(--ax-bg); border: 1px solid var(--ax-border); border-radius: 6px; padding: 8px 10px; }
+  .apex-tab .ax-stat-box .ax-s-label { font-family: "IBM Plex Mono", monospace; font-size: 9px; color: var(--ax-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+  .apex-tab .ax-stat-box .ax-s-value { font-family: "IBM Plex Mono", monospace; font-size: 14px; font-weight: 700; }
+
+  .apex-tab .ax-progress-wrap { margin-bottom: 10px; }
+  .apex-tab .ax-progress-label { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .apex-tab .ax-progress-label span { font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--ax-mid); }
+  .apex-tab .ax-progress-track {
+    height: 6px; background: var(--ax-bg); border-radius: 3px;
+    border: 1px solid var(--ax-border); overflow: hidden; position: relative;
+  }
+  .apex-tab .ax-progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease, background 0.3s ease; }
+
+  .apex-tab .ax-advice {
+    border-radius: 6px; padding: 8px 12px; font-size: 11px; line-height: 1.5; border: 1px solid;
+  }
+  .apex-tab .ax-advice.safe   { background: var(--ax-green-lo);  border-color: rgba(34,197,94,0.2);  color: var(--ax-green); }
+  .apex-tab .ax-advice.warn   { background: var(--ax-amber-lo);  border-color: rgba(245,158,11,0.2); color: var(--ax-amber); }
+  .apex-tab .ax-advice.danger { background: var(--ax-red-lo);    border-color: rgba(239,68,68,0.2);  color: var(--ax-red); }
+  .apex-tab .ax-advice.info   { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.2); color: var(--ax-accent); }
+
+  .apex-tab .ax-summary-section { background: var(--ax-surface); border: 1px solid var(--ax-border); border-radius: 10px; padding: 20px; margin-bottom: 32px; }
+  .apex-tab .ax-summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-top: 14px; }
+  .apex-tab .ax-sum-box { background: var(--ax-bg); border: 1px solid var(--ax-border); border-radius: 6px; padding: 12px 14px; }
+  .apex-tab .ax-sum-box .ax-s-label { font-family: "IBM Plex Mono", monospace; font-size: 9px; color: var(--ax-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .apex-tab .ax-sum-box .ax-s-value { font-family: "IBM Plex Mono", monospace; font-size: 18px; font-weight: 700; }
+  .apex-tab .ax-sum-box .ax-s-sub   { font-size: 11px; color: var(--ax-mid); margin-top: 2px; }
+
+  .apex-tab .ax-math-section { background: var(--ax-surface); border: 1px solid var(--ax-border); border-radius: 10px; padding: 20px; margin-bottom: 32px; }
+  .apex-tab .ax-math-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; }
+  .apex-tab .ax-math-box { background: var(--ax-bg); border: 1px solid var(--ax-border); border-radius: 6px; padding: 12px 14px; }
+  .apex-tab .ax-math-box .ax-m-label { font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--ax-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .apex-tab .ax-math-box table { width: 100%; border-collapse: collapse; }
+  .apex-tab .ax-math-box table td { padding: 3px 0; font-family: "IBM Plex Mono", monospace; font-size: 11px; }
+  .apex-tab .ax-math-box table td:last-child { text-align: right; }
+  .apex-tab .ax-math-box table tr.safe   td:last-child { color: var(--ax-green); }
+  .apex-tab .ax-math-box table tr.warn   td:last-child { color: var(--ax-amber); }
+  .apex-tab .ax-math-box table tr.danger td:last-child { color: var(--ax-red); }
+
+  .apex-tab .ax-btn {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 600;
+    padding: 6px 14px; border-radius: 5px; cursor: pointer; border: 1px solid;
+    transition: opacity 0.15s; text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .apex-tab .ax-btn:hover { opacity: 0.75; }
+  .apex-tab .ax-btn-red   { background: var(--ax-red-lo);   border-color: rgba(239,68,68,0.3);  color: var(--ax-red); }
+  .apex-tab .ax-btn-green { background: var(--ax-green-lo); border-color: rgba(34,197,94,0.3);  color: var(--ax-green); }
+  .apex-tab .ax-btn-blue  { background: rgba(59,130,246,0.10); border-color: rgba(59,130,246,0.25); color: var(--ax-accent); }
+  .apex-tab .ax-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+
+  .apex-tab .ax-violations { margin-top: 10px; }
+  .apex-tab .ax-v-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 5px; background: var(--ax-red-lo); border: 1px solid rgba(239,68,68,0.15); margin-bottom: 4px; font-size: 11px; color: var(--ax-red); }
+
+  .apex-tab .ax-planner-section { background: var(--ax-surface); border: 1px solid var(--ax-border); border-radius: 10px; padding: 20px; margin-bottom: 32px; }
+  .apex-tab .ax-planner-intro { font-size: 12px; color: var(--ax-mid); margin-bottom: 16px; line-height: 1.6; border-left: 3px solid var(--ax-accent); padding-left: 12px; }
+  .apex-tab .ax-planner-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+  .apex-tab .ax-plan-card { background: var(--ax-bg); border: 1px solid var(--ax-border); border-radius: 8px; overflow: hidden; }
+  .apex-tab .ax-plan-card.ax-is-acct6 { border-color: rgba(168,85,247,0.30); }
+  .apex-tab .ax-plan-card-header { display: flex; justify-content: space-between; align-items: center; padding: 9px 13px; background: var(--ax-raised); border-bottom: 1px solid var(--ax-border); }
+  .apex-tab .ax-plan-card-title { font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 700; }
+  .apex-tab .ax-plan-card-body { padding: 12px 13px; }
+
+  .apex-tab .ax-plan-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+  .apex-tab .ax-plan-table th { font-family: "IBM Plex Mono", monospace; font-size: 9px; color: var(--ax-dim); text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 5px; text-align: left; border-bottom: 1px solid var(--ax-border); }
+  .apex-tab .ax-plan-table td { padding: 5px 5px; border-bottom: 1px solid rgba(30,42,58,0.4); font-size: 11px; }
+  .apex-tab .ax-plan-table tr:last-child td { border-bottom: none; }
+  .apex-tab .ax-plan-table .mono { font-family: "IBM Plex Mono", monospace; }
+  .apex-tab .ax-plan-bar { height: 4px; border-radius: 2px; margin-top: 3px; transition: width 0.3s ease; }
+  .apex-tab .ax-plan-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+  .apex-tab .ax-plan-sum-box { background: var(--ax-raised); border: 1px solid var(--ax-border); border-radius: 5px; padding: 6px 8px; }
+  .apex-tab .ax-plan-sum-box .ax-ps-label { font-family: "IBM Plex Mono", monospace; font-size: 9px; color: var(--ax-dim); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+  .apex-tab .ax-plan-sum-box .ax-ps-value { font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 700; }
+  .apex-tab .ax-plan-verdict { border-radius: 5px; padding: 7px 10px; font-size: 11px; line-height: 1.5; border: 1px solid; }
+  .apex-tab .ax-plan-verdict.safe   { background: var(--ax-green-lo);  border-color: rgba(34,197,94,0.2);  color: var(--ax-green); }
+  .apex-tab .ax-plan-verdict.warn   { background: var(--ax-amber-lo);  border-color: rgba(245,158,11,0.2); color: var(--ax-amber); }
+  .apex-tab .ax-plan-verdict.danger { background: var(--ax-red-lo);    border-color: rgba(239,68,68,0.2);  color: var(--ax-red); }
+  .apex-tab .ax-plan-verdict.info   { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.2); color: var(--ax-accent); }
+  .apex-tab .ax-plan-verdict.done   { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.2);  color: var(--ax-green); }
+
+  .apex-tab .ax-footer { margin-top: 20px; text-align: center; font-size: 11px; color: var(--ax-dim); font-family: "IBM Plex Mono", monospace; }
+  </style>
+
+  <div class="apex-tab">
+
+    <div class="ax-page-header">
+      <div class="ax-header-left">
+        <span class="ax-tag ax-tag-purple">APEX 50K PA × 8 ACCOUNTS</span>
+        <h1>Payout Cycle Tracker</h1>
+        <span style="color:var(--ax-mid);font-size:12px;">Enter daily net profit → live 30% rule check per account</span>
+      </div>
+      <div class="ax-header-right">
+        <span class="ax-cycle-label">CYCLE START</span>
+        <input type="date" id="axCycleStart" style="background:var(--ax-raised);border:1px solid var(--ax-border);color:var(--ax-bright);font-family:'IBM Plex Mono',monospace;font-size:12px;padding:4px 8px;border-radius:5px;outline:none;"/>
+      </div>
+    </div>
+
+    <!-- Rules quick ref -->
+    <div class="ax-rule-box">
+      <div class="ax-rule-item">
+        <span class="ax-rule-label">Accts 1–5 &amp; 7–8 · Daily Min</span>
+        <span class="ax-rule-value">$50.00</span>
+        <span class="ax-rule-sub">5 qualifying days needed</span>
+      </div>
+      <div class="ax-rule-item">
+        <span class="ax-rule-label">Account 6 · Daily Min</span>
+        <span class="ax-rule-value">$150.00</span>
+        <span class="ax-rule-sub">5 qualifying days needed</span>
+      </div>
+      <div class="ax-rule-item">
+        <span class="ax-rule-label">30% Rule</span>
+        <span class="ax-rule-value">&lt; 30% of total</span>
+        <span class="ax-rule-sub">No single day ≥ 30% of 5-day sum</span>
+      </div>
+      <div class="ax-rule-item">
+        <span class="ax-rule-label">Safe Max Formula</span>
+        <span class="ax-rule-value">S × 3/7</span>
+        <span class="ax-rule-sub">Big day ≤ 42.86% of other 4 days</span>
+      </div>
+      <div class="ax-rule-item">
+        <span class="ax-rule-label">Switch Rule</span>
+        <span class="ax-rule-value">T1 or T2 hit</span>
+        <span class="ax-rule-sub">Switch accounts after any target fill</span>
+      </div>
+      <div class="ax-rule-item">
+        <span class="ax-rule-label">Payout Processing</span>
+        <span class="ax-rule-value">~10 days</span>
+        <span class="ax-rule-sub">Trade continues after request</span>
+      </div>
+    </div>
+
+    <div class="ax-actions">
+      <button class="ax-btn ax-btn-red" onclick="axClearAll()">↺ Clear All Accounts</button>
+      <button class="ax-btn ax-btn-blue" onclick="axLoadDemo()">⬇ Load Example Data</button>
+      <button class="ax-btn ax-btn-green" onclick="axExportSummary()">↗ Copy Summary Text</button>
+    </div>
+
+    <!-- Account cards -->
+    <div class="ax-accounts-grid" id="axAccountsGrid"></div>
+
+    <!-- Summary -->
+    <div class="ax-summary-section">
+      <h2>Portfolio Summary</h2>
+      <div class="ax-summary-grid" id="axSummaryGrid"></div>
+      <div class="ax-violations" id="axViolationsList"></div>
+    </div>
+
+    <!-- Math Reference -->
+    <div class="ax-math-section">
+      <h2>30% Rule — Safe Day Ceilings</h2>
+      <p style="font-size:11px;color:var(--ax-mid);margin-bottom:14px;">
+        For a big day (T2) to be compliant: <span style="font-family:'IBM Plex Mono',monospace;color:var(--ax-bright);">big_day ≤ (3/7) × sum_of_other_4_days</span>
+      </p>
+      <div class="ax-math-grid">
+        <div class="ax-math-box">
+          <div class="ax-m-label">1 Big Day + 4 Floor Days</div>
+          <table>
+            <tr class="danger"><td>4 × $51</td><td>max big = $87</td></tr>
+            <tr class="warn">  <td>4 × $70</td><td>max big = $120</td></tr>
+            <tr class="warn">  <td>4 × $88</td><td>max big = $150</td></tr>
+            <tr class="safe">  <td>4 × $116</td><td>max big = $200</td></tr>
+          </table>
+        </div>
+        <div class="ax-math-box">
+          <div class="ax-m-label">2 Big Days + 3 Floor Days ($51)</div>
+          <table>
+            <tr class="safe"><td>Each big = $115</td><td>✓ safe</td></tr>
+            <tr class="safe"><td>Each big = $100</td><td>✓ safe</td></tr>
+            <tr class="warn"><td>Each big = $150</td><td>needs $67 smalls</td></tr>
+            <tr class="safe"><td>Each big = $180</td><td>needs $80 smalls</td></tr>
+          </table>
+        </div>
+        <div class="ax-math-box">
+          <div class="ax-m-label">3 Big Days + 2 Floor Days ($51)</div>
+          <table>
+            <tr class="safe"><td>Each big = $150</td><td>✓ safe</td></tr>
+            <tr class="safe"><td>Each big = $200</td><td>✓ safe</td></tr>
+            <tr class="safe"><td>Each big = $300</td><td>✓ safe</td></tr>
+            <tr class="safe"><td>Any amount</td><td>✓ always safe</td></tr>
+          </table>
+        </div>
+        <div class="ax-math-box">
+          <div class="ax-m-label">Account 6 — $150 Floor Days</div>
+          <table>
+            <tr class="safe"><td>4 × $150 → S=$600</td><td>big max = $257</td></tr>
+            <tr class="safe"><td>4 × $200 → S=$800</td><td>big max = $343</td></tr>
+            <tr class="safe"><td>Big = $250</td><td>needs S ≥ $583</td></tr>
+            <tr class="safe"><td>All days equal</td><td>✓ always safe</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Day Planner -->
+    <div class="ax-planner-section">
+      <h2>Day Planner — What to Target on Remaining Days</h2>
+      <p class="ax-planner-intro">
+        For each account, based on what you've already banked, this shows the exact <strong>safe ceiling</strong> (max you can make without a 30% violation)
+        and a <strong>recommended target</strong> for each remaining day — so you know before you trade whether to go for T2 or just take T1 and switch.
+        Updates live as you enter daily profits above.
+      </p>
+      <div class="ax-planner-grid" id="axPlannerGrid"></div>
+    </div>
+
+    <div class="ax-footer">APEX 50K PA TRACKER · v1.1 · Data stored in browser only · Refresh preserves data</div>
+  </div><!-- /.apex-tab -->
+  </div><!-- /tab-apex -->
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════
+    //  Tab switching
+    // ═══════════════════════════════════════════════════════════════
+    function switchTab(name, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Calculator 1: Find Max Risk
+    //  max_risk = profit_target * (1 - win_rate) / win_rate
+    //  This is the breakeven condition: win_rate * profit = (1-win_rate) * risk
+    // ═══════════════════════════════════════════════════════════════
+    function calc1Update() {
+      const wr = parseFloat(document.getElementById('c1-winrate').value) / 100;
+      const pt = parseFloat(document.getElementById('c1-profit').value);
+      document.getElementById('c1-winrate-slider').value = Math.round(wr * 100);
+      if (isNaN(wr) || isNaN(pt) || wr <= 0 || wr >= 1 || pt <= 0) return;
+
+      const loseRate = 1 - wr;
+      // breakeven: min ratio needed = loseRate / wr  (risk:reward to break even)
+      const breakevenRatio = (loseRate / wr).toFixed(1);
+      // inverted = wr / loseRate  (reward:risk)
+      const invertedRatio = (wr / loseRate).toFixed(1);
+      document.getElementById('c1-breakeven').textContent = breakevenRatio + ':1';
+      document.getElementById('c1-inverted').textContent = '1 to ' + invertedRatio;
+
+      // max risk such that expected value >= 0
+      // E[V] = wr * profit - (1-wr) * risk = 0  =>  risk = profit * wr / (1-wr)
+      const maxRisk = pt * wr / loseRate;
+      document.getElementById('c1-result').textContent = '$' + maxRisk.toFixed(2);
+      document.getElementById('c1-note').textContent =
+        `With a ${Math.round(wr*100)}% win rate, risking less than $${maxRisk.toFixed(2)} to make $${pt.toFixed(2)} guarantees profitability over time.`;
+    }
+    function c1SliderSync(val) {
+      document.getElementById('c1-winrate').value = val;
+      calc1Update();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Calculator 2: Find Required Profit
+    //  min_profit = risk * (1 - win_rate) / win_rate
+    // ═══════════════════════════════════════════════════════════════
+    function calc2Update() {
+      const wr = parseFloat(document.getElementById('c2-winrate').value) / 100;
+      const risk = parseFloat(document.getElementById('c2-risk').value);
+      document.getElementById('c2-winrate-slider').value = Math.round(wr * 100);
+      if (isNaN(wr) || isNaN(risk) || wr <= 0 || wr >= 1 || risk <= 0) return;
+
+      const loseRate = 1 - wr;
+      const breakevenRatio = (loseRate / wr).toFixed(1);
+      const invertedRatio = (wr / loseRate).toFixed(1);
+      document.getElementById('c2-breakeven').textContent = breakevenRatio + ':1';
+      document.getElementById('c2-inverted').textContent = '1 to ' + invertedRatio;
+
+      // min profit to break even: profit = risk * (1-wr) / wr
+      const minProfit = risk * loseRate / wr;
+      document.getElementById('c2-result').textContent = '$' + minProfit.toFixed(2);
+      document.getElementById('c2-note').textContent =
+        `With a ${Math.round(wr*100)}% win rate, a $${risk.toFixed(2)} risk requires aiming for at least $${minProfit.toFixed(2)} to break even.`;
+    }
+    function c2SliderSync(val) {
+      document.getElementById('c2-winrate').value = val;
+      calc2Update();
+    }
+
+    // Trigger on load
+    calc1Update();
+    calc2Update();
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Edge Demo (coin flip simulator)
+    // ═══════════════════════════════════════════════════════════════
+    let coinSide = 'H';          // 'H' = heads
+    let coinWins = 0;
+    let coinLosses = 0;
+    let coinNetPL = 0;
+    let coinHistory = [];        // 'win' | 'loss'
+    let edgeWinAmt = 1.00;
+    let edgeLossAmt = 1.00;
+    let edgeWinRate = 0.60;
+
+    function selectCoin(side) {
+      coinSide = side;
+      document.getElementById('coin-heads-btn').classList.toggle('selected-heads', side === 'H');
+      document.getElementById('coin-tails-btn').classList.toggle('selected-tails', side === 'T');
+    }
+
+    function flipOnce() {
+      const rand = Math.random();
+      const won = rand < edgeWinRate;
+      const display = document.getElementById('coin-display');
+
+      if (won) {
+        coinWins++;
+        coinNetPL += edgeWinAmt;
+        coinHistory.push('win');
+        display.textContent = coinSide === 'H' ? 'H' : 'T';
+        display.className = 'coin-display win';
+      } else {
+        coinLosses++;
+        coinNetPL -= edgeLossAmt;
+        coinHistory.push('loss');
+        display.textContent = coinSide === 'H' ? 'T' : 'H';
+        display.className = 'coin-display loss';
+      }
+      updateCoinStats();
+    }
+
+    function runFlips(n) {
+      const before = { w: coinWins, l: coinLosses, p: coinNetPL };
+      for (let i = 0; i < n; i++) flipOnce();
+      const deltaW = coinWins - before.w;
+      const deltaL = coinLosses - before.l;
+      const deltaP = coinNetPL - before.p;
+      const sign = deltaP >= 0 ? '+' : '';
+      document.getElementById('edge-last-run').textContent =
+        `Last run: ${n} flips | +${deltaW}W / +${deltaL}L | Δ ${sign}$${deltaP.toFixed(2)} | ${Date.now() % 10000}ms`;
+    }
+
+    function resetCoin() {
+      coinWins = 0; coinLosses = 0; coinNetPL = 0; coinHistory = [];
+      document.getElementById('coin-display').textContent = '?';
+      document.getElementById('coin-display').className = 'coin-display';
+      document.getElementById('edge-last-run').textContent = '';
+      updateCoinStats();
+    }
+
+    function updateCoinStats() {
+      const total = coinWins + coinLosses;
+      const netEl = document.getElementById('coin-net');
+      document.getElementById('coin-wl').textContent = `${coinWins} / ${coinLosses}`;
+      netEl.textContent = (coinNetPL >= 0 ? '+' : '') + '$' + coinNetPL.toFixed(2);
+      netEl.className = 'stat-val ' + (coinNetPL >= 0 ? 'positive' : 'negative');
+      document.getElementById('coin-rate').textContent = total > 0 ? Math.round(coinWins / total * 100) + '%' : '—';
+
+      // Dots — show last 200
+      const show = coinHistory.slice(-200);
+      document.getElementById('coin-dots').innerHTML = show.map(s =>
+        `<div class="coin-dot ${s}"></div>`
+      ).join('');
+    }
+
+    function edgeWinrateSync() {
+      edgeWinRate = parseFloat(document.getElementById('edge-winrate').value) / 100 || 0.6;
+      document.getElementById('edge-winrate-slider').value = Math.round(edgeWinRate * 100);
+    }
+    function edgeSliderSync(val) {
+      document.getElementById('edge-winrate').value = val;
+      edgeWinRate = val / 100;
+    }
+    function updateEdgeAmounts() {
+      edgeWinAmt  = parseFloat(document.getElementById('edge-win-amt').value)  || 1;
+      edgeLossAmt = parseFloat(document.getElementById('edge-loss-amt').value) || 1;
+    }
+    function setEdgePreset(wr, winAmt, lossAmt) {
+      document.getElementById('edge-winrate').value = wr;
+      document.getElementById('edge-winrate-slider').value = wr;
+      document.getElementById('edge-win-amt').value = winAmt.toFixed(2);
+      document.getElementById('edge-loss-amt').value = lossAmt.toFixed(2);
+      edgeWinRate = wr / 100;
+      edgeWinAmt = winAmt;
+      edgeLossAmt = lossAmt;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Main app logic
+    // ═══════════════════════════════════════════════════════════════
+    let snapshotData = null;
+    let focusMode    = false;
+    const INSTRUMENTS  = ['ES', 'GC', 'CL'];
+    const FOCUS_COUNT  = 4;   // levels shown above + below price in focus mode
+
+    function toggleFocus() {
+      focusMode = !focusMode;
+      const btn = document.getElementById('focus-btn');
+      btn.classList.toggle('active', focusMode);
+      btn.textContent = focusMode ? '⊙ FOCUS ON' : '⊙ FOCUS';
+      INSTRUMENTS.forEach(sym => renderRuler(sym));
+    }
+
+    // ── Fetch snapshot ────────────────────────────────────────────
+    async function fetchSnapshot() {
+      try {
+        const resp = await fetch('/api/snapshot');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        snapshotData = await resp.json();
+        render();
+      } catch (err) {
+        console.error('Fetch error:', err);
+        document.getElementById('cards-container').innerHTML = `
+          <div class="card"><p style="color:var(--red);">Failed to load data: ${err.message}</p></div>
+        `;
+      }
+    }
+
+    // ── Copy to clipboard ─────────────────────────────────────────
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        console.log('Copied:', text);
+      });
+    }
+
+    // ── Render full UI ────────────────────────────────────────────
+    function render() {
+      if (!snapshotData) return;
+
+      // Header
+      const modeBadge = document.getElementById('mode-badge');
+      modeBadge.textContent = snapshotData.mode.toUpperCase();
+      modeBadge.className = `mode-badge ${snapshotData.mode}`;
+      document.getElementById('last-update').textContent = `Last updated: ${snapshotData.timestamp_fmt}`;
+
+      // Cards
+      const cardsHtml = snapshotData.instruments.map(inst => renderCard(inst)).join('');
+      document.getElementById('cards-container').innerHTML = cardsHtml;
+
+      // All 3 rulers
+      INSTRUMENTS.forEach(sym => renderRuler(sym));
+    }
+
+    // ── Render instrument card ────────────────────────────────────
+    function renderCard(inst) {
+      if (inst.error) {
+        return `<div class="card"><h2>${inst.instrument}</h2><p style="color:var(--red);">Error: ${inst.error}</p></div>`;
+      }
+
+      const q = inst.quote || {};
+      const changeClass = (q.change || 0) >= 0 ? 'positive' : 'negative';
+      const changeSign = (q.change || 0) >= 0 ? '+' : '';
+
+      const atrStatusClass = inst.atr_status.replace(/_/g, '-');
+      const trendClass = inst.ema_trend_valid ? '' : 'invalid';
+
+      const longHtml = inst.long_signal ? renderSignal(inst.long_signal, inst) : '<div class="signal-row no-signal">No qualifying LONG level</div>';
+      const shortHtml = inst.short_signal ? renderSignal(inst.short_signal, inst) : '<div class="signal-row no-signal">No qualifying SHORT level</div>';
+
+      const noTradeBanner = inst.no_trade_copy ? `
+        <div class="signal-row no-signal" style="border-color:var(--red);background:rgba(255,68,68,0.1);">
+          <strong style="color:var(--red);">NO TRADE</strong> — ${inst.no_trade_copy}
+          <button class="copy-btn" onclick="copyText('${inst.no_trade_copy}')" style="margin-top:8px;">Copy</button>
+        </div>
+      ` : '';
+
+      return `
+        <div class="card">
+          <div class="card-header">
+            <h2>${inst.instrument}</h2>
+            <div class="price-info">
+              <div class="price">${(q.last || 0).toFixed(2)}</div>
+              <div class="price-change ${changeClass}">
+                ${changeSign}${(q.change || 0).toFixed(2)} (${changeSign}${(q.pct_change || 0).toFixed(2)}%)
+              </div>
+            </div>
+          </div>
+
+          <div class="atr-bar">
+            <div>
+              <span class="label">ATR (5min):</span>
+              <span class="value">${inst.atr_5min.toFixed(2)} pts</span>
+              <span class="label" style="margin-left:16px;">SL Est:</span>
+              <span class="value">${inst.atr_threshold.toFixed(2)} pts</span>
+            </div>
+            <span class="atr-status ${atrStatusClass}">${inst.atr_status.replace(/-/g, ' ')}</span>
+          </div>
+
+          <div class="trend-banner ${trendClass}">
+            <span class="trend-label">TREND TRADE (9/15 EMA)</span>
+            <span class="trend-gap">
+              Gap: ${inst.ema_trend_gap.toFixed(2)} pts
+              ${inst.ema_trend_valid ? '✓ Valid' : '✗ Invalid'}
+            </span>
+          </div>
+
+          ${noTradeBanner}
+          ${longHtml}
+          ${shortHtml}
+        </div>
+      `;
+    }
+
+    // ── Render signal ─────────────────────────────────────────────
+    function renderSignal(sig, inst) {
+      const dirClass = sig.direction.toLowerCase().replace(' ', '-');
+      const confChips = (sig.confluence || []).map(c => `<span class="chip confluence">✦ ${c}</span>`).join('');
+      const copyStr = sig.direction === 'LONG' ? inst.long_copy : inst.short_copy;
+
+      return `
+        <div class="signal-row">
+          <div class="signal-direction ${dirClass}">${sig.direction}</div>
+          <div class="signal-content">
+            <div class="signal-info">
+              <div class="level-name">${sig.level_name}</div>
+              <div class="signal-meta">
+                <span class="chip timeframe">${sig.timeframe}</span>
+                ${confChips}
+              </div>
+            </div>
+            <div style="text-align:right;margin-right:16px;">
+              <div class="signal-price">${sig.price.toFixed(2)}</div>
+              <div class="signal-distance">
+                ${sig.direction === 'LONG' ? '+' : '-'}${sig.distance_pts.toFixed(1)} pts
+                · ${sig.distance_atr.toFixed(1)} ATR
+              </div>
+            </div>
+            <button class="copy-btn" onclick="copyText('${copyStr}')">Copy</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // ── Render ruler for one instrument ──────────────────────────
+    function renderRuler(sym) {
+      if (!snapshotData) return;
+      const inst = snapshotData.instruments.find(i => i.instrument === sym);
+      const contentEl = document.getElementById(`ruler-content-${sym}`);
+      const priceEl   = document.getElementById(`ruler-price-${sym}`);
+      if (!inst || inst.error || !contentEl) return;
+
+      priceEl.textContent = (inst.current_price || 0).toFixed(2);
+
+      const levels = inst.ruler_levels || [];
+      const above = levels.filter(l => l.side === 'above').sort((a,b) => a.price - b.price);
+      const below = levels.filter(l => l.side === 'below').sort((a,b) => b.price - a.price);
+
+      function levelHtml(lvl) {
+        const stateClass = lvl.state === 'INACTIVE' ? 'inactive' : '';
+        const confClass  = lvl.confluence.length > 0 ? 'has-confluence' : '';
+        const trendClass = (lvl.name === 'EMA9' || lvl.name === 'EMA15') && inst.ema_trend_valid ? 'trend-valid' : '';
+        // above price = resistance = SHORT setup; below price = support = LONG setup
+        const dir  = lvl.side === 'above' ? 'SHORT' : 'LONG';
+        const sign = lvl.side === 'above' ? '+' : '-';
+        const copyStr = `${sym} ${dir} · ${lvl.name} (${lvl.timeframe}) · ${lvl.price.toFixed(2)} · ${sign}${lvl.distance_pts.toFixed(1)} pts · ${lvl.distance_atr.toFixed(1)} ATR`;
+        return `
+          <div class="ruler-level ${lvl.color_key} ${stateClass} ${confClass} ${trendClass}">
+            <div class="ruler-level-info">
+              <div class="ruler-level-name">${lvl.name}</div>
+              <div class="ruler-level-price">${lvl.price.toFixed(2)}</div>
+              <div class="ruler-level-meta">
+                ${lvl.timeframe} · ${sign}${lvl.distance_pts.toFixed(1)} pts (${lvl.distance_atr.toFixed(1)} ATR)
+                ${lvl.state === 'INACTIVE' ? '· INACTIVE' : ''}
+                ${lvl.confluence.length > 0 ? `· ✦ ${lvl.confluence[0]}` : ''}
+              </div>
+            </div>
+            <button class="ruler-level-copy-btn" onclick="copyText('${copyStr}')">Copy</button>
+          </div>`;
+      }
+
+      const currentPrice = (inst.current_price || 0).toFixed(2);
+      const priceRowHtml = `
+        <div class="ruler-price-row">
+          <div class="ruler-price-row-line"></div>
+          <div class="ruler-price-row-label">▶ ${currentPrice}</div>
+          <div class="ruler-price-row-line"></div>
+        </div>`;
+
+      // focus mode: keep only N closest on each side
+      const aboveSlice = focusMode ? above.slice(-FOCUS_COUNT) : above;
+      const belowSlice = focusMode ? below.slice(0, FOCUS_COUNT) : below;
+
+      // above levels descending (closest to price first), then price bar, then below levels descending
+      const aboveHtml = aboveSlice.slice().reverse().map(levelHtml).join('');
+      const belowHtml = belowSlice.map(levelHtml).join('');
+
+      contentEl.innerHTML = `<div class="ruler-levels">${aboveHtml}${priceRowHtml}${belowHtml}</div>`;
+    }
+
+    // ── Auto-refresh ──────────────────────────────────────────────
+    setInterval(() => {
+      fetchSnapshot();
+    }, 30 * 1000);  // 30 seconds
+
+    // ── Initial load ──────────────────────────────────────────────
+    fetchSnapshot();
+
+    // ═══════════════════════════════════════════════════════════════
+    //  APEX PAYOUT TRACKER
+    //  All functions prefixed ax / AX to avoid collisions.
+    // ═══════════════════════════════════════════════════════════════
+    const AX_ACCOUNTS = [
+      { id: 1, label: 'Account 1', min: 50,  target: 150 },
+      { id: 2, label: 'Account 2', min: 50,  target: 150 },
+      { id: 3, label: 'Account 3', min: 50,  target: 150 },
+      { id: 4, label: 'Account 4', min: 50,  target: 150 },
+      { id: 5, label: 'Account 5', min: 50,  target: 150 },
+      { id: 6, label: 'Account 6', min: 150, target: 250, special: true },
+      { id: 7, label: 'Account 7', min: 50,  target: 150 },
+      { id: 8, label: 'Account 8', min: 50,  target: 150 },
+    ];
+    const AX_DAYS = 5;
+    const AX_CAP = 0.30;
+    const AX_SAFE = 3 / 7;
+    let axState = {};
+
+    function axInitState() {
+      AX_ACCOUNTS.forEach(a => { if (!axState[a.id]) axState[a.id] = Array(AX_DAYS).fill(null); });
+    }
+
+    function axCalc(id) {
+      const days = axState[id];
+      const nums = days.map(d => (d === null || d === '') ? null : parseFloat(d));
+      const valid = nums.filter(n => n !== null && !isNaN(n));
+      const total = valid.reduce((s, v) => s + v, 0);
+      const acct  = AX_ACCOUNTS.find(a => a.id === id);
+      const cap   = total * AX_CAP;
+      const qualDays = valid.filter(v => v >= acct.min).length;
+      const daysEntered = valid.length;
+      const remaining = AX_DAYS - daysEntered;
+      const violations = nums.map(v => (v !== null && !isNaN(v) && total > 0) ? v / total >= AX_CAP : false);
+      const other4 = total + Math.max(0, remaining - 1) * acct.min;
+      const nextDayCeiling = AX_SAFE * other4;
+      const biggestDay = valid.length > 0 ? Math.max(...valid) : 0;
+      const biggestPct = total > 0 ? biggestDay / total : 0;
+      return { nums, total, cap, qualDays, daysEntered, remaining, violations, nextDayCeiling, biggestDay, biggestPct, acct };
+    }
+
+    function axStatusTag(c) {
+      if (c.violations.some(Boolean))              return { cls: 'ax-tag-red',    text: 'VIOLATION' };
+      if (c.qualDays >= AX_DAYS)                   return { cls: 'ax-tag-green',  text: 'READY TO PAY' };
+      if (c.qualDays > 0 && c.qualDays < AX_DAYS)  return { cls: 'ax-tag-amber',  text: `${c.qualDays}/5 DAYS` };
+      return { cls: 'ax-tag-dim', text: 'NO DATA' };
+    }
+
+    function axDayStatus(value, pct, min, viol) {
+      if (value === null || value === '') return 'empty';
+      const v = parseFloat(value); if (isNaN(v)) return 'empty';
+      if (viol) return 'danger'; if (v < min) return 'warn'; return 'safe';
+    }
+
+    function axPctColor(p) { return p >= 0.30 ? 'var(--ax-red)' : p >= 0.25 ? 'var(--ax-amber)' : 'var(--ax-green)'; }
+
+    function axAdvice(c) {
+      const { qualDays, violations, nextDayCeiling, total, remaining, acct, biggestPct } = c;
+      const hasV = violations.some(Boolean);
+      if (hasV) {
+        const vi = c.nums.findIndex((v, i) => c.violations[i]);
+        return { cls: 'danger', text: `⚠ Day ${vi+1} ($${c.nums[vi]?.toFixed(2)}) is ${(biggestPct*100).toFixed(1)}% of total — exceeds 30% cap. This day will NOT qualify.` };
+      }
+      if (qualDays >= AX_DAYS) return { cls: 'safe', text: `✓ 5 qualifying days reached. Submit payout. Total: $${total.toFixed(2)}. Biggest day: ${(biggestPct*100).toFixed(1)}%.` };
+      if (qualDays === 0 && c.daysEntered === 0) return { cls: 'info', text: `Enter daily profit. Min/day: $${acct.min}. Safe ceiling Day 1: any amount.` };
+      if (remaining > 0) {
+        const safe = nextDayCeiling > 0 ? `$${nextDayCeiling.toFixed(2)}` : '—';
+        return { cls: 'info', text: `${AX_DAYS - qualDays} more qualifying day${AX_DAYS - qualDays !== 1 ? 's' : ''} needed. Safe ceiling next day: ${safe}. Biggest day: ${(biggestPct*100).toFixed(1)}%.` };
+      }
+      return { cls: 'info', text: 'Enter remaining days.' };
+    }
+
+    function axRenderCard(acct) {
+      const c = axCalc(acct.id);
+      const st = axStatusTag(c);
+      const adv = axAdvice(c);
+      const filledPct = (c.qualDays / AX_DAYS) * 100;
+      const progColor = c.violations.some(Boolean) ? 'var(--ax-red)' : c.qualDays >= AX_DAYS ? 'var(--ax-green)' : 'var(--ax-amber)';
+      let rows = '';
+      for (let d = 0; d < AX_DAYS; d++) {
+        const val = axState[acct.id][d];
+        const nv = (val !== null && val !== '') ? parseFloat(val) : null;
+        const pct = (nv !== null && c.total > 0) ? nv / c.total : null;
+        const viol = c.violations[d];
+        const iCls = axDayStatus(val, pct, acct.min, viol);
+        const pctHtml = pct !== null ? `<span style="color:${axPctColor(pct)}">${(pct*100).toFixed(1)}%</span>` : '<span style="color:var(--ax-dim)">—</span>';
+        const qi = nv !== null ? (nv >= acct.min ? (viol ? '⚠' : '✓') : '✗') : '';
+        const qc = nv !== null ? (nv >= acct.min ? (viol ? 'var(--ax-red)' : 'var(--ax-green)') : 'var(--ax-amber)') : 'var(--ax-dim)';
+        rows += `<tr>
+          <td class="ax-day-num">D${d+1}</td>
+          <td><input class="ax-profit-input ${iCls}" type="text" inputmode="decimal" placeholder="e.g. 85.50"
+            value="${val !== null ? val : ''}" data-axacct="${acct.id}" data-axday="${d}"
+            oninput="axOnInput(this)" onblur="axOnBlur(this)"/></td>
+          <td class="ax-pct-cell">${pctHtml}</td>
+          <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:${qc};text-align:center;">${qi}</td>
+        </tr>`;
+      }
+      const tc  = c.total > 0 ? 'var(--ax-bright)' : 'var(--ax-dim)';
+      const cc  = c.nextDayCeiling > 0 ? (c.nextDayCeiling >= acct.target ? 'var(--ax-green)' : c.nextDayCeiling >= acct.min ? 'var(--ax-amber)' : 'var(--ax-red)') : 'var(--ax-dim)';
+      const qc2 = c.qualDays >= AX_DAYS ? 'var(--ax-green)' : c.qualDays > 0 ? 'var(--ax-amber)' : 'var(--ax-dim)';
+      return `
+      <div class="ax-account-card ${acct.special ? 'ax-is-acct6' : ''}" id="axcard-${acct.id}">
+        <div class="ax-card-header">
+          <span class="ax-card-title">${acct.label}${acct.special ? ' ★' : ''}</span>
+          <div class="ax-card-status">
+            ${acct.special ? '<span class="ax-tag ax-tag-purple" style="font-size:9px;">$150/DAY</span>' : ''}
+            <span class="ax-tag ${st.cls}" id="axstatus-${acct.id}">${st.text}</span>
+          </div>
+        </div>
+        <div class="ax-card-body">
+          <table class="ax-days-table">
+            <thead><tr><th>Day</th><th>Net Profit</th><th style="text-align:right;">% of Total</th><th style="text-align:center;">OK?</th></tr></thead>
+            <tbody id="axrows-${acct.id}">${rows}</tbody>
+          </table>
+          <div class="ax-stat-row">
+            <div class="ax-stat-box"><div class="ax-s-label">5-Day Total</div><div class="ax-s-value" style="color:${tc};">$${c.total.toFixed(2)}</div></div>
+            <div class="ax-stat-box"><div class="ax-s-label">30% Cap</div><div class="ax-s-value" style="color:var(--ax-red);">$${c.cap.toFixed(2)}</div></div>
+            <div class="ax-stat-box"><div class="ax-s-label">Qual Days</div><div class="ax-s-value" style="color:${qc2};">${c.qualDays}/5</div></div>
+          </div>
+          <div class="ax-stat-row">
+            <div class="ax-stat-box" style="grid-column:span 2;"><div class="ax-s-label">Next Day Safe Ceiling</div><div class="ax-s-value" style="color:${cc};">${c.nextDayCeiling > 0 ? '$' + c.nextDayCeiling.toFixed(2) : '—'}</div></div>
+            <div class="ax-stat-box"><div class="ax-s-label">Min/Day</div><div class="ax-s-value" style="color:var(--ax-mid);">$${acct.min}</div></div>
+          </div>
+          <div class="ax-progress-wrap">
+            <div class="ax-progress-label"><span>Qualifying progress</span><span>${c.qualDays}/5 days</span></div>
+            <div class="ax-progress-track"><div class="ax-progress-fill" style="width:${filledPct}%;background:${progColor};"></div></div>
+          </div>
+          <div class="ax-advice ${adv.cls}" id="axadvice-${acct.id}">${adv.text}</div>
+        </div>
+      </div>`;
+    }
+
+    function axRenderAll() {
+      document.getElementById('axAccountsGrid').innerHTML = AX_ACCOUNTS.map(axRenderCard).join('');
+      axRenderSummary();
+    }
+
+    function axRenderSummary() {
+      let total = 0, ready = 0, viols = [], qd = 0;
+      AX_ACCOUNTS.forEach(a => {
+        const c = axCalc(a.id);
+        total += c.total; qd += c.qualDays;
+        if (c.qualDays >= AX_DAYS && !c.violations.some(Boolean)) ready++;
+        c.violations.forEach((v, i) => { if (v) viols.push({ acct: a.label, day: i+1, amount: c.nums[i], pct: c.biggestPct }); });
+      });
+      document.getElementById('axSummaryGrid').innerHTML = `
+        <div class="ax-sum-box"><div class="ax-s-label">Total Profit</div><div class="ax-s-value" style="color:var(--ax-bright);">$${total.toFixed(2)}</div><div class="ax-s-sub">across all 8 accounts</div></div>
+        <div class="ax-sum-box"><div class="ax-s-label">Est. Payout (80%)</div><div class="ax-s-value" style="color:var(--ax-green);">$${(total*0.80).toFixed(2)}</div><div class="ax-s-sub">approx after Apex share</div></div>
+        <div class="ax-sum-box"><div class="ax-s-label">Accounts Ready</div><div class="ax-s-value" style="color:${ready>0?'var(--ax-green)':'var(--ax-dim)'};">${ready}/8</div><div class="ax-s-sub">5 qualifying days met</div></div>
+        <div class="ax-sum-box"><div class="ax-s-label">Total Qual Days</div><div class="ax-s-value" style="color:var(--ax-amber);">${qd}/40</div><div class="ax-s-sub">across all accounts</div></div>
+        <div class="ax-sum-box"><div class="ax-s-label">Active Violations</div><div class="ax-s-value" style="color:${viols.length>0?'var(--ax-red)':'var(--ax-green)'};">${viols.length}</div><div class="ax-s-sub">30% rule breaches</div></div>
+        <div class="ax-sum-box"><div class="ax-s-label">Min Payout Target</div><div class="ax-s-value" style="color:var(--ax-mid);">$1,100</div><div class="ax-s-sub">7×$50×5 + 1×$150×5</div></div>`;
+      const vl = document.getElementById('axViolationsList');
+      vl.innerHTML = viols.length > 0
+        ? '<h3 style="color:var(--ax-red);margin-top:14px;margin-bottom:8px;">⚠ Active Violations</h3>' +
+          viols.map(v => `<div class="ax-v-item"><span>⛔</span><span><strong>${v.acct}</strong> · Day ${v.day} · $${v.amount?.toFixed(2)} = ${(v.pct*100).toFixed(1)}% — exceeds 30% cap.</span></div>`).join('')
+        : '';
+      axRenderPlanner();
+    }
+
+    function axPlanAccount(id) {
+      const acct = AX_ACCOUNTS.find(a => a.id === id);
+      const nums = axState[id].map(d => (d === null || d === '') ? null : parseFloat(d));
+      const entered = nums.filter(n => n !== null && !isNaN(n));
+      const banked = entered.reduce((s, v) => s + v, 0);
+      const qualSoFar = entered.filter(v => v >= acct.min).length;
+      const remaining = AX_DAYS - entered.length;
+      const qualRemaining = AX_DAYS - qualSoFar;
+      const planRows = [];
+      for (let r = 0; r < remaining; r++) {
+        const dayNum = entered.length + r + 1;
+        const isLast = r === remaining - 1;
+        const otherFuture = (remaining - 1 - r) * acct.min;
+        const otherTotal = banked + otherFuture;
+        const safeCeil = AX_SAFE * otherTotal;
+        let rec, recLabel, recMode;
+        if (qualRemaining - r <= 1 || isLast) { rec = acct.min + 5; recLabel = 'T1 only — floor day'; recMode = 'floor'; }
+        else if (r === 0 && qualSoFar === 0 && banked === 0) { rec = Math.min(safeCeil * 0.85, acct.target * 1.2); recLabel = 'T2 — best setup, let it run'; recMode = 'big'; }
+        else if (r <= 1 && qualSoFar < 2) { rec = Math.min(safeCeil * 0.90, acct.target); recLabel = 'T2 if strong, T1 floor if weak'; recMode = 'medium'; }
+        else { rec = Math.min(safeCeil * 0.85, acct.target * 0.75); recLabel = 'T1 + stay for 2nd trade if needed'; recMode = 'medium'; }
+        rec = Math.max(rec, acct.min);
+        const projTotal = banked + rec + (remaining - 1 - r) * acct.min;
+        const recSafe = rec < projTotal * AX_CAP - 0.01;
+        planRows.push({ dayNum, safeCeil, rec, recLabel, recMode, projTotal, recSafe });
+      }
+      const projFinalTotal = banked + planRows.reduce((s, r) => s + r.rec, 0);
+      return { acct, banked, qualSoFar, remaining, qualRemaining, planRows, projFinalTotal, projPayout: projFinalTotal * 0.80 };
+    }
+
+    function axRenderPlanCard(id) {
+      const p = axPlanAccount(id);
+      const a = p.acct;
+      if (p.remaining === 0 && p.qualSoFar >= AX_DAYS) {
+        const total = p.banked;
+        const hasV = axState[id].some((v, i) => { const n=parseFloat(v); return !isNaN(n) && total>0 && n/total >= AX_CAP; });
+        return `<div class="ax-plan-card ${a.special?'ax-is-acct6':''}"><div class="ax-plan-card-header"><span class="ax-plan-card-title">${a.label}</span><span class="ax-tag ${hasV?'ax-tag-red':'ax-tag-green'}">${hasV?'VIOLATION':'READY'}</span></div><div class="ax-plan-card-body"><div class="ax-plan-verdict done">✓ All 5 qualifying days complete. Total: <strong>$${total.toFixed(2)}</strong>. Est. payout: <strong>$${(total*0.80).toFixed(2)}</strong>. Submit request.</div></div></div>`;
+      }
+      if (p.remaining === 0) {
+        return `<div class="ax-plan-card ${a.special?'ax-is-acct6':''}"><div class="ax-plan-card-header"><span class="ax-plan-card-title">${a.label}</span><span class="ax-tag ax-tag-red">NEEDS MORE DAYS</span></div><div class="ax-plan-card-body"><div class="ax-plan-verdict danger">All 5 slots used but only ${p.qualSoFar} qualifying days. Continue adding days.</div></div></div>`;
+      }
+      const rowsHtml = p.planRows.map(r => {
+        const mc = r.recMode==='big'?'var(--ax-green)':r.recMode==='medium'?'var(--ax-amber)':'var(--ax-mid)';
+        const mt = r.recMode==='big'?'🎯 T2':r.recMode==='medium'?'↗ T1+':'→ T1';
+        const cc = r.safeCeil>0?(r.safeCeil>=a.target?'var(--ax-green)':r.safeCeil>=a.min*2?'var(--ax-amber)':'var(--ax-red)'):'var(--ax-dim)';
+        const bw = Math.min(100, (r.rec/(r.safeCeil>0?r.safeCeil:r.rec*1.2))*100);
+        return `<tr><td class="mono" style="color:var(--ax-mid);">D${r.dayNum}</td><td style="color:${cc};" class="mono">$${r.safeCeil>0?r.safeCeil.toFixed(0):'—'}</td><td class="mono" style="color:${mc};">$${r.rec.toFixed(0)}<div class="ax-plan-bar" style="width:${bw}%;background:${r.recSafe?'var(--ax-green)':'var(--ax-red)'};"></div></td><td style="color:${mc};">${mt} <span style="color:var(--ax-dim);font-size:10px;">${r.recLabel}</span></td></tr>`;
+      }).join('');
+      let verdict, vcls;
+      if (p.qualRemaining===0) { verdict=`✓ Qualified. Submit payout. Est. payout: $${p.projPayout.toFixed(2)}.`; vcls='done'; }
+      else if (p.planRows.every(r=>r.recSafe)) { verdict=`On track. ${p.qualRemaining} day${p.qualRemaining!==1?'s':''} to go. Proj total $${p.projFinalTotal.toFixed(2)}, est. payout $${p.projPayout.toFixed(2)}.`; vcls='safe'; }
+      else { verdict=`⚠ Some targets near 30% ceiling. Stick to the safe ceiling column.`; vcls='warn'; }
+      return `<div class="ax-plan-card ${a.special?'ax-is-acct6':''}">
+        <div class="ax-plan-card-header">
+          <span class="ax-plan-card-title">${a.label}${a.special?' ★':''}</span>
+          <div style="display:flex;gap:5px;align-items:center;">
+            ${a.special?'<span class="ax-tag ax-tag-purple" style="font-size:9px;">$150/DAY</span>':''}
+            <span class="ax-tag ax-tag-dim">${p.qualSoFar}/5 done · ${p.remaining} left</span>
+          </div>
+        </div>
+        <div class="ax-plan-card-body">
+          <div class="ax-plan-summary">
+            <div class="ax-plan-sum-box"><div class="ax-ps-label">Banked</div><div class="ax-ps-value" style="color:var(--ax-bright);">$${p.banked.toFixed(0)}</div></div>
+            <div class="ax-plan-sum-box"><div class="ax-ps-label">Proj Total</div><div class="ax-ps-value" style="color:var(--ax-amber);">$${p.projFinalTotal.toFixed(0)}</div></div>
+            <div class="ax-plan-sum-box"><div class="ax-ps-label">Est Payout</div><div class="ax-ps-value" style="color:var(--ax-green);">$${p.projPayout.toFixed(0)}</div></div>
+          </div>
+          <table class="ax-plan-table">
+            <thead><tr><th>Day</th><th>Safe Ceil</th><th>Target</th><th>Mode</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+          <div class="ax-plan-verdict ${vcls}">${verdict}</div>
+        </div>
+      </div>`;
+    }
+
+    function axRenderPlanner() {
+      const el = document.getElementById('axPlannerGrid');
+      if (el) el.innerHTML = AX_ACCOUNTS.map(a => axRenderPlanCard(a.id)).join('');
+    }
+
+    function axOnInput(el) {
+      const id = parseInt(el.dataset.axacct);
+      const d  = parseInt(el.dataset.axday);
+      const v  = el.value.trim();
+      axState[id][d] = v === '' ? null : v;
+      axSaveState();
+      axUpdateCardStats(id);
+      axRenderSummary();
+    }
+
+    function axOnBlur(el) {
+      const v = el.value.trim();
+      if (v !== '' && !isNaN(parseFloat(v))) {
+        el.value = parseFloat(v).toFixed(2);
+        const id = parseInt(el.dataset.axacct);
+        const d  = parseInt(el.dataset.axday);
+        axState[id][d] = el.value;
+        axSaveState();
+      }
+      axUpdateCardStats(parseInt(el.dataset.axacct));
+      axRenderSummary();
+    }
+
+    function axUpdateCardStats(id) {
+      const acct = AX_ACCOUNTS.find(a => a.id === id);
+      const c = axCalc(id);
+      for (let d = 0; d < AX_DAYS; d++) {
+        const inp = document.querySelector(`input[data-axacct="${id}"][data-axday="${d}"]`);
+        if (!inp) continue;
+        const val = axState[id][d];
+        const nv = (val !== null && val !== '') ? parseFloat(val) : null;
+        const pct = (nv !== null && c.total > 0) ? nv / c.total : null;
+        const viol = c.violations[d];
+        inp.className = 'ax-profit-input ' + axDayStatus(val, pct, acct.min, viol);
+        const pctTd = inp.closest('tr').querySelector('.ax-pct-cell');
+        if (pctTd) pctTd.innerHTML = pct !== null ? `<span style="color:${axPctColor(pct)}">${(pct*100).toFixed(1)}%</span>` : '<span style="color:var(--ax-dim)">—</span>';
+        const tds = inp.closest('tr').querySelectorAll('td');
+        const iconTd = tds[tds.length-1];
+        if (iconTd) {
+          iconTd.textContent = nv !== null ? (nv >= acct.min ? (viol ? '⚠' : '✓') : '✗') : '';
+          iconTd.style.color = nv !== null ? (nv >= acct.min ? (viol ? 'var(--ax-red)' : 'var(--ax-green)') : 'var(--ax-amber)') : 'var(--ax-dim)';
+        }
+      }
+      const card = document.getElementById(`axcard-${id}`);
+      if (!card) return;
+      const sb = card.querySelectorAll('.ax-stat-box .ax-s-value');
+      if (sb[0]) sb[0].textContent = `$${c.total.toFixed(2)}`;
+      if (sb[1]) sb[1].textContent = `$${c.cap.toFixed(2)}`;
+      if (sb[2]) { sb[2].textContent = `${c.qualDays}/5`; sb[2].style.color = c.qualDays>=AX_DAYS?'var(--ax-green)':c.qualDays>0?'var(--ax-amber)':'var(--ax-dim)'; }
+      const cc = c.nextDayCeiling>0?(c.nextDayCeiling>=acct.target?'var(--ax-green)':c.nextDayCeiling>=acct.min?'var(--ax-amber)':'var(--ax-red)'):'var(--ax-dim)';
+      if (sb[3]) { sb[3].textContent = c.nextDayCeiling>0?`$${c.nextDayCeiling.toFixed(2)}`:'—'; sb[3].style.color = cc; }
+      const fill = card.querySelector('.ax-progress-fill');
+      if (fill) { fill.style.width=`${(c.qualDays/AX_DAYS)*100}%`; fill.style.background=c.violations.some(Boolean)?'var(--ax-red)':c.qualDays>=AX_DAYS?'var(--ax-green)':'var(--ax-amber)'; }
+      const pl = card.querySelectorAll('.ax-progress-label span');
+      if (pl[1]) pl[1].textContent = `${c.qualDays}/5 days`;
+      const adv = axAdvice(c);
+      const ae = document.getElementById(`axadvice-${id}`);
+      if (ae) { ae.className = `ax-advice ${adv.cls}`; ae.innerHTML = adv.text; }
+      const se = document.getElementById(`axstatus-${id}`);
+      const st = axStatusTag(c);
+      if (se) { se.className = `ax-tag ${st.cls}`; se.textContent = st.text; }
+    }
+
+    function axSaveState() { try { localStorage.setItem('axTrackerState', JSON.stringify(axState)); } catch(e){} }
+    function axLoadState() { try { const s=localStorage.getItem('axTrackerState'); if(s) axState=JSON.parse(s); } catch(e){} }
+
+    function axClearAll() {
+      if (!confirm('Clear all Apex tracker data?')) return;
+      AX_ACCOUNTS.forEach(a => { axState[a.id] = Array(AX_DAYS).fill(null); });
+      axSaveState(); axRenderAll();
+    }
+
+    function axLoadDemo() {
+      axState[1] = [120, 55, 51, 51, 55];
+      axState[2] = [180, 51, 51, 51, null];
+      axState[3] = [85, 85, 55, 51, 51];
+      axState[4] = [51, 60, 53, null, null];
+      axState[5] = [null, null, null, null, null];
+      axState[6] = [250, 160, 155, 155, null];
+      axState[7] = [70, 68, 65, 60, 55];
+      axState[8] = [null, null, null, null, null];
+      axSaveState(); axRenderAll();
+    }
+
+    function axExportSummary() {
+      let txt = 'APEX PA PAYOUT TRACKER SUMMARY\n================================\n';
+      AX_ACCOUNTS.forEach(a => {
+        const c = axCalc(a.id);
+        const st = axStatusTag(c);
+        txt += `\n${a.label} (min $${a.min}/day)\n`;
+        c.nums.forEach((v, i) => {
+          const pct = v!==null&&c.total>0?(v/c.total*100).toFixed(1)+'%':'—';
+          const flag = c.violations[i]?' ⚠ VIOLATION':v!==null&&v>=a.min?' ✓':v!==null?' ✗ below min':'';
+          txt += `  Day ${i+1}: ${v!==null?'$'+v:'—'} (${pct})${flag}\n`;
+        });
+        txt += `  Total: $${c.total.toFixed(2)} | Cap: $${c.cap.toFixed(2)} | Qual: ${c.qualDays}/5 | ${st.text}\n`;
+      });
+      try { navigator.clipboard.writeText(txt); alert('Summary copied!'); } catch(e) { alert(txt); }
+    }
+
+    // ── Apex init ──────────────────────────────────────────────────
+    axLoadState();
+    axInitState();
+    document.getElementById('axCycleStart').value = new Date().toISOString().split('T')[0];
+    axRenderAll();
+
+    // ═══════════════════════════════════════════════════════════════
+    //  TRADE CALCULATOR — Tab C
+    //  tcaUpdate  : Calc A — Is my setup profitable?
+    //  tcbUpdate  : Calc B — Position Size
+    //  tccUpdate  : Calc C — Session Planner
+    //  tcBuildMatrix : EV matrix
+    // ═══════════════════════════════════════════════════════════════
+
+    // ── Shared state read from Calc A ────────────────────────────
+    let _tca_rr = 2.0;   // current R:R from Calc A
+    let _tca_wr = 0.60;  // current win rate from Calc A
+
+    // ── Calc A ───────────────────────────────────────────────────
+    function tcaUpdate() {
+      const wr  = parseFloat(document.getElementById('tca-wr').value) / 100;
+      const sl  = parseFloat(document.getElementById('tca-sl').value);
+      const tp  = parseFloat(document.getElementById('tca-tp').value);
+      const ppv = parseFloat(document.getElementById('tca-pts-val').value);
+      document.getElementById('tca-wr-slider').value = Math.round(wr * 100);
+
+      if (isNaN(wr) || isNaN(sl) || isNaN(tp) || isNaN(ppv) ||
+          wr <= 0 || wr >= 1 || sl <= 0 || tp <= 0 || ppv <= 0) return;
+
+      const rr   = tp / sl;                         // reward:risk ratio
+      const beWR = 1 / (1 + rr);                    // break-even win rate
+      const edge = wr - beWR;                        // positive = profitable
+      const ev   = wr * rr - (1 - wr);              // expected value per $1 risked
+      const slDol = sl * ppv;
+      const tpDol = tp * ppv;
+      const evDol = ev * slDol;                     // EV per trade in $
+
+      // update shared state for matrix / position calc
+      _tca_rr = rr;
+      _tca_wr = wr;
+
+      // ratio boxes
+      document.getElementById('tca-rr').textContent    = rr.toFixed(2) + ':1';
+      document.getElementById('tca-bewR').textContent  = (beWR * 100).toFixed(1) + '%';
+      const edgeEl = document.getElementById('tca-edge');
+      edgeEl.textContent = (edge >= 0 ? '+' : '') + (edge * 100).toFixed(1) + '%';
+      edgeEl.style.color = edge > 0.02 ? 'var(--green)' : edge < -0.02 ? 'var(--red)' : 'var(--gold)';
+
+      // verdict banner
+      const vEl    = document.getElementById('tca-verdict');
+      const badge  = document.getElementById('tca-vbadge');
+      const evEl   = document.getElementById('tca-ev');
+      const noteEl = document.getElementById('tca-vnote');
+
+      if (ev > 0.05) {
+        vEl.className   = 'tc-verdict profitable';
+        badge.textContent = 'PROFITABLE SETUP';
+        evEl.textContent  = '+' + ev.toFixed(3) + 'R';
+        noteEl.textContent = `Positive edge: every $1 risked returns $${ev.toFixed(3)} on average. With $${slDol.toFixed(0)} risk / $${tpDol.toFixed(0)} target per trade, EV = +$${evDol.toFixed(2)}/trade.`;
+      } else if (ev < -0.05) {
+        vEl.className   = 'tc-verdict losing';
+        badge.textContent = 'LOSING SETUP — DO NOT TRADE';
+        evEl.textContent  = ev.toFixed(3) + 'R';
+        noteEl.textContent = `Negative edge: every $1 risked loses $${Math.abs(ev).toFixed(3)} on average. Raise your target, tighten your SL, or improve your win rate.`;
+      } else {
+        vEl.className   = 'tc-verdict neutral';
+        badge.textContent = 'NEAR BREAK-EVEN';
+        evEl.textContent  = (ev >= 0 ? '+' : '') + ev.toFixed(3) + 'R';
+        noteEl.textContent = `Marginally ${ev >= 0 ? 'profitable' : 'losing'}. Small changes in win rate or R:R will tip this either way. Aim for EV > 0.1R for comfortable edge.`;
+      }
+
+      document.getElementById('tca-dollar-note').textContent =
+        `SL = $${slDol.toFixed(0)} · Target = $${tpDol.toFixed(0)} · EV per trade = ${evDol >= 0 ? '+' : ''}$${evDol.toFixed(2)}`;
+
+      // also update matrix to highlight current cell
+      tcBuildMatrix();
+
+      // also recalculate Calc B potential profit with updated TP $
+      const contractsEl = document.getElementById('tcb-contracts');
+      if (contractsEl && contractsEl.textContent !== '—') {
+        tcbUpdate();
+      }
+    }
+
+    function tcaSlider(val) {
+      document.getElementById('tca-wr').value = val;
+      tcaUpdate();
+    }
+
+    // ── Calc B ───────────────────────────────────────────────────
+    function tcbUpdate() {
+      const acct     = parseFloat(document.getElementById('tcb-acct').value);
+      const riskPct  = parseFloat(document.getElementById('tcb-riskpct').value) / 100;
+      const sl       = parseFloat(document.getElementById('tcb-sl').value);
+      const ppv      = parseFloat(document.getElementById('tcb-ptsval').value);
+      document.getElementById('tcb-rp-slider').value = document.getElementById('tcb-riskpct').value;
+
+      if (isNaN(acct) || isNaN(riskPct) || isNaN(sl) || isNaN(ppv) ||
+          acct <= 0 || riskPct <= 0 || sl <= 0 || ppv <= 0) return;
+
+      const maxRisk     = acct * riskPct;
+      const slDol       = sl * ppv;
+      const contracts   = Math.floor(maxRisk / slDol);
+      const actualRisk  = contracts * slDol;
+
+      // use TP from Calc A if available
+      const tpA = parseFloat(document.getElementById('tca-tp').value) || 0;
+      const ppvA = parseFloat(document.getElementById('tca-pts-val').value) || ppv;
+      const potential = contracts * tpA * ppvA;
+
+      document.getElementById('tcb-maxrisk').textContent   = '$' + maxRisk.toFixed(2);
+      document.getElementById('tcb-contracts').textContent = contracts > 0 ? contracts + (contracts === 1 ? ' contract' : ' contracts') : '0 — SL too wide';
+      document.getElementById('tcb-actual-risk').textContent = '$' + actualRisk.toFixed(2);
+      document.getElementById('tcb-potential').textContent  = potential > 0 ? '$' + potential.toFixed(2) : '—';
+    }
+
+    function tcbSlider(val) {
+      document.getElementById('tcb-riskpct').value = val;
+      tcbUpdate();
+    }
+
+    function tcbPreset(ppv, label) {
+      document.getElementById('tcb-ptsval').value = ppv;
+      document.getElementById('tca-pts-val').value = ppv;
+      tcbUpdate();
+      tcaUpdate();
+    }
+
+    // ── Calc C — Session Planner ──────────────────────────────────
+    function tccUpdate() {
+      const goal      = parseFloat(document.getElementById('tcc-goal').value);
+      const wr        = parseFloat(document.getElementById('tcc-wr').value) / 100;
+      const winVal    = parseFloat(document.getElementById('tcc-winval').value);
+      const lossVal   = parseFloat(document.getElementById('tcc-lossval').value);
+      const maxTrades = parseInt(document.getElementById('tcc-maxtrades').value) || 10;
+      document.getElementById('tcc-wr-slider').value = Math.round(wr * 100);
+
+      const resultArea = document.getElementById('tcc-result-area');
+      if (isNaN(goal) || isNaN(wr) || isNaN(winVal) || isNaN(lossVal) ||
+          goal <= 0 || wr <= 0 || wr >= 1 || winVal <= 0 || lossVal <= 0) {
+        resultArea.innerHTML = '<p style="color:var(--text-dim);font-size:13px;">Enter all values above.</p>';
+        return;
+      }
+
+      const lossRate = 1 - wr;
+      const evPerTrade = wr * winVal - lossRate * lossVal;  // $ EV per trade
+      const rr = winVal / lossVal;
+
+      // Required wins to hit goal assuming mixed session:
+      //   net = wins*winVal - losses*lossVal = goal
+      //   losses = trades * (1-wr)
+      //   wins = trades * wr
+      //   => trades * wr * winVal - trades * (1-wr) * lossVal = goal
+      //   => trades = goal / evPerTrade
+      const tradesNeeded = evPerTrade > 0 ? Math.ceil(goal / evPerTrade) : Infinity;
+      const winsNeeded   = Math.ceil(goal / winVal);            // if ONLY wins counted
+      const canReach     = tradesNeeded <= maxTrades;
+      const expWins      = Math.round(maxTrades * wr);
+      const expLosses    = maxTrades - expWins;
+      const expNet       = expWins * winVal - expLosses * lossVal;
+      const expNetSign   = expNet >= 0 ? '+' : '';
+
+      const statusColor  = canReach && evPerTrade > 0 ? 'var(--green)' : evPerTrade <= 0 ? 'var(--red)' : 'var(--gold)';
+      const statusLabel  = evPerTrade <= 0
+        ? 'Negative EV — this setup loses money over time'
+        : canReach
+          ? 'Goal is achievable within your trade limit'
+          : 'Goal requires more trades than your daily limit — reduce goal or increase trade limit';
+
+      // build scenario bars for 5, 10, 20 trades
+      const scenarios = [5, 10, 20, maxTrades].filter((v, i, a) => a.indexOf(v) === i).sort((a,b) => a - b);
+      const scenarioRows = scenarios.map(n => {
+        const w = Math.round(n * wr);
+        const l = n - w;
+        const net = w * winVal - l * lossVal;
+        const netSign = net >= 0 ? '+' : '';
+        const clr = net > 0 ? 'var(--green)' : net < 0 ? 'var(--red)' : 'var(--gold)';
+        const pct = Math.min(100, Math.max(0, net / goal * 100));
+        return `
+          <tr>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);padding:7px 10px;">${n} trades</td>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--green);padding:7px 6px;">${w}W</td>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--red);padding:7px 6px;">${l}L</td>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:${clr};padding:7px 10px;">${netSign}$${net.toFixed(0)}</td>
+            <td style="padding:7px 10px;min-width:120px;">
+              <div style="background:var(--border);border-radius:3px;height:6px;overflow:hidden;">
+                <div style="width:${pct}%;height:100%;background:${clr};border-radius:3px;transition:width 0.3s;"></div>
+              </div>
+            </td>
+          </tr>`;
+      }).join('');
+
+      resultArea.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px;">
+          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:14px 16px;text-align:center;">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-dim);margin-bottom:6px;">EV Per Trade</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:800;color:${evPerTrade>0?'var(--green)':evPerTrade<0?'var(--red)':'var(--gold)'};">${evPerTrade>=0?'+':''}$${evPerTrade.toFixed(2)}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:14px 16px;text-align:center;">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-dim);margin-bottom:6px;">Trades to Hit Goal</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:800;color:${canReach&&evPerTrade>0?'var(--green)':'var(--red)'};">${tradesNeeded === Infinity ? 'Never' : tradesNeeded}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:14px 16px;text-align:center;">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-dim);margin-bottom:6px;">Min Wins Needed</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:800;color:var(--blue);">${winsNeeded}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:14px 16px;text-align:center;">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-dim);margin-bottom:6px;">Reward:Risk</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:800;color:var(--text);">${rr.toFixed(2)}:1</div>
+          </div>
+        </div>
+
+        <div style="background:rgba(${evPerTrade>0?'0,230,118':'255,68,68'},0.07);border:1px solid rgba(${evPerTrade>0?'0,230,118':'255,68,68'},0.25);border-radius:6px;padding:12px 16px;margin-bottom:18px;font-size:12px;color:${statusColor};">
+          ${statusLabel}
+        </div>
+
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:8px;">Expected Outcome at N Trades (at ${Math.round(wr*100)}% win rate)</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr>
+                <th style="text-align:left;font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:5px 10px;border-bottom:1px solid var(--border);">Trades</th>
+                <th style="font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:5px 6px;border-bottom:1px solid var(--border);">Wins</th>
+                <th style="font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:5px 6px;border-bottom:1px solid var(--border);">Losses</th>
+                <th style="font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:5px 10px;border-bottom:1px solid var(--border);">Net P/L</th>
+                <th style="font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:5px 10px;border-bottom:1px solid var(--border);">vs Goal</th>
+              </tr>
+            </thead>
+            <tbody>${scenarioRows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    function tccSlider(val) {
+      document.getElementById('tcc-wr').value = val;
+      tccUpdate();
+    }
+
+    // ── EV Matrix ─────────────────────────────────────────────────
+    function tcBuildMatrix() {
+      const curWR = _tca_wr;
+      const curRR = _tca_rr;
+
+      const winRates = [30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80];
+      const rrs      = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 4.0];
+
+      let html = '<table class="tc-matrix-table"><thead><tr><th>WR \\ R:R</th>';
+      rrs.forEach(r => { html += `<th>${r}:1</th>`; });
+      html += '</tr></thead><tbody>';
+
+      winRates.forEach(wrPct => {
+        const wr = wrPct / 100;
+        html += `<tr><td class="tc-m-header">${wrPct}%</td>`;
+        rrs.forEach(rr => {
+          const ev   = wr * rr - (1 - wr);
+          let cls    = ev > 0.15 ? 'tc-m-good' : ev > 0.02 ? 'tc-m-ok' : ev > -0.02 ? 'tc-m-break' : 'tc-m-bad';
+          const isCur = Math.abs(wr - curWR) < 0.026 && Math.abs(rr - curRR) < 0.14;
+          if (isCur) cls += ' tc-m-cur';
+          html += `<td class="${cls}" title="WR ${wrPct}% · R:R ${rr} · EV ${ev>=0?'+':''}${ev.toFixed(3)}">${ev>=0?'+':''}${ev.toFixed(2)}</td>`;
+        });
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      document.getElementById('tc-matrix-container').innerHTML = html;
+    }
+
+    // ── Trade Calc init ──────────────────────────────────────────
+    tcaUpdate();
+    tcbUpdate();
+    tccUpdate();
+    tcBuildMatrix();
+
+  </script>
+</body>
+</html>

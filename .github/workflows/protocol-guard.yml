@@ -1,0 +1,79 @@
+name: Protocol Guard - Block Bot Reviews
+
+# Purpose: Enforce Director-only review for protocol changes
+# Scope: .bob/, .agent/, docs/protocol/, AGENTS.md, etc.
+# Rationale: Protocol changes define agent behavior - must be human-reviewed
+# Migration-safe: Travels with repo, works on any GitHub account
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    paths:
+      - '.bob/**'
+      - '.agent/**'
+      - '.claude/**'
+      - '.gemini/**'
+      - '.codex/**'
+      - 'docs/protocol/**'
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - 'GEMINI.md'
+      - 'BOB.md'
+      - 'CODEX.md'
+
+jobs:
+  protocol-guard:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+    
+    steps:
+      - name: Check for protocol-only label
+        id: check_label
+        run: |
+          # Check if PR has 'protocol-only' label
+          LABELS=$(gh pr view ${{ github.event.pull_request.number }} --json labels --jq '.labels[].name')
+          if echo "$LABELS" | grep -q "protocol-only"; then
+            echo "has_label=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_label=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Add protocol-only label if missing
+        if: steps.check_label.outputs.has_label == 'false'
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} --add-label "protocol-only"
+          echo "✅ Added 'protocol-only' label to PR"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Post protocol review notice
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "## 🔒 Protocol Guard Active
+
+          This PR modifies protocol files and requires **Director review only**.
+
+          **Bot reviews are disabled** for:
+          - \`.bob/\`, \`.agent/\`, \`.claude/\`, \`.gemini/\`, \`.codex/\`
+          - \`docs/protocol/\`
+          - \`AGENTS.md\`, \`CLAUDE.md\`, \`BOB.md\`, etc.
+
+          **Rationale**: Protocol changes define agent behavior and must be human-reviewed to prevent:
+          - Infinite loops from bot-suggested protocol changes
+          - Unintended behavior modifications
+          - Security vulnerabilities in agent rules
+
+          **Next Steps**:
+          1. Director reviews changes manually
+          2. Merge after approval (no bot checks required)
+          3. Protocol takes effect immediately on next agent session
+
+          ---
+          *This is an automated message from the Protocol Guard workflow.*"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# Made with Bob

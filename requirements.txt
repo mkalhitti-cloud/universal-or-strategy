@@ -1,0 +1,15 @@
+# Python dependencies for Universal OR Strategy V12
+# Install with: pip install -r requirements.txt
+# Or with mise: mise run setup
+
+# Core dependencies
+requests>=2.31.0
+
+# MCP server dependencies (if any Python-based MCP servers need packages)
+# Add as needed
+
+# Development dependencies
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Made with Bob

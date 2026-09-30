@@ -1,0 +1,124 @@
+name: PR Separation Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-separation:
+    name: Verify src/ vs non-src/ Separation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      
+      - name: Fetch base branch
+        run: |
+          git fetch origin ${{ github.base_ref }}
+      
+      - name: Check file separation
+        id: check
+        run: |
+          echo "Checking PR #${{ github.event.pull_request.number }} for src/ vs non-src/ separation..."
+          
+          # Get changed files
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No changed files detected"
+            echo "status=pass" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Count src/tests (Tier 1) vs infrastructure (Tier 2/3) files
+          # Per BRANCH_STRATEGY.md: tests/ are allowed with src/ changes
+          SRC_COUNT=$(echo "$CHANGED_FILES" | grep -cE '^(src|tests)/' || true)
+          INFRA_COUNT=$(echo "$CHANGED_FILES" | grep -cvE '^(src|tests)/' || true)
+          
+          echo "Files changed:"
+          echo "  src/tests (Tier 1): $SRC_COUNT"
+          echo "  infrastructure (Tier 2/3): $INFRA_COUNT"
+          
+          if [ "$SRC_COUNT" -gt 0 ] && [ "$INFRA_COUNT" -gt 0 ]; then
+            echo "status=fail" >> $GITHUB_OUTPUT
+            echo ""
+            echo "❌ VIOLATION: This PR mixes Tier 1 (src/tests) with Tier 2/3 (infrastructure)"
+            echo ""
+            echo "Tier 1 files (src/tests): $SRC_COUNT"
+            echo "$CHANGED_FILES" | grep -E '^(src|tests)/' | sed 's/^/  - /'
+            echo ""
+            echo "Tier 2/3 files (infrastructure): $INFRA_COUNT"
+            echo "$CHANGED_FILES" | grep -vE '^(src|tests)/' | sed 's/^/  - /'
+            echo ""
+            echo "📋 ACTION REQUIRED:"
+            echo "  1. Close this PR"
+            echo "  2. Split changes into two separate PRs:"
+            echo "     - PR 1: src-only changes"
+            echo "     - PR 2: non-src changes (docs, scripts, configs)"
+            echo ""
+            echo "See docs/protocol/PR_SEPARATION_ENFORCEMENT.md for details"
+            exit 1
+          elif [ "$SRC_COUNT" -gt 0 ]; then
+            echo "status=pass" >> $GITHUB_OUTPUT
+            echo "✅ PASS: Tier 1 PR (src/tests) - $SRC_COUNT files"
+          elif [ "$INFRA_COUNT" -gt 0 ]; then
+            echo "status=pass" >> $GITHUB_OUTPUT
+            echo "✅ PASS: Tier 2/3 PR (infrastructure) - $INFRA_COUNT files"
+          else
+            echo "status=pass" >> $GITHUB_OUTPUT
+            echo "✅ PASS: No changed files"
+          fi
+      
+      - name: Comment on PR (if violation)
+        if: steps.check.outputs.status == 'fail'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            const changedFiles = '${{ steps.check.outputs.changed_files }}';
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ❌ PR Separation Violation
+            
+            This PR contains both \`src/\` and non-\`src/\` files, which violates the [PR Separation Enforcement Protocol](../blob/main/docs/protocol/PR_SEPARATION_ENFORCEMENT.md).
+            
+            ### Why This Rule Exists
+            - **Focused Code Review**: src/ changes require deep architectural review; non-src/ changes are typically documentation/tooling
+            - **Agent Efficiency**: Mixed PRs overwhelm automated review agents with context switching
+            - **Faster Merges**: Separate PRs can be reviewed and merged independently
+            
+            ### Action Required
+            1. **Close this PR** (do not merge)
+            2. **Create two separate PRs**:
+               - **PR 1 (src-only)**: Code changes in \`src/\` directory
+               - **PR 2 (non-src)**: Documentation, scripts, configs, tests
+            
+            ### How to Split
+            \`\`\`bash
+            # Create src-only branch
+            git checkout -b ${{ github.head_ref }}-src-only
+            git reset --soft origin/${{ github.base_ref }}
+            git add src/
+            git commit -m "src: <description>"
+            git push origin ${{ github.head_ref }}-src-only
+            
+            # Create non-src branch
+            git checkout -b ${{ github.head_ref }}-docs-only origin/${{ github.base_ref }}
+            # Cherry-pick non-src changes from original branch
+            \`\`\`
+            
+            See [PR_SEPARATION_ENFORCEMENT.md](../blob/main/docs/protocol/PR_SEPARATION_ENFORCEMENT.md) for complete instructions.
+            `
+            });
+      
+      - name: Fail if violation detected
+        if: steps.check.outputs.status == 'fail'
+        run: exit 1
+
+# Made with Bob

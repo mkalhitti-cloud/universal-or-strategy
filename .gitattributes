@@ -1,0 +1,51 @@
+# V12 Auto-Merge Strategy for Non-.cs Files
+# Prevents non-.cs files from appearing in PR diffs
+
+# Strategy: On PR branches, always take main's version of non-.cs files
+# This ensures documentation, configs, and scripts stay in sync with main
+# while allowing .cs files to be modified in PRs
+
+# All files default to normal merge
+* merge=auto
+
+# .cs files use normal merge (can be modified in PRs)
+*.cs merge=auto
+
+# Non-.cs files use custom merge driver (auto-merge from main)
+# Documentation
+*.md merge=ours-on-pr
+*.txt merge=ours-on-pr
+*.rst merge=ours-on-pr
+
+# Configuration
+*.json merge=ours-on-pr
+*.yaml merge=ours-on-pr
+*.yml merge=ours-on-pr
+*.toml merge=ours-on-pr
+*.ini merge=ours-on-pr
+*.config merge=ours-on-pr
+*.xml merge=ours-on-pr
+
+# Scripts
+*.sh merge=ours-on-pr
+*.ps1 merge=ours-on-pr
+*.py merge=ours-on-pr
+*.js merge=ours-on-pr
+*.ts merge=ours-on-pr
+
+# Build files
+*.csproj merge=ours-on-pr
+*.sln merge=ours-on-pr
+*.props merge=ours-on-pr
+*.targets merge=ours-on-pr
+
+# Git files
+.gitignore merge=ours-on-pr
+.gitattributes merge=ours-on-pr
+
+# CI/CD
+.github/** merge=ours-on-pr
+.bob/** merge=ours-on-pr
+.codex/** merge=ours-on-pr
+
+# Made with Bob

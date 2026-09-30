@@ -1,0 +1,22 @@
+name: GLM OpenCode Review
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+      - build-984-hardening
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: GLM PR Review
+        uses: zhipuai/opencode-github-workflow@main
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GLM_API_KEY: ${{ secrets.GLM_API_KEY }}

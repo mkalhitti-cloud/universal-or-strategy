@@ -1,0 +1,162 @@
+name: CodeScene Quality Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - 'feature/**'
+      - 'src-only/**'
+
+jobs:
+  codescene-delta:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for delta analysis
+      
+      - name: Fetch base branch
+        run: |
+          git fetch origin ${{ github.base_ref }}:${{ github.base_ref }}
+      
+      - name: Install CodeScene CLI
+        run: |
+          yes '' | curl -fsSL https://downloads.codescene.io/enterprise/cli/install-cs-tool.sh | bash || true
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      
+      - name: Verify CodeScene CLI installation
+        run: |
+          cs --version
+      
+      - name: Run CodeScene Delta Analysis
+        id: codescene_delta
+        env:
+          CS_ACCESS_TOKEN: ${{ secrets.CODESCENE_API_TOKEN }}
+        run: |
+          # Compare PR branch against base branch
+          git diff origin/${{ github.base_ref }}...HEAD > pr_changes.diff
+          
+          # Run delta analysis
+          cs delta --output-format json > codescene_delta.json || true
+          
+          # Parse results
+          if [ -f codescene_delta.json ]; then
+            echo "Delta analysis completed"
+            cat codescene_delta.json
+            
+            # Extract high-severity issues (indication >= 3)
+            HIGH_SEVERITY=$(jq '[.review[] | select(.indication >= 3)] | length' codescene_delta.json)
+            echo "high_severity_count=$HIGH_SEVERITY" >> $GITHUB_OUTPUT
+            
+            # Extract overall code health delta
+            HEALTH_DELTA=$(jq '.code_health_delta // 0' codescene_delta.json)
+            echo "health_delta=$HEALTH_DELTA" >> $GITHUB_OUTPUT
+            
+            # Check for degradation
+            if [ "$HIGH_SEVERITY" -gt 0 ]; then
+              echo "quality_gate=FAIL" >> $GITHUB_OUTPUT
+              echo "::error::CodeScene detected $HIGH_SEVERITY high-severity code health issues"
+            elif [ "$(echo "$HEALTH_DELTA < -1.0" | bc)" -eq 1 ]; then
+              echo "quality_gate=FAIL" >> $GITHUB_OUTPUT
+              echo "::error::Code health degraded by $HEALTH_DELTA points"
+            else
+              echo "quality_gate=PASS" >> $GITHUB_OUTPUT
+              echo "::notice::Code health check passed (delta: $HEALTH_DELTA)"
+            fi
+          else
+            echo "quality_gate=SKIP" >> $GITHUB_OUTPUT
+            echo "::warning::CodeScene delta analysis produced no output"
+          fi
+      
+      - name: Upload CodeScene Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codescene-delta-results
+          path: codescene_delta.json
+          retention-days: 30
+      
+      - name: Comment PR with CodeScene Results
+        if: always() && steps.codescene_delta.outputs.quality_gate != 'SKIP'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const qualityGate = '${{ steps.codescene_delta.outputs.quality_gate }}';
+            const highSeverity = '${{ steps.codescene_delta.outputs.high_severity_count }}';
+            const healthDelta = '${{ steps.codescene_delta.outputs.health_delta }}';
+            
+            let emoji = '✅';
+            let status = 'PASSED';
+            let color = '🟢';
+            
+            if (qualityGate === 'FAIL') {
+              emoji = '❌';
+              status = 'FAILED';
+              color = '🔴';
+            }
+            
+            const comment = `## ${emoji} CodeScene Quality Gate: ${status}
+            
+            ${color} **Code Health Delta**: ${healthDelta > 0 ? '+' : ''}${healthDelta} points
+            ${color} **High-Severity Issues**: ${highSeverity}
+            
+            ### Analysis Details
+            
+            ${qualityGate === 'FAIL' ? `
+            ⚠️ **Action Required**: This PR introduces code health degradation.
+            
+            **Next Steps**:
+            1. Review high-severity issues in the CodeScene delta report
+            2. Refactor affected code to improve code health
+            3. Re-run analysis after fixes
+            
+            **V12 DNA Mandate**: All PRs must maintain or improve code health (Jane Street alignment).
+            ` : `
+            ✨ **Great work!** This PR maintains or improves code health.
+            `}
+            
+            <details>
+            <summary>📊 View Full Delta Report</summary>
+            
+            \`\`\`json
+            ${fs.readFileSync('codescene_delta.json', 'utf8')}
+            \`\`\`
+            
+            </details>
+            
+            ---
+            *Powered by [CodeScene CLI](https://codescene.com/) | V12 Quality Gate Protocol*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+      
+      - name: Fail workflow if quality gate failed
+        if: steps.codescene_delta.outputs.quality_gate == 'FAIL'
+        run: |
+          echo "::error::CodeScene Quality Gate FAILED - PR introduces code health degradation"
+          exit 1
+      
+      - name: Quality Gate Summary
+        if: always()
+        run: |
+          echo "### CodeScene Quality Gate Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ steps.codescene_delta.outputs.quality_gate }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **High-Severity Issues**: ${{ steps.codescene_delta.outputs.high_severity_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Code Health Delta**: ${{ steps.codescene_delta.outputs.health_delta }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "See [CodeScene Delta Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details." >> $GITHUB_STEP_SUMMARY
+
+# Made with Bob

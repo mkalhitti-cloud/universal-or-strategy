@@ -1,0 +1,20 @@
+# Worker Agent MCP Server Dependencies
+# V12 Universal OR Strategy - Watsonx Orchestrate Integration
+
+# MCP SDK
+mcp>=0.9.0
+
+# Async support
+asyncio-mqtt>=0.16.1
+
+# JSON handling (built-in, listed for documentation)
+# json (built-in)
+
+# Subprocess management (built-in)
+# subprocess (built-in)
+
+# Path handling (built-in)
+# pathlib (built-in)
+
+# Date/time handling (built-in)
+# datetime (built-in)

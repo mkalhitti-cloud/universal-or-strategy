@@ -1,0 +1,27 @@
+name: Codacy Coverage
+
+# DISABLED: No test project exists yet (orphaned .cs files without .csproj)
+# This workflow will be re-enabled in EPIC-CI-COMPILATION when:
+# 1. Test project is created with proper .csproj
+# 2. NinjaTrader assemblies are available in CI environment
+# 3. Coverage infrastructure is properly configured
+#
+# Current Status: Tests exist as standalone .cs files but cannot be compiled/run in CI
+# Tracked in: docs/brain/EPIC-QUALITY-DEBT.md
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  coverage:
+    runs-on: windows-latest
+    if: false  # DISABLED - No test project exists
+    
+    steps:
+      - name: Placeholder
+        run: echo "Coverage workflow disabled - no test project"
+
+# Made with Bob

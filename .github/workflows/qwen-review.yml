@@ -1,0 +1,22 @@
+name: Qwen Code Review
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+      - build-984-hardening
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Qwen PR Review
+        uses: QwenLM/qwen-code-issue-and-pr-automation@main
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          QWEN_TOKEN: ${{ secrets.QWEN_TOKEN }}

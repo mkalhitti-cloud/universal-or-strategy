@@ -1,0 +1,117 @@
+name: CS-Only PR Gate
+
+# Enforces: wave7/* PR branches MUST contain only .cs file changes.
+# Any non-.cs file in the diff is a hard BLOCK.
+#
+# Rationale (V12 DNA):
+#   - Bot reviewers (Sourcery, CodeRabbit, etc.) are scoped to .cs changes.
+#     Non-.cs files in the diff pollute their context and generate noise.
+#   - Diff size limit (150k chars) is consumed by non-.cs content,
+#     causing Sourcery to skip the entire PR review.
+#   - PR separation mandate: one concern per PR. wave7/* = CYC reduction
+#     in src/ .cs files only. Scripts, docs, configs go on separate PRs.
+#
+# Allowlist (non-.cs files that are PERMITTED in a wave7 PR):
+#   - None. All non-.cs must be on a separate branch/PR.
+#
+# This check is INFORMATIONAL on non-wave7 branches (advisory only).
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+jobs:
+  cs-only-gate:
+    name: CS-Only Gate (wave7 branches)
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.base_ref }}
+
+      - name: Check for non-.cs files
+        id: cs_check
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          IS_WAVE7=false
+          if echo "$BRANCH" | grep -qE '^wave7/'; then
+            IS_WAVE7=true
+          fi
+
+          # Get all changed files vs base
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+
+          if [ -z "$CHANGED" ]; then
+            echo "status=pass" >> "$GITHUB_OUTPUT"
+            echo "No changed files -- PASS"
+            exit 0
+          fi
+
+          # Filter to non-.cs files (exclude .cs and allow nothing else)
+          NON_CS=$(echo "$CHANGED" | grep -v '\.cs$' || true)
+          CS_FILES=$(echo "$CHANGED" | grep '\.cs$' | wc -l)
+          NON_CS_COUNT=$(echo "$NON_CS" | grep -c . || true)
+
+          echo "Changed .cs files: $CS_FILES"
+          echo "Changed non-.cs files: $NON_CS_COUNT"
+
+          if [ "$NON_CS_COUNT" -gt 0 ]; then
+            echo "status=fail" >> "$GITHUB_OUTPUT"
+            echo "non_cs_files<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$NON_CS" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+            echo "is_wave7=$IS_WAVE7" >> "$GITHUB_OUTPUT"
+
+            echo ""
+            echo "Non-.cs files found:"
+            echo "$NON_CS" | sed 's/^/  - /'
+
+            if [ "$IS_WAVE7" = "true" ]; then
+              echo "BLOCKING: wave7/* branch -- non-.cs files are not permitted."
+              exit 1
+            else
+              echo "ADVISORY: non-wave7 branch -- non-.cs files present (informational)."
+              exit 0
+            fi
+          else
+            echo "status=pass" >> "$GITHUB_OUTPUT"
+            echo "PASS: All $CS_FILES changed files are .cs"
+            exit 0
+          fi
+
+      - name: Post violation comment
+        if: failure() && steps.cs_check.outputs.status == 'fail'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const nonCsFiles = `${{ steps.cs_check.outputs.non_cs_files }}`;
+            const fileList = nonCsFiles.trim().split('\n').map(f => `  - \`${f}\``).join('\n');
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                '## CS-Only Gate: BLOCKED',
+                '',
+                'This `wave7/*` PR contains non-`.cs` files. **Only `.cs` source files are permitted.**',
+                '',
+                '**Non-.cs files detected:**',
+                fileList,
+                '',
+                '**Why this rule exists:**',
+                '- Bot reviewers (Sourcery, CodeRabbit, Gemini) are calibrated for `.cs` diffs only.',
+                '  Non-`.cs` content consumes the 150k-char diff budget and causes Sourcery to skip the PR.',
+                '- V12 DNA: one PR = one concern. Wave 7 = CYC reduction in `.cs` files only.',
+                '',
+                '**Fix:** Move non-`.cs` changes to a separate `docs/*` or `chore/*` branch/PR.',
+              ].join('\n')
+            });
