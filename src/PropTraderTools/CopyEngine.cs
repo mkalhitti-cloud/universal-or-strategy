@@ -123,6 +123,10 @@ namespace PropTraderTools
         Clone = 2,
     }
 
+    // B12 T1 -- BE visual state (Idle/Armed/Connected) -- 3-state FSM used by TradeCopierPanel BE ALL button.
+    // Declared in CopyEngine namespace so all Panel instances share the same type reference.
+    internal enum BeState { Idle, Armed, Connected }
+
     internal sealed class CopyEngine : ICopyEngine
     {
         // --- Singleton ---
@@ -278,6 +282,11 @@ namespace PropTraderTools
         private readonly ConcurrentDictionary<string, long> _trailBeLastPnlBits =
             new ConcurrentDictionary<string, long>();
 
+        // B27 -- Pending BE slot dictionary (DW-B27-01: replaces 4 singleton fields).
+        // Key = account.Name. JS-021: TryGetValue/TryRemove/AddOrUpdate are lock-free.
+        private readonly ConcurrentDictionary<string, PendingBeSlot> _pendingBeSlots =
+            new ConcurrentDictionary<string, PendingBeSlot>();
+
         // DW-B79-06: PendingFollowerBeSlot -- event-driven deferred BE for QX->BE-ALL race fix.
         // Registered by MoveStopToBreakEven when targets=0 on a follower account (first call only).
         // Consumed atomically by TryFireFollowerBeRetry in OnOrderUpdate when a PTT-QX-T* order
@@ -384,12 +393,38 @@ namespace PropTraderTools
         private readonly ConcurrentDictionary<string, byte> _drainOwnedOrderIds =
             new ConcurrentDictionary<string, byte>(StringComparer.Ordinal);
 
+        // BUG1+BUG2: Slate-ready gate per follower. Key = acc.Name (ASCII). Value = bool.
+        // false: bracket wipe imminent -- FindFollowerBracketOrder returns null (gate closed).
+        // true / absent: gate open -- normal bracket search proceeds.
+        // ConcurrentDictionary: no lock (JS-021). Indexer write is atomic.
+        private readonly ConcurrentDictionary<string, bool> _followerSlateReady =
+            new ConcurrentDictionary<string, bool>(StringComparer.Ordinal);
+
+        // Lane D: dispatch record for TryLaneDHook-handled ATM followers (double-dispatch guard).
+        // Key: orderId + "#" + accName (ASCII-only). Value: 0 (unused placeholder).
+        // ConcurrentDictionary: no lock (JS-021). TryAdd: atomic. ContainsKey: lock-free O(1).
+        // Growth: O(followers * dispatches/session). ~60 bytes/entry. No cleanup required per session.
+        private readonly ConcurrentDictionary<string, byte> _laneDDispatched =
+            new ConcurrentDictionary<string, byte>(StringComparer.Ordinal);
+
+        // Lane E: re-arm dedup guard. Prevents double-arm on multiple PositionUpdate events for the
+        // same post-QX/BE slot. Key: accName + "#LANE-E#" + instrFullName (ASCII-only). Value: 0 (unused).
+        // ConcurrentDictionary: no lock (JS-021). TryAdd: atomic. TryRemove: called from CancelQxBrackets.
+        // Growth: O(followers * instruments). ~60 bytes/entry. Cleaned up per QX/BE cycle.
+        private readonly ConcurrentDictionary<string, byte> _laneEDispatched =
+            new ConcurrentDictionary<string, byte>(StringComparer.Ordinal);
+
         // --- Status event ---
         internal event Action<string> StatusUpdate;
 
         // V05: position state change notification for UI surfaces
         // Fired from TryFirePositionState -- before Gate 1 (fires even when copy is disabled)
         public event Action<string, PositionState> PositionStateChanged;
+
+        // B10 T2 -- Pending BE fired notification (fires on NT8 account bg thread; Panel marshals to UI)
+        internal event Action<string, string> PendingBeFired;
+        // B10 T2 -- Pending BE armed notification (fires on NT8 account bg thread; Panel marshals to UI)
+        internal event Action<string, string> PendingBeArmed; // HOTFIX-BEALL-SYNC-01: instr, accName
 
         internal event Action<int> GlobalBeBufferChanged; // HOTFIX-BEALL-BUFFER-SYNC-01: fires on buffer +/- spin, int = new buffer value
 
@@ -425,6 +460,12 @@ namespace PropTraderTools
         }
 
         internal event Action<int> GlobalQuickAllBufferChanged; // HOTFIX-QUICKALL-SINGLETON-01
+
+        // HOTFIX-BEALL-DISARM-SYNC-01: broadcast so all panels reset BE ALL visual to Idle on disarm.
+        // Fired from OnGlobalBeClick disarm path AND from UpdateButtonColors HOTFIX-F3 branch (position close).
+        internal event Action GlobalBeAllDisarmed;
+
+        internal void RaiseBeAllDisarmed() => GlobalBeAllDisarmed?.Invoke();
 
         // B20-LANE-A T2: Copy ON/OFF sync event (DW-B17-SYNC-01)
         // Plain delegate field -- NOT lock-guarded (JS-021). Fired from SetEnabled on every toggle.
@@ -919,6 +960,8 @@ namespace PropTraderTools
         {
             if (acc == null || instr == null)
                 return; // (1)
+            TryMarkFollowerSlateNotReady(acc); // BUG1+BUG2: bracket wipe imminent
+            _laneEDispatched.TryRemove(BuildLaneEKey(acc, instr), out _); // Lane E: reset re-arm dedup
             var stale = new System.Collections.Generic.List<Order>();
             foreach (Order o in acc.Orders) // (2)
             {
@@ -986,6 +1029,89 @@ namespace PropTraderTools
             return result;
         }
 
+        // BUG1+BUG2: Mark follower slate as not-ready. Called before any bracket wipe.
+        // Conditions: acc non-null + IsFollowerAccount. Early returns prevent false negatives.
+        // CYC<=2: acc null(1) + IsFollowerAccount(2). JS-021: ConcurrentDictionary indexer is lock-free.
+        // JS-001: no throw. JS-002: void. ASCII-only.
+        private void TryMarkFollowerSlateNotReady(Account acc)
+        {
+            if (acc == null)                    // (1)
+                return;
+            if (!IsFollowerAccount(acc))        // (2)
+                return;
+            _followerSlateReady[acc.Name] = false;
+        }
+
+        // BUG2: Mark follower slate as ready after position confirmed flat + no active orders.
+        // Called from OnFollowerPositionUpdate.
+        // Conditions: acc non-null + IsFollowerAccount + IsAccountFlat + !HasAnyActiveOrders.
+        // Only writes ready=true when ALL conditions pass. Early-returns prevent false positives.
+        // CYC<=4: acc null(1) + IsFollowerAccount(2) + !IsAccountFlat(3) + HasAnyActiveOrders(4).
+        // JS-021: ConcurrentDictionary indexer is lock-free. JS-001: no throw. JS-002: void. ASCII-only.
+        private void TrySetFollowerSlateReady(Account acc)
+        {
+            if (acc == null)                    // (1)
+                return;
+            if (!IsFollowerAccount(acc))        // (2)
+                return;
+            if (!IsAccountFlat(acc))            // (3)
+                return;
+            if (HasAnyActiveOrders(acc))        // (4)
+                return;
+            _followerSlateReady[acc.Name] = true;
+        }
+
+        // BUG2: Returns true when acc has no open positions across all instruments.
+        // Used by TrySetFollowerSlateReady to confirm flat before marking slate ready.
+        // NT8: acc.Positions is available in AddOnBase. Each Position.Quantity > 0 = open.
+        // CYC<=3: acc null(1) + foreach(2) + Quantity>0(3). JS-021: no lock (read-only enumeration).
+        // JS-001: no throw. JS-002: returns bool. ASCII-only. static.
+        private static bool IsAccountFlat(Account acc)
+        {
+            if (acc == null)                    // (1)
+                return true;
+            foreach (var pos in acc.Positions)  // (2)
+                if (pos.Quantity > 0)           // (3)
+                    return false;
+            return true;
+        }
+
+        // BUG2: Returns true when acc has any Working/Submitted/Accepted orders remaining.
+        // Used by TrySetFollowerSlateReady to confirm no residual active orders before ready.
+        // NT8: acc.Orders.ToList() snapshot -- standard pattern in CopyEngine (line 4898).
+        // CYC<=5: acc null(1) + foreach(2) + Working(3) + Submitted(4) + Accepted(5).
+        // JS-021: no lock. JS-001: no throw. JS-002: returns bool. ASCII-only. static.
+        private static bool HasAnyActiveOrders(Account acc)
+        {
+            if (acc == null)                    // (1)
+                return false;
+            foreach (var o in acc.Orders.ToList())  // (2)
+            {
+                if (o.OrderState == OrderState.Working    // (3)
+                    || o.OrderState == OrderState.Submitted  // (4)
+                    || o.OrderState == OrderState.Accepted)  // (5)
+                    return true;
+            }
+            return false;
+        }
+
+        // BUG2: NT8 account.PositionUpdate event handler.
+        // Fires on NT8 account background thread (same context as OnOrderUpdate).
+        // When position goes flat and no active orders remain, marks slate ready for next trade.
+        // NT8: PositionEventArgs.Position.Account confirmed from TradeCopierPanel.cs line 2109.
+        // No UI operations -- ConcurrentDictionary write is thread-safe, no Dispatcher needed.
+        // CYC<=3: e/Position/Account null(1) + IsFollowerAccount(2) + TrySetFollowerSlateReady(0).
+        // JS-021: no lock. JS-001: no throw. JS-002: void. ASCII-only. No async/await.
+        private void OnFollowerPositionUpdate(object sender, PositionEventArgs e)
+        {
+            if (e?.Position?.Account == null)           // (1)
+                return;
+            if (!IsFollowerAccount(e.Position.Account)) // (2)
+                return;
+            TrySetFollowerSlateReady(e.Position.Account);
+            TryLaneEHook(e.Position.Account, e.Position); // Lane E: re-arm ATM after partial QX/BE
+        }
+
         // B77 DW-B77-02: CancelQxBrackets 3-param overload -- snapshot-gated cancel.
         // Identical to the 2-param overload except: an order is only added to stale if it
         // is contained in snapshot. Orders not in snapshot (submitted after snapshot was
@@ -1003,6 +1129,8 @@ namespace PropTraderTools
         {
             if (acc == null || instr == null)
                 return; // (1)
+            TryMarkFollowerSlateNotReady(acc); // BUG1+BUG2: bracket wipe imminent (3-param path)
+            _laneEDispatched.TryRemove(BuildLaneEKey(acc, instr), out _); // Lane E: reset re-arm dedup
             var stale = new System.Collections.Generic.List<Order>();
             int raceSkipped = 0;
             foreach (Order o in acc.Orders) // (2)
@@ -1350,13 +1478,19 @@ namespace PropTraderTools
         internal void Subscribe()
         {
             foreach (Account acc in Account.All)
+            {
                 acc.OrderUpdate += OnOrderUpdate;
+                acc.PositionUpdate += OnFollowerPositionUpdate; // BUG2
+            }
         }
 
         internal void Unsubscribe()
         {
             foreach (Account acc in Account.All)
+            {
                 acc.OrderUpdate -= OnOrderUpdate;
+                acc.PositionUpdate -= OnFollowerPositionUpdate; // BUG2
+            }
         }
 
         // --- Hot path: CYC=8 (B75-LaneA second pass). All sub-blocks extracted to helpers. ---
@@ -2372,6 +2506,9 @@ namespace PropTraderTools
             // B9 T1: ATR base qty -- overrides signal qty when ATR enabled, else uses signal qty
             int baseQty = ResolveBaseQty(order.Instrument, baseSignal.Quantity);
 
+            // Lane C: Lane D wiring point. Unconditional void call -- 0 CYC cost in parent. PTT-BUGS-LIVE-0911.
+            TryLaneDHook(order, rule, baseSignal, baseQty);
+
             // B119: DW-B128 -- snapshot instrument and last direction once before the loop.
             // TryGetValue is O(1) and allocation-free on ConcurrentDictionary.
             OrderAction currentAction = order.OrderAction;
@@ -2382,6 +2519,7 @@ namespace PropTraderTools
             );
 
             // B8 T1: index-tracking loop applies per-follower multiplier
+            int dispatched = 0;
             int idx = 0;
             foreach (var acc in rule.FollowerAccounts)
             {
@@ -2407,11 +2545,201 @@ namespace PropTraderTools
 
                 DispatchToFollower(acc, order, rule, idx, baseSignal, baseQty);
                 idx++;
+                dispatched++;
             }
+            // Gate-5 commit already performed by IsLiveEntryBlocked (HEAD pattern -- no separate SetLiveEntryDispatched needed).
 
             // B119: DW-B128 -- record direction dispatched for this instrument.
             // Write happens AFTER the loop so all followers in this dispatch see the same lastAction.
             _lastLeaderDirection[instr.FullName] = currentAction;
+        }
+
+        // Lane D: ATM dispatch hook. Called once per confirmed leader entry signal after all 5
+        // DispatchCopy gates. Handles Clone-mode Named followers only; all other modes are no-ops.
+        // CYC=6: (1) mode!=Clone, (2) type!=Limit, (3) !Named, (4) dispatched in loop, (5) laneDCount>0.
+        // JS-001: no throw (early returns + SendCopyWithAtm has its own try/catch). JS-021: no lock.
+        // JS-023: no UI update here -- StatusUpdate raised inside SendCopyWithAtm (existing pattern).
+        // ASCII-only. Thread: NT8 account background thread.
+        private void TryLaneDHook(Order order, CopyRule rule, CopySignal baseSignal, int baseQty)
+        {
+            // Branch (1): non-Clone mode -> no-op for Signal/Mirror/Market
+            if (GetCopyMode() != CopyMode.Clone)
+                return;
+
+            // Branch (2): Market leader order -> skip ATM dispatch (SendCopyWithAtm hardcodes Limit;
+            // Limit @ price 0 is invalid). Market followers fall through to DispatchToFollower SendCopy.
+            if (order.OrderType != OrderType.Limit)
+                return;
+
+            // Branch (3): resolve ATM mode; Inherit returned when _cloneAtmCache is empty -> no-op
+            FollowerAtmMode cloneAtmMode = ResolveAtmMode(rule, order.Instrument.FullName);
+            if (!(cloneAtmMode is FollowerAtmMode.Named namedMode))
+                return;
+
+            // Fan-out: dispatch each follower via ATM
+            int laneDCount = 0;
+            int idx = 0;
+            foreach (Account acc in rule.FollowerAccounts)
+            {
+                // Branch (4): track dispatched count
+                if (TryLaneDDispatchFollower(acc, rule, idx, order, namedMode, baseSignal, baseQty))
+                    laneDCount++;
+                idx++;
+            }
+
+            // Branch (5): Gate-5 dedup already committed by IsLiveEntryBlocked in DispatchCopy (HEAD pattern).
+        }
+
+        // Lane D: per-follower ATM dispatch helper. Keeps TryLaneDHook CYC low.
+        // CYC=4: (A) null acc guard, (B) daily cap check, (C) SendCopyWithAtm result.
+        // JS-001: no throw -- returns false on all failure paths; SendCopyWithAtm has its own try/catch.
+        // JS-021: no lock -- ConcurrentDictionary.TryAdd is atomic. JS-002: returns bool (never null).
+        // ASCII-only. Thread: NT8 account background thread (same as TryLaneDHook caller).
+        private bool TryLaneDDispatchFollower(
+            Account acc,
+            CopyRule rule,
+            int idx,
+            Order order,
+            FollowerAtmMode.Named namedMode,
+            CopySignal baseSignal,
+            int baseQty
+        )
+        {
+            // Branch (A): null guard
+            if (acc == null)
+                return false;
+
+            // Branch (B): daily position cap -- respect existing cap contract
+            if (!PassesDailyCapCheck(acc))
+                return false;
+
+            int mult = GetMultiplier(rule, idx);
+            CopySignal scaledSig = CopySignal.Create(
+                baseSignal.Action,
+                baseSignal.Type,   // always Limit (TryLaneDHook guards order.OrderType above)
+                baseQty * mult,
+                baseSignal.LimitPrice,
+                baseSignal.OrderId
+            );
+
+            // Branch (C): dispatch ATM entry; mark dedup only on success
+            bool ok = SendCopyWithAtm(acc, order.Instrument, in scaledSig, namedMode);
+            if (ok)
+                // Key: orderId + "#" + accName. Separator "#" is ASCII and cannot appear in NT8 account names.
+                _laneDDispatched.TryAdd(baseSignal.OrderId + "#" + acc.Name, 0);
+            return ok;
+        }
+
+        // Lane E: eligibility predicate for TryLaneEHook. Absorbs all compound boolean guards so
+        // TryLaneEHook contains zero || or && operators (JS-013 compliance).
+        // CYC=8: entry(1) + if(1) + if+||(2) + if(1) + if+||(2) + if(1). Exactly at budget.
+        // JS-001: no throw. JS-021: no lock. JS-002: returns bool, never null.
+        // ASCII-only. Thread: NT8 account background thread (same as TryLaneEHook).
+        private bool IsLaneEEligible(Account acc, NinjaTrader.Cbi.Position pos)
+        {
+            // (1): non-Clone mode -> not eligible (Signal/Mirror/Market no-op)
+            if (GetCopyMode() != CopyMode.Clone)
+                return false;
+
+            // (2): null guard -- || is +1 CYC per JS-013, isolated here intentionally
+            if (pos == null || pos.Instrument == null)
+                return false;
+
+            // (3): no remaining position -> not a re-arm event (flat or zero-qty update)
+            if (pos.Quantity <= 0)
+                return false;
+
+            // (4): gate must be closed (false) -- confirms post-QX/BE state.
+            // Absent key (first session entry) treated as ready -> returns false -> no-op. Correct.
+            // || is +1 CYC per JS-013, isolated here intentionally.
+            bool ready;
+            if (!_followerSlateReady.TryGetValue(acc.Name, out ready) || ready)
+                return false;
+
+            // (5): ATM template must be Named -- Inherit/unconfigured = no-op
+            if (!(ResolveAtmMode(default(CopyRule), pos.Instrument.FullName) is FollowerAtmMode.Named))
+                return false;
+
+            return true;
+        }
+
+        // Lane E: re-arm ATM hook. Called from OnFollowerPositionUpdate after TrySetFollowerSlateReady.
+        // Fires when follower has a remaining position (post-partial QX/BE) with gate closed and no ATM brackets.
+        // CYC=5: (1)IsLaneEEligible gate,(2)dedup check,(3)ok gate-open. All compound guards in IsLaneEEligible.
+        // JS-001: no throw (early returns + SendCopyWithAtm has its own try/catch). JS-021: no lock.
+        // JS-023: no UI update -- StatusUpdate raised inside SendCopyWithAtm (existing pattern).
+        // ASCII-only. Thread: NT8 account background thread (same as OnFollowerPositionUpdate).
+        private void TryLaneEHook(Account acc, NinjaTrader.Cbi.Position pos)
+        {
+            // Branch (1): eligibility gate -- all compound guards delegated to IsLaneEEligible
+            if (!IsLaneEEligible(acc, pos))
+                return;
+
+            // Resolve ATM template and dedup key (assignments only, +0 CYC)
+            string instrFullName = pos.Instrument.FullName;
+            FollowerAtmMode.Named namedMode =
+                ResolveAtmMode(default(CopyRule), instrFullName) as FollowerAtmMode.Named;
+            string key = acc.Name + "#LANE-E#" + instrFullName;
+
+            // Branch (2): dedup check -- only re-arm once per account+instrument slot
+            if (_laneEDispatched.ContainsKey(key))
+                return;
+
+            // Dispatch: re-arm ATM bracket for the remaining position
+            bool ok = TryLaneEDispatchFollower(acc, pos.Instrument, pos, namedMode, key);
+
+            // Branch (3): gate open -- ATM is now armed; bracket sync is safe to proceed
+            if (ok)
+                _followerSlateReady[acc.Name] = true;
+        }
+
+        // Lane E: per-follower ATM re-arm helper. Keeps TryLaneEHook CYC low.
+        // CYC=5: (A) acc null guard, (B) daily cap check, ?: action ternary, (C) SendCopyWithAtm result.
+        // JS-001: no throw -- returns false on all failure paths; SendCopyWithAtm has its own try/catch.
+        // JS-021: no lock -- ConcurrentDictionary.TryAdd is atomic. JS-002: returns bool (never null).
+        // ASCII-only. Thread: NT8 account background thread (same as TryLaneEHook caller).
+        private bool TryLaneEDispatchFollower(
+            Account acc,
+            NinjaTrader.Cbi.Instrument instr,
+            NinjaTrader.Cbi.Position pos,
+            FollowerAtmMode.Named namedMode,
+            string dedupKey
+        )
+        {
+            // Branch (A): null guard
+            if (acc == null)
+                return false;
+
+            // Branch (B): daily position cap -- respect existing cap contract
+            if (!PassesDailyCapCheck(acc))
+                return false;
+
+            // Build signal from follower's remaining position
+            OrderAction action = pos.MarketPosition == NinjaTrader.Cbi.MarketPosition.Long
+                ? OrderAction.Buy
+                : OrderAction.SellShort;
+            string syntheticOrderId = "LANE-E#" + acc.Name + "#" + instr.FullName;
+            CopySignal sig = CopySignal.Create(
+                action,
+                OrderType.Limit,
+                pos.Quantity,       // remaining quantity (already multiplier-scaled from original entry)
+                pos.AveragePrice,   // ATM bracket anchored at original entry price
+                syntheticOrderId
+            );
+
+            // Branch (C): dispatch ATM entry; mark dedup only on success
+            bool ok = SendCopyWithAtm(acc, instr, in sig, namedMode);
+            if (ok)
+                _laneEDispatched.TryAdd(dedupKey, 0);
+            return ok;
+        }
+
+        // Lane E: dedup key builder. Isolates the instr null-guard so CancelQxBrackets callers
+        // incur +0 CYC from the null check. Called from both CancelQxBrackets overloads.
+        // CYC=2: entry(1) + ternary null guard(1). ASCII-only. No lock (JS-021). static: no state.
+        private static string BuildLaneEKey(Account acc, NinjaTrader.Cbi.Instrument instr)
+        {
+            return acc.Name + "#LANE-E#" + (instr != null ? instr.FullName : string.Empty);
         }
 
         // TB-T4 Gate 4 predicate: returns true when order type is market or limit (dispatchable).
@@ -2504,6 +2832,12 @@ namespace PropTraderTools
                 baseSignal.OrderId
             );
             var mode = ResolveAtmMode(rule, acc.Name);
+            // Lane D skip gate: if TryLaneDHook already dispatched this (order, follower) pair via ATM,
+            // return immediately -- prevents one ATM entry (hook) + one raw entry (loop) double-dispatch.
+            // _laneDDispatched.ContainsKey is O(1) lock-free (JS-021). No counter modification -- dedup
+            // commit for non-ATM followers in this loop is unaffected.
+            string laneD_key = baseSignal.OrderId + "#" + acc.Name;
+            if (_laneDDispatched.ContainsKey(laneD_key)) return;
             NinjaTrader.Code.Output.Process(
                 "[PTT-COPY] dispatch: "
                     + scaledSignal.Action
@@ -3573,13 +3907,21 @@ namespace PropTraderTools
             string? fromEntrySignalName,
             bool isStop,
             string? leaderName = null
-        ) =>
-            FindFollowerBracketOrder(
+        )
+        {
+            // BUG1+BUG2: slate gate -- if bracket wipe was signalled, block bracket lookup.
+            // Absent key (first trade): gate open. Key=false: gate closed. Key=true: gate open.
+            // CYC: +1 (from 1 to 2). JS-021: ConcurrentDictionary.TryGetValue is lock-free. ASCII-only.
+            bool ready;
+            if (_followerSlateReady.TryGetValue(follower.Name, out ready) && !ready) // (1)
+                return null;
+            return FindFollowerBracketOrder(
                 ActiveOrders(follower), // DW-NEW-09: terminal orders excluded
                 fromEntrySignalName,
                 isStop,
                 leaderName
             );
+        }
 
         // CYC=8 (post-B142-DIRECT-9). AT LIMIT.
         // foreach(1) + OrderPassesBracketGate guard(1) + state filter(4) + isStop(1) + type match(1) = 8.
@@ -4486,8 +4828,11 @@ namespace PropTraderTools
                 StatusUpdate?.Invoke("Trim/Flatten requires Pro tier");
                 return;
             }
-            foreach (var acc in AllAccounts(instrument))
-                FlattenOneAccount(acc, instrument);
+            FlatGuardLoop(
+                () => AllAccounts(instrument),
+                acc => { var p = FindPosition(acc, instrument); return p == null || p.Quantity == 0; },
+                acc => FlattenOneAccount(acc, instrument)
+            );
         }
 
         // B28 T1 -- Trim(Account,Instrument): leader-account overload. Fixes DW-B28-02.
@@ -4528,12 +4873,11 @@ namespace PropTraderTools
                 return;
             }
             FlattenOneAccount(leader, instrument);
-            foreach (var acc in AllAccounts(instrument))
-            {
-                if (acc == leader)
-                    continue;
-                FlattenOneAccount(acc, instrument);
-            }
+            FlatGuardLoop(
+                () => AllAccounts(instrument).Where(acc => acc != leader),
+                acc => { var p = FindPosition(acc, instrument); return p == null || p.Quantity == 0; },
+                acc => FlattenOneAccount(acc, instrument)
+            );
         }
 
         // B28 T1 -- CancelPendingEntries(Account,Instrument): leader-account overload. Fixes DW-B28-02.
@@ -4706,6 +5050,7 @@ namespace PropTraderTools
                 StatusUpdate?.Invoke(acc.Name + ": flat skip");
                 return;
             }
+            TryMarkFollowerSlateNotReady(acc); // BUG2: flatten dispatch imminent
             CancelAllAccountOrders(acc, instrument); // B69 DW-B69-01: cancel ALL orders first
             // B76 HOTFIX-B76-FLATTEN-RACE-01: re-read after cancel.
             // ATM bracket fill may have cleared the position while cancel request was in-flight.
@@ -5528,6 +5873,76 @@ namespace PropTraderTools
                     continue; // (4)
                 TightenOneAccountStops(acc, instrument, tightenTicks);
             }
+        }
+
+        // B27 -- DisarmPendingBe: disarms the pending BE watcher atomically.
+        // CYC=3: leader null guard(1), TryRemove check(2), acc null guard(3).
+        // DW-B27-01: reads Account from slot -- no stale singleton reference.
+        // JS-021: no lock -- ConcurrentDictionary.TryRemove is atomic.
+        // NT8-043: explicit if (acc != null) guard -- no ?.Event -= pattern.
+        internal void DisarmPendingBe(Account leader)
+        {
+            if (leader == null) // (1)
+            {
+                StatusUpdate?.Invoke("DisarmPendingBe: leader null -- no-op");
+                return;
+            }
+            if (!_pendingBeSlots.TryRemove(leader.Name, out var slot)) // (2)
+                return;
+            if (slot.Account != null) // (3)
+                slot.Account.AccountItemUpdate -= OnPendingBeAccountUpdate;
+        }
+
+        // B40 -- IsPendingSlotsEmpty: CYC=1. Lock-free read of ConcurrentDictionary.IsEmpty.
+        // Called by TradeCopierPanel BE ALL armed/wait flow to determine gate state.
+        // JS-021: ConcurrentDictionary.IsEmpty is lock-free.
+        internal bool IsPendingSlotsEmpty() => _pendingBeSlots.IsEmpty;
+
+        // B27 -- OnPendingBeAccountUpdate: price-based trigger for pending BE (one-shot).
+        // Fires on NT8 account background thread -- NO UI calls inside this method.
+        // BWAVE-CYC TB-T1: extracted IsPendingBeSlotActive, IsPendingBeTriggerConditionMet,
+        //   ExecutePendingBeTrigger to reduce CCN from 32 to <=7.
+        // JS-021: no lock -- TryGetValue/TryRemove are lock-free.
+        // NT8-003: no volatile. B23 T1 (DW-B22-BE-TRIGGER-01): price-based, immune to commission fees.
+        private void OnPendingBeAccountUpdate(object sender, NinjaTrader.Cbi.AccountItemEventArgs e)
+        {
+            if (e.AccountItem != AccountItem.UnrealizedProfitLoss) // (1)
+                return;
+            string accName = GetSenderAccountName(sender); // (2)
+            if (!_pendingBeSlots.TryGetValue(accName, out var slot)) // (3)
+                return;
+            if (!IsPendingBeSlotActive(slot)) // (4)
+                return;
+            var pos = FindPosition(slot.Account, slot.Instrument);
+            if (IsFlat(pos)) // (5)
+                return;
+            if (!IsPendingBeTriggerConditionMet(slot, pos, slot.Instrument)) // (6)
+                return;
+            if (!_pendingBeSlots.TryRemove(accName, out var removed)) // (7) atomic claim -- JS-021
+                return;
+            ExecutePendingBeTrigger(removed); // (8)
+        }
+
+        // BWAVE-CYC TB-T1 RETRY: executes the one-shot pending BE trigger after atomic claim.
+        // CCN<=3: Account null check(1) = 1 branch + base. All ?./??. chains moved to FirePendingBeFiredEvent.
+        // NT8-003: fires on account background thread -- no UI calls.
+        private void ExecutePendingBeTrigger(PendingBeSlot removed)
+        {
+            if (removed.Account != null)
+                removed.Account.AccountItemUpdate -= OnPendingBeAccountUpdate;
+            BreakEven(removed.Account, removed.Instrument, removed.BufferTicks);
+            FirePendingBeFiredEvent(removed.Instrument, removed.Account);
+        }
+
+        // BWAVE-CYC TB-T1 RETRY: fires the PendingBeFired event with null-safe argument resolution.
+        // CCN<=6: PendingBeFired ?.(1) + Instrument ?.(2) + FullName ??(3) + Account ?.(4) + Name ??(5) = 5 + base.
+        // NT8-003: fires on account background thread -- no UI calls.
+        private void FirePendingBeFiredEvent(
+            NinjaTrader.Cbi.Instrument instr,
+            NinjaTrader.Cbi.Account acc
+        )
+        {
+            PendingBeFired?.Invoke(instr?.FullName ?? string.Empty, acc?.Name ?? string.Empty);
         }
 
         // B27 -- ArmTrailBe: arms the continuous trail watcher using acc.AccountItemUpdate.
@@ -6379,6 +6794,27 @@ namespace PropTraderTools
                 FollowerAccount = followerAccount;
                 PendingCancelCount = pendingCancelCount;
                 TimestampTicks = timestampTicks;
+            }
+        }
+
+        // BUG-0911-A: extracted for testability -- mirrors FlattenFollower delegate-injection pattern.
+        // CYC=3: (1) foreach, (2) isFlat true-branch (skip), (3) isFlat false-branch (flattenOne).
+        // JS-021: no lock (static, pure iteration). JS-001: no throw. ASCII-only.
+        private static void FlatGuardLoop<TAccount>(
+            Func<IEnumerable<TAccount>> getAccounts,
+            Func<TAccount, bool> isFlat,
+            Action<TAccount> flattenOne)
+        {
+            foreach (var acc in getAccounts())
+            {
+                if (isFlat(acc))
+                {
+                    NinjaTrader.Code.Output.Process(
+                        "[FLAT-GUARD] skip flat, already flat on " + acc.ToString(),
+                        NinjaTrader.NinjaScript.PrintTo.OutputTab1);
+                    continue;
+                }
+                flattenOne(acc);
             }
         }
     }

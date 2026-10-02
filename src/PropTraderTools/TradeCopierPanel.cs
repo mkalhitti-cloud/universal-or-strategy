@@ -566,6 +566,8 @@ namespace PropTraderTools
                 TradeCopierAddOn.UnregisterClickTrader(_currentChart);
             _engine.StatusUpdate -= OnStatusUpdate;
             _engine.PositionStateChanged -= OnPositionStateChanged;
+            _engine.PendingBeArmed -= OnPendingBeArmedDispatch;         // HOTFIX-BEALL-SYNC-01
+            _engine.GlobalBeAllDisarmed -= OnGlobalBeAllDisarmed;       // HOTFIX-BEALL-DISARM-SYNC-01
             _engine.GlobalBeBufferChanged -= OnGlobalBeBufferChanged; // HOTFIX-BEALL-BUFFER-SYNC-01
             _engine.GlobalQuickAllBufferChanged -= OnQuickAllBufferChanged; // HOTFIX-QUICKALL-SINGLETON-01
             UnsubscribeFollowerItems();
@@ -785,6 +787,8 @@ namespace PropTraderTools
 
             ApplyModuleLicenses();
             _engine.Subscribe();
+            _engine.PendingBeArmed += OnPendingBeArmedDispatch;     // HOTFIX-BEALL-SYNC-01
+            _engine.GlobalBeAllDisarmed += OnGlobalBeAllDisarmed;   // HOTFIX-BEALL-DISARM-SYNC-01
 
             // B41: Site 3 -- initial display sync after panel wires up.
             if (_leaderAccount != null)
@@ -1076,7 +1080,7 @@ namespace PropTraderTools
                 ),
                 (
                     FormatBuffer("BE", _beBuffer),
-                    BrushInactive,
+                    BrushTeal,
                     true,
                     OnBeUp,
                     OnBeDown,
@@ -1086,7 +1090,7 @@ namespace PropTraderTools
                 ),
                 (
                     FormatGlobalBeBuffer("BE ALL", CopyEngine.Instance.GlobalBe.GlobalBeBuffer),
-                    BrushInactive,
+                    BrushTeal,
                     true,
                     OnGlobalBeUp,
                     OnGlobalBeDown,
@@ -1096,7 +1100,7 @@ namespace PropTraderTools
                 ),
                 (
                     FormatBuffer("Quick", _quickT1),
-                    BrushInactive,
+                    BrushTeal,
                     true,
                     OnQuickUp,
                     OnQuickDown,
@@ -1106,7 +1110,7 @@ namespace PropTraderTools
                 ),
                 (
                     FormatBuffer("Quick ALL", CopyEngine.Instance.GlobalQuickAllT1),
-                    BrushInactive,
+                    BrushTeal,
                     true,
                     OnQuickAllUp,
                     OnQuickAllDown,
@@ -1146,11 +1150,12 @@ namespace PropTraderTools
                 if (s.Teal)
                 {
                     btn.BorderBrush = BrushTeal;
-                    btn.Foreground = BrushTeal;
+                    btn.Foreground = System.Windows.Media.Brushes.White;
                     btn.BorderThickness = new Thickness(2);
                 }
                 btn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-                btn.Background = s.Bg; // AFTER style -- explicit brush wins (DW-LaneA-06 fix)
+                bool isTeal = s.Teal;
+                btn.Background = isTeal ? BrushTeal : BrushInactive; // AFTER style -- explicit brush wins
                 btn.Click += s.Main;
                 cluster.Children.Add(arrows);
                 cluster.Children.Add(btn);
@@ -1191,6 +1196,8 @@ namespace PropTraderTools
                 BorderThickness = new Thickness(2),
             };
             _instr2tBtn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            _instr2tBtn.Background = BrushTeal;
+            _instr2tBtn.Foreground = System.Windows.Media.Brushes.White;
             _instr2tBtn.Click += OnInstr2tClick;
             _instrRowPanel.Children.Add(_instr2tBtn);
 
@@ -1202,6 +1209,8 @@ namespace PropTraderTools
                 BorderThickness = new Thickness(2),
             };
             _instrQAll2tBtn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            _instrQAll2tBtn.Background = BrushTeal;
+            _instrQAll2tBtn.Foreground = System.Windows.Media.Brushes.White;
             _instrQAll2tBtn.Click += OnInstrQAll2tClick;
             _instrRowPanel.Children.Add(_instrQAll2tBtn);
         }
@@ -3007,6 +3016,60 @@ namespace PropTraderTools
         private void OnFeatureFlagsChanged(FeatureFlags f)
         {
             ApplyFeatureFlags(f);
+        }
+
+        // HOTFIX-BEALL-SYNC-01: fire from CopyEngine background thread -> must Dispatcher.InvokeAsync.
+        // CYC=2: (1) Dispatcher.InvokeAsync, (2) IsPendingSlotsEmpty null-branch inside lambda.
+        // JS-021: no lock. JS-023: Dispatcher.InvokeAsync (not synchronous Invoke). JS-033: not async void.
+        // ASCII-only. Thread: CopyEngine account background thread.
+        private void OnPendingBeArmedDispatch(string instr, string accountName)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                if (!CopyEngine.Instance.IsPendingSlotsEmpty())
+                    UpdateBeAllVisuals(BeState.Armed);
+            });
+        }
+
+        // HOTFIX-BEALL-DISARM-SYNC-01: all panels reset BE ALL visual when any panel disarms.
+        // CYC=1: straight-line Dispatcher.InvokeAsync, no branches.
+        // JS-023: Dispatcher.InvokeAsync (not synchronous Invoke). JS-033: not async void. ASCII-only.
+        private void OnGlobalBeAllDisarmed()
+        {
+            Dispatcher.InvokeAsync(() => UpdateBeAllVisuals(BeState.Idle));
+        }
+
+        // B40 -- UpdateBeAllVisuals: purple=Idle, amber=Armed. CYC=2.
+        // UI-thread only -- no Dispatcher wrap needed (all callers are on UI thread via InvokeAsync).
+        // BrushTeal and BrushActive are pre-defined Panel brush fields.
+        private void UpdateBeAllVisuals(BeState state)
+        {
+            if (_globalBeBtn2 == null)
+                return;
+            if (state == BeState.Idle)
+            {
+                _globalBeBtn2.BorderBrush = BrushTeal;
+                _globalBeBtn2.Foreground = BrushTeal;
+                _globalBeBtn2.Background = System.Windows.Media.Brushes.Transparent;
+            }
+            else
+            {
+                _globalBeBtn2.Background = BrushActive;
+            }
+        }
+
+        // B183 T7: DisarmBeAllOnFlat -- disarm all pending BE slots when leader goes flat.
+        // Called from position update handlers when hasPosition transitions to false.
+        // CYC=3: (1) !hasPosition guard, (2) IsPendingSlotsEmpty guard, (3) _leaderAccount null guard.
+        // JS-021: no lock. JS-001: no throw. JS-002: void. ASCII-only.
+        private void DisarmBeAllOnFlat(bool hasPosition)
+        {
+            if (!hasPosition && !CopyEngine.Instance.IsPendingSlotsEmpty())
+            {
+                if (_leaderAccount != null)
+                    CopyEngine.Instance.DisarmPendingBe(_leaderAccount);
+                CopyEngine.Instance.RaiseBeAllDisarmed();
+            }
         }
     }
 }
