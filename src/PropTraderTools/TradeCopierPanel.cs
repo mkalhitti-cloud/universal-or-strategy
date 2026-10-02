@@ -22,13 +22,6 @@
 //   1. Modified OnBeConnected: added ArmTrailBe call after BreakEven (CYC=3).
 //   2. Modified OnBeClick Connected case: added DisarmTrailBe alongside DisarmPendingBe.
 //   3. Modified Detach(): added DisarmTrailBe alongside DisarmPendingBe (cleanup path).
-// PTT-COPIER-B12-T3 -- TradeCopierPanel.cs
-// B12 T3 CHANGES:
-//   1. Added _maxRiskDollars, _atrFraction (plain double), _riskDollarsBox, _atrFractionBox fields.
-//   2. Added BuildRiskAtrRow() -- Risk $ + ATR % spinners inside _contentPanel (last row).
-//   3. Added OnRiskUp/Down, OnRiskTextLostFocus, OnAtrFractionUp/Down, OnAtrFractionTextLostFocus.
-//   4. Added NotifyRiskChanged(), NotifyAtrFractionChanged().
-//   5. Modified BuildUI() to call BuildRiskAtrRow at end of _contentPanel.
 // PTT-COPIER-B12-T1 -- TradeCopierPanel.cs
 // B12 T1 CHANGES:
 //   1. Added _trimBuffer, _flattenBuffer, _beBuffer (plain int), _beState (BeState), new Button refs.
@@ -271,7 +264,6 @@ namespace PropTraderTools
 
         // BGTM-1: Feature-flag-gated row panels. Assigned in Build* methods; toggled in ApplyFeatureFlags.
         private StackPanel _clickTraderRow = null;
-        private UniformGrid _atrRow = null;
 
         // HOTFIX-QUICKALL-SINGLETON-01: Quick ALL buffer is now a CopyEngine singleton.
         // _quickAllT1 per-panel field removed. Read CopyEngine.Instance.GlobalQuickAllT1 instead.
@@ -290,15 +282,6 @@ namespace PropTraderTools
         private bool _isCollapsed = false;
         private Button _collapseToggleBtn;
         private StackPanel _contentPanel;
-
-        // B12 T3 -- Risk/ATR spinners (plain double; UI-thread-only; no volatile per NT8-003)
-        private double _maxRiskDollars = 200.0;
-        private double _atrFraction = 0.75;
-        private TextBox _riskDollarsBox;
-        private TextBox _atrFractionBox;
-
-        // B20-LANE-C T5 -- ATR display label (owned by Panel; set in BuildRiskAtrRow; nulled on GC after purge)
-        private TextBlock _atrDisplayLabel;
 
         // B12 T1 -- Frozen semantic brush for BE CONNECTED border (MakeBrush = Freeze()d, JS-008)
         // RGB (59, 130, 246) = blue. No hex string literal (JS-008).
@@ -763,8 +746,6 @@ namespace PropTraderTools
             _engine.GlobalQuickAllBufferChanged += OnQuickAllBufferChanged;
             PopulateFollowerItems();
             RestoreSavedFollowers();
-            NotifyRiskChanged();
-            NotifyAtrFractionChanged();
             _engine.CopyEnabledChanged += OnCopyEnabledChanged;
             ApplyCopyState(_engine.IsEnabled);
 
@@ -863,7 +844,6 @@ namespace PropTraderTools
 
             BuildClickTraderRow(_contentPanel); // B9 T2: Click Trader row
             _contentPanel.Children.Add(BuildTightenRow()); // B10 T3: Tighten Stop cluster
-            BuildRiskAtrRow(_contentPanel); // B12 T3: Risk $ + ATR % spinner row
 
             // B49: Buttons first (BE/Quick rows), then Copier, then Position Tools.
             root.Children.Add(_beRowPanel);
@@ -2532,7 +2512,7 @@ namespace PropTraderTools
             if (price <= 0.0)
                 return;
             bool isBuy = _clickBuy; // volatile read
-            int qty = CopyEngine.Instance.GetSuggestedQty(_instrument);
+            int qty = 1;
             var action = isBuy ? OrderAction.Buy : OrderAction.SellShort;
 
             try
@@ -2758,38 +2738,6 @@ namespace PropTraderTools
             }
         }
 
-        // B12 T3 -- BuildRiskAtrRow: builds Risk $ + ATR % spinner row. CYC=1: straight-line construction.
-        // R4 extraction: delegates spinner column construction to BuildSpinnerColumn and ATR display row to BuildAtrDisplayRow.
-        // Called from BuildUI() at end of _contentPanel.
-        private void BuildRiskAtrRow(StackPanel root)
-        {
-            _atrRow = new UniformGrid { Columns = 2, Margin = new Thickness(0, 4, 0, 0) };
-            _riskDollarsBox = new TextBox
-            {
-                Text = _maxRiskDollars.ToString("F0"),
-                Width = 55,
-                VerticalContentAlignment = VerticalAlignment.Center,
-            };
-            _riskDollarsBox.SetResourceReference(Control.StyleProperty, "NTTextBoxStyle");
-            _riskDollarsBox.LostFocus += OnRiskTextLostFocus;
-            _atrRow.Children.Add(
-                BuildSpinnerColumn("Risk $", _riskDollarsBox, OnRiskUp, OnRiskDown)
-            );
-            _atrFractionBox = new TextBox
-            {
-                Text = _atrFraction.ToString("F2"),
-                Width = 55,
-                VerticalContentAlignment = VerticalAlignment.Center,
-            };
-            _atrFractionBox.SetResourceReference(Control.StyleProperty, "NTTextBoxStyle");
-            _atrFractionBox.LostFocus += OnAtrFractionTextLostFocus;
-            _atrRow.Children.Add(
-                BuildSpinnerColumn("ATR %", _atrFractionBox, OnAtrFractionUp, OnAtrFractionDown)
-            );
-            root.Children.Add(_atrRow);
-            root.Children.Add(BuildAtrDisplayRow());
-        }
-
         // R4 -- BuildSpinnerColumn: creates a horizontal StackPanel with a label, TextBox, and up/down arrow buttons.
         // CYC=1: straight-line construction. No return null. Private instance.
         private StackPanel BuildSpinnerColumn(
@@ -2834,115 +2782,6 @@ namespace PropTraderTools
             return col;
         }
 
-        // R4 -- BuildAtrDisplayRow: creates the ATR display Border with _atrDisplayLabel TextBlock.
-        // CYC=1: straight-line construction. No return null. Private instance.
-        private Border BuildAtrDisplayRow()
-        {
-            var atrRow = new Border
-            {
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(2),
-                Padding = new Thickness(4, 2, 4, 2),
-                Margin = new Thickness(2),
-            };
-            _atrDisplayLabel = new TextBlock { Text = "ATR=-.-- pts -> stopTicks=-- -> qty=--" };
-            atrRow.Child = _atrDisplayLabel;
-            return atrRow;
-        }
-
-        // B20-LANE-C T5 -- SetAtrText: updates ATR display label from UpdateAtrOverlay via Dispatcher.InvokeAsync.
-        // CYC=2: null guard (1) + Text assignment (2). Runs on UI thread only (caller uses InvokeAsync).
-        // JS-021: no lock. Caller (TradeCopierAddOn.UpdateAtrOverlay) dispatches to UI thread before calling.
-        public void SetAtrText(string display)
-        {
-            if (_atrDisplayLabel == null)
-                return;
-            _atrDisplayLabel.Text = display;
-        }
-
-        // B12 T3 -- OnRiskUp: increment _maxRiskDollars, clamp, push. CYC=1.
-        private void OnRiskUp(object sender, RoutedEventArgs e)
-        {
-            _maxRiskDollars = Math.Max(Math.Min(_maxRiskDollars + 25.0, 1000.0), 10.0); // no Math.Clamp (NT8 .NET 4.8)
-            if (_riskDollarsBox != null)
-                _riskDollarsBox.Text = _maxRiskDollars.ToString("F0");
-            NotifyRiskChanged();
-        }
-
-        // B12 T3 -- OnRiskDown: decrement _maxRiskDollars, clamp, push. CYC=1.
-        private void OnRiskDown(object sender, RoutedEventArgs e)
-        {
-            _maxRiskDollars = Math.Max(Math.Min(_maxRiskDollars - 25.0, 1000.0), 10.0); // no Math.Clamp
-            if (_riskDollarsBox != null)
-                _riskDollarsBox.Text = _maxRiskDollars.ToString("F0");
-            NotifyRiskChanged();
-        }
-
-        // R8: TryParseAndClamp -- shared parse+clamp helper. CCN=2.
-        private static bool TryParseAndClamp(string text, double min, double max, out double result)
-        {
-            if (!double.TryParse(text, out result))
-                return false; // (1) parse guard
-            result = Math.Max(Math.Min(result, max), min);
-            return true;
-        }
-
-        // B12 T3 / R8 -- OnRiskTextLostFocus: parse + clamp + push. CCN=2.
-        private void OnRiskTextLostFocus(object sender, RoutedEventArgs e)
-        {
-            if (!TryParseAndClamp(_riskDollarsBox?.Text, 10.0, 1000.0, out double v))
-                return; // (1)
-            _maxRiskDollars = v;
-            if (_riskDollarsBox != null)
-                _riskDollarsBox.Text = v.ToString("F0"); // (2) normalise display
-            NotifyRiskChanged();
-        }
-
-        // B12 T3 -- OnAtrFractionUp: increment _atrFraction, clamp, push. CYC=1.
-        private void OnAtrFractionUp(object sender, RoutedEventArgs e)
-        {
-            _atrFraction = Math.Max(Math.Min(_atrFraction + 0.05, 3.00), 0.25); // no Math.Clamp
-            if (_atrFractionBox != null)
-                _atrFractionBox.Text = _atrFraction.ToString("F2");
-            NotifyAtrFractionChanged();
-        }
-
-        // B12 T3 -- OnAtrFractionDown: decrement _atrFraction, clamp, push. CYC=1.
-        private void OnAtrFractionDown(object sender, RoutedEventArgs e)
-        {
-            _atrFraction = Math.Max(Math.Min(_atrFraction - 0.05, 3.00), 0.25); // no Math.Clamp
-            if (_atrFractionBox != null)
-                _atrFractionBox.Text = _atrFraction.ToString("F2");
-            NotifyAtrFractionChanged();
-        }
-
-        // B12 T3 / R8 -- OnAtrFractionTextLostFocus: parse + clamp + push. CCN=2.
-        private void OnAtrFractionTextLostFocus(object sender, RoutedEventArgs e)
-        {
-            if (!TryParseAndClamp(_atrFractionBox?.Text, 0.25, 3.00, out double v))
-                return; // (1)
-            _atrFraction = v;
-            if (_atrFractionBox != null)
-                _atrFractionBox.Text = v.ToString("F2"); // (2) normalise display
-            NotifyAtrFractionChanged();
-        }
-
-        // B12 T3 -- NotifyRiskChanged: delegates to CopyEngine.UpdateMaxRisk. CYC=2.
-        private void NotifyRiskChanged()
-        {
-            if (_engine == null)
-                return; // (1)
-            _engine.UpdateMaxRisk(_maxRiskDollars); // (2)
-        }
-
-        // B12 T3 -- NotifyAtrFractionChanged: delegates to CopyEngine.UpdateAtrFraction. CYC=2.
-        private void NotifyAtrFractionChanged()
-        {
-            if (_engine == null)
-                return; // (1)
-            _engine.UpdateAtrFraction(_atrFraction); // (2)
-        }
-
         // BWAVE-CYC T3: extracted helpers for ApplyFeatureFlags / ApplyFeatureFlagTooltips.
 
         // ApplyTrimFlattenFlags: sets IsEnabled on trim/flatten/cancel buttons. CCN=3.
@@ -2965,15 +2804,11 @@ namespace PropTraderTools
                 _mirrorModeBtn.IsEnabled = f.MirrorMode;
         }
 
-        // ApplyRowVisibilityFlags: sets Visibility on click-trader and ATR rows. CCN=4.
+        // ApplyRowVisibilityFlags: sets Visibility on click-trader row. CCN=2.
         private void ApplyRowVisibilityFlags(FeatureFlags f)
         {
             if (_clickTraderRow != null)
                 _clickTraderRow.Visibility = f.ClickTrader
-                    ? System.Windows.Visibility.Visible
-                    : System.Windows.Visibility.Collapsed;
-            if (_atrRow != null)
-                _atrRow.Visibility = f.AtrSizing
                     ? System.Windows.Visibility.Visible
                     : System.Windows.Visibility.Collapsed;
         }

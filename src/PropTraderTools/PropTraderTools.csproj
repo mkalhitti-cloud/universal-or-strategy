@@ -105,7 +105,6 @@
   <ItemGroup>
     <Compile Include="FeatureFlags.cs" />
     <Compile Include="LicenseClient.cs" />
-    <Compile Include="AtrSizingEngine.cs" />
     <Compile Include="CopyEngine.cs" />
     <Compile Include="PttTickMath.cs" />
     <!-- BROKEN-PREEXISTING: CopyEngineTests.cs has 70+ API mismatch errors from prior sessions.

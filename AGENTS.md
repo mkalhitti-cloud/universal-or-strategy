@@ -21,6 +21,20 @@ Welcome, Agent. You are operating within the **PTT Trade Copier (PropTraderTools
 - **Lock-Free Actor Pattern**: Legacy `lock(stateLock)` blocks are **STRICTLY BANNED**. All state mutations must use the FSM/Actor `Enqueue` model or atomic primitives.
 - **ASCII-Only Compliance**: NEVER use Unicode, emoji, or curly quotes in C# string literals.
 - **Hard-Link Integrity**: Every `src/` modification MUST be followed by `powershell -File .\scripts\ptt-sync.ps1` to re-synchronize NinjaTrader hard links.
+
+- **Ph4b Deletion Audit (MANDATORY)**: Before VERIFY_PASS, engineer MUST run:
+  `git diff HEAD~1 HEAD -- src/PropTraderTools/CopyEngine.cs | Select-String "^-    (private|internal|public)"`
+  Every deleted symbol must have an authorising DW-card in the ticket. Zero tolerance.
+
+- **Single-Hunk Ban**: `(git show HEAD -- CopyEngine.cs | Select-String "^@@").Count -eq 1` means
+  a full-file replace was committed. This is ALWAYS a VERIFY_FAIL. Requires Director re-review.
+
+- **Guardian Symbol Script**: After every .cs edit involving CopyEngine.cs, run:
+  `powershell -File .\scripts\verify_critical_symbols.ps1`
+  PASS required before VERIFY_PASS may be issued.
+
+- **Commit Size Gate**: >300 changed lines on CopyEngine.cs requires Director explicit approval
+  before Ph4b may issue VERIFY_PASS.
 
 ## 3. Standard Commands
 

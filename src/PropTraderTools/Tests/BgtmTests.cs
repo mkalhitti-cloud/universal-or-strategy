@@ -65,7 +65,6 @@ namespace PropTraderTools.Tests
             Assert.True(f.MultiRule);
             Assert.True(f.TrimFlatten);
             Assert.True(f.BreakEven);
-            Assert.False(f.AtrSizing);
         }
 
         [Fact]
@@ -110,7 +109,6 @@ namespace PropTraderTools.Tests
             Assert.False(f.MultiRule);
             Assert.False(f.TrimFlatten);
             Assert.False(f.BreakEven);
-            Assert.False(f.AtrSizing);
             Assert.False(f.ClickTrader);
             Assert.False(f.MirrorMode);
             Assert.False(f.QxGlobalExit);
@@ -123,7 +121,6 @@ namespace PropTraderTools.Tests
             Assert.True(f.MultiRule);
             Assert.True(f.TrimFlatten);
             Assert.True(f.BreakEven);
-            Assert.False(f.AtrSizing);
             Assert.False(f.ClickTrader);
             Assert.False(f.MirrorMode);
             Assert.False(f.QxGlobalExit);
@@ -136,7 +133,6 @@ namespace PropTraderTools.Tests
             Assert.True(f.MultiRule);
             Assert.True(f.TrimFlatten);
             Assert.True(f.BreakEven);
-            Assert.True(f.AtrSizing);
             Assert.True(f.ClickTrader);
             Assert.True(f.MirrorMode);
             Assert.True(f.QxGlobalExit);
@@ -149,7 +145,6 @@ namespace PropTraderTools.Tests
             Assert.True(f.MultiRule);
             Assert.False(f.TrimFlatten);
             Assert.False(f.BreakEven);
-            Assert.False(f.AtrSizing);
             Assert.False(f.ClickTrader);
             Assert.False(f.MirrorMode);
             Assert.False(f.QxGlobalExit);
@@ -163,7 +158,6 @@ namespace PropTraderTools.Tests
             Assert.True(f.MultiRule);
             Assert.True(f.TrimFlatten);
             Assert.True(f.BreakEven);
-            Assert.False(f.AtrSizing);
             Assert.False(f.ClickTrader);
             Assert.False(f.MirrorMode);
             Assert.False(f.QxGlobalExit);

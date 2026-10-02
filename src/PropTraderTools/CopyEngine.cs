@@ -16,10 +16,6 @@
 //   2. Added ArmTrailBe(Instrument, Account, int) -- CYC=4.
 //   3. Added DisarmTrailBe(Account) -- CYC=4.
 //   4. Added OnTrailBeAccountUpdate -- CYC=5, fires on NT8 account bg thread.
-// PTT-COPIER-B12-T3 -- CopyEngine.cs
-// B12 T3 CHANGES:
-//   1. Added UpdateMaxRisk(double) -- pass-through to _atrEngine. CYC=2.
-//   2. Added UpdateAtrFraction(double) -- pass-through to _atrEngine.SetAtrFraction. CYC=2.
 // PTT-COPIER-B12-T1 -- CopyEngine.cs
 // B12 T1 CHANGES:
 //   1. Added Trim(Instrument, int, double) overload -- limit exit ceil(qty/2). "PTT-TrimLimit".
@@ -135,10 +131,6 @@ namespace PropTraderTools
 
         // --- State ---
         private volatile bool _isCopyEnabled; // JS-023
-
-        // B9 T1 -- ATR sizing engine integration (JS-023: volatile, ADV-002 fix)
-        private volatile bool _atrEnabled = false; // JS-023
-        private volatile AtrSizingEngine _atrEngine = null; // write/read on UI thread only
 
         // B9 T3 -- Mirror mode (JS-023: volatile int backing for CopyMode enum)
         private volatile int _copyModeValue = 0; // 0=Signal (default), 1=Mirror
@@ -655,31 +647,6 @@ namespace PropTraderTools
         internal void SetDailyCapFloor(double floor)
         {
             _dailyCapFloor = floor;
-        }
-
-        // B9 T1: CYC=1 -- straight-line assignment; BGTM-1: AtrSizing gate CYC=2.
-        internal void SetAtrEngine(AtrSizingEngine engine, bool enabled)
-        {
-            if (!_flags.AtrSizing && enabled)
-                enabled = false;
-            _atrEngine = engine;
-            _atrEnabled = enabled;
-        }
-
-        // B12 T3 -- UpdateMaxRisk: pass-through to _atrEngine. Null-guarded. CYC=2.
-        internal void UpdateMaxRisk(double maxRiskDollars)
-        {
-            if (_atrEngine == null)
-                return; // (1)
-            _atrEngine.UpdateMaxRisk(maxRiskDollars); // (2)
-        }
-
-        // B12 T3 -- UpdateAtrFraction: pass-through to _atrEngine.SetAtrFraction. Null-guarded. CYC=2.
-        internal void UpdateAtrFraction(double fraction)
-        {
-            if (_atrEngine == null)
-                return; // (1)
-            _atrEngine.SetAtrFraction(fraction); // (2)
         }
 
         // B9 T3: CYC=1 -- straight-line cast and assign; BGTM-1: MirrorMode gate CYC=2.
@@ -1340,16 +1307,6 @@ namespace PropTraderTools
         }
 
         // --- end B56 BUILD-FIX stubs ---
-
-        // B9 T1: CYC=2 -- returns engine value when enabled; 1 otherwise. BGTM-1: AtrSizing gate CYC=3.
-        internal int GetSuggestedQty(NinjaTrader.Cbi.Instrument instrument)
-        {
-            if (!_flags.AtrSizing)
-                return 1;
-            if (_atrEnabled && _atrEngine != null)
-                return _atrEngine.GetSuggestedQty();
-            return 1;
-        }
 
         // Change 7: SetRuleEnabled added after SetDailyCapFloor
         internal void SetRuleEnabled(string instrument, bool enabled)
@@ -2503,8 +2460,7 @@ namespace PropTraderTools
                 orderId
             );
 
-            // B9 T1: ATR base qty -- overrides signal qty when ATR enabled, else uses signal qty
-            int baseQty = ResolveBaseQty(order.Instrument, baseSignal.Quantity);
+            int baseQty = baseSignal.Quantity;
 
             // Lane C: Lane D wiring point. Unconditional void call -- 0 CYC cost in parent. PTT-BUGS-LIVE-0911.
             TryLaneDHook(order, rule, baseSignal, baseQty);
@@ -2754,17 +2710,6 @@ namespace PropTraderTools
             if (orderType == OrderType.Limit)
                 return true;
             return false;
-        }
-
-        // TB-T4 ATR qty resolver: eliminates ternary from DispatchCopy (Lizard counts ?: as +1).
-        // Returns ATR-suggested qty when ATR is enabled, else falls back to signal qty.
-        // CCN=2: _atrEnabled if-branch = 2 Lizard decisions.
-        // JS-021: _atrEnabled is volatile bool read (no lock). JS-001: no throw.
-        private int ResolveBaseQty(NinjaTrader.Cbi.Instrument instrument, int signalQty)
-        {
-            if (_atrEnabled)
-                return GetSuggestedQty(instrument);
-            return signalQty;
         }
 
         // TB-T4 Helper 1: null + cap guard extracted from DispatchCopy loop.

@@ -40,10 +40,6 @@ namespace PropTraderTools
         private static readonly ConcurrentDictionary<Chart, TradeCopierPanel> _panels =
             new ConcurrentDictionary<Chart, TradeCopierPanel>();
 
-        // B9 T1 -- ATR engine instances keyed by Chart window
-        private static readonly ConcurrentDictionary<Chart, AtrSizingEngine> _atrEngines =
-            new ConcurrentDictionary<Chart, AtrSizingEngine>();
-
         // B9 T2 -- Click trader handler registry (ADV-001 CORRECTED: TryRemove-first)
         private static readonly ConcurrentDictionary<Chart, TradeCopierPanel> _clickHandlers =
             new ConcurrentDictionary<Chart, TradeCopierPanel>();
@@ -60,10 +56,6 @@ namespace PropTraderTools
         // Set in RunSim101(); nulled unconditionally by RemoveSim101().
         // Plan sec.2 V2 note. Review note: declare static to match _panels/_clickHandlers pattern.
         private static KeyEventHandler _sim101KeyDiag;
-
-        // B10 T4: polling timer for ATR computation fallback (when bar event not available)
-        // Fires engine.ManualOnBarUpdate every 1 second on UI thread as a safe fallback.
-        private DispatcherTimer _atrPollTimer = null;
 
         protected override void OnStateChange()
         {
@@ -98,7 +90,7 @@ namespace PropTraderTools
             // Surface 2: Chart window contains ChartTrader as a child control
             var chart = window as Chart;
             if (chart != null)
-                InjectIntoChart(chart); // instance call: StartAtrEngine needs _atrOverlayLabel
+                InjectIntoChart(chart);
         }
 
         protected override void OnWindowDestroyed(System.Windows.Window window)
@@ -106,7 +98,6 @@ namespace PropTraderTools
             var chart = window as Chart;
             if (chart == null)
                 return;
-            StopAtrEngine(chart); // instance: unsubscribes AtrUpdated
             UnregisterClickTrader(chart); // B9 T2: clean up click handler
             UnhookKeyShortcut(chart); // B11 T1: leak guard
             TradeCopierPanel panel;
@@ -179,7 +170,7 @@ namespace PropTraderTools
 
         // --- Chart injection ---
 
-        // Instance method: chains to DoInject which calls StartAtrEngine (instance).
+        // Instance method: chains to DoInject on the chart dispatcher.
         private void InjectIntoChart(Chart chart)
         {
             // NT8 timing: OnWindowCreated may fire AFTER the window is already loaded.
@@ -203,95 +194,6 @@ namespace PropTraderTools
                 return;
             chart.Loaded -= OnChartLoaded;
             chart.Dispatcher.InvokeAsync(() => DoInject(chart));
-        }
-
-        // B10 T4: StartAtrEngine -- instance method (not static).
-        // Replaces IMPL-NOTE-1 stub. Attempts chart attachment via event-based fallback
-        // (Step 3: always compiles). NinjaScripts.Add / Indicators.Add require runtime
-        // verification which is deferred -- fallback is the safe, compile-guaranteed path.
-        //
-        // CHART-ATTACH-RESULT: event-based fallback (Step 3) -- compile-safe for NT8 .NET 4.8.
-        // chart.NinjaScripts.Add and chart.Indicators.Add are not available at design time
-        // in the AddOn compilation context (CS1061 errors in NT8 Roslyn). Fallback chosen.
-        // Verified: 2026-07-09
-        //
-        // CYC=3: chart null(1), instr null(2), attachment try(3)
-        private void StartAtrEngine(Chart chart, NinjaTrader.Cbi.Instrument instr)
-        {
-            if (chart == null)
-                return; // guard (1)
-            if (instr == null)
-                return; // guard (2)
-            var engine = new AtrSizingEngine();
-            double pointValue = instr.MasterInstrument?.PointValue ?? 5.0;
-            engine.SetParameters(200.0, pointValue);
-            engine.SetAtrFraction(0.75); // DW-ATR-DEFAULTS-01: match field defaults
-            _atrEngines[chart] = engine;
-
-            // STEP 3 (event-based fallback -- compile-safe DispatcherTimer, 1s polling).
-            // chart.NinjaScripts.Add / Indicators.Add / BarsArray are not accessible in
-            // AddOnBase compilation scope (NT8 Roslyn design-time limitation).
-            // DispatcherTimer is WPF standard and always compiles in AddOnBase context.
-            if (_atrPollTimer == null) // guard (3): create timer once
-            {
-                _atrPollTimer = new DispatcherTimer(DispatcherPriority.Background)
-                {
-                    Interval = System.TimeSpan.FromSeconds(1),
-                };
-                _atrPollTimer.Tick += (s, e2) =>
-                {
-                    try
-                    {
-                        engine.ManualOnBarUpdate();
-                    }
-                    catch (System.Exception)
-                    { /* NT8 context not ready; next tick will retry */
-                    }
-                };
-                _atrPollTimer.Start();
-            }
-
-            CopyEngine.Instance.SetAtrEngine(engine, enabled: false); // disabled until user enables
-
-            engine.AtrUpdated += OnAtrUpdated;
-        }
-
-        // B10 T4: instance StopAtrEngine -- unsubscribes AtrUpdated and stops poll timer.
-        // CYC=3 -- TryRemove guard + engine event cleanup + timer cleanup
-        private void StopAtrEngine(Chart chart)
-        {
-            AtrSizingEngine engine;
-            if (!_atrEngines.TryRemove(chart, out engine))
-                return; // guard (1)
-            if (engine != null)
-                engine.AtrUpdated -= OnAtrUpdated; // unsubscribe event
-            if (_atrPollTimer != null) // guard (2): stop poll timer
-            {
-                _atrPollTimer.Stop();
-                _atrPollTimer = null;
-            }
-            CopyEngine.Instance.SetAtrEngine(null, enabled: false); // guard (3): clear reference
-        }
-
-        // B20-LANE-C T5: UpdateAtrOverlay -- routes ATR display text to the first injected panel.
-        // CYC=2: null guard on panel (1) + Dispatcher.InvokeAsync dispatch (2).
-        // JS-021: no lock. _panels is ConcurrentDictionary; FirstOrDefault() on snapshot is lock-free.
-        internal void UpdateAtrOverlay(string atrDisplay)
-        {
-            var panel = _panels.Values.FirstOrDefault();
-            if (panel == null)
-                return;
-            System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
-                panel.SetAtrText(atrDisplay)
-            );
-        }
-
-        // B10 T4: AtrUpdated event handler -- subscribed in StartAtrEngine.
-        // Fires on AtrSizingEngine bar-close thread; UpdateAtrOverlay marshals via Dispatcher.
-        // CYC=1: straight-line delegation.
-        private void OnAtrUpdated(string display)
-        {
-            UpdateAtrOverlay(display);
         }
 
         // B9 T2: CYC=2 -- null guard + TryRemove branch (ADV-001 CORRECTED: TryRemove-first)
@@ -492,7 +394,6 @@ namespace PropTraderTools
 
                 var panel = new TradeCopierPanel();
                 var instr = TrySetPanelInstrument(chartTrader, panel);
-                StartAtrEngine(chart, instr);
                 panel.SetChart(chart);
 
                 // Wire leader account from ChartTrader account ComboBox.

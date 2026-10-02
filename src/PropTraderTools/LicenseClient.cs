@@ -177,8 +177,6 @@ namespace PropTraderTools
                 list.Add("trim_flatten");
             if (f.BreakEven)
                 list.Add("break_even");
-            if (f.AtrSizing)
-                list.Add("atr_sizing");
             if (f.ClickTrader)
                 list.Add("click_trader");
             if (f.MirrorMode)
@@ -188,10 +186,10 @@ namespace PropTraderTools
             return list;
         }
 
-        // CYC=3. Returns "ELITE"/"PRO"/"STARTER".
+        // CYC=2. Returns "ELITE"/"PRO"/"STARTER".
         private static string InferTierName(FeatureFlags f)
         {
-            if (f.AtrSizing)
+            if (f.MirrorMode)
                 return "ELITE"; // branch 1
             if (f.MultiRule)
                 return "PRO"; // branch 2

@@ -474,10 +474,10 @@ namespace PropTraderTools
             _licenseStatusText.Text = GetStatusText(f);
         }
 
-        // BGTM-1: Return tier name string for license status display. CYC=3.
+        // BGTM-1: Return tier name string for license status display. CYC=2.
         private static string GetStatusText(FeatureFlags f)
         {
-            if (f.AtrSizing)
+            if (f.MirrorMode)
                 return "ELITE";
             if (f.MultiRule)
                 return "PRO";
