@@ -209,6 +209,9 @@ namespace PropTraderTools
         // B9 T2 -- Click trader (JS-023: volatile cross-thread fields)
         private volatile bool _clickArmed = false;
         private volatile bool _clickBuy = true; // true=Buy, false=SellShort
+        // B185 DW-B184-02: click-trader default qty. Promotes literal 1 to a configurable field.
+        // Range: 1-99. Default=1 (preserves existing behavior). No UI change in B185.
+        private int _clickQty = 1;
         private Chart _currentChart = null; // single-writer UI thread
         private Button _armBtn = null;
         private ToggleButton _buyToggle = null;
@@ -1240,7 +1243,7 @@ namespace PropTraderTools
         // JS-021: no lock. JS-033: synchronous void. JS-001: no throw. ASCII-only.
         private void OnGlobalBeClick(object sender, RoutedEventArgs e)
         {
-            PttBeSwapAll.Execute(CopyEngine.Instance.GlobalBe.GlobalBeBuffer);
+            PttBeSwapAll.Execute(CopyEngine.Instance.GlobalBe.GlobalBeBuffer, _instrument);
         }
 
         // B39: OnGlobalBeUp -- increment shared buffer; label refresh handled by OnGlobalBeBufferChanged broadcast.
@@ -2512,7 +2515,7 @@ namespace PropTraderTools
             if (price <= 0.0)
                 return;
             bool isBuy = _clickBuy; // volatile read
-            int qty = 1;
+            int qty = _clickQty;
             var action = isBuy ? OrderAction.Buy : OrderAction.SellShort;
 
             try

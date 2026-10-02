@@ -3,7 +3,8 @@
 // Replaces PttGlobalBreakEven.Execute(int) deferred-arm path.
 // Pattern: identical to PttGlobalQuickExit.Execute() loop structure.
 // DW-B182-02: snapshot stop BEFORE CancelQxBrackets in ExecuteOne (QX-pattern).
-// CYC=6: flag-gate(1), acc-loop-foreach(2), follower-skip(3), &&-in-follower-check(4), flat-skip(5), flat-skip-||null(6).
+// Description: Instrument-scoped BE swap for all accounts.
+// CYC=7: combined-gate-||(1), acc-loop-foreach(2), follower-if(3), follower-&&(4), pos-foreach(5), flat-skip-||(6), instr-filter(7).
 // JS-021: no lock. JS-001: no throw. JS-002: void. JS-033: synchronous void. ASCII-only.
 
 using System;
@@ -13,28 +14,30 @@ namespace PropTraderTools
 {
     internal static class PttBeSwapAll
     {
-        internal static void Execute(int bufferTicks)
+        internal static void Execute(int bufferTicks, Instrument instrument)
         {
-            if (!CopyEngine.Instance.Flags.BreakEven)         // (1) feature gate
+            if (!CopyEngine.Instance.Flags.BreakEven || instrument == null)  // (1) combined gate
             {
                 NinjaTrader.Code.Output.Process(
-                    "[BE-ALL] Blocked: Break Even requires Pro tier",
+                    "[BE-ALL] Blocked: BreakEven=false or instrument null",
                     NinjaTrader.NinjaScript.PrintTo.OutputTab1);
                 return;
             }
             NinjaTrader.Code.Output.Process(
-                "[BE-ALL] PttBeSwapAll: firing buf=" + bufferTicks + "t",
+                "[BE-ALL] PttBeSwapAll: instr=" + instrument.FullName + " buf=" + bufferTicks + "t",
                 NinjaTrader.NinjaScript.PrintTo.OutputTab1);
             var engine = CopyEngine.Instance;
             foreach (Account acc in Account.All)               // (2)
             {
-                if (engine != null && engine.IsFollowerAccount(acc))
-                    continue;                                  // (3)
-                foreach (Position pos in acc.Positions)
+                if (engine != null && engine.IsFollowerAccount(acc))  // (3)(4)
+                    continue;
+                foreach (Position pos in acc.Positions)        // (5)
                 {
-                    if (pos == null || pos.Quantity == 0)
-                        continue;                              // (4) flat skip
-                    ExecuteOne(acc, pos, bufferTicks);         // (5)
+                    if (pos.Instrument?.FullName != instrument.FullName)  // (7) instrument filter
+                        continue;
+                    if (pos == null || pos.Quantity == 0)      // (6) flat skip
+                        continue;
+                    ExecuteOne(acc, pos, bufferTicks);
                 }
             }
         }

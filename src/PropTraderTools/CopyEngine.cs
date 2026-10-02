@@ -396,6 +396,10 @@ namespace PropTraderTools
         // Key: orderId + "#" + accName (ASCII-only). Value: 0 (unused placeholder).
         // ConcurrentDictionary: no lock (JS-021). TryAdd: atomic. ContainsKey: lock-free O(1).
         // Growth: O(followers * dispatches/session). ~60 bytes/entry. No cleanup required per session.
+        // B185 DW-B183-04: eviction threshold for _laneDDispatched dedup guard.
+        // At 10000 entries (~600KB), Clear() resets the guard. Worst case: single duplicate
+        // Lane D dispatch per 10000 entries (idempotent in NT8 -- acceptable).
+        private const int LaneDEvictThreshold = 10000;
         private readonly ConcurrentDictionary<string, byte> _laneDDispatched =
             new ConcurrentDictionary<string, byte>(StringComparer.Ordinal);
 
@@ -2469,10 +2473,7 @@ namespace PropTraderTools
             // TryGetValue is O(1) and allocation-free on ConcurrentDictionary.
             OrderAction currentAction = order.OrderAction;
             var instr = order.Instrument;
-            bool hasLastDirection = _lastLeaderDirection.TryGetValue(
-                instr.FullName,
-                out OrderAction lastAction
-            );
+            bool hasLastDirection = TryGetLastDirection(instr.FullName, out OrderAction lastAction);
 
             // B8 T1: index-tracking loop applies per-follower multiplier
             int dispatched = 0;
@@ -2507,8 +2508,19 @@ namespace PropTraderTools
 
             // B119: DW-B128 -- record direction dispatched for this instrument.
             // Write happens AFTER the loop so all followers in this dispatch see the same lastAction.
-            _lastLeaderDirection[instr.FullName] = currentAction;
+            RecordLastDirection(instr.FullName, currentAction);
         }
+
+        // CYC=1 (straight-line expression body). Lock-free: ConcurrentDictionary.TryGetValue is atomic.
+        // JS-021: no lock. JS-001: no throw. JS-002: returns bool (never null). JS-081: ASCII-only.
+        private bool TryGetLastDirection(string instrFullName, out OrderAction lastAction)
+            => _lastLeaderDirection.TryGetValue(instrFullName, out lastAction);
+
+        // CYC=1 (straight-line expression body). Lock-free: ConcurrentDictionary indexer write is atomic.
+        // JS-021: no lock. JS-001: no throw. JS-081: ASCII-only.
+        private void RecordLastDirection(string instrFullName, OrderAction action)
+            => _lastLeaderDirection[instrFullName] = action;
+
 
         // Lane D: ATM dispatch hook. Called once per confirmed leader entry signal after all 5
         // DispatchCopy gates. Handles Clone-mode Named followers only; all other modes are no-ops.
@@ -2581,8 +2593,14 @@ namespace PropTraderTools
             // Branch (C): dispatch ATM entry; mark dedup only on success
             bool ok = SendCopyWithAtm(acc, order.Instrument, in scaledSig, namedMode);
             if (ok)
+            {
                 // Key: orderId + "#" + accName. Separator "#" is ASCII and cannot appear in NT8 account names.
                 _laneDDispatched.TryAdd(baseSignal.OrderId + "#" + acc.Name, 0);
+                // Branch (D): B185 DW-B183-04: evict when guard grows beyond session threshold.
+                // Clear() is atomic on ConcurrentDictionary (JS-021 compliant).
+                if (_laneDDispatched.Count > LaneDEvictThreshold)
+                    _laneDDispatched.Clear();
+            }
             return ok;
         }
 

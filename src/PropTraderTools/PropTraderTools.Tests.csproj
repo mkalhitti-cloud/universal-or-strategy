@@ -12,7 +12,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="AtrSizingEngine.cs" />
     <Compile Include="Core\PttContracts.cs" />
     <Compile Include="CopyEngine.cs" />
     <Compile Include="PttTickMath.cs" />
