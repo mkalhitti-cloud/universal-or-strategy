@@ -103,23 +103,19 @@ namespace PropTraderTools
         /// Execute (forced 2-target): global Quick Exit with caller-supplied target list.
         /// Skips SnapshotTargetOrders -- forcedTargets are used directly.
         /// DW-B133: QAll2t button path. Logs "[PTT-QX-2T-ALL]" to distinguish from no-arg path.
-        /// CYC=8: flag-guard(1), null/empty-guard(2), acc-loop(3), follower-skip(4),
-        ///        pos-loop(5), null/flat-continue(6), flatten-guard(7), ExecuteFollowers-call(8).
+        /// CYC=8: combined-gate(1), null/empty-guard(2), acc-loop(3), follower-skip(4),
+        ///        pos-loop(5), null/flat/instr-continue(6), flatten-guard(7), ExecuteFollowers-call(8).
+        /// B186 DW-B186-QX-ALL-SCOPE-02: instrument scope applied. Filter folded into branch (6).
+        /// Combined gate: !QxGlobalExit || instrument == null -> early return (silent).
         /// JS-021: no lock. JS-001: no throw. JS-002: early return not null.
         /// JS-033: synchronous void. ASCII-only.
         /// </summary>
         internal void Execute(
-            System.Collections.Generic.List<(double Price, int Qty)> forcedTargets
+            System.Collections.Generic.List<(double Price, int Qty)> forcedTargets,
+            Instrument instrument
         )
         {
-            if (!CopyEngine.Instance.Flags.QxGlobalExit)
-            {
-                NinjaTrader.Code.Output.Process(
-                    "[PTT-QX-2T-ALL] Blocked: Global Quick Exit requires Elite tier",
-                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                );
-                return;
-            }
+            if (!CopyEngine.Instance.Flags.QxGlobalExit || instrument == null) return;
             if (forcedTargets == null || forcedTargets.Count < 2) // (2)
             {
                 NinjaTrader.Code.Output.Process(
@@ -139,8 +135,8 @@ namespace PropTraderTools
                     continue; // (4)
                 foreach (Position pos in acc.Positions) // (5)
                 {
-                    if (pos == null || pos.Quantity == 0)
-                        continue; // (6)
+                    if (pos == null || pos.Quantity == 0 || pos.Instrument?.FullName != instrument.FullName)
+                        continue; // (6) extended -- instrument filter folded in
                     int _beCancelCount = CancelPttBeOrders(acc, pos.Instrument);
                     WaitForPttBeCancelled(acc, pos.Instrument, _beCancelCount, 1000);
                     double leaderStop = PttQuickExit.SnapshotStopPrice(acc, pos.Instrument);
