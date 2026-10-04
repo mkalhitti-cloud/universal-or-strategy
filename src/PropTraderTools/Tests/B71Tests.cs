@@ -126,11 +126,12 @@ namespace PropTraderTools
         [Fact]
         public void T_B71_08_PttGlobalQuickExit_Execute_EmptyAccountAll_NoException()
         {
-            // Assert: Execute() with empty Account.All completes without exception.
-            // Account.All is not populated in NT8 test context -- the foreach body never executes.
+            // Assert: Execute(null) with empty Account.All completes without exception.
+            // B186 DW-B186-QX-ALL-SCOPE-01: Execute() -> Execute(Instrument). Null instrument triggers
+            // combined gate (!QxGlobalExit || instrument == null) -> early return, no exception.
             _engine.SetEnabled(false);
             var gqx = new PttGlobalQuickExit();
-            var ex = Record.Exception(() => gqx.Execute());
+            var ex = Record.Exception(() => gqx.Execute((NinjaTrader.Cbi.Instrument)null));
             Assert.Null(ex);
         }
 
