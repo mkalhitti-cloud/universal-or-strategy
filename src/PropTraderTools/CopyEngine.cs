@@ -265,6 +265,11 @@ namespace PropTraderTools
             }
         }
 
+        // B27 -- Pending BE slot dictionary (DW-B27-01: replaces 4 singleton fields).
+        // Key = account.Name. JS-021: TryGetValue/TryRemove/AddOrUpdate are lock-free.
+        private readonly ConcurrentDictionary<string, PendingBeSlot> _pendingBeSlots =
+            new ConcurrentDictionary<string, PendingBeSlot>();
+
         // B27 -- Trail BE slot dictionary (DW-B27-01: replaces 5 singleton fields).
         // LastPnlBits lives in _trailBeLastPnlBits (separate dict) because struct values
         // in ConcurrentDictionary are value types -- Interlocked CAS requires a ref to a
@@ -273,11 +278,6 @@ namespace PropTraderTools
             new ConcurrentDictionary<string, TrailBeSlot>();
         private readonly ConcurrentDictionary<string, long> _trailBeLastPnlBits =
             new ConcurrentDictionary<string, long>();
-
-        // B27 -- Pending BE slot dictionary (DW-B27-01: replaces 4 singleton fields).
-        // Key = account.Name. JS-021: TryGetValue/TryRemove/AddOrUpdate are lock-free.
-        private readonly ConcurrentDictionary<string, PendingBeSlot> _pendingBeSlots =
-            new ConcurrentDictionary<string, PendingBeSlot>();
 
         // DW-B79-06: PendingFollowerBeSlot -- event-driven deferred BE for QX->BE-ALL race fix.
         // Registered by MoveStopToBreakEven when targets=0 on a follower account (first call only).
