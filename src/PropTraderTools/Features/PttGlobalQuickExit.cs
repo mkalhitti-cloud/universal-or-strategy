@@ -20,8 +20,11 @@ namespace PropTraderTools
     {
         /// <summary>
         /// Execute: all-accounts Quick Exit bracket swap, skipping follower accounts in the leader loop.
-        /// CYC=7: acc loop(1), follower guard(2), pos loop(3), null/flat continue(4),
-        ///        DW-B115-DIAG for-loop(5), NeedsLeaderFallbackFlatten guard(6), delegate via ExecuteFollowers(7).
+        /// CYC=8: combined gate(1), acc loop(2), follower guard(3), pos loop(4),
+        ///        null/flat continue(5), instrument filter(6), NeedsLeaderFallbackFlatten guard(7),
+        ///        delegate via ExecuteFollowers(8).
+        /// B186 DW-B186-QX-ALL-SCOPE-01: instrument scope applied. Filter skips positions not on _instrument.
+        /// Combined gate: !QxGlobalExit || instrument == null -> early return (silent).
         /// HOTFIX-QUICK-T3-01: snapshot target orders before cancel to determine N (targetCount).
         /// Pass targets snapshot to ExecuteOne for N-bracket submission.
         /// DW-B47-BE-FOLLOWER-SCOPE: follower accounts skipped in leader loop via IsFollowerAccount.
@@ -33,29 +36,22 @@ namespace PropTraderTools
         ///   After extraction CYC <= 8 (flatten guard replaces follower block in Execute budget).
         /// JS-021: no lock. NT8-021: Account.All safe -- called from UI thread after Loaded.
         /// </summary>
-        internal void Execute()
+        internal void Execute(Instrument instrument)
         {
-            if (!CopyEngine.Instance.Flags.QxGlobalExit)
-            {
-                NinjaTrader.Code.Output.Process(
-                    "[PTT-QX-ALL] Blocked: Global Quick Exit requires Elite tier",
-                    NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                );
-                return;
-            }
+            if (!CopyEngine.Instance.Flags.QxGlobalExit || instrument == null) return;
             NinjaTrader.Code.Output.Process(
-                "[PTT-QX-ALL] GlobalQuickExit fired",
-                NinjaTrader.NinjaScript.PrintTo.OutputTab1
-            );
+                "[PTT-QX-ALL] GlobalQuickExit fired instr=" + instrument.FullName,
+                NinjaTrader.NinjaScript.PrintTo.OutputTab1);
             var engine = CopyEngine.Instance; // capture once
-            foreach (Account acc in Account.All) // (1)
+            foreach (Account acc in Account.All) // (2)
             {
                 if (engine != null && engine.IsFollowerAccount(acc))
-                    continue; // (2) follower skip
-                foreach (Position pos in acc.Positions) // (3)
+                    continue; // (3) follower skip
+                foreach (Position pos in acc.Positions) // (4)
                 {
                     if (pos == null || pos.Quantity == 0)
-                        continue; // (4)
+                        continue; // (5)
+                    if (pos.Instrument?.FullName != instrument.FullName) continue; // (6) B186 DW-B186-QX-ALL-SCOPE-01
                     // B118 DW-B126: cancel PTT-BE-* BEFORE snapshot to eliminate BE/QX race.
                     int _beCancelCount = CancelPttBeOrders(acc, pos.Instrument);
                     WaitForPttBeCancelled(acc, pos.Instrument, _beCancelCount, 1000);
@@ -82,7 +78,7 @@ namespace PropTraderTools
                     LogLeaderDiag(acc, targets, pos.Quantity);
                     // B120 DW-B129: flatten guard -- when B118 cancelled BE orders AND
                     // snapshot is empty AND leader has open position, flatten at market.
-                    if (NeedsLeaderFallbackFlatten(_beCancelCount, targets.Count, pos.Quantity)) // (6)
+                    if (NeedsLeaderFallbackFlatten(_beCancelCount, targets.Count, pos.Quantity)) // (7)
                     {
                         NinjaTrader.Code.Output.Process(
                             "[PTT-QX-FLATTEN] leader fallback flatten: "
@@ -98,7 +94,7 @@ namespace PropTraderTools
                     }
                     ExecuteOne(acc, pos.Instrument, ticks.t1, targets);
                     // B71 DW-B71-04: place PTT-QX on every follower that has an open position
-                    ExecuteFollowers(acc, pos, targets, ticks, leaderStop); // (7)
+                    ExecuteFollowers(acc, pos, targets, ticks, leaderStop); // (8)
                 }
             }
         }
