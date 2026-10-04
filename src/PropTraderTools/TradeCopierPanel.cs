@@ -1611,10 +1611,11 @@ namespace PropTraderTools
 
         // B41: OnQuickAllClick -- fires all-accounts Quick Exit bracket swap. CYC=1.
         // JS-033: synchronous void event handler. JS-021: no lock.
+        // B186-T3: pass _instrument so Execute(Instrument) combined gate can scope by instrument.
         private void OnQuickAllClick(object sender, RoutedEventArgs e)
         {
             var gqx = new PttGlobalQuickExit();
-            gqx.Execute();
+            gqx.Execute(_instrument);
         }
 
         // B41: OnQuickUp -- increment T1 by 1t, T2 by 2t (T2 = T1 x 2 invariant). CYC=2.
@@ -1698,12 +1699,13 @@ namespace PropTraderTools
         // B123/R9: OnInstrQAll2tClick -- fires global 2-target quick exit on all followers.
         // CYC=2: (1)TryResolve2TargetContext false-path, (2)Execute call.
         // JS-021: no lock. ASCII-only.
+        // B186-T3: pass _instrument so Execute(List, Instrument) combined gate can scope by instrument.
         private void OnInstrQAll2tClick(object sender, RoutedEventArgs e)
         {
             if (!TryResolve2TargetContext(out int qty, out var targets))
                 return; // (1)
             LogQxTwoTarget("[PTT-QX-2T-ALL]", qty, targets);
-            new PttGlobalQuickExit().Execute(targets); // (2)
+            new PttGlobalQuickExit().Execute(targets, _instrument); // (2)
         }
 
         // B47 T5-B: OnQuickAllUp -- increment singleton; label refresh via broadcast. CYC=1.
