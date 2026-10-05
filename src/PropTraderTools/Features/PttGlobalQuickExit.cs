@@ -28,7 +28,7 @@ namespace PropTraderTools
         /// HOTFIX-QUICK-T3-01: snapshot target orders before cancel to determine N (targetCount).
         /// Pass targets snapshot to ExecuteOne for N-bracket submission.
         /// DW-B47-BE-FOLLOWER-SCOPE: follower accounts skipped in leader loop via IsFollowerAccount.
-        /// B78 DW-B63-01: capture leaderStop BEFORE calling ExecuteOne (which cancels leader brackets).
+        /// B78 DW-B63-01 + DW-B187: capture leaderStop BEFORE CancelPttBeOrders.
         ///   Pass leaderStop + targets.Count to follower ExecuteOne so follower resolves the correct
         ///   stop price and target count even when its own ATM brackets have not yet arrived.
         /// B120 DW-B129: NeedsLeaderFallbackFlatten check after SnapshotTargetOrders.
@@ -52,13 +52,15 @@ namespace PropTraderTools
                     if (pos == null || pos.Quantity == 0)
                         continue; // (5)
                     if (pos.Instrument?.FullName != instrument.FullName) continue; // (6) B186 DW-B186-QX-ALL-SCOPE-01
-                    // B118 DW-B126: cancel PTT-BE-* BEFORE snapshot to eliminate BE/QX race.
+                    // B78 DW-B63-01 + DW-B187: capture leaderStop BEFORE CancelPttBeOrders.
+                    // PTT-BE-Stop-* are the stop reference when BE ALL has fired first; cancel destroys them.
+                    // SnapshotTargetOrders still runs after cancel (DW-B126 race prevention maintained).
+                    double leaderStop = PttQuickExit.SnapshotStopPrice(acc, pos.Instrument);
+                    // B118 DW-B126: cancel PTT-BE-* BEFORE SnapshotTargetOrders to eliminate BE/QX target race.
                     int _beCancelCount = CancelPttBeOrders(acc, pos.Instrument);
                     WaitForPttBeCancelled(acc, pos.Instrument, _beCancelCount, 1000);
-                    // PTT-BE-* are now terminal -- snapshot sees clean order book.
+                    // PTT-BE-* are now terminal -- target snapshot sees clean order book.
                     var targets = SnapshotTargetOrders(acc, pos.Instrument);
-                    // B78 DW-B63-01: snapshot leader stop BEFORE ExecuteOne cancels leader brackets.
-                    double leaderStop = PttQuickExit.SnapshotStopPrice(acc, pos.Instrument);
                     var ticks = ResolveQuickTicks(pos.Instrument);
                     NinjaTrader.Code.Output.Process(
                         "[PTT-QX-ALL] leader: "
@@ -73,9 +75,6 @@ namespace PropTraderTools
                             + leaderStop,
                         NinjaTrader.NinjaScript.PrintTo.OutputTab1
                     );
-                    // DW-B115-DIAG: log leader per-target qty split for comparison against followers.
-                    // Remove when DW-B115 root cause confirmed and fix applied.
-                    LogLeaderDiag(acc, targets, pos.Quantity);
                     // B120 DW-B129: flatten guard -- when B118 cancelled BE orders AND
                     // snapshot is empty AND leader has open position, flatten at market.
                     if (NeedsLeaderFallbackFlatten(_beCancelCount, targets.Count, pos.Quantity)) // (7)
@@ -137,9 +136,10 @@ namespace PropTraderTools
                 {
                     if (pos == null || pos.Quantity == 0 || pos.Instrument?.FullName != instrument.FullName)
                         continue; // (6) extended -- instrument filter folded in
+                    // B78 DW-B63-01 + DW-B187: capture leaderStop BEFORE CancelPttBeOrders.
+                    double leaderStop = PttQuickExit.SnapshotStopPrice(acc, pos.Instrument);
                     int _beCancelCount = CancelPttBeOrders(acc, pos.Instrument);
                     WaitForPttBeCancelled(acc, pos.Instrument, _beCancelCount, 1000);
-                    double leaderStop = PttQuickExit.SnapshotStopPrice(acc, pos.Instrument);
                     var ticks = ResolveQuickTicks(pos.Instrument);
                     NinjaTrader.Code.Output.Process(
                         "[PTT-QX-2T-ALL] leader: "
@@ -181,8 +181,7 @@ namespace PropTraderTools
         /// <summary>
         /// ExecuteFollowers: dispatch Quick Exit to all follower accounts for the given leader position.
         /// Extracted from Execute() by B120 to maintain CYC <= 8 in Execute() after DW-B129 guard.
-        /// CYC=7: rule null-check(1), follower foreach(2), follower null continue(3),
-        ///        follower position foreach DIAG(4), DIAG _p null/instr guard(5), DIAG for-loop(6), delegate(7).
+        /// CYC=4: rule null-check(1), follower foreach(2), follower null continue(3), delegate(4).
         /// B118 DW-B126: CancelPttBeOrders + WaitForPttBeCancelled on each follower path (unchanged).
         /// JS-021: no lock. JS-001: no throw. JS-033: synchronous void. ASCII-only.
         /// </summary>
@@ -205,51 +204,13 @@ namespace PropTraderTools
                     int _fBeCancelCount = CancelPttBeOrders(follower, pos.Instrument);
                     WaitForPttBeCancelled(follower, pos.Instrument, _fBeCancelCount, 1000);
                     var followerTargets = SnapshotTargetOrders(follower, pos.Instrument);
-                    // DW-B115-DIAG: log follower position qty + per-target qty split.
-                    // Determines: (A) whether follower ATM has same qty split as leader,
-                    // or (B) whether followerTargets is empty/partial (DW-B120 async lag).
-                    // Remove when DW-B115 root cause confirmed and fix applied.
-                    int _fPosQty = 0;
-                    foreach (NinjaTrader.Cbi.Position _p in follower.Positions) // (4)
-                    {
-                        if (
-                            _p != null
-                            && _p.Instrument != null
-                            && _p.Instrument.FullName == pos.Instrument.FullName
-                        ) // (5)
-                        {
-                            _fPosQty = _p.Quantity;
-                            break;
-                        }
-                    }
-                    {
-                        var _sb = new System.Text.StringBuilder(
-                            "[DW-B115-DIAG] follower targets: "
-                        );
-                        _sb.Append(follower.Name);
-                        _sb.Append(" count=");
-                        _sb.Append(followerTargets.Count);
-                        _sb.Append(" posQty=");
-                        _sb.Append(_fPosQty);
-                        for (int _i = 0; _i < followerTargets.Count; _i++) // (6)
-                        {
-                            _sb.Append(" T");
-                            _sb.Append(_i + 1);
-                            _sb.Append("=");
-                            _sb.Append(followerTargets[_i].Qty);
-                        }
-                        NinjaTrader.Code.Output.Process(
-                            _sb.ToString(),
-                            NinjaTrader.NinjaScript.PrintTo.OutputTab1
-                        );
-                    }
                     // DW-B124: when follower snapshot is empty (BE-ALL consumed native brackets),
                     // derive qty array from leader snapshot scaled by posQty ratio.
                     // Prevents CalcTNQty arithmetic fallback from wrong tranche split.
                     followerTargets = ResolveFollowerTargets(
                         followerTargets,
                         targets,
-                        _fPosQty,
+                        0,
                         pos.Quantity
                     );
                     NinjaTrader.Code.Output.Process(
@@ -485,37 +446,6 @@ namespace PropTraderTools
             foreach (var kv in deduped)
                 result.Add((kv.Key, kv.Value));
             return result;
-        }
-
-        /// <summary>
-        /// Build and append DW-B115-DIAG log string for leader targets.
-        /// Extracted from PttGlobalQuickExit.Execute DIAG block (lines 83-100).
-        /// CYC=2: (1) for-loop, (2) always-execute append (no branch inside loop body).
-        /// JS-002: void. JS-021: no lock. ASCII-only.
-        /// </summary>
-        private static void LogLeaderDiag(
-            NinjaTrader.Cbi.Account acc,
-            System.Collections.Generic.List<(double Price, int Qty)> targets,
-            int posQty
-        )
-        {
-            var _sb = new System.Text.StringBuilder("[DW-B115-DIAG] leader targets: ");
-            _sb.Append(acc.Name);
-            _sb.Append(" count=");
-            _sb.Append(targets.Count);
-            _sb.Append(" posQty=");
-            _sb.Append(posQty);
-            for (int _i = 0; _i < targets.Count; _i++)
-            {
-                _sb.Append(" T");
-                _sb.Append(_i + 1);
-                _sb.Append("=");
-                _sb.Append(targets[_i].Qty);
-            }
-            NinjaTrader.Code.Output.Process(
-                _sb.ToString(),
-                NinjaTrader.NinjaScript.PrintTo.OutputTab1
-            );
         }
 
         /// <summary>

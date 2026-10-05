@@ -420,7 +420,9 @@ namespace PropTraderTools
         // B10 T2 -- Pending BE fired notification (fires on NT8 account bg thread; Panel marshals to UI)
         internal event Action<string, string> PendingBeFired;
         // B10 T2 -- Pending BE armed notification (fires on NT8 account bg thread; Panel marshals to UI)
+#pragma warning disable CS0067  // DW-B186-WARN-01: Roslyn false positive -- event IS subscribed by TradeCopierPanel
         internal event Action<string, string> PendingBeArmed; // HOTFIX-BEALL-SYNC-01: instr, accName
+#pragma warning restore CS0067
 
         internal event Action<int> GlobalBeBufferChanged; // HOTFIX-BEALL-BUFFER-SYNC-01: fires on buffer +/- spin, int = new buffer value
 

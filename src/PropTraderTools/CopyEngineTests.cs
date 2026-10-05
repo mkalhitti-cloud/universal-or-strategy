@@ -8912,6 +8912,19 @@ namespace PropTraderTools
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
                 .FirstOrDefault(m => m.Name == name);
 
+        // Resolves PttGlobalQuickExit.cs path using compile-time CallerFilePath.
+        // [CallerFilePath] captures the absolute source path of this test file at build time,
+        // which survives xUnit shadow-copy (shadow-copy only moves the assembly, not the source).
+        // Navigate from CopyEngineTests.cs directory to Features\PttGlobalQuickExit.cs.
+        private static string GetQxSourcePath(
+            [System.Runtime.CompilerServices.CallerFilePath] string callerFile = "")
+        {
+            string dir = System.IO.Path.GetDirectoryName(callerFile) ?? string.Empty;
+            return System.IO.Path.Combine(dir, "Features", "PttGlobalQuickExit.cs");
+        }
+
+
+
         // T-LF-02 (DW-LD-04): IsRaceSkipCandidate structural contract.
         // Verifies: method exists, is private static, returns bool, has 3 params.
         // Verifies: null snapshot -> returns false (snapshot!=null guard short-circuits).
@@ -8939,6 +8952,213 @@ namespace PropTraderTools
             Assert.Contains("HashSet", paramTypes[1], System.StringComparison.OrdinalIgnoreCase);
             Assert.Equal("Instrument", paramTypes[2]);
         }
+
+        // T_B187_01 (DW-B187-QX-STOP-SNAP-01): In Execute(Instrument), SnapshotStopPrice line
+        // appears BEFORE CancelPttBeOrders line.
+        // Confirms the B187 fix: leaderStop captured while PTT-BE-Stop-* are still Working.
+        [Fact]
+        public void T_B187_01_Execute_Instrument_SnapshotStopPrice_BeforeCancelPttBeOrders()
+        {
+            string path = GetQxSourcePath();
+            string[] lines = System.IO.File.ReadAllLines(path);
+
+            // Locate Execute(Instrument) -- first occurrence of "internal void Execute(Instrument"
+            int methodStart = -1;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (lines[i].Contains("internal void Execute(Instrument instrument)"))
+                {
+                    methodStart = i;
+                    break;
+                }
+            }
+            Assert.True(methodStart >= 0, "Could not find Execute(Instrument instrument) in PttGlobalQuickExit.cs");
+
+            // Find the closing brace of Execute(Instrument) body
+            int methodEnd = methodStart;
+            int braceDepth = 0;
+            bool enteredBody = false;
+            for (int i = methodStart; i < lines.Length; i++)
+            {
+                foreach (char c in lines[i])
+                {
+                    if (c == '{') { braceDepth++; enteredBody = true; }
+                    else if (c == '}') { braceDepth--; }
+                }
+                if (enteredBody && braceDepth == 0) { methodEnd = i; break; }
+            }
+
+            int snapshotLine = -1;
+            int cancelLine = -1;
+            for (int i = methodStart; i <= methodEnd; i++)
+            {
+                bool isComment = lines[i].TrimStart().StartsWith("//");
+                if (snapshotLine < 0 && !isComment && lines[i].Contains("SnapshotStopPrice"))
+                    snapshotLine = i;
+                if (cancelLine < 0 && !isComment && lines[i].Contains("CancelPttBeOrders"))
+                    cancelLine = i;
+            }
+
+            Assert.True(snapshotLine >= 0, "SnapshotStopPrice not found in Execute(Instrument)");
+            Assert.True(cancelLine >= 0, "CancelPttBeOrders not found in Execute(Instrument)");
+            Assert.True(
+                snapshotLine < cancelLine,
+                $"B187 fix: SnapshotStopPrice (line {snapshotLine + 1}) must come BEFORE CancelPttBeOrders (line {cancelLine + 1}) in Execute(Instrument)"
+            );
+        }
+
+        // T_B187_02 (DW-B187-QX-STOP-SNAP-01): In Execute(List, Instrument), SnapshotStopPrice line
+        // appears BEFORE CancelPttBeOrders line.
+        // Confirms the B187 fix on the forced-2-target overload.
+        [Fact]
+        public void T_B187_02_Execute_List_Instrument_SnapshotStopPrice_BeforeCancelPttBeOrders()
+        {
+            string path = GetQxSourcePath();
+            string[] lines = System.IO.File.ReadAllLines(path);
+
+            // Locate Execute(List, Instrument) -- signature spans multiple lines; find "forcedTargets"
+            // in the parameter list. Search for "internal void Execute(" and pick the second occurrence.
+            int methodStart = -1;
+            int count = 0;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (lines[i].Contains("internal void Execute("))
+                {
+                    count++;
+                    if (count == 2) { methodStart = i; break; }
+                }
+            }
+            Assert.True(methodStart >= 0, "Could not find second Execute( (List overload) in PttGlobalQuickExit.cs");
+
+            int methodEnd = methodStart;
+            int braceDepth = 0;
+            bool enteredBody = false;
+            for (int i = methodStart; i < lines.Length; i++)
+            {
+                foreach (char c in lines[i])
+                {
+                    if (c == '{') { braceDepth++; enteredBody = true; }
+                    else if (c == '}') { braceDepth--; }
+                }
+                if (enteredBody && braceDepth == 0) { methodEnd = i; break; }
+            }
+
+            int snapshotLine = -1;
+            int cancelLine = -1;
+            for (int i = methodStart; i <= methodEnd; i++)
+            {
+                bool isComment = lines[i].TrimStart().StartsWith("//");
+                if (snapshotLine < 0 && !isComment && lines[i].Contains("SnapshotStopPrice"))
+                    snapshotLine = i;
+                if (cancelLine < 0 && !isComment && lines[i].Contains("CancelPttBeOrders"))
+                    cancelLine = i;
+            }
+
+            Assert.True(snapshotLine >= 0, "SnapshotStopPrice not found in Execute(List, Instrument)");
+            Assert.True(cancelLine >= 0, "CancelPttBeOrders not found in Execute(List, Instrument)");
+            Assert.True(
+                snapshotLine < cancelLine,
+                $"B187 fix: SnapshotStopPrice (line {snapshotLine + 1}) must come BEFORE CancelPttBeOrders (line {cancelLine + 1}) in Execute(List, Instrument)"
+            );
+        }
+
+        // T_B187_03 (DW-B126 guard): In Execute(Instrument), SnapshotTargetOrders line
+        // appears AFTER CancelPttBeOrders line.
+        // Confirms DW-B126 constraint is maintained: target snapshot still runs after cancel+wait.
+        [Fact]
+        public void T_B187_03_Execute_Instrument_SnapshotTargetOrders_AfterCancelPttBeOrders()
+        {
+            string path = GetQxSourcePath();
+            string[] lines = System.IO.File.ReadAllLines(path);
+
+            // Locate Execute(Instrument) -- first occurrence
+            int methodStart = -1;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (lines[i].Contains("internal void Execute(Instrument instrument)"))
+                {
+                    methodStart = i;
+                    break;
+                }
+            }
+            Assert.True(methodStart >= 0, "Could not find Execute(Instrument instrument) in PttGlobalQuickExit.cs");
+
+            int methodEnd = methodStart;
+            int braceDepth = 0;
+            bool enteredBody = false;
+            for (int i = methodStart; i < lines.Length; i++)
+            {
+                foreach (char c in lines[i])
+                {
+                    if (c == '{') { braceDepth++; enteredBody = true; }
+                    else if (c == '}') { braceDepth--; }
+                }
+                if (enteredBody && braceDepth == 0) { methodEnd = i; break; }
+            }
+
+            int cancelLine = -1;
+            int targetSnapshotLine = -1;
+            for (int i = methodStart; i <= methodEnd; i++)
+            {
+                bool isComment = lines[i].TrimStart().StartsWith("//");
+                if (cancelLine < 0 && !isComment && lines[i].Contains("CancelPttBeOrders"))
+                    cancelLine = i;
+                if (targetSnapshotLine < 0 && !isComment && lines[i].Contains("SnapshotTargetOrders"))
+                    targetSnapshotLine = i;
+            }
+
+            Assert.True(cancelLine >= 0, "CancelPttBeOrders not found in Execute(Instrument)");
+            Assert.True(targetSnapshotLine >= 0, "SnapshotTargetOrders not found in Execute(Instrument)");
+            Assert.True(
+                targetSnapshotLine > cancelLine,
+                $"DW-B126: SnapshotTargetOrders (line {targetSnapshotLine + 1}) must come AFTER CancelPttBeOrders (line {cancelLine + 1}) in Execute(Instrument)"
+            );
+        }
+
+        // T_B187_04 (DW-B126 guard -- List overload): Execute(List, Instrument) does NOT contain
+        // SnapshotTargetOrders. It uses forcedTargets (caller-supplied); DW-B126 is N/A.
+        // Confirms no regression -- SnapshotTargetOrders must never be added to this overload.
+        [Fact]
+        public void T_B187_04_Execute_List_Instrument_DoesNotContainSnapshotTargetOrders()
+        {
+            string path = GetQxSourcePath();
+            string[] lines = System.IO.File.ReadAllLines(path);
+
+            // Locate second Execute( overload (List overload)
+            int methodStart = -1;
+            int count = 0;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (lines[i].Contains("internal void Execute("))
+                {
+                    count++;
+                    if (count == 2) { methodStart = i; break; }
+                }
+            }
+            Assert.True(methodStart >= 0, "Could not find second Execute( (List overload) in PttGlobalQuickExit.cs");
+
+            int methodEnd = methodStart;
+            int braceDepth = 0;
+            bool enteredBody = false;
+            for (int i = methodStart; i < lines.Length; i++)
+            {
+                foreach (char c in lines[i])
+                {
+                    if (c == '{') { braceDepth++; enteredBody = true; }
+                    else if (c == '}') { braceDepth--; }
+                }
+                if (enteredBody && braceDepth == 0) { methodEnd = i; break; }
+            }
+
+            for (int i = methodStart; i <= methodEnd; i++)
+            {
+                Assert.False(
+                    lines[i].Contains("SnapshotTargetOrders"),
+                    $"Execute(List, Instrument) must NOT contain SnapshotTargetOrders (DW-B126 N/A -- uses forcedTargets). Found at line {i + 1}: {lines[i].Trim()}"
+                );
+            }
+        }
+
     }
 
     public class LaneGTests
