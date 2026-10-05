@@ -91,7 +91,7 @@ namespace PropTraderTools
                         acc.Flatten(new[] { pos.Instrument });
                         continue; // skip ExecuteOne -- flatten handles the exit
                     }
-                    ExecuteOne(acc, pos.Instrument, ticks.t1, targets);
+                    ExecuteOne(acc, pos.Instrument, ticks.t1, targets, leaderStop: leaderStop);
                     // B71 DW-B71-04: place PTT-QX on every follower that has an open position
                     ExecuteFollowers(acc, pos, targets, ticks, leaderStop); // (8)
                 }
@@ -172,7 +172,7 @@ namespace PropTraderTools
                         acc.Flatten(new[] { pos.Instrument });
                         continue;
                     }
-                    ExecuteOne(acc, pos.Instrument, ticks.t1, forcedTargets);
+                    ExecuteOne(acc, pos.Instrument, ticks.t1, forcedTargets, leaderStop: leaderStop);
                     ExecuteFollowers(acc, pos, forcedTargets, ticks, leaderStop); // (8)
                 }
             }

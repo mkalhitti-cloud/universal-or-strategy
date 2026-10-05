@@ -9159,6 +9159,82 @@ namespace PropTraderTools
             }
         }
 
+
+        // =====================================================================
+        // B188 T1: leaderStop forward fix tests  (T_B188_01 through T_B188_04)
+        // =====================================================================
+
+        // T_B188_01 (DW-B188-LEADER-STOP-FORWARD-01): Execute(List,Instrument) passes leaderStop
+        // to ExecuteOne via named argument. Confirms forcedTargets overload fix (line ~175).
+        [Fact]
+        public void T_B188_01_Execute_List_Instrument_ExecuteOne_Receives_leaderStop_forcedTargets()
+        {
+            string path = GetQxSourcePath();
+            string[] lines = System.IO.File.ReadAllLines(path);
+            const string needle = "ExecuteOne(acc, pos.Instrument, ticks.t1, forcedTargets, leaderStop: leaderStop)";
+            bool found = false;
+            foreach (string line in lines)
+            {
+                if (line.TrimStart().StartsWith("//")) continue;
+                if (line.Contains(needle)) { found = true; break; }
+            }
+            Assert.True(found,
+                "B188 fix: ExecuteOne call with forcedTargets must include 'leaderStop: leaderStop' in PttGlobalQuickExit.cs");
+        }
+
+        // T_B188_02 (DW-B188-LEADER-STOP-FORWARD-01): Execute(Instrument) passes leaderStop
+        // to ExecuteOne via named argument. Confirms targets overload fix (line ~94).
+        [Fact]
+        public void T_B188_02_Execute_Instrument_ExecuteOne_Receives_leaderStop_targets()
+        {
+            string path = GetQxSourcePath();
+            string[] lines = System.IO.File.ReadAllLines(path);
+            const string needle = "ExecuteOne(acc, pos.Instrument, ticks.t1, targets, leaderStop: leaderStop)";
+            bool found = false;
+            foreach (string line in lines)
+            {
+                if (line.TrimStart().StartsWith("//")) continue;
+                if (line.Contains(needle)) { found = true; break; }
+            }
+            Assert.True(found,
+                "B188 fix: ExecuteOne call with targets must include 'leaderStop: leaderStop' in PttGlobalQuickExit.cs");
+        }
+
+        // T_B188_03 (DW-B188-LEADER-STOP-FORWARD-01): Execute(List,Instrument) still calls
+        // ExecuteFollowers with leaderStop. Confirms B187 wiring is not regressed (forcedTargets overload).
+        [Fact]
+        public void T_B188_03_Execute_List_Instrument_ExecuteFollowers_Wired_leaderStop()
+        {
+            string path = GetQxSourcePath();
+            string[] lines = System.IO.File.ReadAllLines(path);
+            const string needle = "ExecuteFollowers(acc, pos, forcedTargets, ticks, leaderStop)";
+            bool found = false;
+            foreach (string line in lines)
+            {
+                if (line.TrimStart().StartsWith("//")) continue;
+                if (line.Contains(needle)) { found = true; break; }
+            }
+            Assert.True(found,
+                "B187 wiring: ExecuteFollowers must receive leaderStop in Execute(List,Instrument) of PttGlobalQuickExit.cs");
+        }
+
+        // T_B188_04 (DW-B188-LEADER-STOP-FORWARD-01): Execute(Instrument) still calls
+        // ExecuteFollowers with leaderStop. Confirms B187 wiring is not regressed (targets overload).
+        [Fact]
+        public void T_B188_04_Execute_Instrument_ExecuteFollowers_Wired_leaderStop()
+        {
+            string path = GetQxSourcePath();
+            string[] lines = System.IO.File.ReadAllLines(path);
+            const string needle = "ExecuteFollowers(acc, pos, targets, ticks, leaderStop)";
+            bool found = false;
+            foreach (string line in lines)
+            {
+                if (line.TrimStart().StartsWith("//")) continue;
+                if (line.Contains(needle)) { found = true; break; }
+            }
+            Assert.True(found,
+                "B187 wiring: ExecuteFollowers must receive leaderStop in Execute(Instrument) of PttGlobalQuickExit.cs");
+        }
     }
 
     public class LaneGTests
