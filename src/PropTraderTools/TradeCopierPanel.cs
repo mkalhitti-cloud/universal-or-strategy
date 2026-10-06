@@ -255,6 +255,9 @@ namespace PropTraderTools
         // B41: Quick tick display values (session-only, not persisted to CopyRule)
         private int _quickT1 = 4; // default MES: 4t
         private int _quickT2 = 8; // default MES: 8t
+        // B193: per-panel Quick ALL tick value -- instrument-aware, independent of other panels.
+        // Mirrors _quickT1 design. Set by SetInstrument(); incremented/decremented by OnQuickAllUp/Down.
+        private int _quickAllT1 = 4; // default MES: 4t
 
         // B47 T5-B: Root-level BE and Quick row panels (extracted from _contentPanel in T6-B)
         private UniformGrid _beRowPanel = null; // 2-col: BE cluster | BE ALL cluster
@@ -513,8 +516,12 @@ namespace PropTraderTools
                 _quickBtn.Content = FormatBuffer("Quick", _quickT1);
             if (_instr2tBtn != null)
                 _instr2tBtn.Content = FormatBuffer("Quick2t", _quickT1);
-            // B192-T3: sync global singleton so Quick ALL / QAll2t fire instrument-correct ticks
-            CopyEngine.Instance?.ResetGlobalQuickAll(ticks.t1);
+            // B193: per-panel Quick ALL reset -- instrument-aware, does not touch global singleton.
+            _quickAllT1 = ticks.t1;
+            if (_quickAllBtn != null)
+                _quickAllBtn.Content = FormatQuickAllBuffer("Quick ALL", _quickAllT1);
+            if (_instrQAll2tBtn != null)
+                _instrQAll2tBtn.Content = FormatBuffer("QAll2t", _quickAllT1);
         }
 
         public void SetLeaderAccount(Account account)
@@ -759,10 +766,6 @@ namespace PropTraderTools
             _engine.PositionStateChanged += OnPositionStateChanged;
             _engine.GlobalBeBufferChanged += OnGlobalBeBufferChanged;
             _engine.GlobalQuickAllBufferChanged += OnQuickAllBufferChanged;
-            // B193-DIRECT: snap -- SetInstrument fires ResetGlobalQuickAll before OnLoaded subscribes.
-            // The Dispatcher broadcast is lost (no subscribers yet). Re-invoke now with current singleton
-            // value so Quick ALL and QAll2t labels reflect the instrument default on first paint.
-            OnQuickAllBufferChanged(_engine.GlobalQuickAllT1);
             PopulateFollowerItems();
             RestoreSavedFollowers();
             _engine.CopyEnabledChanged += OnCopyEnabledChanged;
@@ -1110,7 +1113,7 @@ namespace PropTraderTools
                     _quickRowPanel
                 ),
                 (
-                    FormatBuffer("Quick ALL", CopyEngine.Instance.GlobalQuickAllT1),
+                    FormatQuickAllBuffer("Quick ALL", _quickAllT1),
                     BrushTeal,
                     true,
                     OnQuickAllUp,
@@ -1193,7 +1196,7 @@ namespace PropTraderTools
                 BuildSpinnerCluster("Quick2t", _quickT1, OnQuickUp, OnQuickDown,
                     OnInstr2tClick, ref _instr2tBtn));
             _instrRowPanel.Children.Add(
-                BuildSpinnerCluster("QAll2t", CopyEngine.Instance.GlobalQuickAllT1,
+                BuildSpinnerCluster("QAll2t", _quickAllT1,
                     OnQuickAllUp, OnQuickAllDown,
                     OnInstrQAll2tClick, ref _instrQAll2tBtn));
         }
@@ -1754,18 +1757,25 @@ namespace PropTraderTools
             new PttGlobalQuickExit().Execute(targets, _instrument); // (2)
         }
 
-        // B47 T5-B: OnQuickAllUp -- increment singleton; label refresh via broadcast. CYC=1.
-        // HOTFIX-QUICKALL-SINGLETON-01: _quickAllT1 removed; delegates to CopyEngine.IncrementQuickAll().
+        // B193: OnQuickAllUp -- per-panel increment. Mirrors OnQuickUp. CYC=3.
+        // Directly updates _quickAllT1 and button labels without touching the global singleton.
         private void OnQuickAllUp(object sender, RoutedEventArgs e)
         {
-            CopyEngine.Instance.IncrementQuickAll();
+            _quickAllT1 = Math.Max(1, Math.Min(_quickAllT1 + 1, 100));
+            if (_quickAllBtn != null)
+                _quickAllBtn.Content = FormatQuickAllBuffer("Quick ALL", _quickAllT1);
+            if (_instrQAll2tBtn != null)
+                _instrQAll2tBtn.Content = FormatBuffer("QAll2t", _quickAllT1);
         }
 
-        // B47 T5-B: OnQuickAllDown -- decrement singleton; label refresh via broadcast. CYC=1.
-        // HOTFIX-QUICKALL-SINGLETON-01: _quickAllT1 removed; delegates to CopyEngine.DecrementQuickAll().
+        // B193: OnQuickAllDown -- per-panel decrement. Mirrors OnQuickDown. CYC=3.
         private void OnQuickAllDown(object sender, RoutedEventArgs e)
         {
-            CopyEngine.Instance.DecrementQuickAll();
+            _quickAllT1 = Math.Max(1, Math.Min(_quickAllT1 - 1, 100));
+            if (_quickAllBtn != null)
+                _quickAllBtn.Content = FormatQuickAllBuffer("Quick ALL", _quickAllT1);
+            if (_instrQAll2tBtn != null)
+                _instrQAll2tBtn.Content = FormatBuffer("QAll2t", _quickAllT1);
         }
 
         // B41: RefreshQuickDisplay -- Card A: back-calc actual T1 ticks from live PTT-QX-T1 order.

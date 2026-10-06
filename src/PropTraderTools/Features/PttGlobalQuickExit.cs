@@ -280,19 +280,17 @@ namespace PropTraderTools
         }
 
         /// <summary>
-        /// ResolveQuickTicks: returns (T1, T2) from CopyRule if found, else InstrumentDefaults.
-        /// CYC=2: engine null guard(1), rule found check(2).
+        /// ResolveQuickTicks: returns (T1, T2) from InstrumentDefaults for this instrument.
+        /// B193: GlobalQuickAllT1 singleton removed from this path -- singleton is cross-panel and
+        /// does not reflect per-panel instrument defaults when multiple instruments are open.
+        /// InstrumentDefaults is the authoritative per-instrument source for the global execute path.
+        /// CYC=1: single expression. JS-002: returns tuple (never null). ASCII-only.
         /// </summary>
         private static (int t1, int t2) ResolveQuickTicks(Instrument instr)
         {
-            var engine = CopyEngine.Instance;
-            if (engine == null)
-                return InstrumentDefaults.GetQuickTicks(
-                    instr?.MasterInstrument?.Name ?? string.Empty
-                ); // (1)
-            int t1 = engine.GlobalQuickAllT1; // HOTFIX-QUICKALL-SINGLETON-01: use shared singleton value
-            int t2 = t1 * 2;
-            return (t1, t2);
+            return InstrumentDefaults.GetQuickTicks(
+                instr?.MasterInstrument?.Name ?? string.Empty
+            );
         }
 
         /// <summary>
