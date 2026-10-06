@@ -213,10 +213,14 @@ namespace PropTraderTools
                     // DW-B124: when follower snapshot is empty (BE-ALL consumed native brackets),
                     // derive qty array from leader snapshot scaled by posQty ratio.
                     // Prevents CalcTNQty arithmetic fallback from wrong tranche split.
+                    // B191-T3: restore followerPosQty from live position (DW-B187-01 fix).
+                    // With followerPosQty>0, ScaleLeaderTargets fires when follower has no snapshot.
+                    // Zero fallback preserved: flat follower -> ScaleLeaderTargets skipped -> empty list correct.
+                    int followerPosQty = CopyEngine.Instance?.FindPositionPublic(follower, pos.Instrument)?.Quantity ?? 0;
                     followerTargets = ResolveFollowerTargets(
                         followerTargets,
                         targets,
-                        0,
+                        followerPosQty,
                         pos.Quantity
                     );
                     NinjaTrader.Code.Output.Process(

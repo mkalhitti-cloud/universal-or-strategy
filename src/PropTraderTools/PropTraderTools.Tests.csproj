@@ -33,6 +33,7 @@
     <Compile Include="TradeCopierPanel.cs" />
     <Compile Include="TradeCopierWindow.cs" />
     <Compile Include="Tests\B182Tests.cs" />
+    <Compile Include="Tests\B191Tests.cs" />
   </ItemGroup>
 
   <ItemGroup>

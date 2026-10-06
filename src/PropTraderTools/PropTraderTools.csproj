@@ -188,5 +188,6 @@
     <Compile Include="Tests\B180Tests.cs" />
     <Compile Include="Tests\B182Tests.cs" />
     <Compile Include="Tests\B190Tests.cs" />
+    <Compile Include="Tests\B191Tests.cs" />
   </ItemGroup>
 </Project>
