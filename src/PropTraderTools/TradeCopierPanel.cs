@@ -238,7 +238,7 @@ namespace PropTraderTools
         // B12 T1 -- Buffered button state (plain int; UI-thread-only; no volatile per NT8-003)
         private int _trimBuffer = 0; // HOTFIX-F5: default market (0 ticks), not limit (+1)
         private int _flattenBuffer = 0; // HOTFIX-F5: default market (0 ticks), not limit (+1)
-        private int _beBuffer = 1;
+        private int _beBuffer = 0; // B190-T3: default exact BE (no buffer)
 
         // B12 T1 -- Button refs for buffered section
         private Button _trimBtn2;
@@ -503,6 +503,16 @@ namespace PropTraderTools
             _instrument = instrument;
             if (_statusText != null && instrument != null)
                 _statusText.Text = "Ready: " + instrument.FullName + " -- select followers to copy";
+
+            // B190-T1: reset tick defaults when instrument changes
+            var ticks = InstrumentDefaults.GetQuickTicks(
+                instrument?.MasterInstrument?.Name ?? "");
+            _quickT1 = ticks.t1;
+            _quickT2 = ticks.t2;
+            if (_quickBtn != null)
+                _quickBtn.Content = FormatBuffer("Quick", _quickT1);
+            if (_instr2tBtn != null)
+                _instr2tBtn.Content = FormatBuffer("Quick2t", _quickT1);
         }
 
         public void SetLeaderAccount(Account account)
@@ -1167,63 +1177,61 @@ namespace PropTraderTools
             root.Children.Add(_quickT3Row);
         }
 
-        // B189-T4: BuildInstrRow -- 2-col UniformGrid: Quick2t spinner (left) + QAll2t spinner (right).
-        // Each cell is a DockPanel: "-" docked Left, "+" docked Right, center label fills remaining space.
-        // Up/Down buttons are local variables (not stored as fields). CYC=1: sequential construction.
+        // B190-T2: BuildInstrRow -- 2-col UniformGrid: Quick2t spinner (left) + QAll2t spinner (right).
+        // Delegates to BuildSpinnerCluster(). CYC=1: 2 sequential calls, no branches.
         // JS-021: no lock. JS-033: no async. ASCII-only labels.
         private void BuildInstrRow()
         {
             _instrRowPanel = new UniformGrid { Columns = 2, Margin = new Thickness(0, 2, 0, 2) };
+            _instrRowPanel.Children.Add(
+                BuildSpinnerCluster("Quick2t", _quickT1, OnQuickUp, OnQuickDown,
+                    OnInstr2tClick, ref _instr2tBtn));
+            _instrRowPanel.Children.Add(
+                BuildSpinnerCluster("QAll2t", CopyEngine.Instance.GlobalQuickAllT1,
+                    OnQuickAllUp, OnQuickAllDown,
+                    OnInstrQAll2tClick, ref _instrQAll2tBtn));
+        }
 
-            // Cluster 1: Quick2t
-            var quick2tCluster = new DockPanel { LastChildFill = true };
-            var quick2tDn = new Button { Content = "-", Width = 18 };
-            var quick2tUp = new Button { Content = "+", Width = 18 };
-            quick2tDn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            quick2tUp.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            quick2tDn.Click += OnQuickDown;
-            quick2tUp.Click += OnQuickUp;
-            DockPanel.SetDock(quick2tDn, Dock.Left);
-            DockPanel.SetDock(quick2tUp, Dock.Right);
-            _instr2tBtn = new Button
+        // B190-T2: BuildSpinnerCluster -- canonical ^-v-right spinner cluster factory.
+        // Arrows Grid (2 RepeatButtons, Delay=400, Interval=100) docked Right; label Button fills left.
+        // CYC=1: sequential construction, no branches. JS-021: no lock. JS-002: never null.
+        // ASCII-only: "^"=0x5E, "v"=0x76. No FontFamily. No hex color literals.
+        private DockPanel BuildSpinnerCluster(
+            string label, int ticks,
+            RoutedEventHandler onUp, RoutedEventHandler onDn, RoutedEventHandler onClick,
+            ref Button btnField)
+        {
+            var cluster = new DockPanel { LastChildFill = true };
+            var arrows = new Grid();
+            arrows.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
+            arrows.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
+            var up = new System.Windows.Controls.Primitives.RepeatButton
+                { Content = "^", Width = 18, Height = 12, Delay = 400, Interval = 100 };
+            var dn = new System.Windows.Controls.Primitives.RepeatButton
+                { Content = "v", Width = 18, Height = 12, Delay = 400, Interval = 100 };
+            up.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            dn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            up.Click += onUp;
+            dn.Click += onDn;
+            Grid.SetRow(up, 0);
+            Grid.SetRow(dn, 1);
+            arrows.Children.Add(up);
+            arrows.Children.Add(dn);
+            DockPanel.SetDock(arrows, Dock.Right);
+            var btn = new Button
             {
-                Content = FormatBuffer("Quick2t", _quickT1),
+                Content = FormatBuffer(label, ticks),
                 BorderBrush = BrushTeal,
                 BorderThickness = new Thickness(2),
             };
-            _instr2tBtn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            _instr2tBtn.Background = BrushTeal;
-            _instr2tBtn.Foreground = System.Windows.Media.Brushes.White;
-            _instr2tBtn.Click += OnInstr2tClick;
-            quick2tCluster.Children.Add(quick2tDn);
-            quick2tCluster.Children.Add(quick2tUp);
-            quick2tCluster.Children.Add(_instr2tBtn);
-            _instrRowPanel.Children.Add(quick2tCluster);
-
-            // Cluster 2: QAll2t
-            var qAll2tCluster = new DockPanel { LastChildFill = true };
-            var qAll2tDn = new Button { Content = "-", Width = 18 };
-            var qAll2tUp = new Button { Content = "+", Width = 18 };
-            qAll2tDn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            qAll2tUp.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            qAll2tDn.Click += OnQuickAllDown;
-            qAll2tUp.Click += OnQuickAllUp;
-            DockPanel.SetDock(qAll2tDn, Dock.Left);
-            DockPanel.SetDock(qAll2tUp, Dock.Right);
-            _instrQAll2tBtn = new Button
-            {
-                Content = FormatBuffer("QAll2t", CopyEngine.Instance.GlobalQuickAllT1),
-                BorderBrush = BrushTeal,
-                BorderThickness = new Thickness(2),
-            };
-            _instrQAll2tBtn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
-            _instrQAll2tBtn.Background = BrushTeal;
-            _instrQAll2tBtn.Foreground = System.Windows.Media.Brushes.White;
-            _instrQAll2tBtn.Click += OnInstrQAll2tClick;
-            qAll2tCluster.Children.Add(qAll2tDn);
-            qAll2tCluster.Children.Add(qAll2tUp);
-            qAll2tCluster.Children.Add(_instrQAll2tBtn);
-            _instrRowPanel.Children.Add(qAll2tCluster);
+            btn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            btn.Background = BrushTeal;
+            btn.Foreground = System.Windows.Media.Brushes.White;
+            btn.Click += onClick;
+            cluster.Children.Add(arrows);
+            cluster.Children.Add(btn);
+            btnField = btn;
+            return cluster;
         }
 
         // B129: Build2TargetList -- returns pre-built 2-entry targets list for Quick2t.

@@ -8809,7 +8809,7 @@ namespace PropTraderTools
         // Note (BUG-0911-A Retry2): FlatGuardLoop restored to private static inside CopyEngine per spec T1.5.
         //   Behavioral .Invoke() blocked by Agile.NET module cctor (fires on ANY Invoke in assembly).
         //   Structural param-type check satisfies spec intent: Func<TAccount,bool> isFlat confirms NT8 type removed.
-        [Fact(Skip="B180-2: method removed")]
+        [Fact]
         public void Flatten_Instrument_FlatFollower_SkipsDispatch_FlatGuard()
         {
             // Structural: FlatGuardLoop must exist in CopyEngine (private static) with 1 generic param.

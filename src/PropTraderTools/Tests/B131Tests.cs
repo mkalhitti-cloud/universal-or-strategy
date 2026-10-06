@@ -162,7 +162,7 @@ namespace PropTraderTools.Tests
             Assert.NotNull(field);
             Assert.Equal(typeof(bool), field!.FieldType);
             // Default value must be true (diagnostic mode active).
-            Assert.Equal(true, (bool)field.GetValue(null)!);
+            Assert.True((bool)field.GetValue(null)!);
         }
     }
 }

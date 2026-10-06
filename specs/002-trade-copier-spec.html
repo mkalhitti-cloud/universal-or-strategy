@@ -17724,7 +17724,7 @@ Row 4 (risk):    <span style="color:#22c55e;">[Risk $  200 [&#9650;][&#9660;]]</
             <strong style="color:var(--purple);">BE ALL vs per-rule BE:</strong> The per-rule
             <code style="font-family:var(--mono);">[BE][2]tks</code> cluster in each rule row fires BE scoped to that
             rule's instrument only. <code style="font-family:var(--mono);">[BE ALL]</code> in the toolbar fires across
-            every account + every instrument simultaneously. Both remain present.
+            every account for the panel's <code style="font-family:var(--mono);">_instrument</code> only (not all instruments &mdash; <span style="color:var(--green);font-size:10px;">&#10003; instrument-scoped since B185-T1</span>). Both remain present.
           </div>
         </div>
 
@@ -17873,7 +17873,7 @@ Row 4 (risk):    <span style="color:#22c55e;">[Risk $  200 [&#9650;][&#9660;]]</
               <tr style="border-bottom:1px solid var(--border);">
                 <td style="padding:4px 8px;color:var(--mid);">Instrument scope</td>
                 <td style="padding:4px 8px;color:var(--mid);">Single instrument (panel's <code style="font-family:var(--mono);">_instrument</code>)</td>
-                <td style="padding:4px 8px;color:var(--purple);">All instruments with open positions (inner loop)</td>
+                <td style="padding:4px 8px;color:var(--purple);">Panel's _instrument only (Account.All) &mdash; <span style="color:var(--green);font-size:10px;">&#10003; B185-T1 SHIPPED</span></td>
               </tr>
               <tr style="border-bottom:1px solid var(--border);">
                 <td style="padding:4px 8px;color:var(--mid);">Requires copy rule</td>
@@ -41541,6 +41541,522 @@ TEST RESULTS: {PASS | FAIL | OBS | PENDING}
       </div>
     </div>
     <!-- end section-continue-loop -->
+
+    <!-- ══ B190 block ════════════════════════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-label">Block 190 &nbsp;·&nbsp; PTT-COPIER-B190 &nbsp;·&nbsp; Per-Instrument Tick Defaults + Spinner Layout Fix + BE Default=0</div>
+      <div class="card" style="border-left:3px solid var(--accent);">
+        <div class="card-title" style="color:var(--accent);">&#9655; Block 190 &nbsp;·&nbsp; PTT-COPIER-B190 &nbsp;·&nbsp; In Spec &nbsp;·&nbsp; <span class="pill" style="background:rgba(241,90,41,0.15);color:var(--accent);border:1px solid var(--accent);">PENDING PIPELINE</span></div>
+
+        <!-- ── Problem Statement ── -->
+        <div class="card" style="margin-bottom:16px;border-color:var(--border);">
+          <div class="card-title">Problem Statement — 3 Fixes</div>
+          <div style="color:var(--mid);font-size:12px;line-height:1.9;margin-bottom:10px;">
+            <strong style="color:var(--bright);">Fix 1 — Per-instrument tick defaults (user request 2026-07-10):</strong><br/>
+            Quick2t and QAll2t spinners always open at 4 ticks regardless of instrument.<br/>
+            MES ticks = $1.25 each (4t = 1 point). MGC ticks = $0.10 each (10t = 1 point).<br/>
+            User wants MES to default to 4t and MGC to default to 10t (each = 1 point for that instrument).<br/>
+            <code style="font-family:var(--mono);font-size:10px;">InstrumentDefaults.GetQuickTicks()</code> already exists in <code style="font-family:var(--mono);font-size:10px;">PttQuickExit.cs</code> and covers MES=4t/MGC=2t.<br/>
+            The panel's <code style="font-family:var(--mono);font-size:10px;">SetInstrument()</code> must call it to reset <code style="font-family:var(--mono);font-size:10px;">_quickT1</code>/<code style="font-family:var(--mono);font-size:10px;">_quickT2</code> when the instrument changes.
+            <br/><br/>
+            <strong style="color:var(--bright);">Fix 2 — Spinner button layout fix (user report + image 2026-07-10):</strong><br/>
+            B189-T4 added Quick2t and QAll2t spinners using plain <code style="font-family:var(--mono);font-size:10px;">Button</code> with <code style="font-family:var(--mono);font-size:10px;">"-"</code> docked Left and <code style="font-family:var(--mono);font-size:10px;">"+"</code> docked Right.<br/>
+            This places the arrows on <em>opposite sides</em> of the label (left and right), inconsistent with all other spinners (BE, Trim, Flatten, Quick, Quick ALL).<br/>
+            All other spinners use a <code style="font-family:var(--mono);font-size:10px;">Grid</code> (2 rows: <code style="font-family:var(--mono);font-size:10px;">RepeatButton "^"</code> top / <code style="font-family:var(--mono);font-size:10px;">RepeatButton "v"</code> bottom) docked to the <strong>Right</strong> of the label.<br/>
+            Fix: replace the B189-T4 <code style="font-family:var(--mono);font-size:10px;">BuildInstrRow()</code> spinner construction to match the canonical pattern.
+            <br/><br/>
+            <strong style="color:var(--bright);">Fix 3 — BE default = 0 (user request 2026-07-10):</strong><br/>
+            Per-instrument BE button opens at <code style="font-family:var(--mono);font-size:10px;">_beBuffer = 1</code>. User wants it to default to 0 (exact BE, no buffer).<br/>
+            BE ALL already defaults to 0 (<code style="font-family:var(--mono);font-size:10px;">_globalBeBuffer = 0</code> in <code style="font-family:var(--mono);font-size:10px;">PttGlobalBreakEven.cs</code>) — no change needed there.<br/>
+            Only <code style="font-family:var(--mono);font-size:10px;">TradeCopierPanel.cs</code> line 241: <code style="font-family:var(--mono);font-size:10px;">private int _beBuffer = 1;</code> &rarr; <code style="font-family:var(--mono);font-size:10px;">private int _beBuffer = 0;</code>
+          </div>
+        </div>
+
+        <!-- ── InstrumentDefaults reference ── -->
+        <div class="card" style="margin-bottom:16px;border-color:var(--border);">
+          <div class="card-title">InstrumentDefaults.GetQuickTicks() — Existing Lookup (PttQuickExit.cs)</div>
+          <div style="color:var(--mid);font-size:11px;margin-bottom:8px;">Already implemented in B41. Returns (t1, t2) tuple. Panel must call this on instrument change.</div>
+          <pre style="font-size:11px;line-height:1.8;">
+<span class="cm">// PttQuickExit.cs — existing static helper (no change required)</span>
+<span class="kw">internal static class</span> InstrumentDefaults
+{
+    <span class="kw">internal static</span> (int t1, int t2) GetQuickTicks(<span class="kw">string</span> masterName)
+    {
+        <span class="kw">if</span> (<span class="kw">string</span>.IsNullOrEmpty(masterName)) <span class="kw">return</span> (4, 8);
+        <span class="kw">if</span> (masterName.StartsWith(<span class="str">"MES"</span>, StringComparison.OrdinalIgnoreCase)) <span class="kw">return</span> (4, 8);
+        <span class="kw">if</span> (masterName.StartsWith(<span class="str">"MGC"</span>, StringComparison.OrdinalIgnoreCase)) <span class="kw">return</span> (10, 20);
+        <span class="kw">return</span> (4, 8);  <span class="cm">// unknown -&gt; MES default</span>
+    }
+}</pre>
+          <div style="color:var(--amber);font-size:11px;margin-top:8px;">
+            &#9888; <strong>MGC default updated:</strong> B41 spec had MGC=(2,4) but user confirmed 10t/20t = 1pt/2pt is the correct MGC default for this panel. <code style="font-family:var(--mono);font-size:10px;">InstrumentDefaults</code> must be updated to MGC=(10,20) in the same ticket.
+          </div>
+        </div>
+
+        <!-- ── SetInstrument reset design ── -->
+        <div class="card" style="margin-bottom:16px;border-color:var(--border);">
+          <div class="card-title">T1 — SetInstrument() Tick Reset Design</div>
+          <pre style="font-size:11px;line-height:1.8;">
+<span class="cm">// TradeCopierPanel.cs — SetInstrument (existing method, add reset block)</span>
+<span class="cm">// CYC stays 1: sequential assignment, no new branches.</span>
+<span class="cm">// JS-021: no lock. JS-002: no null return. ASCII-only.</span>
+<span class="kw">public void</span> SetInstrument(Instrument instrument)
+{
+    _instrument = instrument;
+    <span class="kw">if</span> (_statusText != null &amp;&amp; instrument != null)
+        _statusText.Text = "Ready: " + instrument.FullName + " -- select followers to copy";
+
+    <span class="cm">// B190-T1: reset tick defaults when instrument changes</span>
+    <span class="kw">var</span> ticks = InstrumentDefaults.GetQuickTicks(
+        instrument?.MasterInstrument?.Name ?? <span class="str">""</span>);
+    _quickT1 = ticks.t1;
+    _quickT2 = ticks.t2;
+    <span class="kw">if</span> (_quickBtn != null)
+        _quickBtn.Content = FormatBuffer(<span class="str">"Quick"</span>, _quickT1);
+    <span class="kw">if</span> (_instr2tBtn != null)
+        _instr2tBtn.Content = FormatBuffer(<span class="str">"Quick2t"</span>, _quickT1);
+}</pre>
+          <div style="color:var(--mid);font-size:11px;margin-top:8px;line-height:1.75;">
+            <strong style="color:var(--bright);">Why no branch on null instrument:</strong> The existing guard <code style="font-family:var(--mono);font-size:10px;">instrument?.MasterInstrument?.Name ?? ""</code> safely returns <code style="font-family:var(--mono);font-size:10px;">""</code> on null, and <code style="font-family:var(--mono);font-size:10px;">GetQuickTicks("")</code> returns <code style="font-family:var(--mono);font-size:10px;">(4, 8)</code> — a safe harmless default. No extra branch needed.<br/>
+            <strong style="color:var(--bright);">QAll2t label not updated here:</strong> <code style="font-family:var(--mono);font-size:10px;">GlobalQuickAllT1</code> is a singleton shared across all panels — resetting it in <code style="font-family:var(--mono);font-size:10px;">SetInstrument()</code> would stomp the value for every other open panel. QAll2t keeps its current value. Only per-panel fields <code style="font-family:var(--mono);font-size:10px;">_quickT1</code>/<code style="font-family:var(--mono);font-size:10px;">_quickT2</code> reset.
+          </div>
+        </div>
+
+        <!-- ── Spinner layout fix design ── -->
+        <div class="card" style="margin-bottom:16px;border-color:var(--border);">
+          <div class="card-title">T2 — BuildInstrRow() Spinner Layout Fix</div>
+          <div style="color:var(--mid);font-size:11px;margin-bottom:10px;line-height:1.75;">
+            <strong>Canonical pattern</strong> (used by all existing spinners: Trim, Flatten, BE, Quick, Quick ALL):<br/>
+            <code style="font-family:var(--mono);font-size:10px;">DockPanel { LastChildFill=true }</code> with a <code style="font-family:var(--mono);font-size:10px;">Grid</code> (2 rows × 18px wide: <code style="font-family:var(--mono);">RepeatButton "^"</code> row 0, <code style="font-family:var(--mono);">RepeatButton "v"</code> row 1) docked <strong>Right</strong>, then the label <code style="font-family:var(--mono);font-size:10px;">Button</code> fills remaining space.<br/><br/>
+            <strong>B189-T4 wrong pattern</strong> (Quick2t / QAll2t):<br/>
+            <code style="font-family:var(--mono);font-size:10px;">DockPanel</code> with plain <code style="font-family:var(--mono);">Button "-"</code> docked Left, plain <code style="font-family:var(--mono);">Button "+"</code> docked Right, label fills centre. Arrows appear on opposite sides.
+          </div>
+          <pre style="font-size:11px;line-height:1.8;">
+<span class="cm">// B190-T2: BuildInstrRow() -- replace B189-T4 pattern with canonical Grid+RepeatButton.</span>
+<span class="cm">// Both clusters (Quick2t and QAll2t) get identical structure to all other spinners.</span>
+<span class="cm">// CYC=1: sequential construction, no branches. JS-021: no lock. ASCII-only.</span>
+<span class="kw">private void</span> BuildInstrRow()
+{
+    _instrRowPanel = <span class="kw">new</span> UniformGrid { Columns = 2, Margin = <span class="kw">new</span> Thickness(0, 2, 0, 2) };
+
+    <span class="cm">// Helper: build one spinner cluster (label + canonical ▲▼ Grid docked Right)</span>
+    <span class="cm">// Extracted to BuildSpinnerCluster() to avoid duplicated construction. CYC=1.</span>
+    _instrRowPanel.Children.Add(
+        BuildSpinnerCluster(<span class="str">"Quick2t"</span>, _quickT1, OnQuickUp, OnQuickDown,
+            OnInstr2tClick, <span class="kw">ref</span> _instr2tBtn));
+    _instrRowPanel.Children.Add(
+        BuildSpinnerCluster(<span class="str">"QAll2t"</span>, CopyEngine.Instance.GlobalQuickAllT1,
+            OnQuickAllUp, OnQuickAllDown,
+            OnInstrQAll2tClick, <span class="kw">ref</span> _instrQAll2tBtn));
+}
+
+<span class="cm">// BuildSpinnerCluster: canonical ▲▼-right spinner cluster factory.</span>
+<span class="cm">// Same Grid(2-row RepeatButton) pattern used by Trim, Flatten, BE, Quick, Quick ALL.</span>
+<span class="cm">// CYC=1. JS-021: no lock. JS-002: never null (returns DockPanel). ASCII-only.</span>
+<span class="kw">private</span> DockPanel BuildSpinnerCluster(
+    <span class="kw">string</span> label, <span class="kw">int</span> ticks,
+    RoutedEventHandler onUp, RoutedEventHandler onDn, RoutedEventHandler onClick,
+    <span class="kw">ref</span> Button btnField)
+{
+    <span class="kw">var</span> cluster = <span class="kw">new</span> DockPanel { LastChildFill = <span class="kw">true</span> };
+    <span class="kw">var</span> arrows = <span class="kw">new</span> Grid();
+    arrows.RowDefinitions.Add(<span class="kw">new</span> RowDefinition { Height = <span class="kw">new</span> GridLength(12) });
+    arrows.RowDefinitions.Add(<span class="kw">new</span> RowDefinition { Height = <span class="kw">new</span> GridLength(12) });
+    <span class="kw">var</span> up = <span class="kw">new</span> System.Windows.Controls.Primitives.RepeatButton
+        { Content = "^", Width = 18, Height = 12 };
+    <span class="kw">var</span> dn = <span class="kw">new</span> System.Windows.Controls.Primitives.RepeatButton
+        { Content = "v", Width = 18, Height = 12 };
+    up.SetResourceReference(Control.StyleProperty, <span class="str">"NTButtonStyle"</span>);
+    dn.SetResourceReference(Control.StyleProperty, <span class="str">"NTButtonStyle"</span>);
+    up.Click += onUp;
+    dn.Click += onDn;
+    Grid.SetRow(up, 0);
+    Grid.SetRow(dn, 1);
+    arrows.Children.Add(up);
+    arrows.Children.Add(dn);
+    DockPanel.SetDock(arrows, Dock.Right);
+    <span class="kw">var</span> btn = <span class="kw">new</span> Button
+    {
+        Content = FormatBuffer(label, ticks),
+        BorderBrush = BrushTeal,
+        BorderThickness = <span class="kw">new</span> Thickness(2),
+    };
+    btn.SetResourceReference(Control.StyleProperty, <span class="str">"NTButtonStyle"</span>);
+    btn.Background = BrushTeal;
+    btn.Foreground = System.Windows.Media.Brushes.White;
+    btn.Click += onClick;
+    cluster.Children.Add(arrows);
+    cluster.Children.Add(btn);
+    btnField = btn;
+    <span class="kw">return</span> cluster;
+}</pre>
+          <div style="color:var(--mid);font-size:11px;margin-top:8px;line-height:1.75;">
+            <strong style="color:var(--bright);">CYC note:</strong> <code style="font-family:var(--mono);font-size:10px;">BuildSpinnerCluster()</code> CYC=1 (no branches). <code style="font-family:var(--mono);font-size:10px;">BuildInstrRow()</code> CYC=1 (two straight-line calls). Both well within ceiling=8.<br/>
+            <strong style="color:var(--bright);">ref Button:</strong> Using <code style="font-family:var(--mono);">ref</code> parameter to assign the field from inside the helper avoids a second assignment statement at the call site. Valid C# pattern; no JS violation.<br/>
+            <strong style="color:var(--bright);">RepeatButton vs Button:</strong> All canonical spinners use <code style="font-family:var(--mono);">RepeatButton</code> (auto-fires on hold). The B189-T4 plain <code style="font-family:var(--mono);">Button</code> did not auto-fire — this fix also restores the hold-to-scroll behaviour.
+          </div>
+        </div>
+
+        <!-- ── BE default fix design ── -->
+        <div class="card" style="margin-bottom:16px;border-color:var(--border);">
+          <div class="card-title">T3 — BE Default = 0</div>
+          <pre style="font-size:11px;line-height:1.8;">
+<span class="cm">// TradeCopierPanel.cs line 241 -- 1-char change</span>
+<span class="cm">// BEFORE:</span>
+<span class="kw">private int</span> _beBuffer = 1;
+
+<span class="cm">// AFTER:</span>
+<span class="kw">private int</span> _beBuffer = 0; <span class="cm">// B190-T3: default exact BE (no buffer)</span></pre>
+          <div style="color:var(--mid);font-size:11px;margin-top:8px;line-height:1.75;">
+            <strong style="color:var(--bright);">BE ALL:</strong> <code style="font-family:var(--mono);font-size:10px;">_globalBeBuffer = 0</code> in <code style="font-family:var(--mono);font-size:10px;">PttGlobalBreakEven.cs:12</code> — already 0, no change needed.<br/>
+            <strong style="color:var(--bright);">Initial label:</strong> <code style="font-family:var(--mono);font-size:10px;">FormatGlobalBeBuffer("BE", 0)</code> returns <code style="font-family:var(--mono);">"BE"</code> (the ticks==0 branch added in B189-T2). Label will show "BE" with no number at startup.
+          </div>
+        </div>
+
+        <!-- ── Ticket list ── -->
+        <div class="card" style="margin-bottom:16px;border-color:var(--border);">
+          <div class="card-title">B190 Ticket List (6 tickets: 3 functional + 3 deferred closures)</div>
+          <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);">
+                <th style="padding:4px 8px;text-align:left;color:var(--dim);">Ticket</th>
+                <th style="padding:4px 8px;text-align:left;color:var(--dim);">File(s)</th>
+                <th style="padding:4px 8px;text-align:left;color:var(--dim);">Change</th>
+                <th style="padding:4px 8px;text-align:left;color:var(--dim);">CYC / Risk</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;color:var(--bright);">T1</td>
+                <td style="padding:4px 8px;font-family:var(--mono);font-size:10px;color:var(--mid);">PttQuickExit.cs<br/>TradeCopierPanel.cs</td>
+                <td style="padding:4px 8px;color:var(--mid);">Update InstrumentDefaults MGC=(10,20). SetInstrument() resets _quickT1/_quickT2 from InstrumentDefaults and refreshes _quickBtn + _instr2tBtn labels.</td>
+                <td style="padding:4px 8px;color:var(--mid);">GetQuickTicks CYC stays 3. SetInstrument CYC stays 1 (no branch added; null-coalesced inline).</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;color:var(--bright);">T2</td>
+                <td style="padding:4px 8px;font-family:var(--mono);font-size:10px;color:var(--mid);">TradeCopierPanel.cs</td>
+                <td style="padding:4px 8px;color:var(--mid);">Replace BuildInstrRow() B189-T4 pattern (Button +/-) with canonical Grid+RepeatButton docked Right. Extract BuildSpinnerCluster() helper to avoid duplication. RepeatButton restores hold-to-scroll behaviour.</td>
+                <td style="padding:4px 8px;color:var(--mid);">BuildInstrRow CYC=1. BuildSpinnerCluster CYC=1.</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;color:var(--bright);">T3</td>
+                <td style="padding:4px 8px;font-family:var(--mono);font-size:10px;color:var(--mid);">TradeCopierPanel.cs</td>
+                <td style="padding:4px 8px;color:var(--mid);">Change <code style="font-family:var(--mono);font-size:10px;">_beBuffer = 1</code> to <code style="font-family:var(--mono);font-size:10px;">_beBuffer = 0</code>. BE ALL already 0 — no change. Initial BE label shows "BE" (handled by FormatGlobalBeBuffer ticks==0 branch from B189-T2).</td>
+                <td style="padding:4px 8px;color:var(--mid);">No new methods. CYC unchanged.</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);background:rgba(245,158,11,0.04);">
+                <td style="padding:4px 8px;color:var(--bright);">T4 <span style="color:var(--amber);font-size:9px;">DW-B183-05</span></td>
+                <td style="padding:4px 8px;font-family:var(--mono);font-size:10px;color:var(--mid);">docs/standards/jane-street/<br/>RULES_CATALOG.md</td>
+                <td style="padding:4px 8px;color:var(--mid);">Restore full RULES_CATALOG.md (JS-001..JS-110). Currently truncated at JS-041. No .cs files touched. Enforcement already operates via DNA block + workspace rule. This is documentation repair only. <strong style="color:var(--amber);">Closes DW-B183-05.</strong></td>
+                <td style="padding:4px 8px;color:var(--mid);">Zero CYC impact. Zero compile risk. Docs only.</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);background:rgba(245,158,11,0.04);">
+                <td style="padding:4px 8px;color:var(--bright);">T5 <span style="color:var(--amber);font-size:9px;">DW-B185-BE-ALL-SCOPE-01</span></td>
+                <td style="padding:4px 8px;font-family:var(--mono);font-size:10px;color:var(--mid);">specs/002-trade-copier-spec.html</td>
+                <td style="padding:4px 8px;color:var(--mid);">Update B39 scope table row: "Instrument scope: All instruments with open positions" &rarr; "Panel's _instrument only (Account.All)". Add closed DW card. Code shipped in B185-T1; only the spec doc lags. <strong style="color:var(--amber);">Closes DW-B185-BE-ALL-SCOPE-01.</strong></td>
+                <td style="padding:4px 8px;color:var(--mid);">Zero CYC impact. Spec HTML only.</td>
+              </tr>
+              <tr style="background:rgba(245,158,11,0.04);">
+                <td style="padding:4px 8px;color:var(--bright);">T6 <span style="color:var(--amber);font-size:9px;">DW-B183-02 + DW-B183-01</span></td>
+                <td style="padding:4px 8px;font-family:var(--mono);font-size:10px;color:var(--mid);">CopyEngineTests.cs</td>
+                <td style="padding:4px 8px;color:var(--mid);">
+                  <strong>DW-B183-02:</strong> Remove stale <code style="font-family:var(--mono);font-size:10px;">Skip="B180-2: method removed"</code> from <code style="font-family:var(--mono);font-size:10px;">Flatten_Instrument_FlatFollower_SkipsDispatch_FlatGuard</code> (line 8812). FlatGuardLoop still exists at CopyEngine.cs:6768 — skip reason is stale. Verify test passes (structural reflection only, no NT8 invoke). <strong style="color:var(--amber);">Closes DW-B183-02.</strong><br/><br/>
+                  <strong>DW-B183-01:</strong> Slate Gate tests already present (CopyEngineTests.cs lines 8277–8441, 6 passing [Fact] + 2 NT8-runtime [Fact(Skip)]). No new tests required. Ph5 final reviewer to confirm tests pass and <strong style="color:var(--amber);">close DW-B183-01</strong> in 06-deferred-backlog.md.
+                </td>
+                <td style="padding:4px 8px;color:var(--mid);">Test file only. No prod .cs changes. CYC unchanged.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ── Acceptance Criteria ── -->
+        <div class="card" style="margin-bottom:16px;border-color:var(--border);">
+          <div class="card-title">B190 Acceptance Criteria</div>
+          <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);">
+                <th style="padding:4px 8px;text-align:left;color:var(--dim);">AC</th>
+                <th style="padding:4px 8px;text-align:left;color:var(--dim);">Ticket</th>
+                <th style="padding:4px 8px;text-align:left;color:var(--dim);">Condition</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;color:var(--bright);">AC1</td>
+                <td style="padding:4px 8px;color:var(--mid);">T1</td>
+                <td style="padding:4px 8px;color:var(--mid);">Open MES panel: Quick button shows "+4", Quick2t shows "+4". InstrumentDefaults.GetQuickTicks("MES") returns (4,8).</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;color:var(--bright);">AC2</td>
+                <td style="padding:4px 8px;color:var(--mid);">T1</td>
+                <td style="padding:4px 8px;color:var(--mid);">Open MGC panel: Quick button shows "+10", Quick2t shows "+10". InstrumentDefaults.GetQuickTicks("MGC") returns (10,20).</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;color:var(--bright);">AC3</td>
+                <td style="padding:4px 8px;color:var(--mid);">T1</td>
+                <td style="padding:4px 8px;color:var(--mid);">Unknown instrument: GetQuickTicks("XYZ") returns (4,8) — MES fallback unchanged.</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;color:var(--bright);">AC4</td>
+                <td style="padding:4px 8px;color:var(--mid);">T1</td>
+                <td style="padding:4px 8px;color:var(--mid);">Spinner Up on Quick in MES panel: increments from 4 to 5. Spinner Up in MGC panel: increments from 10 to 11. Per-session, not persisted.</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;color:var(--bright);">AC5</td>
+                <td style="padding:4px 8px;color:var(--mid);">T1</td>
+                <td style="padding:4px 8px;color:var(--mid);">QAll2t label is NOT reset by SetInstrument() — its value reflects GlobalQuickAllT1 only (shared singleton, instrument-agnostic).</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;color:var(--bright);">AC6</td>
+                <td style="padding:4px 8px;color:var(--mid);">T2</td>
+                <td style="padding:4px 8px;color:var(--mid);">Quick2t and QAll2t spinners show "^" (top) and "v" (bottom) arrows on the RIGHT side of the label — identical layout to BE, Trim, Flatten, Quick, Quick ALL buttons.</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;color:var(--bright);">AC7</td>
+                <td style="padding:4px 8px;color:var(--mid);">T2</td>
+                <td style="padding:4px 8px;color:var(--mid);">Hold "^" on Quick2t: value increments continuously (RepeatButton auto-fire). Hold "v": decrements continuously. Same behaviour as all other spinners.</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;color:var(--bright);">AC8</td>
+                <td style="padding:4px 8px;color:var(--mid);">T2</td>
+                <td style="padding:4px 8px;color:var(--mid);">No "-" or "+" buttons visible anywhere in the panel. No horizontal split layout on any row.</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;color:var(--bright);">AC9</td>
+                <td style="padding:4px 8px;color:var(--mid);">T3</td>
+                <td style="padding:4px 8px;color:var(--mid);">Panel opens with BE button showing "BE" (no number) — initial _beBuffer=0 rendered by FormatGlobalBeBuffer("BE", 0).</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;color:var(--bright);">AC10</td>
+                <td style="padding:4px 8px;color:var(--mid);">T3</td>
+                <td style="padding:4px 8px;color:var(--mid);">Click BE with _beBuffer=0: stop placed exactly at entry (0 tick buffer). Click "^" once: label shows "BE +1"; stop placed 1 tick above entry (long).</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;color:var(--bright);">AC11</td>
+                <td style="padding:4px 8px;color:var(--mid);">T3</td>
+                <td style="padding:4px 8px;color:var(--mid);">BE ALL panel opens showing "BE ALL" (no number) — _globalBeBuffer=0, already correct, confirmed unchanged.</td>
+              </tr>
+              <tr>
+                <td style="padding:4px 8px;color:var(--bright);">AC-DNA</td>
+                <td style="padding:4px 8px;color:var(--mid);">All</td>
+                <td style="padding:4px 8px;color:var(--mid);">0 new lock(). 0 async void. 0 return null in hot paths. All modified methods CYC &le; 8. ASCII-only. dotnet build 0 errors 0 warnings. ptt-sync 19 linked 0 errors.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ── xUnit tests ── -->
+        <div class="card" style="margin-bottom:16px;border-color:var(--border);">
+          <div class="card-title">B190 Required xUnit [Fact] Tests</div>
+          <pre style="font-size:11px;line-height:1.8;">
+T_B190_T1_01  InstrumentDefaults_MES_Returns4And8             (unchanged, regression guard)
+T_B190_T1_02  InstrumentDefaults_MGC_Returns10And20           (updated from 2,4)
+T_B190_T1_03  InstrumentDefaults_Unknown_ReturnsMesDefault    (regression guard)
+T_B190_T1_04  SetInstrument_MES_SetsQuickT1_4                 (mock: quickT1=4 after SetInstrument MES)
+T_B190_T1_05  SetInstrument_MGC_SetsQuickT1_10                (mock: quickT1=10 after SetInstrument MGC)
+T_B190_T2_01  BuildSpinnerCluster_Returns_DockPanel            (structural: result is DockPanel)
+T_B190_T2_02  BuildSpinnerCluster_ArrowsDockedRight            (structural: Grid child docked Right)
+T_B190_T3_01  BeBuffer_Default_IsZero                         (unit: _beBuffer field default)
+-- T4: no new tests (RULES_CATALOG.md is a .md file; no code to test)
+-- T5: no new tests (spec HTML only)
+T_B190_T6_01  FlatGuardLoop_StructuralContract_SkipRemoved    (existing test un-skipped; verify passes without Skip)</pre>
+        </div>
+
+        <!-- ── NT8 test instructions ── -->
+        <div class="card" style="margin-bottom:16px;border-color:var(--border);">
+          <div class="card-title">NT8 Compile + Test Instructions (Post-Pipeline)</div>
+          <div style="color:var(--mid);font-size:12px;line-height:1.9;">
+            <strong>Step 1</strong>: NinjaTrader &rarr; Tools &rarr; Edit NinjaScript &rarr; Compile (F5). Expected: 0 errors, 0 warnings.<br/><br/>
+            <strong>T1 — Per-instrument defaults:</strong><br/>
+            Open MES chart &rarr; PTT panel: Quick shows "+4", Quick2t shows "+4". Quick +4t on MES = $5/tick x 4 = $20 per contract T1.<br/>
+            Open MGC chart &rarr; PTT panel: Quick shows "+10", Quick2t shows "+10". Quick +10t on MGC = $0.10/tick x 10 = $1/contract T1 (= 1 point).<br/><br/>
+            <strong>T2 — Spinner layout:</strong><br/>
+            All 8 spinners in panel (Trim, Flatten, BE, BE ALL, Quick, Quick ALL, Quick2t, QAll2t) show "^"/"v" arrows stacked vertically on the RIGHT of the label.<br/>
+            Hold "^" on Quick2t: value increments continuously without repeated clicks.<br/><br/>
+            <strong>T3 — BE default=0:</strong><br/>
+            Open fresh panel: BE button shows "BE" (no +1). Click BE: stop placed exactly at entry price (0 buffer).<br/>
+            BE ALL shows "BE ALL" (no number). BE ALL behaviour unchanged.
+          </div>
+        </div>
+
+        <!-- ── DW carry-forward ── -->
+        <div class="card" style="margin-bottom:16px;border-color:var(--border);">
+          <div class="card-title">Deferred Items Carry-Forward</div>
+          <table style="width:100%;border-collapse:collapse;font-size:11px;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);">
+                <th style="padding:4px 8px;text-align:left;color:var(--dim);">ID</th>
+                <th style="padding:4px 8px;text-align:left;color:var(--dim);">Priority</th>
+                <th style="padding:4px 8px;text-align:left;color:var(--dim);">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;font-family:var(--mono);font-size:10px;">DW-B183-05</td>
+                <td style="padding:4px 8px;color:var(--red);">P1</td>
+                <td style="padding:4px 8px;color:var(--mid);">RULES_CATALOG.md truncated at JS-041 (ops task)</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;font-family:var(--mono);font-size:10px;">DW-B183-03</td>
+                <td style="padding:4px 8px;color:var(--red);">P1</td>
+                <td style="padding:4px 8px;color:var(--mid);">IsLaneEEligible CYC=8 frozen</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;font-family:var(--mono);font-size:10px;">DW-B185-BE-ALL-SCOPE-01</td>
+                <td style="padding:4px 8px;color:var(--amber);">P2</td>
+                <td style="padding:4px 8px;color:var(--mid);">Spec HTML update for instrument-scoped BE ALL</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;font-family:var(--mono);font-size:10px;">DW-B183-01</td>
+                <td style="padding:4px 8px;color:var(--amber);">P2</td>
+                <td style="padding:4px 8px;color:var(--mid);">xUnit tests for Slate Gate methods</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:4px 8px;font-family:var(--mono);font-size:10px;">DW-B183-02</td>
+                <td style="padding:4px 8px;color:var(--amber);">P2</td>
+                <td style="padding:4px 8px;color:var(--mid);">xUnit test for FlatGuardLoop</td>
+              </tr>
+              <tr>
+                <td style="padding:4px 8px;font-family:var(--mono);font-size:10px;">DW-B187-01</td>
+                <td style="padding:4px 8px;color:var(--mid);">P3</td>
+                <td style="padding:4px 8px;color:var(--mid);">followerPosQty path review in ResolveFollowerTargets</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ── Orchestrator prompt ── -->
+        <div class="card" style="margin-bottom:16px;border-color:var(--border);">
+          <div class="card-title" style="color:#0d9488;">&#9654; ptt-orchestrator Paste Prompt — B190</div>
+          <pre style="font-family:var(--mono);font-size:10px;color:var(--mid);line-height:1.8;background:rgba(0,0,0,0.3);padding:10px;border-radius:4px;white-space:pre-wrap;">$start-lane | PTT-COPIER B190 | Per-Instrument Tick Defaults + Spinner Layout Fix + BE Default=0 + Deferred Closures | LaneA
+
+BASELINE COMMIT: 9d7bfb43 (B189 T1..T5)
+BRAIN DIR: docs/brain/B190/
+SPEC: specs/002-trade-copier-spec.html -- B190 block
+
+PIPELINE (all phases mandatory -- none skippable -- none combinable):
+  Ph1  ptt-architect       -&gt; 02-architecture-plan.md
+  Ph2  ptt-plan-reviewer   -&gt; 02-plan-review.md       (REVIEW_PASS gate)
+  Ph3  ptt-architect       -&gt; 04-tickets.md
+  Ph3.5 ptt-ticket-reviewer -&gt; 04-ticket-review.md    (TICKET_REVIEW_PASS gate)
+  Ph4a ptt-engineer        -&gt; src .cs edits + ticket-N-completion.md
+  Ph4b ptt-verifier        -&gt; ticket-N-verification.md (VERIFY_PASS gate)
+  Ph5  ptt-plan-reviewer   -&gt; 05-final-review.md + 06-deferred-backlog.md
+
+SCOPE (6 tickets):
+
+T1 -- InstrumentDefaults MGC update + SetInstrument() tick reset
+  File: src/PropTraderTools/Features/PttQuickExit.cs
+    Update InstrumentDefaults.GetQuickTicks(): MGC returns (10, 20) not (2, 4).
+  File: src/PropTraderTools/TradeCopierPanel.cs
+    SetInstrument(): after existing _statusText update, add:
+      var ticks = InstrumentDefaults.GetQuickTicks(instrument?.MasterInstrument?.Name ?? "");
+      _quickT1 = ticks.t1;
+      _quickT2 = ticks.t2;
+      if (_quickBtn != null)   _quickBtn.Content   = FormatBuffer("Quick",   _quickT1);
+      if (_instr2tBtn != null) _instr2tBtn.Content = FormatBuffer("Quick2t", _quickT1);
+    NO change to GlobalQuickAllT1 or _instrQAll2tBtn here (shared singleton).
+  xUnit: T_B190_T1_01..T1_05 (see spec).
+
+T2 -- BuildInstrRow() spinner layout fix
+  File: src/PropTraderTools/TradeCopierPanel.cs
+    Replace BuildInstrRow() body: use canonical Grid+RepeatButton docked Right (matching all other spinners).
+    Add private BuildSpinnerCluster(string label, int ticks, RoutedEventHandler onUp, RoutedEventHandler onDn,
+        RoutedEventHandler onClick, ref Button btnField) -&gt; DockPanel.
+    BuildInstrRow() calls BuildSpinnerCluster twice:
+      Quick2t cluster (uses _instr2tBtn, OnQuickUp/Down, OnInstr2tClick, initial ticks=_quickT1)
+      QAll2t  cluster (uses _instrQAll2tBtn, OnQuickAllUp/Down, OnInstrQAll2tClick, initial ticks=GlobalQuickAllT1)
+    RepeatButton Delay=400ms Interval=100ms (same as all other spinners -- check existing constants).
+    Remove all "-"/"+" Button code from BuildInstrRow().
+  xUnit: T_B190_T2_01..T2_02 (structural tests -- DockPanel returned, Grid child docked Right).
+
+T3 -- BE default = 0
+  File: src/PropTraderTools/TradeCopierPanel.cs
+    Line 241: private int _beBuffer = 1; -&gt; private int _beBuffer = 0;
+    Comment: // B190-T3: default exact BE (no buffer)
+    Verify BuildBufferedButtonsRow initialises BE label via FormatGlobalBeBuffer("BE", _beBuffer):
+      FormatGlobalBeBuffer("BE", 0) returns "BE" (ticks==0 branch from B189-T2) -- no change needed to format method.
+  xUnit: T_B190_T3_01 (BeBuffer_Default_IsZero -- verify field initialisation).
+
+T4 -- Restore RULES_CATALOG.md (DW-B183-05)
+  File: docs/standards/jane-street/RULES_CATALOG.md
+    Currently truncated at JS-041. Restore JS-042..JS-110.
+    No .cs files. No compile step. Enforcement unimpaired (DNA block + workspace rule already cover missing rules).
+    Verify: file contains JS-066 (CYC ceiling) and JS-081 (ASCII-only) after restore.
+  CLOSES: DW-B183-05
+  xUnit: none (docs-only ticket).
+
+T5 -- Spec HTML update: BE ALL instrument scope (DW-B185-BE-ALL-SCOPE-01)
+  File: specs/002-trade-copier-spec.html
+    Find B39 scope table row containing "All instruments with open positions".
+    Update to: "Panel's _instrument only (Account.All)".
+    Update adjacent comparison table note to match.
+    Add a closed DW card for DW-B185-BE-ALL-SCOPE-01.
+    Code was shipped in B185-T1 (VERIFY_PASS). Only spec doc lags.
+  CLOSES: DW-B185-BE-ALL-SCOPE-01
+  xUnit: none (spec HTML ticket).
+
+T6 -- FlatGuardLoop skip removal + Slate Gate DW audit (DW-B183-02 + DW-B183-01)
+  File: src/PropTraderTools/CopyEngineTests.cs
+    DW-B183-02: Remove Skip="B180-2: method removed" from
+      Flatten_Instrument_FlatFollower_SkipsDispatch_FlatGuard (approx line 8812).
+      FlatGuardLoop still exists at CopyEngine.cs:6768 -- skip reason is stale.
+      Verify test passes: structural reflection only (typeof(CopyEngine).GetMethods + param-type check),
+      no Invoke, no NT8 cctor -- no Skip needed.
+    DW-B183-01: Confirm Slate Gate tests at lines 8277-8441 pass (6 [Fact] + 2 [Fact(Skip=NT8-runtime)]).
+      No new tests required -- coverage already present.
+      Ph5 reviewer closes DW-B183-01 in 06-deferred-backlog.md based on confirmed passing tests.
+  CLOSES: DW-B183-02 (skip removal + verified pass). DW-B183-01 (confirmed already covered).
+  xUnit: T_B190_T6_01 (existing test un-skipped; must pass in dotnet test).
+
+DNA CONSTRAINTS (all tickets):
+  - 0 new lock(). 0 async void. 0 return null in hot paths.
+  - All modified methods CYC &lt;= 8.
+  - ASCII-only string literals.
+  - dotnet build 0 errors 0 warnings.
+  - ptt-sync.ps1: 19 linked, 0 errors.
+
+DEFERRED (carry forward -- these are NOT in B190 scope):
+  DW-B183-03 (P1) -- IsLaneEEligible CYC=8 frozen: only relevant when Lane E is next modified.
+  DW-B187-01 (P3) -- followerPosQty path review in ResolveFollowerTargets: Director-owned, low urgency.
+
+ITEMS CLOSED BY B190 (Ph5 must confirm each):
+  DW-B183-05 -- RULES_CATALOG.md restored (T4)
+  DW-B185-BE-ALL-SCOPE-01 -- spec HTML updated (T5)
+  DW-B183-02 -- FlatGuardLoop skip removed, test passes (T6)
+  DW-B183-01 -- Slate Gate tests confirmed present and passing (T6 audit)
+
+BUILD TAG: "PTT-COPIER B190 | instr-defaults + spinner-fix + be-zero + dw-closures | {today-date}"
+BRAIN: docs/brain/B190/</pre>
+        </div>
+
+      </div>
+    </div>
+    <!-- DW-B185-BE-ALL-SCOPE-01: P2 CONFIRMED FIXED — B190-T5 spec doc update 2026-07-11 -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════════════ -->
+    <div class="section" id="section-dw-b185-be-all-scope-01" style="margin-top:40px;">
+      <div class="section-label" style="background:rgba(34,197,94,0.08); border-left:3px solid var(--green); color:var(--green);">DW-B185-BE-ALL-SCOPE-01 &mdash; P2 &mdash; CONFIRMED FIXED &mdash; B190-T5 spec doc updated 2026-07-11 &mdash; CLOSED</div>
+      <div class="section-body">
+        <div class="card" style="border-left:3px solid var(--green); background:rgba(34,197,94,0.04);">
+          <div class="card-title" style="color:var(--green);">&#10003; DW-B185-BE-ALL-SCOPE-01 &mdash; P2 CONFIRMED FIXED &mdash; Spec HTML updated to reflect instrument-scoped BE ALL (B185-T1 VERIFY_PASS)</div>
+          <div class="card-body">
+            <table style="font-size:0.82rem; border-collapse:collapse; width:100%; margin-bottom:0.75rem;">
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted); white-space:nowrap; width:130px;">Defect ID</td><td style="padding:3px 0; color:#e2e8f0;">DW-B185-BE-ALL-SCOPE-01</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Severity</td><td style="padding:3px 0; color:var(--amber);">P2 &mdash; doc lag (code already correct)</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Status</td><td style="padding:3px 0; color:var(--green);">&#10003; CONFIRMED FIXED &mdash; B190-T5 spec doc updated 2026-07-11. CLOSED.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">File</td><td style="padding:3px 0; color:#e2e8f0;"><code>specs/002-trade-copier-spec.html</code> &mdash; B39 scope table row + adjacent comparison note</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Description</td><td style="padding:3px 0; color:#e2e8f0;">B185-T1 shipped instrument-scoped BE ALL (VERIFY_PASS). The B39 spec HTML still described the old &ldquo;All instruments with open positions&rdquo; scope. Spec doc lagged behind the shipped implementation.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Fix (B190-T5)</td><td style="padding:3px 0; color:#e2e8f0;">B39 scope table row updated to &ldquo;Panel&rsquo;s _instrument only (Account.All)&rdquo;. Adjacent comparison note updated to reflect instrument-scoped behavior. Closed DW card added.</td></tr>
+              <tr><td style="padding:3px 10px 3px 0; color:var(--muted);">Code shipped</td><td style="padding:3px 0; color:var(--green);">&#10003; B185-T1 VERIFY_PASS &mdash; instrument-scoped BE ALL implementation complete</td></tr>
+            </table>
+            <strong style="color:var(--green);">&#10003; DW-B185-BE-ALL-SCOPE-01 CONFIRMED FIXED &mdash; Closed by B190-T5. Spec updated to reflect instrument-scoped BE ALL behavior shipped in B185-T1.</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- end section-dw-b185-be-all-scope-01 -->
+
+    <!-- end B190 block -->
 
   </body>
 </html>

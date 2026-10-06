@@ -378,7 +378,7 @@ namespace PropTraderTools
     {
         /// <summary>
         /// GetQuickTicks: returns (T1 ticks, T2 ticks) for the given master instrument name.
-        /// MES: (4, 8) = 1pt/2pt at 0.25 tick. MGC: (2, 4) = 0.2pt/0.4pt at 0.1 tick.
+        /// MES: (4, 8) = 1pt/2pt at 0.25 tick. MGC: (10, 20) = 1pt/2pt at 0.1 tick.
         /// Default: MES ticks (4, 8). CYC=3 (null/empty guard + MES check + MGC check).
         /// JS-002: returns tuple (never returns null). ASCII-only strings.
         /// </summary>
@@ -389,7 +389,7 @@ namespace PropTraderTools
             if (masterName.StartsWith("MES"))
                 return (4, 8); // (2)
             if (masterName.StartsWith("MGC"))
-                return (2, 4); // (3)
+                return (10, 20); // B190-T1: 1pt/2pt at 0.1 tick
             return (4, 8);
         }
     }
