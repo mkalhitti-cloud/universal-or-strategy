@@ -1006,6 +1006,8 @@ namespace PropTraderTools
             {
                 if (_quickAllBtn != null)
                     _quickAllBtn.Content = FormatQuickAllBuffer("Quick ALL", newT1);
+                if (_instrQAll2tBtn != null)
+                    _instrQAll2tBtn.Content = FormatBuffer("QAll2t", newT1);
             });
         }
 
@@ -1062,7 +1064,7 @@ namespace PropTraderTools
                     row1
                 ),
                 (
-                    FormatBuffer("BE", _beBuffer),
+                    FormatGlobalBeBuffer("BE", _beBuffer),
                     BrushTeal,
                     true,
                     OnBeUp,
@@ -1165,37 +1167,63 @@ namespace PropTraderTools
             root.Children.Add(_quickT3Row);
         }
 
-        // B129: BuildInstrRow -- 2-col UniformGrid: "Quick2t" (left) + "QAll2t" (right).
-        // No spinner. Fixed labels. CYC=1: sequential construction.
+        // B189-T4: BuildInstrRow -- 2-col UniformGrid: Quick2t spinner (left) + QAll2t spinner (right).
+        // Each cell is a DockPanel: "-" docked Left, "+" docked Right, center label fills remaining space.
+        // Up/Down buttons are local variables (not stored as fields). CYC=1: sequential construction.
         // JS-021: no lock. JS-033: no async. ASCII-only labels.
         private void BuildInstrRow()
         {
             _instrRowPanel = new UniformGrid { Columns = 2, Margin = new Thickness(0, 2, 0, 2) };
+
+            // Cluster 1: Quick2t
+            var quick2tCluster = new DockPanel { LastChildFill = true };
+            var quick2tDn = new Button { Content = "-", Width = 18 };
+            var quick2tUp = new Button { Content = "+", Width = 18 };
+            quick2tDn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            quick2tUp.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            quick2tDn.Click += OnQuickDown;
+            quick2tUp.Click += OnQuickUp;
+            DockPanel.SetDock(quick2tDn, Dock.Left);
+            DockPanel.SetDock(quick2tUp, Dock.Right);
             _instr2tBtn = new Button
             {
-                Content = "Quick2t",
+                Content = FormatBuffer("Quick2t", _quickT1),
                 BorderBrush = BrushTeal,
-                Foreground = BrushTeal,
                 BorderThickness = new Thickness(2),
             };
             _instr2tBtn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
             _instr2tBtn.Background = BrushTeal;
             _instr2tBtn.Foreground = System.Windows.Media.Brushes.White;
             _instr2tBtn.Click += OnInstr2tClick;
-            _instrRowPanel.Children.Add(_instr2tBtn);
+            quick2tCluster.Children.Add(quick2tDn);
+            quick2tCluster.Children.Add(quick2tUp);
+            quick2tCluster.Children.Add(_instr2tBtn);
+            _instrRowPanel.Children.Add(quick2tCluster);
 
+            // Cluster 2: QAll2t
+            var qAll2tCluster = new DockPanel { LastChildFill = true };
+            var qAll2tDn = new Button { Content = "-", Width = 18 };
+            var qAll2tUp = new Button { Content = "+", Width = 18 };
+            qAll2tDn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            qAll2tUp.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            qAll2tDn.Click += OnQuickAllDown;
+            qAll2tUp.Click += OnQuickAllUp;
+            DockPanel.SetDock(qAll2tDn, Dock.Left);
+            DockPanel.SetDock(qAll2tUp, Dock.Right);
             _instrQAll2tBtn = new Button
             {
-                Content = "QAll2t",
+                Content = FormatBuffer("QAll2t", CopyEngine.Instance.GlobalQuickAllT1),
                 BorderBrush = BrushTeal,
-                Foreground = BrushTeal,
                 BorderThickness = new Thickness(2),
             };
             _instrQAll2tBtn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
             _instrQAll2tBtn.Background = BrushTeal;
             _instrQAll2tBtn.Foreground = System.Windows.Media.Brushes.White;
             _instrQAll2tBtn.Click += OnInstrQAll2tClick;
-            _instrRowPanel.Children.Add(_instrQAll2tBtn);
+            qAll2tCluster.Children.Add(qAll2tDn);
+            qAll2tCluster.Children.Add(qAll2tUp);
+            qAll2tCluster.Children.Add(_instrQAll2tBtn);
+            _instrRowPanel.Children.Add(qAll2tCluster);
         }
 
         // B129: Build2TargetList -- returns pre-built 2-entry targets list for Quick2t.
@@ -1330,14 +1358,14 @@ namespace PropTraderTools
         // B32/B35-LaneB: Connected state removed -- buffer change no longer triggers live reprice (DW-B32-04b closed).
         private void OnBeUp(object sender, RoutedEventArgs e)
         {
-            _beBuffer = Math.Max(Math.Min(_beBuffer + 1, 20), 0); // no Math.Clamp
+            _beBuffer = Math.Max(Math.Min(_beBuffer + 1, 20), -20); // no Math.Clamp
             UpdateBeLabel();
         }
 
         // B12 T1 -- OnBeDown: decrement _beBuffer, clamp, live reprice if Connected. CYC=2.
         private void OnBeDown(object sender, RoutedEventArgs e)
         {
-            _beBuffer = Math.Max(Math.Min(_beBuffer - 1, 20), 0);
+            _beBuffer = Math.Max(Math.Min(_beBuffer - 1, 20), -20);
             UpdateBeLabel();
             // B32: Connected state removed -- buffer change no longer triggers live reprice (DW-B32-04).
         }
@@ -1360,7 +1388,7 @@ namespace PropTraderTools
         private void UpdateBeLabel()
         {
             if (_beBtn2 != null)
-                _beBtn2.Content = FormatBuffer("BE", _beBuffer);
+                _beBtn2.Content = FormatGlobalBeBuffer("BE", _beBuffer);
         }
 
         // B19 T1 -- GetAsk: returns current ask price from _instrument.MarketData.Ask.Price.
@@ -1625,15 +1653,19 @@ namespace PropTraderTools
             _quickT2 = _quickT1 * 2;
             if (_quickBtn != null)
                 _quickBtn.Content = FormatBuffer("Quick", _quickT1); // (2)
+            if (_instr2tBtn != null)
+                _instr2tBtn.Content = FormatBuffer("Quick2t", _quickT1); // (3)
         }
 
-        // B41: OnQuickDown -- decrement T1 by 1t (minimum 1), T2 = T1 x 2. CYC=2.
+        // B41/B189-T4: OnQuickDown -- decrement T1 by 1t (minimum 1), T2 = T1 x 2. CYC=3 post-fix.
         private void OnQuickDown(object sender, RoutedEventArgs e)
         {
             _quickT1 = Math.Max(1, Math.Min(_quickT1 - 1, 100));
             _quickT2 = _quickT1 * 2;
             if (_quickBtn != null)
                 _quickBtn.Content = FormatBuffer("Quick", _quickT1); // (2)
+            if (_instr2tBtn != null)
+                _instr2tBtn.Content = FormatBuffer("Quick2t", _quickT1); // (3)
         }
 
         // R9: TryResolve2TargetContext -- shared guard + position-resolve helper for 2-target exit handlers.
@@ -1693,7 +1725,7 @@ namespace PropTraderTools
             if (!TryResolve2TargetContext(out int qty, out var targets))
                 return; // (1)
             LogQxTwoTarget("[PTT-QX-2T]", qty, targets);
-            new PttQuickExit().Execute(_leaderAccount, _instrument, 4, targets); // (2)
+            new PttQuickExit().Execute(_leaderAccount, _instrument, _quickT1, targets); // (2)
         }
 
         // B123/R9: OnInstrQAll2tClick -- fires global 2-target quick exit on all followers.

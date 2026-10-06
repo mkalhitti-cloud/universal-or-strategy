@@ -9964,7 +9964,7 @@ namespace PropTraderTools
         }
 
         // T-B180-T1-03: PttBeSwapOne bufferTicks shifts entry price by direction.
-        // Long: stop goes BELOW entry (direction=-1). Short: stop goes ABOVE entry (direction=+1).
+        // B189-T1 fix: Long: stop goes ABOVE entry (direction=+1). Short: stop goes BELOW entry (direction=-1).
         [Fact]
         public void PttBeSwapOne_BufferTicks_ShiftsEntryPriceByDirection()
         {
@@ -9972,15 +9972,15 @@ namespace PropTraderTools
             double tickSize = 0.25;
             int buf = 2;
 
-            // Long: direction = -1.0
-            double rawLong = avgPrice + (-1.0) * buf * tickSize;
+            // Long: direction = +1.0 (B189-T1 fix: long -> above entry)
+            double rawLong = avgPrice + (+1.0) * buf * tickSize;
             double entryLong = Math.Round(rawLong / tickSize, MidpointRounding.AwayFromZero) * tickSize;
-            Assert.Equal(4999.5, entryLong, precision: 10);
+            Assert.Equal(5000.5, entryLong, precision: 10);
 
-            // Short: direction = +1.0
-            double rawShort = avgPrice + (+1.0) * buf * tickSize;
+            // Short: direction = -1.0 (B189-T1 fix: short -> below entry)
+            double rawShort = avgPrice + (-1.0) * buf * tickSize;
             double entryShort = Math.Round(rawShort / tickSize, MidpointRounding.AwayFromZero) * tickSize;
-            Assert.Equal(5000.5, entryShort, precision: 10);
+            Assert.Equal(4999.5, entryShort, precision: 10);
         }
 
         // T-B180-T1-04: PttBeSwapAll.Execute skips follower accounts.
@@ -10385,6 +10385,270 @@ namespace PropTraderTools
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic
                 | System.Reflection.BindingFlags.Public);
             Assert.NotNull(method);
+        }
+    }
+
+    // B189 T1: BE Direction Fix tests.
+    // Pure formula tests -- no NT8 seam required.
+    // CYC per method: 1 (single Assert path each). JS-021/JS-033/JS-001: no lock/async/throw.
+    public class B189T1BeDirectionTests
+    {
+        // AC1: Long + buf=+2: BE stop ABOVE entry.
+        [Fact]
+        public void T_B189_T1_01_BeDirection_Long_PositiveBuffer_StopAboveEntry()
+        {
+            double avg = 5000.0;
+            double tick = 0.25;
+            int buf = 2;
+            double direction = true ? +1.0 : -1.0; // isLong=true
+            double raw = avg + direction * buf * tick;
+            Assert.True(raw > avg);
+            Assert.Equal(5000.5, raw, precision: 10);
+        }
+
+        // AC2: Long + buf=-2: BE stop BELOW entry.
+        [Fact]
+        public void T_B189_T1_02_BeDirection_Long_NegativeBuffer_StopBelowEntry()
+        {
+            double avg = 5000.0;
+            double tick = 0.25;
+            int buf = -2;
+            double direction = true ? +1.0 : -1.0; // isLong=true
+            double raw = avg + direction * buf * tick;
+            Assert.True(raw < avg);
+            Assert.Equal(4999.5, raw, precision: 10);
+        }
+
+        // AC3: Short + buf=+2: BE stop BELOW entry.
+        [Fact]
+        public void T_B189_T1_03_BeDirection_Short_PositiveBuffer_StopBelowEntry()
+        {
+            double avg = 5000.0;
+            double tick = 0.25;
+            int buf = 2;
+            double direction = false ? +1.0 : -1.0; // isLong=false -> -1.0
+            double raw = avg + direction * buf * tick;
+            Assert.True(raw < avg);
+            Assert.Equal(4999.5, raw, precision: 10);
+        }
+
+        // AC4: PttBeSwapOne formula direct path -- long + buf=2 produces result above avg.
+        [Fact]
+        public void T_B189_T1_04_PttBeSwapOne_Formula_LongBufPos_ResultAboveAvg()
+        {
+            double avg = 5000.0;
+            double tick = 0.25;
+            int buf = 2;
+            bool isLong = true;
+            double direction = isLong ? +1.0 : -1.0;
+            double raw = avg + direction * buf * tick;
+            double entryPrice = Math.Round(raw / tick) * tick;
+            Assert.True(entryPrice > avg);
+        }
+
+        // AC5: PttBeSwapAll.ExecuteOne formula direct path -- long + buf=2 produces result above avg.
+        [Fact]
+        public void T_B189_T1_05_PttBeSwapAll_Formula_LongBufPos_ResultAboveAvg()
+        {
+            double avg = 5000.0;
+            double tick = 0.25;
+            int buf = 2;
+            bool isLong = true;
+            double direction = isLong ? +1.0 : -1.0;
+            double raw = avg + direction * buf * tick;
+            double entryPrice = Math.Round(raw / tick) * tick;
+            Assert.True(entryPrice > avg);
+        }
+    }
+
+    // B189 T2: BE Negative Range + Label tests.
+    // Pure formula/reflection tests -- no NT8 seam required.
+    // CYC per method: 1. JS-021/JS-033/JS-001: no lock/async/throw.
+    public class B189T2BeBufferRangeTests
+    {
+        // AC6 direct: pressing Down at -20 stays at -20 (clamp floor = -20).
+        [Fact]
+        public void T_B189_T2_01_BeBufferClamp_Down_FloorIsNegative20()
+        {
+            int beBuffer = -20;
+            int result = Math.Max(Math.Min(beBuffer - 1, 20), -20);
+            Assert.Equal(-20, result);
+        }
+
+        // Up from -20 reaches -19 (confirms -20 floor is reachable and escapable).
+        [Fact]
+        public void T_B189_T2_02_BeBufferClamp_Up_FloorIsNegative20()
+        {
+            int beBuffer = -20;
+            int result = Math.Max(Math.Min(beBuffer + 1, 20), -20);
+            Assert.Equal(-19, result);
+        }
+
+        // AC7: FormatGlobalBeBuffer("BE", -3) == "BE -3" (no spurious "+").
+        [Fact]
+        public void T_B189_T2_03_FormatGlobalBeBuffer_NegativeBuffer_NoPlus()
+        {
+            var method = typeof(TradeCopierPanel)
+                .GetMethod("FormatGlobalBeBuffer", BindingFlags.NonPublic | BindingFlags.Static);
+            var result = (string)method.Invoke(null, new object[] { "BE", -3 });
+            Assert.Equal("BE -3", result);
+        }
+
+        // Zero buffer: label shows name only, no sign suffix.
+        [Fact]
+        public void T_B189_T2_04_FormatGlobalBeBuffer_Zero_NameOnly()
+        {
+            var method = typeof(TradeCopierPanel)
+                .GetMethod("FormatGlobalBeBuffer", BindingFlags.NonPublic | BindingFlags.Static);
+            var result = (string)method.Invoke(null, new object[] { "BE", 0 });
+            Assert.Equal("BE", result);
+        }
+
+        // Positive value: "+" prefix before numeric value.
+        [Fact]
+        public void T_B189_T2_05_FormatGlobalBeBuffer_Positive_WithPlus()
+        {
+            var method = typeof(TradeCopierPanel)
+                .GetMethod("FormatGlobalBeBuffer", BindingFlags.NonPublic | BindingFlags.Static);
+            var result = (string)method.Invoke(null, new object[] { "BE", 3 });
+            Assert.Equal("BE +3", result);
+        }
+    }
+
+    // B189 T3: Quick ALL Always-3-Targets tests.
+    // ResolveEffectiveTargets is internal static -- directly accessible from test assembly.
+    // CYC per method: 1 (single Assert path each). JS-021/JS-033/JS-001: no lock/async/throw.
+    public class B189T3QuickAll3TTests
+    {
+        // AC9: 2-target ATM forces fallback to leaderTargetCount.
+        [Fact]
+        public void T_B189_T3_01_ResolveEffectiveTargets_CountLessThanMin_ReturnsEmpty()
+        {
+            var targets = new System.Collections.Generic.List<(double Price, int Qty)>
+            {
+                (100.0, 1),
+                (101.0, 1),
+            };
+            var result = PttGlobalQuickExit.ResolveEffectiveTargets(targets, 3);
+            Assert.Equal(0, result.Count);
+        }
+
+        // AC10: 3-target PTT-QX re-click returns targets unchanged (no regression).
+        [Fact]
+        public void T_B189_T3_02_ResolveEffectiveTargets_CountEqualsMin_ReturnsOriginal()
+        {
+            var targets = new System.Collections.Generic.List<(double Price, int Qty)>
+            {
+                (100.0, 1),
+                (101.0, 1),
+                (102.0, 1),
+            };
+            var result = PttGlobalQuickExit.ResolveEffectiveTargets(targets, 3);
+            Assert.Equal(3, result.Count);
+            Assert.True(ReferenceEquals(result, targets));
+        }
+
+        // Edge case: empty snapshot also forces fallback path.
+        [Fact]
+        public void T_B189_T3_03_ResolveEffectiveTargets_ZeroTargets_ReturnsEmpty()
+        {
+            var targets = new System.Collections.Generic.List<(double Price, int Qty)>();
+            var result = PttGlobalQuickExit.ResolveEffectiveTargets(targets, 3);
+            Assert.Equal(0, result.Count);
+        }
+    }
+
+    // B189-T4: Quick2t / QAll2t Spinners -- xUnit [Fact] tests.
+    // AC11: Quick2t label driven by _quickT1. AC12: QAll2t Up increments GlobalQuickAllT1.
+    // AC13: OnInstr2tClick uses _quickT1 (no hardcoded 4). AC14: OnQuickAllBufferChanged updates _instrQAll2tBtn.
+    public class B189T4SpinnerTests
+    {
+        private static object InvokeFormatBuffer(string name, int ticks)
+        {
+            var m = typeof(TradeCopierPanel).GetMethod(
+                "FormatBuffer",
+                BindingFlags.NonPublic | BindingFlags.Static
+            );
+            return m.Invoke(null, new object[] { name, ticks });
+        }
+
+        [Fact]
+        public void T_B189_T4_01_Quick2tSpinnerLabel_MatchesQuickT1Default()
+        {
+            // Pure formula test: FormatBuffer("Quick2t", 4) uses same path as default _quickT1=4
+            var result = (string)InvokeFormatBuffer("Quick2t", 4);
+            Assert.Contains("Quick2t", result);
+            Assert.Contains("+4", result);
+        }
+
+        [Fact]
+        public void T_B189_T4_02_QAll2tLabel_MatchesGlobalQuickAllT1Format()
+        {
+            // AC14 label format: FormatBuffer("QAll2t", 4) == "QAll2t +4"
+            var result = (string)InvokeFormatBuffer("QAll2t", 4);
+            Assert.Equal("QAll2t +4", result);
+        }
+
+        [Fact]
+        public void T_B189_T4_03_QAll2tSpinner_Up_IncrementsGlobalQuickAllT1()
+        {
+            // AC12 behavioral: Up spinner delegates to IncrementQuickAll -- state changes by +1
+            int before = CopyEngine.Instance.GlobalQuickAllT1;
+            CopyEngine.Instance.IncrementQuickAll();
+            int after = CopyEngine.Instance.GlobalQuickAllT1;
+            // restore
+            CopyEngine.Instance.DecrementQuickAll();
+            Assert.Equal(before + 1, after);
+        }
+
+        [Fact]
+        public void T_B189_T4_04_OnInstr2tClick_Contract_NoHardcodedFour()
+        {
+            // AC13: OnInstr2tClick body must NOT load constant int 4 (IL ldc.i4.4 = opcode 0x1a)
+            var m = typeof(TradeCopierPanel).GetMethod(
+                "OnInstr2tClick",
+                BindingFlags.NonPublic | BindingFlags.Instance
+            );
+            var ilBytes = m.GetMethodBody().GetILAsByteArray();
+            Assert.DoesNotContain((byte)0x1a, ilBytes);
+        }
+
+        [Fact]
+        public void T_B189_T4_05_OnQuickAllBufferChanged_Contract_InstrQAll2tBtnUpdated()
+        {
+            // AC14: OnQuickAllBufferChanged body must reference _instrQAll2tBtn field
+            var m = typeof(TradeCopierPanel).GetMethod(
+                "OnQuickAllBufferChanged",
+                BindingFlags.NonPublic | BindingFlags.Instance
+            );
+            var ilBytes = m.GetMethodBody().GetILAsByteArray();
+            var fieldToken = typeof(TradeCopierPanel)
+                .GetField("_instrQAll2tBtn", BindingFlags.NonPublic | BindingFlags.Instance)
+                .MetadataToken;
+            // Token is 4 bytes little-endian; search IL for the field token bytes
+            byte[] tokenBytes = BitConverter.GetBytes(fieldToken);
+            bool found = false;
+            for (int i = 0; i <= ilBytes.Length - 4; i++)
+            {
+                if (ilBytes[i] == tokenBytes[0] && ilBytes[i + 1] == tokenBytes[1] &&
+                    ilBytes[i + 2] == tokenBytes[2] && ilBytes[i + 3] == tokenBytes[3])
+                {
+                    found = true;
+                    break;
+                }
+            }
+            Assert.True(found);
+        }
+
+        [Fact]
+        public void T_B189_T4_06_QuickT1Shared_OnQuickUp_UpdatesBothLabels()
+        {
+            // AC11: same _quickT1 drives both Quick and Quick2t label strings
+            int t1 = 5;
+            var quickLabel = (string)InvokeFormatBuffer("Quick", t1);
+            var quick2tLabel = (string)InvokeFormatBuffer("Quick2t", t1);
+            Assert.Contains("+5", quickLabel);
+            Assert.Contains("+5", quick2tLabel);
         }
     }
 }

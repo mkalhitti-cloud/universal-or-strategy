@@ -91,7 +91,9 @@ namespace PropTraderTools
                         acc.Flatten(new[] { pos.Instrument });
                         continue; // skip ExecuteOne -- flatten handles the exit
                     }
-                    ExecuteOne(acc, pos.Instrument, ticks.t1, targets, leaderStop: leaderStop);
+                    var effectiveTargets = ResolveEffectiveTargets(targets, 3);
+                    ExecuteOne(acc, pos.Instrument, ticks.t1, effectiveTargets,
+                        leaderStop: leaderStop, leaderTargetCount: 3);
                     // B71 DW-B71-04: place PTT-QX on every follower that has an open position
                     ExecuteFollowers(acc, pos, targets, ticks, leaderStop); // (8)
                 }
@@ -250,6 +252,23 @@ namespace PropTraderTools
         )
         {
             return beCancelCount > 0 && snapshotCount == 0 && posQty > 0;
+        }
+
+        /// <summary>
+        /// ResolveEffectiveTargets: when snapshot count is less than minCount, returns empty list
+        /// so ResolveTargetCount in PttQuickExit falls back to leaderTargetCount instead of own count.
+        /// When count is greater than or equal to minCount (e.g. PTT-QX re-click with 3 live targets),
+        /// returns targets unchanged.
+        /// CYC=2: (1) base + (1) ternary. JS-002 compliant: never returns null. JS-021: no lock.
+        /// </summary>
+        internal static System.Collections.Generic.List<(double Price, int Qty)> ResolveEffectiveTargets(
+            System.Collections.Generic.List<(double Price, int Qty)> targets,
+            int minCount
+        )
+        {
+            return targets.Count >= minCount
+                ? targets
+                : new System.Collections.Generic.List<(double Price, int Qty)>();
         }
 
         /// <summary>

@@ -1,0 +1,21 @@
+{
+  "epic": "B189",
+  "title": "BE Direction Fix + BE Negative Range + Quick ALL 3T Fix + Quick2t/QAll2t Spinners",
+  "baseline_commit": "38eabdb7",
+  "created": "2026-07-08",
+  "phases": {
+    "Ph1":    { "status": "COMPLETE",    "artifact": "02-architecture-plan.md" },
+    "Ph2":    { "status": "COMPLETE",    "artifact": "02-plan-review.md", "gate": "REVIEW_PASS" },
+    "Ph3":    { "status": "PENDING",     "artifact": "04-tickets.md" },
+    "Ph3.5":  { "status": "PENDING",     "artifact": "04-ticket-review.md" },
+    "Ph4a-T1":{ "status": "PENDING",     "artifact": "ticket-1-completion.md" },
+    "Ph4b-T1":{ "status": "PENDING",     "artifact": "ticket-1-verification.md" },
+    "Ph4a-T2":{ "status": "PENDING",     "artifact": "ticket-2-completion.md" },
+    "Ph4b-T2":{ "status": "PENDING",     "artifact": "ticket-2-verification.md" },
+    "Ph4a-T3":{ "status": "PENDING",     "artifact": "ticket-3-completion.md" },
+    "Ph4b-T3":{ "status": "PENDING",     "artifact": "ticket-3-verification.md" },
+    "Ph4a-T4":{ "status": "PENDING",     "artifact": "ticket-4-completion.md" },
+    "Ph4b-T4":{ "status": "PENDING",     "artifact": "ticket-4-verification.md" },
+    "Ph5":    { "status": "PENDING",     "artifact": "05-final-review.md" }
+  }
+}

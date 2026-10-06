@@ -4,6 +4,7 @@
 // Pattern: identical to PttGlobalQuickExit.Execute() loop structure.
 // DW-B182-02: snapshot stop BEFORE CancelQxBrackets in ExecuteOne (QX-pattern).
 // Description: Instrument-scoped BE swap for all accounts.
+// B189-T1: direction = isLong ? +1.0 : -1.0 in ExecuteOne (long -> above entry; short -> below entry).
 // CYC=7: combined-gate-||(1), acc-loop-foreach(2), follower-if(3), follower-&&(4), pos-foreach(5), flat-skip-||(6), instr-filter(7).
 // JS-021: no lock. JS-001: no throw. JS-002: void. JS-033: synchronous void. ASCII-only.
 
@@ -52,7 +53,7 @@ namespace PropTraderTools
             double tickSize = instr.MasterInstrument?.TickSize ?? 0.0;
             if (tickSize <= 0.0) return;
             bool isLong = pos.MarketPosition == MarketPosition.Long;
-            double direction = isLong ? -1.0 : +1.0;
+            double direction = isLong ? +1.0 : -1.0;
             double raw = pos.AveragePrice + direction * bufferTicks * tickSize;
             double entryPrice = Math.Round(raw / tickSize) * tickSize; // (2) RoundToTick inline
             // DW-B182-02: snapshot stop BEFORE cancel (QX-pattern).
