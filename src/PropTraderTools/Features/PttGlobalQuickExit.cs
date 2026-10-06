@@ -174,8 +174,12 @@ namespace PropTraderTools
                         acc.Flatten(new[] { pos.Instrument });
                         continue;
                     }
-                    ExecuteOne(acc, pos.Instrument, ticks.t1, forcedTargets, leaderStop: leaderStop);
-                    ExecuteFollowers(acc, pos, forcedTargets, ticks, leaderStop); // (8)
+                    // B191-DIRECT: rebuild 2-target list from this account's actual position qty.
+                    // forcedTargets was built from the leader panel's qty and must not be used verbatim
+                    // for accounts with different contract sizes (e.g. PA-01 at 5 vs PAAPEX10 at 20).
+                    var perAccTargets = TradeCopierPanel.Build2TargetList(pos.Quantity);
+                    ExecuteOne(acc, pos.Instrument, ticks.t1, perAccTargets, leaderStop: leaderStop);
+                    ExecuteFollowers(acc, pos, perAccTargets, ticks, leaderStop); // (8)
                 }
             }
         }
