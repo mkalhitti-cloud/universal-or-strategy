@@ -513,6 +513,8 @@ namespace PropTraderTools
                 _quickBtn.Content = FormatBuffer("Quick", _quickT1);
             if (_instr2tBtn != null)
                 _instr2tBtn.Content = FormatBuffer("Quick2t", _quickT1);
+            // B192-T3: sync global singleton so Quick ALL / QAll2t fire instrument-correct ticks
+            CopyEngine.Instance?.ResetGlobalQuickAll(ticks.t1);
         }
 
         public void SetLeaderAccount(Account account)
@@ -757,6 +759,10 @@ namespace PropTraderTools
             _engine.PositionStateChanged += OnPositionStateChanged;
             _engine.GlobalBeBufferChanged += OnGlobalBeBufferChanged;
             _engine.GlobalQuickAllBufferChanged += OnQuickAllBufferChanged;
+            // B193-DIRECT: snap -- SetInstrument fires ResetGlobalQuickAll before OnLoaded subscribes.
+            // The Dispatcher broadcast is lost (no subscribers yet). Re-invoke now with current singleton
+            // value so Quick ALL and QAll2t labels reflect the instrument default on first paint.
+            OnQuickAllBufferChanged(_engine.GlobalQuickAllT1);
             PopulateFollowerItems();
             RestoreSavedFollowers();
             _engine.CopyEnabledChanged += OnCopyEnabledChanged;
