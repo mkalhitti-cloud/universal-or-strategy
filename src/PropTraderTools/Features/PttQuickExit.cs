@@ -361,9 +361,17 @@ namespace PropTraderTools
             {
                 if (o.Instrument == null || o.Instrument.FullName != instr?.FullName)
                     continue; // HOTFIX-SNAPSHOT-STOP-INSTRREF: FullName comparison (NT8 creates separate Instrument instances per account context)
-                if (o.OrderState != OrderState.Working && o.OrderState != OrderState.Accepted)
-                    continue;
-                if (o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) // (2)
+                // NT8 SIM ATM bracket stops appear as OrderType.Market + OrderState.TriggerPending
+                // (not StopMarket/Working). Accept TriggerPending Market orders whose StopPrice > 0
+                // as the stop reference. Also accept Working/Accepted StopMarket/StopLimit (live path).
+                bool isTriggerPendingStop =
+                    o.OrderState == OrderState.TriggerPending
+                    && o.OrderType == OrderType.Market
+                    && o.StopPrice > 0;
+                bool isWorkingStop =
+                    (o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted)
+                    && (o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit);
+                if (isTriggerPendingStop || isWorkingStop)
                     return o.StopPrice;
             }
             return 0.0;
@@ -378,19 +386,29 @@ namespace PropTraderTools
     {
         /// <summary>
         /// GetQuickTicks: returns (T1 ticks, T2 ticks) for the given master instrument name.
-        /// MES: (4, 8) = 1pt/2pt at 0.25 tick. MGC: (10, 20) = 1pt/2pt at 0.1 tick.
-        /// Default: MES ticks (4, 8). CYC=3 (null/empty guard + MES check + MGC check).
-        /// JS-002: returns tuple (never returns null). ASCII-only strings.
+        /// MES/ES/NQ/MNQ: (4, 8) = 1pt/2pt at $0.25/tick (0.25 index point).
+        /// MGC/GC: (10, 20) = 1pt/2pt at $0.10/tick (0.10 gold point).
+        /// Default: (4, 8). CYC=7: null(1)+MES(2)+ES(3)+NQ(4)+MNQ(5)+MGC(6)+GC(7).
+        /// B192-T1: added GC->(10,20); added explicit ES/NQ/MNQ->(4,8) (clarity, no behaviour change).
+        /// JS-002: returns tuple (never null). ASCII-only strings. JS-021: no lock. JS-066: CYC=7 <=8.
         /// </summary>
         internal static (int t1, int t2) GetQuickTicks(string masterName)
         {
             if (string.IsNullOrEmpty(masterName))
-                return (4, 8); // (1)
-            if (masterName.StartsWith("MES"))
-                return (4, 8); // (2)
-            if (masterName.StartsWith("MGC"))
-                return (10, 20); // B190-T1: 1pt/2pt at 0.1 tick
-            return (4, 8);
+                return (4, 8); // (1) null/empty guard
+            if (masterName.StartsWith("MES", StringComparison.Ordinal))
+                return (4, 8); // (2) Micro E-mini S&P 500: 1pt/2pt at 0.25/tick
+            if (masterName.StartsWith("ES", StringComparison.Ordinal))
+                return (4, 8); // (3) B192: E-mini S&P 500: same tick size as MES
+            if (masterName.StartsWith("NQ", StringComparison.Ordinal))
+                return (4, 8); // (4) B192: E-mini Nasdaq 100
+            if (masterName.StartsWith("MNQ", StringComparison.Ordinal))
+                return (4, 8); // (5) B192: Micro E-mini Nasdaq 100
+            if (masterName.StartsWith("MGC", StringComparison.Ordinal))
+                return (10, 20); // (6) Micro Gold: 1pt/2pt at 0.1/tick
+            if (masterName.StartsWith("GC", StringComparison.Ordinal))
+                return (10, 20); // (7) B192: Gold: same tick size as MGC
+            return (4, 8); // default
         }
     }
 }
