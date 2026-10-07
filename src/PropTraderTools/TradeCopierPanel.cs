@@ -513,15 +513,15 @@ namespace PropTraderTools
             _quickT1 = ticks.t1;
             _quickT2 = ticks.t2;
             if (_quickBtn != null)
-                _quickBtn.Content = FormatBuffer("Quick", _quickT1);
+                _quickBtn.Content = FormatBuffer("3x", _quickT1);
             if (_instr2tBtn != null)
-                _instr2tBtn.Content = FormatBuffer("Quick2t", _quickT1);
+                _instr2tBtn.Content = FormatBuffer("2x", _quickT1);
             // B193: per-panel Quick ALL reset -- instrument-aware, does not touch global singleton.
             _quickAllT1 = ticks.t1;
             if (_quickAllBtn != null)
-                _quickAllBtn.Content = FormatQuickAllBuffer("Quick ALL", _quickAllT1);
+                _quickAllBtn.Content = FormatQuickAllBuffer("3x All", _quickAllT1);
             if (_instrQAll2tBtn != null)
-                _instrQAll2tBtn.Content = FormatBuffer("QAll2t", _quickAllT1);
+                _instrQAll2tBtn.Content = FormatBuffer("2x All", _quickAllT1);
         }
 
         public void SetLeaderAccount(Account account)
@@ -1103,7 +1103,7 @@ namespace PropTraderTools
                     _beRowPanel
                 ),
                 (
-                    FormatBuffer("Quick", _quickT1),
+                    FormatBuffer("3x", _quickT1),
                     BrushTeal,
                     true,
                     OnQuickUp,
@@ -1113,7 +1113,7 @@ namespace PropTraderTools
                     _quickRowPanel
                 ),
                 (
-                    FormatQuickAllBuffer("Quick ALL", _quickAllT1),
+                    FormatQuickAllBuffer("3x All", _quickAllT1),
                     BrushTeal,
                     true,
                     OnQuickAllUp,
@@ -1193,10 +1193,10 @@ namespace PropTraderTools
         {
             _instrRowPanel = new UniformGrid { Columns = 2, Margin = new Thickness(0, 2, 0, 2) };
             _instrRowPanel.Children.Add(
-                BuildSpinnerCluster("Quick2t", _quickT1, OnQuickUp, OnQuickDown,
+                BuildSpinnerCluster("2x", _quickT1, OnQuickUp, OnQuickDown,
                     OnInstr2tClick, ref _instr2tBtn));
             _instrRowPanel.Children.Add(
-                BuildSpinnerCluster("QAll2t", _quickAllT1,
+                BuildSpinnerCluster("2x All", _quickAllT1,
                     OnQuickAllUp, OnQuickAllDown,
                     OnInstrQAll2tClick, ref _instrQAll2tBtn));
         }
@@ -1669,9 +1669,9 @@ namespace PropTraderTools
             _quickT1 = Math.Max(1, Math.Min(_quickT1 + 1, 100));
             _quickT2 = _quickT1 * 2;
             if (_quickBtn != null)
-                _quickBtn.Content = FormatBuffer("Quick", _quickT1); // (2)
+                _quickBtn.Content = FormatBuffer("3x", _quickT1); // (2)
             if (_instr2tBtn != null)
-                _instr2tBtn.Content = FormatBuffer("Quick2t", _quickT1); // (3)
+                _instr2tBtn.Content = FormatBuffer("2x", _quickT1); // (3)
         }
 
         // B41/B189-T4: OnQuickDown -- decrement T1 by 1t (minimum 1), T2 = T1 x 2. CYC=3 post-fix.
@@ -1680,9 +1680,9 @@ namespace PropTraderTools
             _quickT1 = Math.Max(1, Math.Min(_quickT1 - 1, 100));
             _quickT2 = _quickT1 * 2;
             if (_quickBtn != null)
-                _quickBtn.Content = FormatBuffer("Quick", _quickT1); // (2)
+                _quickBtn.Content = FormatBuffer("3x", _quickT1); // (2)
             if (_instr2tBtn != null)
-                _instr2tBtn.Content = FormatBuffer("Quick2t", _quickT1); // (3)
+                _instr2tBtn.Content = FormatBuffer("2x", _quickT1); // (3)
         }
 
         // R9: TryResolve2TargetContext -- shared guard + position-resolve helper for 2-target exit handlers.
@@ -1763,9 +1763,9 @@ namespace PropTraderTools
         {
             _quickAllT1 = Math.Max(1, Math.Min(_quickAllT1 + 1, 100));
             if (_quickAllBtn != null)
-                _quickAllBtn.Content = FormatQuickAllBuffer("Quick ALL", _quickAllT1);
+                _quickAllBtn.Content = FormatQuickAllBuffer("3x All", _quickAllT1);
             if (_instrQAll2tBtn != null)
-                _instrQAll2tBtn.Content = FormatBuffer("QAll2t", _quickAllT1);
+                _instrQAll2tBtn.Content = FormatBuffer("2x All", _quickAllT1);
         }
 
         // B193: OnQuickAllDown -- per-panel decrement. Mirrors OnQuickDown. CYC=3.
@@ -1773,9 +1773,9 @@ namespace PropTraderTools
         {
             _quickAllT1 = Math.Max(1, Math.Min(_quickAllT1 - 1, 100));
             if (_quickAllBtn != null)
-                _quickAllBtn.Content = FormatQuickAllBuffer("Quick ALL", _quickAllT1);
+                _quickAllBtn.Content = FormatQuickAllBuffer("3x All", _quickAllT1);
             if (_instrQAll2tBtn != null)
-                _instrQAll2tBtn.Content = FormatBuffer("QAll2t", _quickAllT1);
+                _instrQAll2tBtn.Content = FormatBuffer("2x All", _quickAllT1);
         }
 
         // B41: RefreshQuickDisplay -- Card A: back-calc actual T1 ticks from live PTT-QX-T1 order.
@@ -1809,7 +1809,7 @@ namespace PropTraderTools
             _quickT1 = ComputeT1Ticks(isLong, t1Ord, pos.AveragePrice, tick);
             _quickT2 = _quickT1 * 2;
             if (_quickBtn != null)
-                _quickBtn.Content = FormatBuffer("Quick", _quickT1);
+                _quickBtn.Content = FormatBuffer("3x", _quickT1);
         }
 
         // B41: UpdateT3Visibility -- MUST be called on UI thread (_quickT3Row is a UI element).
