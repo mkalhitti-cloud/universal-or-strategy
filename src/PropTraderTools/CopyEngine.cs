@@ -3151,21 +3151,39 @@ namespace PropTraderTools
             return _beSwapSetTicks.GetOrAdd(accName, 0L);
         }
 
-        // B208-FIX-F-B: clear _beSwapInProgress when PTT-BE-Stop-N reaches Working.
-        // Called from OnOrderUpdate before TryNakedDetect. NT8 Working = stop is live at broker.
-        // Once Working, the position is protected -- NakedPositionDetector must not suppress flatten.
-        // CYC=3: (1) name null/prefix check, (2) Working state check, (3) IsBeSwapInProgress check.
+        // B208-FIX-G-1: clear on Working (normal: stop live), Cancelled (OCO: target filled),
+        // Rejected (bad price: retry handles), Accepted (SIM belt+suspenders: mirrors FIX-F-A).
+        // All four are terminal or confirmed-live outcomes for PTT-BE-Stop-N.
+        // Permanent lock eliminated: flag cannot leak across trade cycles.
+        // CYC=5: (1) name check, (2a-d) four-state isClearState, (3) IsBeSwapInProgress.
         // JS-021: no lock. JS-001: no throw. JS-002: void. ASCII-only.
         private void TryClearBeSwapOnStopWorking(OrderEventArgs e)
         {
             if (e.Order.Name == null
                 || !e.Order.Name.StartsWith("PTT-BE-Stop", StringComparison.Ordinal)) // (1)
                 return;
-            if (e.Order.OrderState != OrderState.Working) // (2)
+            bool isClearState = e.Order.OrderState == OrderState.Working    // (2a) normal: stop live
+                || e.Order.OrderState == OrderState.Cancelled               // (2b) OCO: target filled
+                || e.Order.OrderState == OrderState.Rejected                // (2c) bad price: evict+retry
+                || e.Order.OrderState == OrderState.Accepted;               // (2d) SIM: mirrors FIX-F-A
+            if (!isClearState)
                 return;
             if (!IsBeSwapInProgress(e.Order.Account?.Name)) // (3)
                 return;
             SetBeSwapInProgress(e.Order.Account.Name, false);
+        }
+
+        // B209: testable seam for TryClearBeSwapOnStopWorking state-check logic.
+        // Extracts isClearState predicate so xUnit can verify all four states without NT8 OrderEventArgs.
+        // CYC=1 (expression body). JS-021: no lock. JS-001: no throw. ASCII-only.
+        internal static bool IsBeClearStateTrigger(string orderName, OrderState state)
+        {
+            if (orderName == null || !orderName.StartsWith("PTT-BE-Stop", StringComparison.Ordinal))
+                return false;
+            return state == OrderState.Working
+                || state == OrderState.Cancelled
+                || state == OrderState.Rejected
+                || state == OrderState.Accepted;
         }
 
         // B200-CLOSE-LANED-01: returns true if account has a PTT-Flatten order in an active (in-flight) state.
