@@ -34,6 +34,15 @@
     <Compile Include="TradeCopierWindow.cs" />
     <Compile Include="Tests\B182Tests.cs" />
     <Compile Include="Tests\B191Tests.cs" />
+    <Compile Include="Tests\B193Tests.cs" />
+    <Compile Include="Tests\B194Tests.cs" />
+    <Compile Include="Tests\B195Tests.cs" />
+    <Compile Include="Tests\B196Tests.cs" />
+    <Compile Include="Tests\B197Tests.cs" />
+    <Compile Include="Tests\B198Tests.cs" />
+    <Compile Include="Tests\B199Tests.cs" />
+    <Compile Include="Tests\B200Tests.cs" />
+    <Compile Include="Tests\B201Tests.cs" />
   </ItemGroup>
 
   <ItemGroup>

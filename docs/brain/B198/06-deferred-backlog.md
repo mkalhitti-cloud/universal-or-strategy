@@ -1,0 +1,449 @@
+# B198 Deferred Backlog
+
+**Epic**: B198 -- SimStop N-bracket generalisation + QTY instrument + fo=NULL drain + ATM dir fix
+**Author**: ptt-plan-reviewer (Phase 5)
+**Date**: 2026-10-13
+**Preceding backlog**: docs/brain/B197/06-deferred-backlog.md (15 items; superseded by this document)
+**Status**: Authoritative deferred backlog for the NEXT epic block (B199+)
+
+---
+
+## Purpose
+
+This document records all deferred work items that remain open after B198 completion.
+It supersedes docs/brain/B197/06-deferred-backlog.md as the authoritative carry-forward list.
+Items closed by B198 are listed with CLOSED status for audit trail completeness.
+
+**P0 = Compile-blocking or P0 DNA violation. Must be resolved before shipping.**
+**P1 = Architecture risk or JS-066 violation. Must be resolved before next major feature wave.**
+**P2 = Quality / testing gap. Track and address in near-term pipeline.**
+**P3 = Low-risk cleanup / informational. Address when convenient.**
+
+---
+
+## Items Closed by B198
+
+| DW ID | Description | Priority | Closed By | Closing Artifact |
+|-------|-------------|----------|-----------|-----------------|
+| DW-B198-SIMSTP-01 | SimStop N-general bracket support: all 6 predicates (IsNativeExitName, IsAtmBracketName, IsBracketLeg, IsBracketLegStatic, IsAtmSTPOrder, IsStopLeg) + TryParseStopSuffix replacement + CaptureOtherLegTargetPrices + ResubmitCollateralLegs MaxBracketLegs + FindLeaderCollateralOrder + FindLeaderStopPrice. | P0 | T1 | ticket-1-verification.md VERIFY_PASS |
+| DW-B198-FINDLDR-01 | FindLeaderStopPrice SimStop miss (B5 newly discovered by architect). Added `var simStopName = "SimStop" + bracketIndex.ToString()` lookup in foreach. | P0 | T1 (B5) | ticket-1-verification.md B5 confirmed |
+| DW-B198-CAPTURELEG-01 | CaptureOtherLegTargetPrices SimStop guard miss (B2b). Added `&& !fo.Name.StartsWith("SimStop")` to early-return guard. | P0 | T1 (B2b) | ticket-1-verification.md B2b confirmed |
+| DW-B198-QTY-01 | QTY bug: two instrumentation log lines (`ATM-send qty=`, `ATM-order qty=`) added to SendCopyWithAtm (T2a); H2 fix (_atmTemplateGroupQty + TryGetAtmTemplateGroupCount + qty division) implemented (T2b). SIM evidence pending. | P0 | T2a + T2b | ticket-2a-verification.md + ticket-2b-verification.md VERIFY_PASS |
+| DW-B195-01 | fo=NULL drain path fix: _drainFollowerEntryOrders ConcurrentDictionary + SendCopyWithAtm return type bool→Order? + SubmitDrainedEntry TryAdd + TrySetSlateReadyOnDrainFill TryGetValue+TryRemove+SyncFollowerBracket(drainFo ?? e.Order) wiring + AbortDrainOnFill + TryDrainWatchdog cleanup. | P1 | T3 (Retry 1) | ticket-3-verification.md Retry 1 VERIFY_PASS |
+| DW-B198-ATMDIR-01 | ATM template dir startup fix: path corrected to `"templates", "AtmStrategy"`; dir-not-found log upgraded to `[PTT-STARTUP-WARN]` with path variable; Reverse=true warning confirmed present. | P2 | T4 | ticket-4-verification.md VERIFY_PASS |
+
+---
+
+## New Items Opened by B198
+
+---
+
+### DW-B198-QTY-SIM-01: T2a SIM Evidence Not Yet Collected
+
+```
+Priority: P1
+Description: The T2a instrumentation log lines (ATM-send qty=, ATM-order qty=) are in place
+  in SendCopyWithAtm (CopyEngine.cs lines 5078-5103). The ticket-2a-sim-evidence.md file
+  has NOT been created. This requires an NT8 SIM run:
+    Setup: Leader=Sim101, Followers=Sim102/103/104, Clone mode, MGC DEC26, MGC $400 SL4.
+    Place ATM entry, leader qty=10. Observe both log lines.
+    Record ATM-send qty (should be 10) and ATM-order qty (pins H1/H2/H3 hypothesis).
+  T2b implements H2 unconditionally. The H2 code is backward-compatible (no-op if
+  _atmTemplateGroupQty dict is empty), but SIM evidence is needed to:
+    (a) confirm H2 is correct (ATM-order qty < leader qty), or
+    (b) confirm H1 (no bug) in which case the T2b H2 logic should be cleanly removed.
+  Record results in docs/brain/B198/ticket-2a-sim-evidence.md.
+Blocking: No (T2b H2 code is backward-compatible). However, P1 because the hypothesis
+  is unconfirmed — the fix may be unnecessary or may need adjustment.
+Target Block: B199 (first SIM session after B198 FINAL_PASS)
+Status: OPEN (opened B198 T2a)
+Owner: Director
+Source: docs/brain/B198/ticket-2a-completion.md, ticket-2a-verification.md
+```
+
+---
+
+### DW-B198-SIMSTP-SIM-01: B198 SIM Gate Not Yet Run
+
+```
+Priority: P1
+Description: B198 SIM gate not yet run. Four SIM scenarios per docs/brain/B198-orchestrator-prompt.md:
+  SIM-1 (T1 -- SimStop fix):
+    Place ATM entry qty=10. Confirm ZERO "IsWorkingBracket=False name=SimStop" in log.
+    Confirm followers all Long N. Let leader SimStop trigger. ZERO double Sell copy.
+    PTT-Flatten fires <= 1 time per follower after stop.
+  SIM-2 (T2a -- QTY instrumentation):
+    Place ATM entry leader qty=10. Log must show "ATM-send qty=10 tmpl=MGC $400 SL4".
+    Record "ATM-order qty=X" value. Pins H1/H2/H3 hypothesis. Record in ticket-2a-sim-evidence.md.
+  SIM-3 (T1+T3 -- fo=NULL fix):
+    Drag leader entry 2-3x. Let leader fill. ZERO "fo=NULL" in TP4-SFB log lines.
+    Confirm [SLATE-READY-DRAIN] log shows drainFo=set (not drainFo=null).
+  SIM-4 (T4 -- ATM dir fix):
+    Restart PTT. ZERO "ATM template dir not found" on startup.
+    If template has Reverse=true: "[PTT-STARTUP-WARN] ATM template ... Reverse=true" fires.
+  Record all results in docs/brain/B198/sim-gate-completion.md.
+Blocking: Yes -- live validation required for B198 to be considered production-ready.
+Target Block: B199 (first available SIM session after B198 FINAL_PASS)
+Status: OPEN (opened B198)
+Owner: Director
+Source: docs/brain/B198-orchestrator-prompt.md §B198 SIM GATE
+```
+
+---
+
+### DW-B198-CHECKREV-CYC-01: CheckAtmTemplatesForReverse(string) JS-066 Violation
+
+```
+Priority: P1
+Description: CheckAtmTemplatesForReverse(string) (CopyEngine.cs ~line 1916) has
+  McCabe CYC=11 / Lizard CCN=12, exceeding the JS-066 ceiling of 8.
+  Root cause: T2b added a second try/catch block for per-file XML qty parsing
+  (catch is +1 McCabe) plus a compound if with two && operators
+  (if (qtyNode != null && int.TryParse(...) && perGroupQty > 0) is +3 decision points
+  when `&&` conjuncts are counted per strict McCabe convention).
+  The T2b verifier used manual count of 7 (undercounting by 4) and issued VERIFY_PASS.
+  Phase 5 re-analysis yields the correct count of 11.
+  Fix: extract the qty-parse block into a private helper method:
+    private bool TryParseAtmTemplateGroupQty(string filePath, out int perGroupQty)
+    CYC of new helper: 3 (try/catch + null guard + int.TryParse compound).
+    After extraction, CheckAtmTemplatesForReverse(string) returns to CYC ~7, within ceiling.
+  Note: This is the startup-path XML scan method (not a hot trading path).
+  The violation does not affect correctness; it is a complexity debt item.
+Blocking: No (startup path, not hot path; FINAL_PASS issued with this DW carry per
+  05-final-review.md rationale).
+Target Block: B199 (early)
+Status: OPEN (opened B198 Ph5)
+Owner: Director
+Source: docs/brain/B198/05-final-review.md Section C SCAN-04; ticket-4-verification.md WARN-1
+```
+
+---
+
+### DW-B198-GUARDIAN-01: Guardian Script TradeCopierPanel Check Failure (Pre-existing)
+
+```
+Priority: P2
+Description: verify_critical_symbols.ps1 has been failing since before B198 on:
+  "TradeCopierPanel: _instr2tBtn.Background = BrushTeal (Quick2t visual fix)"
+  The script expects the literal string `_instr2tBtn.Background = BrushTeal` in
+  TradeCopierPanel.cs. The actual code uses a conditional:
+  `btn.Background = isTeal ? BrushTeal : BrushInactive` (line ~1162).
+  The literal assignment expected by the script was never introduced.
+  All B198 tickets noted this as pre-existing (T1, T2a, T2b, T3, T4 verifications).
+  Resolution options:
+    (a) Update the guardian script pattern to match `BrushTeal` (broader match), or
+    (b) Add a dedicated `_instr2tBtn.Background = BrushTeal;` assignment to
+        TradeCopierPanel.cs where appropriate (may require understanding B193 visual context).
+  Not a DNA violation; the guardian script is a supplementary correctness check.
+Blocking: No
+Target Block: When TradeCopierPanel.cs is next touched, or as standalone cleanup
+Status: OPEN (first documented B198, was pre-existing)
+Owner: Director
+Source: ticket-1-verification.md, ticket-2a-verification.md, ticket-2b-verification.md,
+  ticket-3-verification.md, ticket-4-verification.md (all note same pre-existing failure)
+```
+
+---
+
+## Items Carried Forward Unchanged from B197
+
+All 15 items from docs/brain/B197/06-deferred-backlog.md carry forward unchanged.
+None were addressed by B198 scope.
+
+---
+
+### DW-B183-03: IsLaneEEligible CYC=8 Frozen
+
+```
+Priority: P1
+Description: IsLaneEEligible in CopyEngine.cs is at CYC=8 (JS-066 ceiling). Any branch
+  addition to IsLaneEEligible without prior helper extraction is an automatic P1 JS-066
+  violation. Not modified in B183-B198.
+  Future engineers modifying Lane E eligibility MUST extract a helper method first.
+Blocking: No (current CYC is at limit, not over it; blocks only future branch additions)
+Target Block: When Lane E is next modified
+Status: OPEN (carried forward from B183 via B184-B198)
+Owner: Director
+Source: docs/brain/B191/06-deferred-backlog.md -> docs/brain/B196/06-deferred-backlog.md -> B197 -> B198
+```
+
+---
+
+### DW-B192-SINST-01: SetInstrument() CYC at Ceiling 8
+
+```
+Priority: P2
+Description: SetInstrument() in TradeCopierPanel.cs is at CYC=8 (JS-066 ceiling). Any branch
+  addition to SetInstrument() without prior helper extraction is an automatic P1 JS-066
+  violation. Engineers modifying SetInstrument() MUST extract a helper method first.
+  Not blocking; CYC is at limit, not over it.
+Blocking: No (blocks only future branch additions)
+Target Block: When SetInstrument() is next modified
+Status: OPEN (opened B193, carried forward through B194-B198)
+Owner: Director
+Source: docs/brain/B193/02-architecture-plan.md (Deferred Work Register)
+```
+
+---
+
+### DW-B193-01: OnQuickAllBufferChanged Old Label Strings
+
+```
+Priority: P3
+Description: OnQuickAllBufferChanged in TradeCopierPanel.cs still uses old label strings
+  "Quick ALL" and "QAll2t" in the singleton-sink callback path. Low severity: visual label
+  shows old name only on the singleton path. Not a DNA violation.
+Blocking: No
+Target Block: When OnQuickAllBufferChanged is next touched
+Status: OPEN (opened B193, carried forward through B194-B198)
+Owner: Director
+Source: docs/brain/B193/02-architecture-plan.md (Deferred Work Register)
+```
+
+---
+
+### DW-B159-K2: 14 xUnit Tests (BE Path)
+
+```
+Priority: P2
+Description: 14 xUnit tests for the BE (break-even) path require infrastructure that was
+  not yet available at B159 time. Tests are planned but not implemented.
+Blocking: No
+Target Block: B199+ (when test infrastructure is available)
+Status: OPEN (carried forward from B159 via B160-B198)
+Owner: Director
+```
+
+---
+
+### DW-B159-K3: Attempt Cap Hardcoded at 3 in TryArmBePriceRetry
+
+```
+Priority: P2
+Description: TryArmBePriceRetry has a hardcoded cap of 3 retry attempts. This should be
+  configurable or derived from the rule configuration.
+Blocking: No
+Target Block: B199+
+Status: OPEN (carried forward from B159 via B160-B198)
+Owner: Director
+```
+
+---
+
+### DW-B159-K4: intendedBePrice Sourcing Dependency
+
+```
+Priority: P2
+Description: intendedBePrice sourcing has an unresolved dependency on the BE calculation
+  pipeline. Not blocking current function.
+Blocking: No
+Target Block: B199+
+Status: OPEN (carried forward from B159 via B160-B198)
+Owner: Director
+```
+
+---
+
+### DW-B167-DEFER-01: ECA-1 Double-Position Race
+
+```
+Priority: P2
+Description: ECA-1 double-position race condition -- follower can enter a position at the
+  same time as a legitimate ATM entry in rare timing conditions. Monitor at SIM.
+Blocking: No (monitor-only)
+Target Block: Monitor at SIM; address if observed
+Status: OPEN (carried forward from B167 via B168-B198)
+Owner: Director
+Source: docs/brain/B167/05-final-review.md Section K
+```
+
+---
+
+### DW-B167-DEFER-03: Combined B161-B166 SIM Gate
+
+```
+Priority: P1
+Description: The combined B161-B166 SIM gate (confirming all 6 signals of
+  IsFollowerPositionBlocked fire correctly in a live BE-All burst scenario) has not been
+  run. B196-T4 restores the implementation; the SIM gate is the live validation step.
+Blocking: Yes -- SIM gate must pass before B161-B166 + B163 guard can be considered
+  fully validated in production.
+Target Block: B199 SIM gate (run after B198 FINAL_PASS)
+Status: OPEN (carried forward from B167 via B168-B198)
+Owner: Director
+Source: docs/brain/B167/05-final-review.md Section K
+```
+
+---
+
+### DW-B167-DEFER-04: B167 SIM Gate
+
+```
+Priority: P1
+Description: B167 SIM gate -- prerequisite for B168/B169 SIM gate. Must be run and
+  recorded before B168/B169 SIM gates are considered validated.
+Blocking: Prerequisite for DW-B167-DEFER-03 and B169 SIM gate
+Target Block: B199 SIM gate sequence
+Status: OPEN (carried forward from B167 via B168-B198)
+Owner: Director
+Source: docs/brain/B167/05-final-review.md Section K
+```
+
+---
+
+### DW-B170-SIM: B170 SIM Gate (Live Regression Verify for DW-B170-01)
+
+```
+Priority: P1
+Description: Director drags a target on the leader account while the leader bracket stop
+  is in OrderState.Accepted. Confirms FindLeaderStopPrice (now including Accepted) returns
+  non-zero and the follower stop is preserved after the drag. This is the live validation
+  of the DW-B170-01 fix (B196-T2).
+Blocking: Yes -- live regression verify required before the Accepted window fix is
+  considered fully validated in SIM.
+Target Block: B199 SIM gate (immediately after B198 FINAL_PASS)
+Status: OPEN (carried forward from B196 via B197-B198)
+Owner: Director
+Source: docs/brain/B196/02-architecture-plan.md; docs/brain/B170/05-final-review.md
+```
+
+---
+
+### DW-B197-SIM-01: B197 SIM Gate
+
+```
+Priority: P1
+Description: B197 SIM gate not yet run. Four SIM scenarios planned in arch plan §8:
+  SIM-1 (T1): TrySetSlateReadyOnDrainFill -- verify "[SLATE-READY-DRAIN]" fires and
+    subsequent drag sync to follower succeeds after drain fill.
+  SIM-2 (T2): TryAbortLeaderFlatDrains -- verify "[DRAIN-ABORT-LEADER-FLAT]" fires and
+    no ghost PTT-Copy submitted after leader goes flat.
+  SIM-3 (T3): TryCancelStaleGtcExitOnEntry -- verify "[GTC-SWEEP] cancelled PTT-BE-*"
+    fires and stale GTC exit is cancelled when new entry fills.
+  SIM-4 (T4): IsPttDragOrphanCancellable suffix -- verify suffixed drag orders
+    (PTT-TGT-Drag-1, PTT-STP-Drag-2) are swept after flat.
+  Must be run before B197 gap restore is considered fully validated in production.
+Blocking: Yes -- live validation required for FINAL_PASS to be considered production-ready
+Target Block: B199 (now expanded SIM gate covers both B197 and B198 scenarios)
+Status: OPEN (carried forward from B197)
+Owner: Director
+Source: docs/brain/B197/02-architecture-plan.md §8
+```
+
+---
+
+### DW-B197-01: Stale CCN Comment at Line 1993
+
+```
+Priority: P3
+Description: CopyEngine.cs line 1993 comment states "TB-T6: IsPttDragOrphanCancellable --
+  CCN<=4." After T4 null guard additions, the actual Lizard CCN = 8. The comment is stale.
+  Update to: "TB-T6: IsPttDragOrphanCancellable -- CCN=8 (JS-066 ceiling)."
+Blocking: No
+Target Block: When IsPttDragOrphanCancellable is next touched
+Status: OPEN (carried forward from B197)
+Owner: Director
+Source: docs/brain/B197/ticket-4-verification.md W-T4-02
+```
+
+---
+
+### DW-B197-02: T4 Fact Names Misleading
+
+```
+Priority: P3
+Description: T4 test facts in B197Tests.cs are named "SuffixedTgtName_ReturnsTrue" etc.
+  but use source-text assertions (Assert.Contains) rather than direct seam calls.
+  Names imply a method call return value was verified. Cosmetic naming issue only.
+  Tests pass and assertions are meaningful.
+Blocking: No
+Target Block: When B197Tests.cs or test harness is next revisited
+Status: OPEN (carried forward from B197)
+Owner: Director
+Source: docs/brain/B197/ticket-4-verification.md W-T4-01
+```
+
+---
+
+### DW-B197-03: Pre-existing DwB15701SlateReadyTests Failures
+
+```
+Priority: P2
+Description: Two tests in CopyEngineTests.cs:DwB15701SlateReadyTests are failing and
+  pre-date B197:
+  (a) TrySetSlateReadyOnDrainFill_CalledAfterHandleDrainTerminal: expects non-existent
+      HandleDrainTerminalState caller + wrong argument type. Both expectations incorrect.
+  (b) TrySetSlateReadyOnDrainFill_NullOrder_NoSideEffect: TypeInitializationException --
+      CopyEngine.Instance requires NT8 runtime.
+  Neither introduced by B197. B197 T1 passes its own 2 [Fact]s in B197Tests.cs.
+Blocking: No (not B198 or B197 regressions)
+Target Block: When CopyEngineTests.cs DwB15701SlateReadyTests is next reviewed
+Status: OPEN (carried forward from B197)
+Owner: Director
+Source: docs/brain/B197/ticket-1-verification.md (Pre-Existing Test Failure Assessment)
+```
+
+---
+
+### DW-B197-04: TryCancelSingleStaleGtcExit Not in Plan CYC Table
+
+```
+Priority: P3
+Description: TryCancelSingleStaleGtcExit (CopyEngine.cs line 1975) was not in the original
+  B197 plan §7 CYC Impact Summary. Extracted from TryCancelStaleGtcExitOnEntry to keep
+  parent CCN<=8. Extraction is architecturally correct; plan §7 table is implicitly addended.
+  Informational only. No action required.
+Blocking: No
+Target Block: Informational only
+Status: OPEN (carried forward from B197)
+Owner: Director
+Source: docs/brain/B197/ticket-3-completion.md, ticket-3-verification.md
+```
+
+---
+
+## Summary by Priority
+
+| Priority | Count | DW IDs |
+|----------|-------|--------|
+| P0 | 0 | (None — all P0 items closed by B198) |
+| P1 | 8 | DW-B183-03, DW-B167-DEFER-03, DW-B167-DEFER-04, DW-B170-SIM, DW-B197-SIM-01, DW-B198-QTY-SIM-01, DW-B198-SIMSTP-SIM-01, DW-B198-CHECKREV-CYC-01 |
+| P2 | 7 | DW-B192-SINST-01, DW-B159-K2, DW-B159-K3, DW-B159-K4, DW-B167-DEFER-01, DW-B197-03, DW-B198-GUARDIAN-01 |
+| P3 | 4 | DW-B193-01, DW-B197-01, DW-B197-02, DW-B197-04 |
+
+**Total open items: 19**
+**Items closed by B198: 6** (DW-B198-SIMSTP-01, DW-B198-FINDLDR-01, DW-B198-CAPTURELEG-01, DW-B198-QTY-01, DW-B195-01, DW-B198-ATMDIR-01)
+**New items opened by B198: 4** (DW-B198-QTY-SIM-01, DW-B198-SIMSTP-SIM-01, DW-B198-CHECKREV-CYC-01, DW-B198-GUARDIAN-01)
+**Items carried forward unchanged from B197: 15**
+
+---
+
+## Recommended Next Block Priorities (B199)
+
+1. **B198 SIM Gate** (DW-B198-SIMSTP-SIM-01 — Required immediately):
+   Run all 4 SIM scenarios per B198-orchestrator-prompt.md §B198 SIM GATE.
+   Record in `docs/brain/B198/sim-gate-completion.md`.
+   Simultaneously run B197 SIM gate (DW-B197-SIM-01) — can combine into one SIM session.
+
+2. **QTY SIM Evidence** (DW-B198-QTY-SIM-01 — P1):
+   Create `docs/brain/B198/ticket-2a-sim-evidence.md` from SIM-2 observations.
+   If H1 confirmed (qty=10 → Long 10): remove T2b H2 logic (it is benign but unnecessary).
+   If H2 confirmed (ATM-order qty < leader qty): T2b fix is validated, close DW-B198-QTY-SIM-01.
+
+3. **CheckAtmTemplatesForReverse(string) CYC extraction** (DW-B198-CHECKREV-CYC-01 — P1):
+   Extract per-file qty parse into `TryParseAtmTemplateGroupQty(string, out int)`.
+   Target: CheckAtmTemplatesForReverse(string) CYC from 11 to <= 7.
+
+4. **Combined SIM gate cascade** (DW-B167-DEFER-03, DW-B167-DEFER-04, DW-B170-SIM — P1):
+   Schedule B167/B168/B169/B170 SIM gate sequence.
+
+5. **Guardian script fix** (DW-B198-GUARDIAN-01 — P2):
+   Update `verify_critical_symbols.ps1` pattern for TradeCopierPanel BrushTeal check.
+
+---
+
+*Written by: ptt-plan-reviewer*
+*Epic: B198*
+*Phase: 5 (Final Review)*
+*Supersedes: docs/brain/B197/06-deferred-backlog.md (as authoritative carry-forward list)*
+*Required for FINAL_PASS gate (role definition mandate).*

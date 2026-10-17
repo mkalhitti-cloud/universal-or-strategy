@@ -184,8 +184,8 @@ namespace PropTraderTools
         {
             var method = GetFormatQuickAllBuffer();
             Assert.NotNull(method);
-            var result = (string)method.Invoke(null, new object[] { "Quick ALL", 4 })!;
-            Assert.Equal("Quick ALL +4t", result);
+            var result = (string)method.Invoke(null, new object[] { "3x All", 4 })!;
+            Assert.Equal("3x All +4t", result);
         }
 
         [Fact]
@@ -202,8 +202,9 @@ namespace PropTraderTools
         {
             var method = GetFormatQuickAllBuffer();
             Assert.NotNull(method);
-            var result = (string)method.Invoke(null, new object[] { "Quick ALL", 4 })!;
-            Assert.Contains("t", result);
+            var result = (string)method.Invoke(null, new object[] { "3x All", 4 })!;
+            Assert.Contains("3x All", result);
+            Assert.Contains("+4t", result);
         }
 
         [Fact]
@@ -211,8 +212,8 @@ namespace PropTraderTools
         {
             var method = GetFormatQuickAllBuffer();
             Assert.NotNull(method);
-            var result = (string)method.Invoke(null, new object[] { "Quick ALL", 0 })!;
-            Assert.Equal("Quick ALL +0t", result);
+            var result = (string)method.Invoke(null, new object[] { "3x All", 0 })!;
+            Assert.Equal("3x All +0t", result);
         }
 
         // -- Group 10: B73-B-10 (2 tests) ----------------------------------------

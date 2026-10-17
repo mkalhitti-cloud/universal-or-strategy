@@ -1,4 +1,4 @@
-// BWAVE-CYC LaneB Tests -- TB-T1: OnPendingBeAccountUpdate extraction.
+﻿// BWAVE-CYC LaneB Tests -- TB-T1: OnPendingBeAccountUpdate extraction.
 // Tests for extracted helpers: GetSenderAccountName, ResolvePendingBeRefPx,
 //   IsPendingBeTriggerConditionMet (null-instrument guard via seam),
 //   IsPendingBeSlotActive (null-account guard via seam).
@@ -342,7 +342,7 @@ namespace PropTraderTools.Tests
         public void ShouldSkipFollowerDispatch_ReturnsTrue_WhenAccIsNull()
         {
             var engine = CopyEngine.Instance;
-            bool result = engine.ShouldSkipFollowerDispatch(null);
+            bool result = engine.ShouldSkipFollowerDispatch(null, null);
             Assert.True(result);
         }
 
@@ -766,3 +766,4 @@ namespace PropTraderTools.Tests
         }
     }
 }
+

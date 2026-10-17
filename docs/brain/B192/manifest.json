@@ -1,0 +1,22 @@
+{
+  "epic": "B192",
+  "title": "GC Instrument Default + GlobalQuickAllT1 Instrument Init",
+  "description": "Quick ALL / QAll2t on MGC fires with GlobalQuickAllT1=4 instead of 10. InstrumentDefaults missing GC entry. SetInstrument must sync GlobalQuickAllT1 to per-instrument default.",
+  "spec": "specs/002-trade-copier-spec.html",
+  "prev_backlog": "docs/brain/B191/06-deferred-backlog.md",
+  "phases": {
+    "P1": { "status": "PENDING", "artifact": "docs/brain/B192/02-architecture-plan.md" },
+    "P2": { "status": "PENDING", "artifact": "docs/brain/B192/02-plan-review.md" },
+    "P3": { "status": "PENDING", "artifact": "docs/brain/B192/04-tickets.md" },
+    "P3.5": { "status": "PENDING", "artifact": "docs/brain/B192/04-ticket-review.md" },
+    "P4T1a": { "status": "PENDING", "artifact": "docs/brain/B192/ticket-1-completion.md" },
+    "P4T1b": { "status": "PENDING", "artifact": "docs/brain/B192/ticket-1-verification.md" },
+    "P4T2a": { "status": "PENDING", "artifact": "docs/brain/B192/ticket-2-completion.md" },
+    "P4T2b": { "status": "PENDING", "artifact": "docs/brain/B192/ticket-2-verification.md" },
+    "P4T3a": { "status": "PENDING", "artifact": "docs/brain/B192/ticket-3-completion.md" },
+    "P4T3b": { "status": "PENDING", "artifact": "docs/brain/B192/ticket-3-verification.md" },
+    "P5": { "status": "PENDING", "artifact": "docs/brain/B192/05-final-review.md" }
+  },
+  "created": "2026-07-15",
+  "tickets_total": 3
+}

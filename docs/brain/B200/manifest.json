@@ -1,0 +1,25 @@
+{
+  "epic": "B200+B201",
+  "title": "Direct Repair Formalisation + Entry-Order Cancel Fix",
+  "work_dir": "docs/brain/B200",
+  "prev_backlog": "docs/brain/B199/06-deferred-backlog.md",
+  "status": "PIPELINE_COMPLETE",
+  "completed": "2026-10-15",
+  "phases": {
+    "Ph1": { "status": "COMPLETE", "artifact": "docs/brain/B200/02-architecture-plan.md" },
+    "Ph2": { "status": "COMPLETE",    "artifact": "docs/brain/B200/02-plan-review.md" },
+    "Ph3": { "status": "COMPLETE",    "artifact": "docs/brain/B200/04-tickets.md" },
+    "Ph3.5": { "status": "COMPLETE",  "artifact": "docs/brain/B200/04-ticket-review.md" },
+    "Ph4a-T1": { "status": "COMPLETE","artifact": "docs/brain/B200/ticket-1-completion.md" },
+    "Ph4b-T1": { "status": "COMPLETE","artifact": "docs/brain/B200/ticket-1-verification.md" },
+    "Ph4a-T2": { "status": "COMPLETE","artifact": "docs/brain/B200/ticket-2-completion.md" },
+    "Ph4b-T2": { "status": "COMPLETE","artifact": "docs/brain/B200/ticket-2-verification.md" },
+    "Ph4a-T3": { "status": "COMPLETE","artifact": "docs/brain/B200/ticket-3-completion.md" },
+    "Ph4b-T3": { "status": "COMPLETE","artifact": "docs/brain/B200/ticket-3-verification.md" },
+    "Ph4a-T4": { "status": "COMPLETE","artifact": "docs/brain/B200/ticket-4-completion.md" },
+    "Ph4b-T4": { "status": "COMPLETE","artifact": "docs/brain/B200/ticket-4-verification.md" },
+    "Ph5": { "status": "COMPLETE",    "artifact": "docs/brain/B200/05-final-review.md" }
+  },
+  "tickets": 4,
+  "created": "2026-10-15"
+}

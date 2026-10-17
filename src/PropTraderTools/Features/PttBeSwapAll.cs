@@ -5,7 +5,10 @@
 // DW-B182-02: snapshot stop BEFORE CancelQxBrackets in ExecuteOne (QX-pattern).
 // Description: Instrument-scoped BE swap for all accounts.
 // B189-T1: direction = isLong ? +1.0 : -1.0 in ExecuteOne (long -> above entry; short -> below entry).
-// CYC=7: combined-gate-||(1), acc-loop-foreach(2), follower-if(3), follower-&&(4), pos-foreach(5), flat-skip-||(6), instr-filter(7).
+// B208-FIX-A: removed IsFollowerAccount skip -- Clone/ATM followers have Target1/Target2/SimStop1/SimStop2
+//   ATM-named brackets that CancelQxBrackets handles correctly via IsAtmBracketName. Skipping followers
+//   left their ATM brackets live and never placed PTT-BE-Stop-N/PTT-BE-Target-N on them.
+// CYC=5: combined-gate-||(1), acc-loop-foreach(2), pos-foreach(3), flat-skip-||(4), instr-filter(5).
 // JS-021: no lock. JS-001: no throw. JS-002: void. JS-033: synchronous void. ASCII-only.
 
 using System;
@@ -27,16 +30,13 @@ namespace PropTraderTools
             NinjaTrader.Code.Output.Process(
                 "[BE-ALL] PttBeSwapAll: instr=" + instrument.FullName + " buf=" + bufferTicks + "t",
                 NinjaTrader.NinjaScript.PrintTo.OutputTab1);
-            var engine = CopyEngine.Instance;
             foreach (Account acc in Account.All)               // (2)
             {
-                if (engine != null && engine.IsFollowerAccount(acc))  // (3)(4)
-                    continue;
-                foreach (Position pos in acc.Positions)        // (5)
+                foreach (Position pos in acc.Positions)        // (3)
                 {
-                    if (pos.Instrument?.FullName != instrument.FullName)  // (7) instrument filter
+                    if (pos.Instrument?.FullName != instrument.FullName)  // (5) instrument filter
                         continue;
-                    if (pos == null || pos.Quantity == 0)      // (6) flat skip
+                    if (pos == null || pos.Quantity == 0)      // (4) flat skip
                         continue;
                     ExecuteOne(acc, pos, bufferTicks);
                 }
