@@ -2171,12 +2171,19 @@ namespace PropTraderTools
                 TryCancelSingleStaleGtcExit(acc, o);
         }
 
-        // B197 T3: TryCancelSingleStaleGtcExit -- helper extracted from TryCancelStaleGtcExitOnEntry.
-        // Handles per-order stale GTC cancel with try/catch. Keeps parent CYC<=8.
-        // JS-021: no lock. JS-001: catch does NOT rethrow. ASCII-only.
+        // B208-FIX-G-2: do not cancel PTT-BE-* orders while BE-swap is in progress.
+        // IsBeSwapInProgress stays true until PTT-BE-Stop-N reaches a terminal state (FIX-G-1).
+        // Without this guard, a rapid PTT-Copy/Entry fill can sweep a Working PTT-BE-Stop-N
+        // via TryCancelStaleGtcExitOnEntry, leaving the follower unprotected.
+        // CYC: +1 branch. ASCII-only. JS-021: IsBeSwapInProgress is lock-free. JS-001: no throw.
         private void TryCancelSingleStaleGtcExit(Account acc, Order o)
         {
             if (!IsStaleGtcExitOrder(o)) return;
+            // B208-FIX-G-2: protect live PTT-BE-Stop-N during active swap window.
+            if (o.Name != null
+                && o.Name.StartsWith("PTT-BE-", StringComparison.Ordinal)
+                && IsBeSwapInProgress(acc.Name))
+                return;
             try
             {
                 acc.Cancel(new Order[] { o });
@@ -3185,6 +3192,16 @@ namespace PropTraderTools
                 || state == OrderState.Rejected
                 || state == OrderState.Accepted;
         }
+
+
+        // B209: testable seam for FIX-G-2 guard in TryCancelSingleStaleGtcExit.
+        // Extracts the BE-swap skip predicate for xUnit testing.
+        // CYC=1 (expression body). JS-021: no lock. JS-001: no throw. ASCII-only.
+        internal static bool IsBeSwapGtcSweepGuard(string orderName, bool beSwapInProgress)
+            => orderName != null
+                && orderName.StartsWith("PTT-BE-", StringComparison.Ordinal)
+                && beSwapInProgress;
+
 
         // B200-CLOSE-LANED-01: returns true if account has a PTT-Flatten order in an active (in-flight) state.
         // Mirrors the inline guard in FlattenOneAccount (L5534) -- extracted here for reuse by IsLaneEEligible.
