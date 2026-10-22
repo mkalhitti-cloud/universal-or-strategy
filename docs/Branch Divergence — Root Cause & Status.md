@@ -1,22 +1,41 @@
-Branch Divergence — Root Cause & Status
-This is a pre-existing divergence, not caused by B215. Here's what's happening:
+# Branch Divergence — Root Cause & Status
 
-Detail
-Merge base	c4a8adca — a shared ancestor commit from early in the project
-Our branch (HEAD)	ba8ade4f — 75 commits ahead of the merge base — all B209/B210/B211/B212/B213/B214/B215 work
-origin/main	839 commits ahead of the merge base — a completely different development track (B56, B57, B62, B66, B119, B127, B136, B142, B181, B185, B194, B200, etc.)
-This is two divergent branches of the same repo. Our local main and origin/main forked from a common ancestor long ago and have been developed in parallel. Neither branch was ever rebased onto the other.
+## STATUS: RESOLVED (post-B216)
 
-Is Our src/ Code Affected?
-No. Our local src/ is safe. Here is what the divergence means in practice:
+### Resolution
+- **Date**: post-B216 pipeline completion
+- **Action**: Force-pushed local main (PTT B209-B216 track) to `mkalhitti-cloud/universal-or-strategy`
+- **Backup tag**: `ptt-b216-safe-backup` (SHA: `ca1689a0`) — pushed to remote, permanently recoverable
+- **origin remote**: repointed from `antigravityos187-sketch/universal-or-strategy` to `mkalhitti-cloud/universal-or-strategy`
+- **Final state**: `git status` = "Your branch is up to date with 'origin/main'." — divergence warning gone
 
-Our local CopyEngine.cs is the B209/B211/B212/B213/B214 version (7,891 lines per the diff header on their side — our version is what we've been working with)
-origin/main's CopyEngine.cs is a much newer version (7,539 lines) with B56–B200+ changes that are on a completely separate development line
-They do not merge. No rebase is safe to do here — it would be a massive conflict across hundreds of diverging features
-The verify_pr_hygiene.ps1 "839 commits behind" warning is cosmetic for our pipeline purposes. It's reporting the branch divergence, not a problem we introduced. Every B214 and B215 engineer/verifier session has seen this same message and correctly documented it as pre-existing.
+---
 
-What To Do
-Nothing — our src/ is intact. The B215 pipeline should continue as-is. The "branch divergence" in verify_pr_hygiene.ps1 should be documented as a known pre-existing condition in all SCAN-7 reports (same as DW-B209-01 Guardian false positive).
+## Original Diagnosis
 
-Resuming the pipeline now. Back to Lane A TA1 — the engineer returned BUILD_FAIL because B153IsPttQxTargetTests can't pass outside NT8 host (CopyEngine cctor requires NT8 DLLs). The method was correctly added. The fix is to add [Fact(Skip="NT8-runtime: ...")] to those 6 tests. I'll re-spawn the engineer with that correction.
+### What Was Happening
+- Merge base: `c4a8adca` — May 21 2026 ("Epic 2 Logic Hardening" #112) — itself a squashed PR
+- Our branch (HEAD `ba8ade4f`): 75 commits ahead — B209/B210/B211/B212/B213/B214/B215/B216 PTT work
+- origin/main (`antigravityos187-sketch`): 839 commits ahead — BWAVE/EPIC-3/4/5/6/REAPER track
+
+Two parallel development streams on the same repo. Neither was ever rebased onto the other.
+
+### Root Cause
+Both tracks used squash/bulk-commit PRs throughout. The divergence started when `c4a8adca` (squashed PR #112) was the last shared commit (May 21 2026), and our local PTT work (first commit Sep 7 2026) was never pushed to origin during the B209–B214 development period. The `antigravityos187-sketch` origin had write-access granted to other accounts that pushed BWAVE work independently.
+
+### Why Merge/Rebase Was Not Safe
+- `CopyEngine.cs`: 7,891 lines (ours, B209-B216) vs 6,997 lines (origin, BWAVE) — completely different feature sets
+- No shared lineage after May 21 2026
+- Merge would have produced hundreds of unresolvable conflicts across every .cs file
+
+### What Was Preserved
+- All B209–B216 src hotfixes, pipeline docs, test files committed before force-push
+- All stash entries retained (stash@{0} through stash@{43})
+- All BWAVE work on origin is accessible via other remotes (`malhitticrypto`, `mdasdispatch-hash`)
+- Backup tag `ptt-b216-safe-backup` = exact pre-force-push state, permanently on remote
+
+### Going Forward
+- `origin` = `mkalhitti-cloud/universal-or-strategy` — our PTT track, single source of truth
+- `git status` will always show "up to date" — no more divergence warnings
+- SCAN-7 reports no longer need to document this as a pre-existing condition
 
