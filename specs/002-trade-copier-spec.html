@@ -44479,6 +44479,65 @@ AFTER:  _dedupCache[leaderOrder.OrderId.ToString()] = newPrice;</pre>
     </div>
     <!-- end B209-B214 block -->
 
+    <!-- == B215-B216 features block ====================================== -->
+    <div class="section" id="section-b215-b216">
+      <div class="section-label">Blocks B215-B216 &nbsp;&middot;&nbsp; PTT-COPIER-B215-B216 &nbsp;&middot;&nbsp; Ask/Bid Pattern B, Cancel/CancelAll Buttons, Copier-Off Independence</div>
+
+      <!-- FG-7: B216 Ask/Bid Pattern B -->
+      <div class="card">
+        <div class="card-title">FG-7 -- B216 Ask/Bid Pattern B + Cancel/CancelAll Buttons &nbsp;<span class="pill-green">PIPELINE-COMPLETE (B216) SIM-CONFIRMED</span></div>
+
+        <h4 style="margin:12px 0 6px;color:#e2e8f0;">Background -- Two Button Patterns</h4>
+        <p style="color:var(--mid);">PTT panel buttons fall into two architectural patterns:</p>
+        <ul style="color:var(--mid);">
+          <li><strong>Pattern A (leader-scoped):</strong> Trim, Flatten, BE, 3x, Ask (single), Bid (single) -- use <code>_leaderAccount</code> from the panel combo. Silent no-op if <code>_leaderAccount</code> is null (copier OFF).</li>
+          <li><strong>Pattern B (engine-scoped):</strong> Be All, 3x All, Quick All -- iterate <code>Account.All</code> loop inside the feature module. Work with copier OFF because no <code>FindRule</code> / <code>AllAccounts</code> lookup is needed.</li>
+        </ul>
+
+        <h4 style="margin:12px 0 6px;color:#e2e8f0;">Problem -- Ask/Bid Silent Fail With Copier OFF</h4>
+        <p style="color:var(--mid);">Pre-B216, Ask-All and Bid-All used Pattern A: <code>OnAskAllClick</code> called <code>PttMoveTargetAll.Execute</code> which called <code>AllAccounts(instrument)</code> which called <code>FindRule(instrument)</code>. When copier was OFF (no active <code>CopyRule</code> loaded), <code>FindRule</code> returned null, <code>AllAccounts</code> returned an empty enumerable, and <code>Execute</code> silently exited. No <code>[PTT-MA]</code> log output -- buttons did nothing with copier OFF. Similarly, Ask (single) and Bid (single) required <code>_leaderAccount != null</code> but logged no diagnostic when it was null.</p>
+
+        <h4 style="margin:12px 0 6px;color:#e2e8f0;">Fix Part A -- Ask/Bid Single: Null-Leader Diagnostic Log</h4>
+        <p style="color:var(--mid);">Added null-leader log output to <code>OnAskClick</code> and <code>OnBidClick</code>. When <code>_leaderAccount</code> is null after <code>TryResolveLeaderAccount()</code>, prints <code>[PTT-MA] Ask: leader null -- check account combo on chart trader</code> to NT8 Output Tab 1. No functional change -- Pattern A null exit is correct behaviour (single-account buttons are leader-scoped by design). Diagnostic only.</p>
+
+        <h4 style="margin:12px 0 6px;color:#e2e8f0;">Fix Part B -- Ask-All / Bid-All: Converted to Pattern B</h4>
+        <p style="color:var(--mid);">Rewrote <code>OnAskAllClick</code> and <code>OnBidAllClick</code> from Pattern A to Pattern B. New approach:</p>
+        <ol style="color:var(--mid);padding-left:20px;">
+          <li>Resolve instrument from <code>_instrument</code> (panel field, always set from chart context).</li>
+          <li>Collect all NT8 accounts via <code>Account.All</code> loop, filter by <code>HasNonFlatPosition(acc, instrument)</code>.</li>
+          <li>Call <code>PttMoveTargetOne.Execute(acc, instrument, useAsk: true/false, bufferTicks)</code> per account.</li>
+          <li>Log <code>[PTT-MA] Ask-All: instrument=X accounts=N</code> to Output Tab 1.</li>
+        </ol>
+        <p style="color:var(--mid);"><strong>No <code>FindRule</code> / <code>AllAccounts</code> / CopyEngine dependency.</strong> Works with copier ON or OFF. Copier toggle is independent of Ask-All/Bid-All.</p>
+        <p style="color:var(--mid);"><strong>Helper added:</strong> <code>HasNonFlatPosition(Account acc, Instrument instr)</code> -- returns <code>acc.Positions.Any(p =&gt; p.Instrument == instr &amp;&amp; p.Quantity &gt; 0)</code>. Pure predicate, no side effects.</p>
+        <p style="color:var(--mid);"><strong>Methods affected:</strong> <code>OnAskAllClick</code>, <code>OnBidAllClick</code>, <code>HasNonFlatPosition</code> in <code>TradeCopierPanel.cs</code>. CYC=4 per method. JS-021/JS-001/JS-002 PASS.</p>
+
+        <h4 style="margin:12px 0 6px;color:#e2e8f0;">Fix Part C -- Cancel + Cancel All Buttons (new <code>_cancelRowPanel</code>)</h4>
+        <p style="color:var(--mid);">Two new buttons added to the panel cancel row:</p>
+        <ul style="color:var(--mid);">
+          <li><strong>Cancel (single):</strong> Pattern A. Calls <code>PttCancel.Execute(_leaderAccount, _instrument)</code> via existing <code>DispatchModule</code> path. Works same as existing Cancel behaviour.</li>
+          <li><strong>Cancel All:</strong> Pattern B. New <code>PttCancelAll.cs</code> static module. Iterates <code>Account.All</code>, calls <code>acc.CancelAllOrders(instrument)</code> per account with open position. Works with copier OFF.</li>
+        </ul>
+        <p style="color:var(--mid);"><strong>New file:</strong> <code>src/PropTraderTools/Features/PttCancelAll.cs</code>. Public static <code>Execute(Instrument instr)</code>. CYC=3 (foreach + HasNonFlatPosition guard + try/catch). JS-021/JS-001/JS-002 PASS. No lock().</p>
+        <p style="color:var(--mid);"><strong>UI:</strong> Cancel row panel (<code>_cancelRowPanel</code>) built in <code>BuildCancelRow()</code>. Two buttons side by side. Added to main panel layout below the existing bid row.</p>
+
+        <h4 style="margin:12px 0 6px;color:#e2e8f0;">SIM Confirmation (Sim101)</h4>
+        <ul style="color:var(--mid);">
+          <li><code>[PTT-MA] Ask: Sim101 price=4103.2 targets=2 stop=4099.2</code> -- Ask single fired correctly</li>
+          <li><code>[PTT-MA] Ask-All: instrument=MGC DEC26 accounts=1</code> -- Ask-All Pattern B fired correctly</li>
+          <li><code>[PTT-MA] Bid: Sim101 price=4102.8 targets=2 stop=4099.2</code> -- Bid single fired correctly</li>
+          <li><code>[PTT-MA] Bid-All: instrument=MGC DEC26 accounts=1</code> -- Bid-All Pattern B fired correctly</li>
+          <li>OCO pairs named <code>PTT-MA-Ask-00001</code>, <code>PTT-MA-Bid-00005</code> confirmed in NT8 order book on Sim101</li>
+          <li>All 4 button types confirmed working with copier OFF</li>
+        </ul>
+
+        <h4 style="margin:12px 0 6px;color:#e2e8f0;">JS Compliance</h4>
+        <p style="color:var(--mid);">No lock(). No async void. No throw in hot path. No return null in new methods. CYC &lt;= 4 for all new/modified methods. ASCII-only. ptt-sync 21/0.</p>
+      </div>
+
+    </div>
+    <!-- end B215-B216 block -->
+
 
   </body>
 </html>

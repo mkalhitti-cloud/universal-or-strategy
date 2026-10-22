@@ -45,7 +45,7 @@ DW-B212-03 is the sole item closed by this block.
 | DW-B209-04 | specs/002-trade-copier-spec.html B209 block updates | P1 | Before SIM R8 | Spec HTML not updated for B209 OCO + GTC guard features. Must be updated before B209/B211 features ship to production. Carried from B212. |
 | DW-B211-01 | Direction-aware validation (warn/block for direction-inappropriate Ask/Bid) | P2 | Future block | Ask/Bid fire unconditionally regardless of position direction. V2 design required: add position direction check and optional warning. Required before DW-B211-02. Carried from B212. |
 | DW-B211-02 | Increase/Decrease target nudge buttons (depends DW-B211-01) | P2 | Future block (after DW-B211-01) | Nudge target +N / -N ticks from current price. Requires DW-B211-01 direction-handling resolved first. New PttNudgeTargetOne/All pair needed. Carried from B212. |
-| DW-B212-01 | Trim(Instrument) RelayTrim path -- leader-skip investigation | P1 | B215+ | SOURCE CONFIRMED OPEN: `Trim(Instrument)` at CopyEngine.cs:5731 iterates `foreach (var acc in AllAccounts(instrument))` with NO leader guard. Same structure as pre-fix Flatten(Instrument). If TrimOneAccount -> CancelAllAccountOrders triggers NT8 ATM re-arm, same risk applies as pre-fix Flatten. Investigation approach: read TrimOneAccount body; check whether it calls CancelAllAccountOrders or a targeted partial-cancel. Carried from B212. |
+| DW-B212-01 | Trim(Instrument) RelayTrim path -- leader-skip investigation | P1 | -- | **CLOSED-NO-ACTION (post-B216 direct code trace).** `TrimOneAccount` (CopyEngine.cs:5994) submits a targeted partial Market sell (`"PTT-Trim"`, `trimQty = ceil(qty/2)`) via `acc.CreateOrder`. It does NOT call `CancelAllAccountOrders`. No ATM bracket cancellation. No NT8 ATM re-arm risk. The leader-skip concern that applied to `FlattenOneAccount` (which calls `CancelAllAccountOrders` before the market order) does NOT apply to `TrimOneAccount`. No code change needed. |
 | DW-B212-02 | PttMoveTargetAll.cs future role | P2 | B215+ | OnAskAllClick/OnBidAllClick bypass PttMoveTargetAll.Execute (direct _leaderAccount+_followerItems loop confirmed by B214 SCAN-6). PttMoveTargetAll.Execute still exists and calls AllAccounts/CopyEngine. Decide: retain as copier-aware API utility, or deprecate with explicit DW-card authorization. Do NOT delete without DW-card. Carried from B212. |
 | DW-B214-01 | CYC counting methodology inconsistency (TryResolveLeaderAccount) | P2 | B215/future | See new items section above. |
 | DW-B214-02 | 24 pre-existing test failures in pre-B214 test classes | P1 | Dedicated block | See new items section above. |
@@ -59,7 +59,7 @@ DW-B212-03 is the sole item closed by this block.
 | DW-B209-01 | Guardian script single-hunk false positive | P2 | B215+ | OPEN |
 | DW-B209-02 | TradeCopierPanel.cs BrushTeal gap | P2 | B215+ | OPEN |
 | DW-B209-03 | SIM R7 -- B209 OCO + GTC guard (combined B211 SIM) | P0 | -- | CLOSED (B212) |
-| DW-B209-04 | specs/002-trade-copier-spec.html B209 updates | P1 | Before SIM R8 | OPEN |
+| DW-B209-04 | specs/002-trade-copier-spec.html B209 updates | P1 | -- | **CLOSED (post-B216)** -- B209/B211/B212/B213/B214/B216 blocks all added to spec HTML |
 | DW-B211-01 | Direction-aware validation | P2 | Future block | OPEN |
 | DW-B211-02 | Target nudge buttons (depends DW-B211-01) | P2 | Future block | OPEN |
 | DW-B211-03 | Canonical target identification (LAST PTT-* Working Limit exit) | P1 | -- | CLOSED (B211) |
@@ -67,7 +67,7 @@ DW-B212-03 is the sole item closed by this block.
 | DW-B211-05 | Shared vs independent buffers | P2 | -- | CLOSED (B211) |
 | DW-B211-SIM-01 | SIM validation for B211 + B209 combined round | P0 | -- | CLOSED (B212) |
 | DW-B211-SIM-02 | Evaluate DW-B211-04 GTC race empirically during SIM | P1 | -- | CLOSED (B212) |
-| DW-B212-01 | Trim(Instrument) RelayTrim path -- leader-skip investigation | P1 | B215+ | OPEN |
+| DW-B212-01 | Trim(Instrument) RelayTrim path -- leader-skip investigation | P1 | -- | **CLOSED-NO-ACTION (post-B216)** -- TrimOneAccount does not call CancelAllAccountOrders; no ATM re-arm risk; no code change needed |
 | DW-B212-02 | PttMoveTargetAll.cs future role | P2 | B215+ | OPEN |
 | DW-B212-03 | DIFF LIMIT compliance audit for B211+B212 PR | P1 | -- | **CLOSED (B214 Lane A)** |
 | DW-B212-04 | DispatchCopy CYC remediation | -- | -- | CLOSED (B212, T3 Retry 1) |
