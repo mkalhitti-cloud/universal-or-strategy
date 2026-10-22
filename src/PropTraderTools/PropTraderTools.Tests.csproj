@@ -20,12 +20,15 @@
     <Compile Include="Features\PttBeSwapAll.cs" />
     <Compile Include="Features\PttBeSwapOne.cs" />
     <Compile Include="Features\PttBreakEvenSwap.cs" />
+    <Compile Include="Features\PttCancelAll.cs" />
     <Compile Include="Features\PttCancel.cs" />
     <Compile Include="Features\PttCopier.cs" />
     <Compile Include="Features\PttFlatten.cs" />
     <Compile Include="Features\PttFollowerStrategy.cs" />
     <Compile Include="Features\PttGlobalBreakEven.cs" />
     <Compile Include="Features\PttGlobalQuickExit.cs" />
+    <Compile Include="Features\PttMoveTargetAll.cs" />
+    <Compile Include="Features\PttMoveTargetOne.cs" />
     <Compile Include="Features\PttQuickExit.cs" />
     <Compile Include="Features\PttTrim.cs" />
     <Compile Include="LicenseClient.cs" />
@@ -43,6 +46,10 @@
     <Compile Include="Tests\B199Tests.cs" />
     <Compile Include="Tests\B200Tests.cs" />
     <Compile Include="Tests\B201Tests.cs" />
+    <Compile Include="Tests\B211Tests.cs" />
+    <Compile Include="Tests\B212Tests.cs" />
+    <Compile Include="Tests\B214Tests.cs" />
+    <Compile Include="Tests\B216Tests.cs" />
   </ItemGroup>
 
   <ItemGroup>

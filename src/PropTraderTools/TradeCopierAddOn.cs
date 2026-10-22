@@ -567,29 +567,33 @@ namespace PropTraderTools
 
         // B121/DW-B130b: dev_mode.txt sentinel bypasses LicenseClient entirely.
         // CYC=4: try-enter(1) + devMode.Exists(2) + licenseTxt.Exists(3) + catch(4).
-        // JS-001: no throw -- any I/O error returns Starter().
-        // NT8: File I/O is safe in State.Configure (not the hot path).
-        private static FeatureFlags LoadAndValidateLicense()
-        {
-            try
-            {
-                var pttDir = System.IO.Path.Combine(
-                    NinjaTrader.Core.Globals.UserDataDir,
-                    "PropTraderTools"
-                );
-                var devMode = System.IO.Path.Combine(pttDir, "dev_mode.txt");
-                if (System.IO.File.Exists(devMode))
-                    return FeatureFlags.Elite();
-                var licenseTxt = System.IO.Path.Combine(pttDir, "license.txt");
-                var key = System.IO.File.Exists(licenseTxt)
-                    ? System.IO.File.ReadAllText(licenseTxt).Trim()
-                    : string.Empty;
-                return LicenseClient.Validate(key);
-            }
-            catch (Exception)
-            {
-                return FeatureFlags.Starter();
-            }
-        }
+        // DEV-UNLOCK: all features enabled for all users until productization.
+        // Restore license gating when ready: replace body with the commented-out block below.
+        // JS-001: no throw. CYC=1.
+        private static FeatureFlags LoadAndValidateLicense() => FeatureFlags.Elite();
+
+        // -- Original license-gated body (restore for productization) --
+        // private static FeatureFlags LoadAndValidateLicense()
+        // {
+        //     try
+        //     {
+        //         var pttDir = System.IO.Path.Combine(
+        //             NinjaTrader.Core.Globals.UserDataDir,
+        //             "PropTraderTools"
+        //         );
+        //         var devMode = System.IO.Path.Combine(pttDir, "dev_mode.txt");
+        //         if (System.IO.File.Exists(devMode))
+        //             return FeatureFlags.Elite();
+        //         var licenseTxt = System.IO.Path.Combine(pttDir, "license.txt");
+        //         var key = System.IO.File.Exists(licenseTxt)
+        //             ? System.IO.File.ReadAllText(licenseTxt).Trim()
+        //             : string.Empty;
+        //         return LicenseClient.Validate(key);
+        //     }
+        //     catch (Exception)
+        //     {
+        //         return FeatureFlags.Starter();
+        //     }
+        // }
     }
 }

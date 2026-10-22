@@ -4,12 +4,10 @@ Generates MNQ ATM XML files ($100/$200/$300/$400 series, SL20-SL100) and
 MNQ DTDB ATMs for all 4 series, plus 8 MNQ Scotty stop strategy XMLs.
 
 MNQ Contract: tick=$0.50, point=$2.00, 4 ticks/pt
-Ratio vs MES: 2.5x more ticks for same dollar risk
 
-Naming: SL number = tick count (SL20=20T, SL40=40T, etc.)
-Targets: T1=20T, T2=30T for SL20-SL60; +5T per step from SL70 up
-Quantities: same as MES equivalent series (accepting lower dollar risk on SL20)
-DTDB: SL20-baseline quantities, tight 10T stop
+Naming: SL number = POINT count (SL20=20pts=80T, SL40=40pts=160T, etc.)
+Targets: T1=25% SL (in ticks), T2=50% SL (in ticks)
+DTDB: 10-point stop (40T), T1=2.5pt(10T), T2=5pt(20T), SL20-baseline quantities
 """
 import os, sys
 sys.stdout.reconfigure(encoding='utf-8')
@@ -18,90 +16,95 @@ ATM_DIR = r'C:\Users\Mohammed Khalid\Documents\NinjaTrader 8\templates\AtmStrate
 SS_DIR  = r'C:\Users\Mohammed Khalid\Documents\NinjaTrader 8\templates\StopStrategy'
 
 # ── Contract constants ────────────────────────────────────────────────────────
-TICK_VAL = 0.50   # $ per tick
+TICK_VAL   = 0.50   # $ per tick
+TICKS_PER_PT = 4   # MNQ: 4 ticks per point
 
 # ── SL definitions ───────────────────────────────────────────────────────────
-# (sl_label, sl_ticks, t1_tgt, t2_tgt, scotty_template)
+# (sl_label, sl_pts, sl_ticks, t1_tgt_ticks, t2_tgt_ticks, scotty_template)
+# T1 = 25% SL in ticks, T2 = 50% SL in ticks
 SL_DEFS = [
-    ('SL20',  20,  20, 30, 'MNQ Scotty-SL20'),
-    ('SL40',  40,  20, 30, 'MNQ Scotty-SL40'),
-    ('SL50',  50,  20, 30, 'MNQ Scotty-SL50'),
-    ('SL60',  60,  20, 30, 'MNQ Scotty-SL60'),
-    ('SL70',  70,  25, 35, 'MNQ Scotty-SL70'),
-    ('SL80',  80,  30, 40, 'MNQ Scotty-SL80'),
-    ('SL90',  90,  35, 45, 'MNQ Scotty-SL90'),
-    ('SL100', 100, 40, 50, 'MNQ Scotty-SL100'),
+    ('SL20',   20,   80,  20,  40, 'MNQ Scotty-SL20'),
+    ('SL40',   40,  160,  40,  80, 'MNQ Scotty-SL40'),
+    ('SL50',   50,  200,  50, 100, 'MNQ Scotty-SL50'),
+    ('SL60',   60,  240,  60, 120, 'MNQ Scotty-SL60'),
+    ('SL70',   70,  280,  70, 140, 'MNQ Scotty-SL70'),
+    ('SL80',   80,  320,  80, 160, 'MNQ Scotty-SL80'),
+    ('SL90',   90,  360,  90, 180, 'MNQ Scotty-SL90'),
+    ('SL100', 100,  400, 100, 200, 'MNQ Scotty-SL100'),
 ]
 
-# ── Quantities per series (same as MES equivalent) ───────────────────────────
+# ── Quantities per series ─────────────────────────────────────────────────────
 # Keyed by (series_dollars, sl_label) -> (total, t1q, t2q)
-# SL20 uses same qty as SL40 (accepting lower dollar risk)
+# t2q=0 = single-target ATM (T2 bracket qty 0)
 QUANTITIES = {
     100: {
-        'SL20':  (5,  3, 2),
-        'SL40':  (5,  3, 2),
-        'SL50':  (4,  2, 2),
-        'SL60':  (3,  2, 1),
-        'SL70':  (3,  2, 1),
-        'SL80':  (2,  1, 1),
-        'SL90':  (2,  1, 1),
-        'SL100': (2,  1, 1),
+        'SL20':  (2,  1, 1),   # $80 risk
+        'SL40':  (2,  1, 1),   # $160 risk (+1 bumped per design)
+        'SL50':  (1,  1, 0),   # $100 risk, single target
+        'SL60':  (2,  1, 1),   # $240 risk (+1 bumped per design)
+        'SL70':  (1,  1, 0),   # $140 risk (+1 bumped per design), single target
+        'SL80':  (1,  1, 0),   # $160 risk (+1 bumped per design), single target
+        'SL90':  (1,  1, 0),   # $180 risk, single target
+        'SL100': (1,  1, 0),   # $200 risk, single target
     },
     200: {
-        'SL20':  (10, 5, 5),
-        'SL40':  (10, 5, 5),
-        'SL50':  (8,  4, 4),
-        'SL60':  (6,  3, 3),
-        'SL70':  (6,  3, 3),
-        'SL80':  (4,  2, 2),
-        'SL90':  (4,  2, 2),
-        'SL100': (4,  2, 2),
+        'SL20':  (5,  3, 2),   # $200 risk
+        'SL40':  (2,  1, 1),   # $160 risk
+        'SL50':  (2,  1, 1),   # $200 risk
+        'SL60':  (1,  1, 0),   # $120 risk, single target
+        'SL70':  (1,  1, 0),   # $140 risk, single target
+        'SL80':  (1,  1, 0),   # $160 risk, single target
+        'SL90':  (1,  1, 0),   # $180 risk, single target
+        'SL100': (1,  1, 0),   # $200 risk, single target
     },
     300: {
-        'SL20':  (14, 7, 7),
-        'SL40':  (14, 7, 7),
-        'SL50':  (12, 6, 6),
-        'SL60':  (10, 5, 5),
-        'SL70':  (8,  4, 4),
-        'SL80':  (7,  4, 3),
-        'SL90':  (6,  3, 3),
-        'SL100': (6,  3, 3),
+        'SL20':  (7,  4, 3),   # $280 risk
+        'SL40':  (3,  2, 1),   # $240 risk
+        'SL50':  (3,  2, 1),   # $300 risk
+        'SL60':  (2,  1, 1),   # $240 risk
+        'SL70':  (2,  1, 1),   # $280 risk
+        'SL80':  (1,  1, 0),   # $160 risk, single target
+        'SL90':  (1,  1, 0),   # $180 risk, single target
+        'SL100': (1,  1, 0),   # $200 risk, single target
     },
     400: {
-        'SL20':  (20, 10, 10),
-        'SL40':  (20, 10, 10),
-        'SL50':  (16, 8,  8),
-        'SL60':  (12, 6,  6),
-        'SL70':  (11, 6,  5),
-        'SL80':  (9,  5,  4),
-        'SL90':  (8,  4,  4),
-        'SL100': (8,  4,  4),
+        'SL20':  (10, 5, 5),   # $400 risk
+        'SL40':  (5,  3, 2),   # $400 risk
+        'SL50':  (4,  2, 2),   # $400 risk
+        'SL60':  (3,  2, 1),   # $360 risk
+        'SL70':  (2,  1, 1),   # $280 risk
+        'SL80':  (2,  1, 1),   # $320 risk
+        'SL90':  (2,  1, 1),   # $360 risk
+        'SL100': (2,  1, 1),   # $400 risk
     },
 }
 
 # ── Scotty stop strategy params ───────────────────────────────────────────────
-# Small SLs (SL20-SL60): 2-step, fixed params matching Scotty's NQ template
-# Large SLs (SL70-SL100): 3-step, proportionally scaled
+# All tick values scaled 4× vs original (SL now in points, 4T per pt)
+# SL20-SL60: 2-step trail
+# SL70-SL100: 3-step proportional trail
 # Format: (be_trigger, be_plus, [(pt, sl, freq), ...])
 SCOTTY = {
-    'MNQ Scotty-SL20':  (20, 5, [(25, 10, 5), (30,  5, 5)]),
-    'MNQ Scotty-SL40':  (20, 5, [(25, 10, 5), (30,  5, 5)]),
-    'MNQ Scotty-SL50':  (20, 5, [(25, 10, 5), (30,  5, 5)]),
-    'MNQ Scotty-SL60':  (20, 5, [(25, 10, 5), (30,  5, 5)]),
-    'MNQ Scotty-SL70':  (25, 5, [(35, 15, 4), (50,  8, 3), (70,  5, 2)]),
-    'MNQ Scotty-SL80':  (30, 5, [(40, 20, 4), (60, 10, 3), (80,  5, 2)]),
-    'MNQ Scotty-SL90':  (35, 5, [(45, 22, 4), (67, 12, 3), (90,  5, 2)]),
-    'MNQ Scotty-SL100': (40, 5, [(50, 25, 4), (75, 13, 3), (100, 5, 2)]),
+    'MNQ Scotty-SL20':  ( 80, 20, [(100,  40, 5), (120,  20, 5)]),
+    'MNQ Scotty-SL40':  ( 80, 20, [(100,  40, 5), (120,  20, 5)]),
+    'MNQ Scotty-SL50':  ( 80, 20, [(100,  40, 5), (120,  20, 5)]),
+    'MNQ Scotty-SL60':  ( 80, 20, [(100,  40, 5), (120,  20, 5)]),
+    'MNQ Scotty-SL70':  (100, 20, [(140,  60, 4), (200,  32, 3), (280, 20, 2)]),
+    'MNQ Scotty-SL80':  (120, 20, [(160,  80, 4), (240,  40, 3), (320, 20, 2)]),
+    'MNQ Scotty-SL90':  (140, 20, [(180,  88, 4), (268,  48, 3), (360, 20, 2)]),
+    'MNQ Scotty-SL100': (160, 20, [(200, 100, 4), (300,  52, 3), (400, 20, 2)]),
 }
 
 # ── DTDB data ─────────────────────────────────────────────────────────────────
-# Tight 10T stop, SL20-baseline quantities, MNQ Scotty-SL20 stop strategy
+# 10-point stop (40T), T1=2.5pt(10T), T2=5pt(20T), SL20-baseline quantities
+# (series, sl_ticks, total, t1q, t2q, t1_tgt, t2_tgt)
 MNQ_DTDB = [
-    (100,  10, 5,  3, 2,  20, 30),
-    (200,  10, 10, 5, 5,  20, 30),
-    (300,  10, 14, 7, 7,  20, 30),
-    (400,  10, 20, 10, 10, 20, 30),
+    (100,  40,  5,  3, 2, 10, 20),
+    (200,  40, 10,  5, 5, 10, 20),
+    (300,  40, 14,  7, 7, 10, 20),
+    (400,  40, 20, 10, 10, 10, 20),
 ]
+DTDB_SS = 'MNQ Scotty-SL20'
 
 # ── XML templates ─────────────────────────────────────────────────────────────
 XML_HEADER = '''<?xml version="1.0" encoding="utf-8"?>
@@ -167,8 +170,23 @@ def stop_strategy_block(tmpl_name):
           </StopStrategy>'''
 
 
+def build_bracket_xml(qty, sl_ticks, tgt_ticks, ss_block):
+    """Build a single <Bracket> element."""
+    return f'''      <Bracket>
+        <Quantity>{qty}</Quantity>
+        <StopLoss>{sl_ticks}</StopLoss>
+{ss_block}
+        <Target>{tgt_ticks}</Target>
+      </Bracket>'''
+
+
 def build_atm_xml(name, total, t1q, t2q, sl_ticks, t1_tgt, t2_tgt, scotty_tmpl):
     ss = stop_strategy_block(scotty_tmpl)
+    t1_bracket = build_bracket_xml(t1q, sl_ticks, t1_tgt, ss)
+    brackets_xml = t1_bracket
+    if t2q > 0:
+        t2_bracket = build_bracket_xml(t2q, sl_ticks, t2_tgt, ss)
+        brackets_xml += f'\n{t2_bracket}'
     return f'''{XML_HEADER}
     <Template>{name}</Template>
     <TimeInForce>Gtc</TimeInForce>
@@ -204,18 +222,7 @@ def build_atm_xml(name, total, t1q, t2q, sl_ticks, t1_tgt, t2_tgt, scotty_tmpl):
     <TestPeriod>28</TestPeriod>
     <TradingHoursSerializable />
     <Brackets>
-      <Bracket>
-        <Quantity>{t1q}</Quantity>
-        <StopLoss>{sl_ticks}</StopLoss>
-{ss}
-        <Target>{t1_tgt}</Target>
-      </Bracket>
-      <Bracket>
-        <Quantity>{t2q}</Quantity>
-        <StopLoss>{sl_ticks}</StopLoss>
-{ss}
-        <Target>{t2_tgt}</Target>
-      </Bracket>
+{brackets_xml}
     </Brackets>
     <EntryQuantity>{total}</EntryQuantity>
 {XML_FOOTER}'''
@@ -258,7 +265,7 @@ print()
 
 # ── Write standard ATM XMLs ($100-$400, SL20-SL100) ──────────────────────────
 for series in [100, 200, 300, 400]:
-    for sl_label, sl_ticks, t1_tgt, t2_tgt, scotty_tmpl in SL_DEFS:
+    for sl_label, sl_pts, sl_ticks, t1_tgt, t2_tgt, scotty_tmpl in SL_DEFS:
         total, t1q, t2q = QUANTITIES[series][sl_label]
         name = f'MNQ ${series} {sl_label}'
         xml  = build_atm_xml(name, total, t1q, t2q, sl_ticks, t1_tgt, t2_tgt, scotty_tmpl)
@@ -266,13 +273,13 @@ for series in [100, 200, 300, 400]:
         with open(out, 'w', encoding='utf-8') as fh:
             fh.write(xml)
         risk = total * sl_ticks * TICK_VAL
-        print(f'ATM {name}.xml  total={total}  T1={t1q}x{t1_tgt}T  T2={t2q}x{t2_tgt}T  SL={sl_ticks}T  risk=${risk:.0f}')
+        t2_info = f'T2={t2q}x{t2_tgt}T' if t2q > 0 else 'T2=none'
+        print(f'ATM {name}.xml  total={total}  T1={t1q}x{t1_tgt}T  {t2_info}  SL={sl_ticks}T({sl_pts}pt)  risk=${risk:.0f}')
         written_atm += 1
 
 print()
 
 # ── Write DTDB ATM XMLs ───────────────────────────────────────────────────────
-DTDB_SS = 'MNQ Scotty-SL20'
 for series, sl_ticks, total, t1q, t2q, t1_tgt, t2_tgt in MNQ_DTDB:
     name = f'MNQ ${series} DTDB'
     xml  = build_atm_xml(name, total, t1q, t2q, sl_ticks, t1_tgt, t2_tgt, DTDB_SS)
@@ -283,4 +290,4 @@ for series, sl_ticks, total, t1q, t2q, t1_tgt, t2_tgt in MNQ_DTDB:
     print(f'DTDB {name}.xml  total={total}  T1={t1q}x{t1_tgt}T  T2={t2q}x{t2_tgt}T  SL={sl_ticks}T  risk=${risk:.0f}')
     written_atm += 1
 
-print(f'\n✅ Stop Strategies: {written_ss}   ATMs: {written_atm}   Total files: {written_ss + written_atm}')
+print(f'\n  Stop Strategies: {written_ss}   ATMs: {written_atm}   Total files: {written_ss + written_atm}')

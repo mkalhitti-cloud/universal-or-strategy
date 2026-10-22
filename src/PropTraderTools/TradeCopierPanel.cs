@@ -240,12 +240,22 @@ namespace PropTraderTools
         private int _flattenBuffer = 0; // HOTFIX-F5: default market (0 ticks), not limit (+1)
         private int _beBuffer = 0; // B190-T3: default exact BE (no buffer)
 
+        // B211: Ask/Ask-ALL and Bid/Bid-ALL buffer ticks. JS-023: volatile int -- no lock.
+        private volatile int _askBuffer = 0;  // B211: Ask/Ask-ALL buffer ticks. JS-023: volatile -- no lock.
+        private volatile int _bidBuffer = 0;  // B211: Bid/Bid-ALL buffer ticks. JS-023: volatile -- no lock.
+
         // B12 T1 -- Button refs for buffered section
         private Button _trimBtn2;
         private Button _flattenBtn2;
         private Button _beBtn2;
         private Button _cancelBtn2;
         private Button _copyToggleBtn2;
+
+        // B211: Ask/Bid button refs for label updates
+        private Button _askBtn    = null;  // B211: Ask button ref for label updates
+        private Button _askAllBtn = null;  // B211: Ask-ALL button ref for label updates
+        private Button _bidBtn    = null;  // B211: Bid button ref for label updates
+        private Button _bidAllBtn = null;  // B211: Bid-ALL button ref for label updates
 
         // B41: Quick Exit button refs (UI-thread-only; no volatile per NT8-003)
         private Button _quickBtn = null;
@@ -262,6 +272,11 @@ namespace PropTraderTools
         // B47 T5-B: Root-level BE and Quick row panels (extracted from _contentPanel in T6-B)
         private UniformGrid _beRowPanel = null; // 2-col: BE cluster | BE ALL cluster
         private UniformGrid _quickRowPanel = null; // 2-col: Quick cluster | Quick ALL cluster
+
+        // B211: Ask and Bid row panels
+        private UniformGrid _askRowPanel = null; // B211: 2-col grid: [Ask cluster] | [Ask-ALL cluster]
+        private UniformGrid _bidRowPanel = null; // B211: 2-col grid: [Bid cluster] | [Bid-ALL cluster]
+        private UniformGrid _cancelRowPanel = null; // B216: 2-col: [Cancel] | [Cancel All]
 
         // B129: Instrument-scoped row panel and button refs (UI-thread-only; no volatile per NT8-003)
         private Button _instr2tBtn = null;
@@ -546,18 +561,34 @@ namespace PropTraderTools
         // HOTFIX-B30-F1: NT8 ComboBox.SelectedItem is sometimes a string (account name) when
         // data-bound -- Account cast returns null even though an account IS selected.
         // Fallback: match by name against Account.All.
-        // CYC=4: combo null(1), Account cast(2), string name empty(3), Account.All loop(4).
+        // HOTFIX-B213: if _accountCombo is null (WireLeaderAccount failed at inject time because
+        // the ChartTrader visual tree was not fully laid out), attempt a lazy re-wire from
+        // _currentChart. This closes the silent-no-op regression on second ChartTrader windows.
+        // CYC=8 (strict McCabe: 8 decision points; Ph4a path-counting=6, both pass JS-066 ceiling).
         // JS-002: returns null (not throw) -- callers use null as a no-op sentinel.
+        // JS-021: no lock. UI-thread-only (called only from WPF button Click handlers).
         private NinjaTrader.Cbi.Account TryResolveLeaderAccount()
         {
             if (_accountCombo == null)
-                return null; // (1)
+            {
+                // (1) lazy re-wire: WireLeaderAccount may have failed at inject time
+                if (_currentChart == null)
+                    return null; // (2)
+                var ct = TradeCopierAddOn.FindVisualChild<ChartTrader>(_currentChart);
+                var combo = ct != null ? TradeCopierAddOn.FindAccountComboBox(ct) : null;
+                if (combo == null)
+                    combo = ct != null ? TradeCopierAddOn.FindVisualChildByIndex<ComboBox>(ct, 1) : null;
+                if (combo != null)
+                    WireAccountCombo(combo); // sets _accountCombo + hooks SelectionChanged
+            }
+            if (_accountCombo == null)
+                return null; // (3) still null after re-wire attempt
             if (_accountCombo.SelectedItem is NinjaTrader.Cbi.Account acc)
-                return acc; // (2)
+                return acc; // (4)
             var name = _accountCombo.SelectedItem as string ?? _accountCombo.Text; // NT8 string fallback
             if (string.IsNullOrEmpty(name))
-                return null; // (3)
-            foreach (var a in NinjaTrader.Cbi.Account.All) // (4)
+                return null; // (5)
+            foreach (var a in NinjaTrader.Cbi.Account.All) // (6)
                 if (string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase))
                     return a;
             return null;
@@ -869,9 +900,12 @@ namespace PropTraderTools
 
             // B49: Buttons first (BE/Quick rows), then Copier, then Position Tools.
             root.Children.Add(_beRowPanel);
+            root.Children.Add(_askRowPanel);  // B211: Ask row directly below BE row
+            root.Children.Add(_bidRowPanel);  // B211: Bid row directly below Ask row
             BuildInstrRow(); // B128: build instrument row before adding to root
             root.Children.Add(_instrRowPanel);
             root.Children.Add(_quickRowPanel);
+            root.Children.Add(_cancelRowPanel);  // B216: Cancel row below Quick row
             BuildCopierSection(root); // B49: Copier second (Mode row now inside)
             root.Children.Add(_statusText); // status below Copier
             BuildCollapsibleHeader(root); // B49: Position Tools moved to bottom
@@ -1013,7 +1047,7 @@ namespace PropTraderTools
             Dispatcher.InvokeAsync(() =>
             {
                 if (_globalBeBtn2 != null)
-                    _globalBeBtn2.Content = FormatGlobalBeBuffer("BE ALL", newBuffer);
+                    _globalBeBtn2.Content = FormatGlobalBeBuffer("BE All", newBuffer);
             });
         }
 
@@ -1024,7 +1058,7 @@ namespace PropTraderTools
             Dispatcher.InvokeAsync(() =>
             {
                 if (_quickAllBtn != null)
-                    _quickAllBtn.Content = FormatQuickAllBuffer("Quick ALL", newT1);
+                    _quickAllBtn.Content = FormatQuickAllBuffer("Quick All", newT1);
                 if (_instrQAll2tBtn != null)
                     _instrQAll2tBtn.Content = FormatBuffer("QAll2t", newT1);
             });
@@ -1050,6 +1084,9 @@ namespace PropTraderTools
             // NOTE: _beRowPanel is NOT added to root here. T6-B adds it to root after BuildCopierSection.
             _quickRowPanel = new UniformGrid { Columns = 2, Margin = new Thickness(0, 2, 0, 2) };
             // NOTE: _quickRowPanel is NOT added to root here. T6-B adds it to root.
+            // B211: Ask and Bid row panels -- NOT added to root here. BuildUI() adds them after _beRowPanel.
+            _askRowPanel = new UniformGrid { Columns = 2, Margin = new Thickness(0, 2, 0, 2) };
+            _bidRowPanel = new UniformGrid { Columns = 2, Margin = new Thickness(0, 2, 0, 2) };
 
             var specs = new (
                 string Content,
@@ -1093,7 +1130,7 @@ namespace PropTraderTools
                     _beRowPanel
                 ),
                 (
-                    FormatGlobalBeBuffer("BE ALL", CopyEngine.Instance.GlobalBe.GlobalBeBuffer),
+                    FormatGlobalBeBuffer("BE All", CopyEngine.Instance.GlobalBe.GlobalBeBuffer),
                     BrushTeal,
                     true,
                     OnGlobalBeUp,
@@ -1121,6 +1158,40 @@ namespace PropTraderTools
                     OnQuickAllClick,
                     b => _quickAllBtn = b,
                     _quickRowPanel
+                ),
+                // B211: Ask row entries (shared _askBuffer)
+                (
+                    FormatBuffer("Ask", _askBuffer),
+                    BrushTeal,
+                    true,
+                    OnAskUp, OnAskDown, OnAskClick,
+                    b => _askBtn = b,
+                    _askRowPanel
+                ),
+                (
+                    FormatBuffer("Ask-All", _askBuffer),
+                    BrushTeal,
+                    true,
+                    OnAskAllUp, OnAskAllDown, OnAskAllClick,
+                    b => _askAllBtn = b,
+                    _askRowPanel
+                ),
+                // B211: Bid row entries (shared _bidBuffer)
+                (
+                    FormatBuffer("Bid", _bidBuffer),
+                    BrushTeal,
+                    true,
+                    OnBidUp, OnBidDown, OnBidClick,
+                    b => _bidBtn = b,
+                    _bidRowPanel
+                ),
+                (
+                    FormatBuffer("Bid-All", _bidBuffer),
+                    BrushTeal,
+                    true,
+                    OnBidAllUp, OnBidAllDown, OnBidAllClick,
+                    b => _bidAllBtn = b,
+                    _bidRowPanel
                 ),
             };
             foreach (var s in specs)
@@ -1184,6 +1255,37 @@ namespace PropTraderTools
             quickT3Lbl.SetResourceReference(TextBlock.ForegroundProperty, "NTBrushes.SubtleBrush");
             _quickT3Row.Children.Add(quickT3Lbl);
             root.Children.Add(_quickT3Row);
+            BuildCancelRow();  // B216: construct _cancelRowPanel (added to root by BuildUI)
+        }
+
+        // B216: BuildCancelRow -- constructs _cancelRowPanel with 2 plain buttons (NO spinner arrows).
+        // Cancel (left): LogAndDispatchModule -- identical to OnCancel2 (second Cancel in main area).
+        // Cancel All (right): PttCancelAll.Execute(_instrument) -- cancels all Working/Initialized for instr.
+        // Style: BrushTeal border + BrushTeal background + White foreground (matches 3x / 3x All row).
+        // CYC=1 (straight-line construction, no branches). JS-021: no lock. ASCII-only.
+        private void BuildCancelRow()
+        {
+            _cancelRowPanel = new UniformGrid { Columns = 2, Margin = new Thickness(0, 2, 0, 2) };
+
+            var cancelBtn = new Button { Content = "Cancel" };
+            cancelBtn.BorderBrush = BrushTeal;
+            cancelBtn.Background = BrushTeal;
+            cancelBtn.Foreground = System.Windows.Media.Brushes.White;
+            cancelBtn.BorderThickness = new Thickness(2);
+            cancelBtn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            cancelBtn.Background = BrushTeal; // explicit brush after style ref (matches existing pattern)
+            cancelBtn.Click += OnCancelClick;
+            _cancelRowPanel.Children.Add(cancelBtn);
+
+            var cancelAllBtn = new Button { Content = "Cancel All" };
+            cancelAllBtn.BorderBrush = BrushTeal;
+            cancelAllBtn.Background = BrushTeal;
+            cancelAllBtn.Foreground = System.Windows.Media.Brushes.White;
+            cancelAllBtn.BorderThickness = new Thickness(2);
+            cancelAllBtn.SetResourceReference(Control.StyleProperty, "NTButtonStyle");
+            cancelAllBtn.Background = BrushTeal; // explicit brush after style ref
+            cancelAllBtn.Click += OnCancelAllClick;
+            _cancelRowPanel.Children.Add(cancelAllBtn);
         }
 
         // B190-T2: BuildInstrRow -- 2-col UniformGrid: Quick2t spinner (left) + QAll2t spinner (right).
@@ -1254,11 +1356,17 @@ namespace PropTraderTools
             return new List<(double, int)> { (0.0, t1Qty), (0.0, t2Qty) };
         }
 
-        // B12 T1 -- FormatBuffer: formats buffer label for display on a button. CYC=1. Static, no state.
-        // Example: FormatBuffer("Trim", 1) -> "Trim +1"
+        // B214 Lane B: added zero-suppress and "t" suffix. CYC=3.
+        // FormatBuffer("Trim", 0)  -> "Trim"    (zero: no suffix, UI-2)
+        // FormatBuffer("Trim", 5)  -> "Trim +5t" (positive, UI-3)
+        // FormatBuffer("Ask", -3)  -> "Ask -3t"  (negative: int.ToString auto-includes "-", UI-3)
         private static string FormatBuffer(string name, int ticks)
         {
-            return name + " +" + ticks;
+            if (ticks == 0)
+                return name;
+            if (ticks > 0)
+                return name + " +" + ticks + "t";
+            return name + " " + ticks + "t"; // negative: int.ToString() auto-includes "-"
         }
 
         // HOTFIX-BUFLABEL-02 / QUICK-LABEL-UNIT-01: Quick ALL label appends "t" to make tick unit explicit.
@@ -1269,17 +1377,19 @@ namespace PropTraderTools
             return name + " +" + ticks + "t";
         }
 
-        // B39: FormatGlobalBeBuffer -- handles 0 / positive / negative for BE ALL label.
-        // 2-parameter form: caller supplies label ("BE ALL"). Plan SS5.5 authoritative.
-        // Does NOT modify the existing FormatBuffer(string, int) method.
-        // CYC=3 (1 base + 2 if branches).
+        // B214 Lane B: appended "t" unit suffix to positive and negative paths (UI-3).
+        // Zero path unchanged (UI-2 zero suppression already correct).
+        // FormatGlobalBeBuffer("BE All", 0)  -> "BE All"    (zero: name only)
+        // FormatGlobalBeBuffer("BE All", 3)  -> "BE All +3t"
+        // FormatGlobalBeBuffer("BE All", -3) -> "BE All -3t"
+        // CYC=3 (unchanged structure).
         private static string FormatGlobalBeBuffer(string name, int ticks)
         {
             if (ticks == 0)
                 return name;
             if (ticks > 0)
-                return name + " +" + ticks;
-            return name + " " + ticks; // int.ToString() of negative auto-includes "-"
+                return name + " +" + ticks + "t";
+            return name + " " + ticks + "t"; // negative: int.ToString() auto-includes "-"
         }
 
         // B180 DW-B180-BE-SWAP-ALL: OnGlobalBeClick -- immediate BE swap all accounts.
@@ -1387,6 +1497,173 @@ namespace PropTraderTools
             // B32: Connected state removed -- buffer change no longer triggers live reprice (DW-B32-04).
         }
 
+        // B211: OnAskUp -- increment _askBuffer, clamp [-10, +20]. CYC=1. JS-021: volatile int -- no lock. ASCII-only.
+        // V4 rationale: lower clamp is -10 per spec WPF template (HTML L43463). Upper clamp +20 per
+        // orchestrator prompt direction. Director approved.
+        private void OnAskUp(object sender, RoutedEventArgs e)
+        {
+            _askBuffer = Math.Max(Math.Min(_askBuffer + 1, 20), -10);
+            UpdateAskLabels();
+        }
+
+        // B211: OnAskDown -- decrement _askBuffer, clamp [-10, +20]. CYC=1. JS-021: volatile int -- no lock. ASCII-only.
+        // V4 rationale: lower clamp is -10 per spec WPF template (HTML L43463). Upper clamp +20 per
+        // orchestrator prompt direction. Director approved.
+        private void OnAskDown(object sender, RoutedEventArgs e)
+        {
+            _askBuffer = Math.Max(Math.Min(_askBuffer - 1, 20), -10);
+            UpdateAskLabels();
+        }
+
+        // B216: OnAskClick -- cancel Working target + resubmit Limit at Ask + buffer. CYC=4.
+        // Branches: (1) _instrument null, (2) ?? null-coalescing, (3) _leaderAccount null w/ diagnostic log.
+        // JS-033: synchronous void. ASCII-only. DW-B216-01 Part A: null-leader log.
+        private void OnAskClick(object sender, RoutedEventArgs e)
+        {
+            if (_instrument == null) return;
+            _leaderAccount = _leaderAccount ?? TryResolveLeaderAccount();
+            if (_leaderAccount == null)
+            {
+                NinjaTrader.Code.Output.Process(
+                    "[PTT-MA] Ask: leader null -- check account combo on chart trader",
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1);
+                return;
+            }
+            PttMoveTargetOne.Execute(_leaderAccount, _instrument, useAsk: true, _askBuffer);
+        }
+
+        // B216: OnAskAllClick -- Pattern B: iterate Account.All, act on all accounts with non-flat position.
+        // Removes _leaderAccount + _followerItems dependency.
+        // Branches: (1) _instrument null, (2) foreach Account.All, (3) HasNonFlatPosition,
+        //           (4) acted==0 log path. CYC=4. JS-021: no lock. ASCII-only.
+        private void OnAskAllClick(object sender, RoutedEventArgs e)
+        {
+            if (_instrument == null) return;
+            int acted = 0;
+            foreach (Account acc in Account.All)
+            {
+                if (HasNonFlatPosition(acc, _instrument))
+                {
+                    PttMoveTargetOne.Execute(acc, _instrument, useAsk: true, _askBuffer);
+                    acted++;
+                }
+            }
+            if (acted > 0)
+                NinjaTrader.Code.Output.Process(
+                    "[PTT-MA] Ask-All: instrument=" + _instrument.FullName + " accounts=" + acted,
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1);
+            else
+                NinjaTrader.Code.Output.Process(
+                    "[PTT-MA] Ask-All: no positions found for " + _instrument.FullName,
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1);
+        }
+
+        // B211: OnAskAllUp -- increment _askBuffer (shared). CYC=1.
+        private void OnAskAllUp(object sender, RoutedEventArgs e) => OnAskUp(sender, e);
+
+        // B211: OnAskAllDown -- decrement _askBuffer (shared). CYC=1.
+        private void OnAskAllDown(object sender, RoutedEventArgs e) => OnAskDown(sender, e);
+
+        // B216: HasNonFlatPosition -- returns true if acc holds a non-flat position for instr.
+        // Used by OnAskAllClick and OnBidAllClick (Pattern B) to filter accounts.
+        // CYC=5: (1) acc null, (2) instr null, (3) foreach, (4) pos null, (5) instrument+qty check.
+        // JS-002: returns bool. JS-021: no lock. ASCII-only.
+        private static bool HasNonFlatPosition(Account acc, Instrument instr)
+        {
+            if (acc == null) return false;
+            if (instr == null) return false;
+            foreach (Position pos in acc.Positions)
+            {
+                if (pos == null) continue;
+                if (pos.Instrument != null
+                    && pos.Instrument.FullName == instr.FullName
+                    && pos.Quantity != 0)
+                    return true;
+            }
+            return false;
+        }
+
+        // B211: UpdateAskLabels -- refresh both Ask and Ask-ALL button labels. CYC=3. UI thread only.
+        private void UpdateAskLabels()
+        {
+            if (_askBtn    != null) _askBtn.Content    = FormatBuffer("Ask",     _askBuffer);
+            if (_askAllBtn != null) _askAllBtn.Content = FormatBuffer("Ask-All", _askBuffer);
+        }
+
+        // B211: OnBidUp -- increment _bidBuffer, clamp [-10, +20]. CYC=1. JS-021: volatile int -- no lock. ASCII-only.
+        // V4 rationale: lower clamp is -10 per spec WPF template (HTML L43463). Upper clamp +20 per
+        // orchestrator prompt direction. Director approved.
+        private void OnBidUp(object sender, RoutedEventArgs e)
+        {
+            _bidBuffer = Math.Max(Math.Min(_bidBuffer + 1, 20), -10);
+            UpdateBidLabels();
+        }
+
+        // B211: OnBidDown -- decrement _bidBuffer, clamp [-10, +20]. CYC=1. JS-021: volatile int -- no lock. ASCII-only.
+        // V4 rationale: lower clamp is -10 per spec WPF template (HTML L43463). Upper clamp +20 per
+        // orchestrator prompt direction. Director approved.
+        private void OnBidDown(object sender, RoutedEventArgs e)
+        {
+            _bidBuffer = Math.Max(Math.Min(_bidBuffer - 1, 20), -10);
+            UpdateBidLabels();
+        }
+
+        // B216: OnBidClick -- cancel Working target + resubmit Limit at Bid + buffer. CYC=4.
+        // Branches: (1) _instrument null, (2) ?? null-coalescing, (3) _leaderAccount null w/ diagnostic log.
+        // JS-033: synchronous void. ASCII-only. DW-B216-01 Part A mirror (Bid).
+        private void OnBidClick(object sender, RoutedEventArgs e)
+        {
+            if (_instrument == null) return;
+            _leaderAccount = _leaderAccount ?? TryResolveLeaderAccount();
+            if (_leaderAccount == null)
+            {
+                NinjaTrader.Code.Output.Process(
+                    "[PTT-MA] Bid: leader null -- check account combo on chart trader",
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1);
+                return;
+            }
+            PttMoveTargetOne.Execute(_leaderAccount, _instrument, useAsk: false, _bidBuffer);
+        }
+
+        // B216: OnBidAllClick -- Pattern B: iterate Account.All, act on all accounts with non-flat position.
+        // Mirror of OnAskAllClick. Removes _leaderAccount + _followerItems dependency.
+        // Branches: (1) _instrument null, (2) foreach Account.All, (3) HasNonFlatPosition,
+        //           (4) acted==0 log path. CYC=4. JS-021: no lock. ASCII-only.
+        private void OnBidAllClick(object sender, RoutedEventArgs e)
+        {
+            if (_instrument == null) return;
+            int acted = 0;
+            foreach (Account acc in Account.All)
+            {
+                if (HasNonFlatPosition(acc, _instrument))
+                {
+                    PttMoveTargetOne.Execute(acc, _instrument, useAsk: false, _bidBuffer);
+                    acted++;
+                }
+            }
+            if (acted > 0)
+                NinjaTrader.Code.Output.Process(
+                    "[PTT-MA] Bid-All: instrument=" + _instrument.FullName + " accounts=" + acted,
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1);
+            else
+                NinjaTrader.Code.Output.Process(
+                    "[PTT-MA] Bid-All: no positions found for " + _instrument.FullName,
+                    NinjaTrader.NinjaScript.PrintTo.OutputTab1);
+        }
+
+        // B211: OnBidAllUp -- increment _bidBuffer (shared). CYC=1.
+        private void OnBidAllUp(object sender, RoutedEventArgs e) => OnBidUp(sender, e);
+
+        // B211: OnBidAllDown -- decrement _bidBuffer (shared). CYC=1.
+        private void OnBidAllDown(object sender, RoutedEventArgs e) => OnBidDown(sender, e);
+
+        // B211: UpdateBidLabels -- refresh both Bid and Bid-ALL button labels. CYC=3. UI thread only.
+        private void UpdateBidLabels()
+        {
+            if (_bidBtn    != null) _bidBtn.Content    = FormatBuffer("Bid",     _bidBuffer);
+            if (_bidAllBtn != null) _bidAllBtn.Content = FormatBuffer("Bid-All", _bidBuffer);
+        }
+
         // B180 DW-B180-BE-SWAP-ALL: OnBeClick -- immediate BE bracket swap.
         // Replaces Idle/Armed FSM. Click = fire = done. No armed state.
         // CYC=3: (1) instrument null guard, (2) leader null guard, (3) PttBeSwapOne.Execute.
@@ -1477,6 +1754,24 @@ namespace PropTraderTools
         private void OnCancel2(object sender, RoutedEventArgs e)
         {
             LogAndDispatchModule("[CANCEL]", "CANCEL");
+        }
+
+        // B216: OnCancelClick -- second Cancel button in main (non-collapsible) area.
+        // Behaviour identical to OnCancel2 (both dispatch to PttCancel via LogAndDispatchModule).
+        // CYC=1. JS-021: no lock. JS-033: synchronous void. ASCII-only.
+        private void OnCancelClick(object sender, RoutedEventArgs e)
+        {
+            LogAndDispatchModule("[CANCEL]", "CANCEL");
+        }
+
+        // B216: OnCancelAllClick -- calls PttCancelAll.Execute for ALL accounts.
+        // Does NOT go through LogAndDispatchModule. Direct static call to PttCancelAll.
+        // CYC=2: (1) _instrument null guard, (2) Execute call.
+        // JS-021: no lock. JS-033: synchronous void. ASCII-only.
+        private void OnCancelAllClick(object sender, RoutedEventArgs e)
+        {
+            if (_instrument == null) return;
+            PttCancelAll.Execute(_instrument);
         }
 
         // B12 T2 -- BuildCollapsibleHeader: builds collapse header row. CYC=1.

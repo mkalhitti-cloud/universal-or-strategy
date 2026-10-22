@@ -1,0 +1,53 @@
+﻿
+  Failed PropTraderTools.LaneFTests.T_B188_02_Execute_Instrument_ExecuteOne_Receives_leaderStop_targets [9 ms]
+  Error Message:
+  Failed PropTraderTools.DwB168_02Tests.DragsInFlight_SingleStop_CollateralResubmitted [50 ms]
+  Error Message:
+  Failed PropTraderTools.DwB168_02Tests.DragsInFlight_ClearOnCancelled_PreventsPermamentSkip [1 ms]
+  Error Message:
+  Failed PropTraderTools.DwB168_02Tests.DragsInFlight_ThreeStop_LastHandlerResubmitsAllLegs [1 ms]
+  Error Message:
+  Failed PropTraderTools.DwB168_02Tests.DragsInFlight_ThreeStop_CollateralSuppressedForInFlightLeg [1 ms]
+  Error Message:
+  Failed PropTraderTools.DwB15701SlateReadyTests.TrySetSlateReadyOnDrainFill_CalledAfterHandleDrainTerminal [4 ms]
+  Error Message:
+  Failed PropTraderTools.LaneFTests.T_B188_03_Execute_List_Instrument_ExecuteFollowers_Wired_leaderStop [3 ms]
+  Error Message:
+  Failed PropTraderTools.LaneFTests.T_B188_01_Execute_List_Instrument_ExecuteOne_Receives_leaderStop_forcedTargets [2 
+ms]
+  Error Message:
+  Failed PropTraderTools.B155ContractTests.TryEvictFollowerBeSlot_LeaderFlatDrainAbort_LogMarkerIsExactString [3 ms]
+  Error Message:
+  Failed PropTraderTools.B155ContractTests.SubmitDrainedEntry_ShouldAbort_WhenAccountIsFlat [3 ms]
+  Error Message:
+  Failed PropTraderTools.B196Tests.DrainThenDispatch_FastPath_CloneAtmMode_CallsSendCopyWithAtm [1 ms]
+  Error Message:
+  Failed PropTraderTools.B195Tests.T1_SubmitDrainedEntry_AtmObjectNull_TemplatePresent_UsesNamedMode [324 ms]
+  Error Message:
+  Failed PropTraderTools.B153IsPttQxTargetTests.IsPttQxTarget_T4_ReturnsTrue [239 ms]
+  Error Message:
+  Failed PropTraderTools.B153IsPttQxTargetTests.IsPttQxTarget_T22_ReturnsTrue [1 ms]
+  Error Message:
+  Failed PropTraderTools.B153IsPttQxTargetTests.IsPttQxTarget_T3_StillReturnsTrue [1 ms]
+  Error Message:
+  Failed PropTraderTools.B153IsPttQxTargetTests.IsPttQxTarget_NullName_ReturnsFalse [1 ms]
+  Error Message:
+  Failed PropTraderTools.B153IsPttQxTargetTests.IsPttQxTarget_T10_ReturnsTrue [1 ms]
+  Error Message:
+  Failed PropTraderTools.B196Tests.DrainThenDispatch_FastPath_NoAtmMode_CallsSubmitEntryDirect [4 ms]
+  Error Message:
+  Failed PropTraderTools.B153IsPttQxTargetTests.IsPttQxTarget_T0_ReturnsFalse [1 ms]
+  Error Message:
+  Failed PropTraderTools.B196Tests.FindLeaderStopPrice_WorkingStop_StillReturnsPrice [2 ms]
+  Error Message:
+  Failed PropTraderTools.DwB15701SlateReadyTests.TrySetSlateReadyOnDrainFill_NullOrder_NoSideEffect [48 ms]
+  Error Message:
+  Failed PropTraderTools.B196Tests.FindLeaderStopPrice_AcceptedStop_ReturnsPrice [1 ms]
+  Error Message:
+  Failed PropTraderTools.B189T4SpinnerTests.T_B189_T4_05_OnQuickAllBufferChanged_Contract_InstrQAll2tBtnUpdated [2 ms]
+  Error Message:
+  Failed PropTraderTools.B189T4SpinnerTests.T_B189_T4_03_QAll2tSpinner_Up_IncrementsGlobalQuickAllT1 [1 ms]
+  Error Message:
+     Failed: 24
+
+

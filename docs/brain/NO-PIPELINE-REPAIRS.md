@@ -3205,3 +3205,1154 @@ Full B115 pipeline must cover:
   correct qty split. DW-B120 sub-ticket remains open.
 - **Status**: HOTFIX-APPLIED -- Director-approved direct edit 2026-08-28.
   Pending full B115 pipeline for: tests T_B123_01/T_B123_02, code review, verification.
+
+  ## SESSION: 2026 -- B211 Ask/Bid/Ask-ALL/Bid-ALL button repairs + B212-REENTRY full resolution
+
+  ### Parallel Lane Map (FINAL STATE)
+
+  | Lane | File                          | Method                       | HOTFIX-ID                            | Status                                           |
+  |------|-------------------------------|------------------------------|--------------------------------------|--------------------------------------------------|
+  | L1   | TradeCopierPanel.cs           | OnAskClick                   | HOTFIX-B211-ASK-01                   | TESTED-PASS -- awaiting pipeline                 |
+  | L2   | TradeCopierPanel.cs           | OnAskAllClick                | HOTFIX-B211-ASKALL-01                | TESTED-PASS -- awaiting pipeline                 |
+  | L3   | TradeCopierPanel.cs           | OnBidAllClick                | HOTFIX-B211-BIDALL-01                | TESTED-PASS -- awaiting pipeline                 |
+  | L4   | Features/PttMoveTargetOne.cs  | Execute/CollectWorkingTargets| HOTFIX-B211-MOVETARGET-01            | TESTED-PASS -- awaiting pipeline                 |
+  | L5a  | CopyEngine.cs                 | DispatchCopy                 | HOTFIX-B212-REENTRY-V3               | SIM-CONFIRMED (indirect) -- awaiting pipeline    |
+  | L5b  | CopyEngine.cs                 | Flatten(Instrument)          | HOTFIX-B212-FLATTEN-LEADERSKIP-01    | CODE-CONFIRMED -- awaiting Flatten-ALL SIM run   |
+  | L5c  | CopyEngine.cs                 | IsSuppressedReentry          | HOTFIX-B212-REENTRY-BETARGET         | SIM-CONFIRMED -- awaiting pipeline               |
+  | L6   | Features/PttMoveTargetOne.cs  | Execute (OCO pair)           | HOTFIX-B212-MA-STOP-02               | APPLIED -- awaiting Ask/Bid SIM run              |
+  | --   | Features/PttBeSwapAll.cs      | Execute (leader-skip)        | HOTFIX-B212-BEALL-LEADERSKIP-01      | SUPERSEDED-REVERTED (V3 is correct fix)          |
+  | --   | CopyEngine.cs                 | BreakEven overloads          | HOTFIX-B212-BREAKEVEN-INSTROVERLOAD-01| SUPERSEDED-REVERTED (V3 is correct fix)         |
+  | --   | CopyEngine.cs                 | BreakEven(leader)            | HOTFIX-B212-DW06-PARTIAL             | SUPERSEDED (V3 covers this path)                 |
+  | --   | Features/PttMoveTargetOne.cs  | Execute (stop only)          | HOTFIX-B212-MA-STOP-01               | SUPERSEDED by STOP-02                            |
+
+  Sync rule: ptt-sync.ps1 21/0 after every lane.
+
+  ---
+
+  ## HOTFIX-B211-ASK-01
+
+  **Date**: 2026 (current session)
+  **File**: `src/PropTraderTools/TradeCopierPanel.cs`
+  **Method**: `OnAskClick` (line ~1462)
+  **Status**: TESTED-PASS -- awaiting pipeline
+
+  ### Bug
+  Ask button (single account) silently did nothing because `TryFindWorkingTarget` required `PTT-` prefix but Clone-mode targets are named `Target1`/`Target2` (native NT8 ATM names without PTT prefix).
+
+  ### Root Cause
+  `TryFindWorkingTarget` name filter only matched `PTT-`-prefixed names; native ATM bracket targets (`Target1`..`Target9`) were excluded, so `firstTarget` was always null.
+
+  ### Fix
+  Widened the name filter to also accept names starting with `Target` (1..9), covering native NT8 ATM targets alongside PTT-prefixed ones.
+
+  ### JS-DNA Compliance
+  - No `lock()` added: YES
+  - No `throw new` added: YES
+  - No `return null` added: YES
+  - No `async void` added: YES
+  - ASCII-only: YES
+
+  ### Pipeline Work Needed
+  - Ph1: Document extended name filter contract in spec
+  - Ph4a: CYC audit on `TryFindWorkingTarget`
+  - Ph4b: Re-run verification suite
+
+  ---
+
+  ## HOTFIX-B211-MOVETARGET-01
+
+  **Date**: 2026 (current session)
+  **File**: `src/PropTraderTools/Features/PttMoveTargetOne.cs`
+  **Method**: `Execute` / `CollectWorkingTargets`
+  **Status**: TESTED-PASS -- awaiting pipeline
+
+  ### Bug
+  Ask/Bid buttons only moved ONE target (the last found) even when two working targets existed, because `TryFindWorkingTarget` returned a single `Order` ref using last-write semantics.
+
+  ### Root Cause
+  Single-order return value -- only the last matching target was returned; the first target was silently ignored.
+
+  ### Fix
+  Full rewrite to `CollectWorkingTargets(acc, instr)` returning `Order[]` via two-pass count+fill (no `List<>` to avoid NT8 NinjaScript CS0246 import issue), then batch cancel+resubmit all found targets.
+
+  ### JS-DNA Compliance
+  - No `lock()` added: YES
+  - No `throw new` added: YES
+  - No `return null` added: YES
+  - No `async void` added: YES
+  - ASCII-only: YES
+
+  ### Pipeline Work Needed
+  - Ph1: Document multi-target batch cancel+resubmit contract
+  - Ph4a: CYC audit on `CollectWorkingTargets` and `Execute`
+  - Ph4b: Re-run verification suite; add test for 2-target case
+
+  ---
+
+  ## HOTFIX-B211-ASKALL-01
+
+  **Date**: 2026 (current session)
+  **File**: `src/PropTraderTools/TradeCopierPanel.cs`
+  **Method**: `OnAskAllClick` (line ~1474)
+  **Status**: TESTED-PASS -- awaiting pipeline
+
+  ### Bug
+  Ask-ALL button did nothing because it called `PttMoveTargetAll.Execute` which routes through `AllAccounts(instrument)` -> `FindRule(instrument)` -> returns null if copier is off or no rule loaded.
+
+  ### Root Cause
+  `OnAskAllClick` was never updated to match the `OnBidAllClick` fix (which already bypassed `AllAccounts`/`FindRule`).
+
+  ### Fix
+  Rewrote `OnAskAllClick` to mirror `OnBidAllClick` exactly: direct `_leaderAccount` resolve + foreach `_followerItems` loop with `item.IsSelected` guard, calling `PttMoveTargetOne.Execute(..., useAsk: true, _askBuffer)`. No `AllAccounts` or `FindRule` dependency.
+
+  ### Diff (minimal)
+  ```diff
+  - private void OnAskAllClick(object sender, RoutedEventArgs e)
+  - {
+  -     if (_instrument == null) return;
+  -     PttMoveTargetAll.Execute(_instrument, useAsk: true, _askBuffer);
+  - }
+  + private void OnAskAllClick(object sender, RoutedEventArgs e)
+  + {
+  +     if (_instrument == null) return;
+  +     _leaderAccount = _leaderAccount ?? TryResolveLeaderAccount();
+  +     if (_leaderAccount == null) return;
+  +     PttMoveTargetOne.Execute(_leaderAccount, _instrument, useAsk: true, _askBuffer);
+  +     foreach (var item in _followerItems)
+  +         if (item.IsSelected && item.Account != null)
+  +             PttMoveTargetOne.Execute(item.Account, _instrument, useAsk: true, _askBuffer);
+  + }
+  ```
+
+  ### JS-DNA Compliance
+  - No `lock()` added: YES
+  - No `throw new` added: YES
+  - No `return null` added: YES
+  - No `async void` added: YES
+  - ASCII-only: YES
+
+  ### Pipeline Work Needed
+  - Ph1: Document that Ask-ALL/Bid-ALL both bypass AllAccounts -- direct _leaderAccount + _followerItems pattern is canonical
+  - Ph4a: CYC=4 (acceptable)
+  - Ph4b: Re-run verification suite
+
+  ---
+
+  ## HOTFIX-B211-BIDALL-01
+
+  **Date**: 2026 (current session)
+  **File**: `src/PropTraderTools/TradeCopierPanel.cs`
+  **Method**: `OnBidAllClick` (line ~1526)
+  **Status**: TESTED-PASS -- awaiting pipeline
+
+  ### Bug
+  Bid-ALL routed through `AllAccounts`/`FindRule` (same root cause as Ask-ALL), silently doing nothing when copier was off or no rule loaded.
+
+  ### Root Cause
+  Same as HOTFIX-B211-ASKALL-01 -- `PttMoveTargetAll.Execute` -> `AllAccounts` -> `FindRule` null path.
+
+  ### Fix
+  Rewrote `OnBidAllClick` to use `_leaderAccount` + `_followerItems` direct loop (same pattern as HOTFIX-B211-ASKALL-01, `useAsk: false`). Applied in the prior session.
+
+  ### JS-DNA Compliance
+  - No `lock()` added: YES
+  - No `throw new` added: YES
+  - No `return null` added: YES
+  - No `async void` added: YES
+  - ASCII-only: YES
+
+  ### Pipeline Work Needed
+  - Covered by same pipeline block as HOTFIX-B211-ASKALL-01
+
+  ---
+
+  ## HOTFIX-B212-DW06-PARTIAL
+
+  **Date**: 2026 (current session)
+  **File**: `src/PropTraderTools/CopyEngine.cs`
+  **Method**: `BreakEven(Account leader, Instrument instrument, int bufferTicks)` (line ~6698)
+  **Status**: TESTED-FAIL (partial) -- re-entry still occurs via PttBeSwapAll path
+
+  ### Bug
+  After BE-ALL, all positions close on Sim101 (leader) but a new Entry order appears on Sim101 and gets copied to followers. Confirmed copier-ON only.
+
+  ### Root Cause (partial -- this fix addressed one of two paths)
+  `BreakEven(Account leader, ...)` called `PttBeSwapOne.Execute(leader, ...)` which invoked `CancelQxBrackets(Sim101)`, cancelling native ATM brackets. NT8 ATM then re-armed the Entry order on Sim101 which the copier subsequently copied.
+
+  ### Fix (partial)
+  Removed `PttBeSwapOne.Execute(leader, instrument, bufferTicks)` from the `BreakEven(Account leader, ...)` overload. Only covers the panel single-leader path; `PttBeSwapAll` has its own independent loop that also calls the leader and is the remaining re-entry source.
+
+  ### Remaining Work (open -- B212-REENTRY still active)
+  `PttBeSwapAll.Execute` iterates ALL accounts including the leader and calls `PttBreakEvenSwap.Execute` on it, which cancels native ATM brackets -> NT8 re-arms Entry -> copier copies. Fix: add leader-skip guard in `PttBeSwapAll`. Diagnosed but not yet applied this session.
+
+  ### JS-DNA Compliance
+  - No `lock()` added: YES
+  - No `throw new` added: YES
+  - No `return null` added: YES
+  - No `async void` added: YES
+  - ASCII-only: YES
+
+  ### Pipeline Work Needed
+  - Blocked: must fully resolve B212-REENTRY first (fix PttBeSwapAll)
+  - Ph1: Document that leader account must be excluded from BE swap in all paths
+  - Ph4a: Verify no other path calls BE on leader
+  - Ph4b: SIM verification -- no PTT-ATM-SEND after BE-ALL
+
+
+  ## HOTFIX-B212-BEALL-LEADERSKIP-01 {
+
+  **Date**: 2026 (B211/B212 session)
+  **File**: `src/PropTraderTools/Features/PttBeSwapAll.cs`
+  **Method**: `PttBeSwapAll.Execute(int bufferTicks, Instrument instrument)`
+  **Status**: SUPERSEDED-REVERTED -- replaced by HOTFIX-B212-REENTRY-V3. Leader-skip from PttBeSwapAll was reverted; DispatchCopy IsSuppressedReentry gates are the correct fix. PttBeSwapAll.cs line 12 confirms: "B212-REENTRY-V3: leader-skip removed from BE swap path entirely." SIM CONFIRMED via HOTFIX-B212-REENTRY-BETARGET test (output.md 2026).
+
+  ### Bug
+  After BE-ALL, a new Entry appears on Sim101 (leader) and gets copied to followers. `HOTFIX-B212-DW06-PARTIAL` fixed the panel single-leader path but `PttBeSwapAll.Execute` still iterates `Account.All` including the leader, calling `PttBreakEvenSwap.Execute(Sim101, ...)` -> `CancelQxBrackets(Sim101)` -> NT8 ATM cancels native brackets -> re-arms Entry -> copier copies it.
+
+  ### Root Cause (confirmed)
+  `PttBeSwapAll.Execute` looped over `Account.All` with no leader guard. Called `ExecuteOne(acc=Sim101, ...)` -> `PttBreakEvenSwap.Execute(Sim101, ...)` -> cancels `Target1`, `SimStop1` etc. NT8 ATM interprets individual bracket cancels as "user cancelled, re-arm entry". The resulting Entry on Sim101 is seen by the copier and dispatched to followers.
+
+  ### Fix
+  Added leader-skip guard in `PttBeSwapAll.Execute` before the `Account.All` loop:
+  ```csharp
+  var masterAccount = CopyEngine.Instance.FindRule(instrument)?.MasterAccount;
+  foreach (Account acc in Account.All)
+  {
+      if (masterAccount != null && acc.Name == masterAccount.Name)
+          continue;  // B212-REENTRY: skip leader
+      ...
+  }
+  ```
+  CYC goes from 5 to 6 (leader-skip guard adds one branch). Leader BE swap is handled by `BreakEven(Account leader, ...)` (panel path).
+
+  ### Diff (minimal)
+  File: `src/PropTraderTools/Features/PttBeSwapAll.cs`
+  - Added `var masterAccount = CopyEngine.Instance.FindRule(instrument)?.MasterAccount;` before the Account.All foreach
+  - Added `if (masterAccount != null && acc.Name == masterAccount.Name) continue;` as first statement inside foreach
+  - Updated header comment CYC=5->CYC=6, added B212-REENTRY rationale comment
+
+  ### JS-DNA Compliance
+  - No `lock()` added: YES
+  - No `throw new` added: YES
+  - No `return null` added: YES
+  - No `async void` added: YES
+  - CYC delta: +1 (5->6, within Jane Street <=8 limit)
+  - ASCII-only: YES
+
+  ### Pipeline Work Needed
+  - Blocked: AWAITING-TEST in NinjaTrader SIM
+  - Ph1: Document that leader account must be excluded from all BE swap paths
+  - Ph3.5: Ticket: verify no other `Account.All` loop in Features/ acts on leader without guard
+  - Ph4b: SIM: confirm no re-entry Entry after BE-ALL with copier-ON
+  - Pairs with: HOTFIX-B212-DW06-PARTIAL (same bug, different path)
+
+  }
+
+  ## HOTFIX-B212-FLATTEN-LEADERSKIP-01 {
+
+  **Date**: 2026 (B211/B212 session)
+  **File**: `src/PropTraderTools/CopyEngine.cs`
+  **Method**: `Flatten(Instrument instrument)` (RelayFlatten path, ~line 5703)
+  **Status**: CODE-CONFIRMED -- Flatten(Instrument) leader-skip present unconditionally in source (CopyEngine.cs line 5751-5771). Logic correct: leader close already in-flight from PttFlatten.Execute. Skip is always safe regardless of copier state. Awaiting dedicated Flatten-ALL SIM run for formal VERIFY_PASS.
+
+  ### Bug
+  After Flatten-ALL, a re-entry may appear on Sim101 (leader). Same root cause pattern as B212-REENTRY: the `RelayFlatten` path calls `FlattenOneAccount(leader, ...)` which calls `CancelAllAccountOrders(leader, ...)`, cancelling native ATM brackets on Sim101 -> NT8 ATM re-arms Entry -> copier copies it. Distinct from the direct `Flatten(Account leader, Instrument)` overload (which is correct and unmodified).
+
+  ### Root Cause (confirmed by code trace)
+  Call chain:
+  1. `PttFlatten.Execute(ctx)` -> `FlattenPositionLocal(ctx.LeaderAccount, ...)` (submits market close, NO bracket cancel) -> `PttBus.RaiseFlatted(...)`
+  2. `PttBus.RaiseFlatted` -> `RelayFlatten(e)` -> `Flatten(Instrument)` -> `FlatGuardLoop(() => AllAccounts(instrument))` (includes leader)
+  3. `FlattenOneAccount(Sim101, ...)` -> `CancelAllAccountOrders(Sim101, ...)` -> cancels `Target1`, `SimStop1` etc. -> NT8 ATM re-arms Entry on Sim101 -> copier copies it.
+
+  The leader's position close was already submitted by step 1 (a direct market order). The step 2-3 path is redundant for the leader AND harmful: it triggers NT8 ATM re-arm.
+
+  ### Fix
+  In `Flatten(Instrument)` (the no-leader-arg RelayFlatten overload), skip the leader account:
+  ```csharp
+  var rule = FindRule(instrument);
+  var leader = rule?.MasterAccount;
+  FlatGuardLoop(
+      () => AllAccounts(instrument).Where(acc => leader == null || acc.Name != leader.Name),
+      acc => { var p = FindPosition(acc, instrument); return p == null || p.Quantity == 0; },
+      acc => FlattenOneAccount(acc, instrument)
+  );
+  ```
+  The `Flatten(Account leader, Instrument)` overload (used by panel direct calls) is NOT modified -- it correctly handles the leader via its own explicit path.
+
+  ### Diff (minimal)
+  File: `src/PropTraderTools/CopyEngine.cs`
+  - Added `var rule = FindRule(instrument); var leader = rule?.MasterAccount;` before `FlatGuardLoop`
+  - Changed `() => AllAccounts(instrument)` to `() => AllAccounts(instrument).Where(acc => leader == null || acc.Name != leader.Name)`
+  - Added B212-FLATTEN-REENTRY rationale comment block above the method
+
+  ### JS-DNA Compliance
+  - No `lock()` added: YES
+  - No `throw new` added: YES
+  - No `return null` added: YES
+  - No `async void` added: YES
+  - Uses existing `FindRule` (null-safe) and LINQ `.Where` on an `IEnumerable<Account>` (not a hot path -- called on button click only)
+  - ASCII-only: YES
+
+  ### Pipeline Work Needed
+  - Blocked: AWAITING-TEST in NinjaTrader SIM
+  - Ph1: Document that `Flatten(Instrument)` (RelayFlatten path) must skip leader since leader already closed by `PttFlatten.Execute`
+  - Ph3.5: Ticket: verify `Trim(Instrument)` (RelayTrim path) does not have the same issue (separate investigation)
+  - Ph4b: SIM: confirm no re-entry Entry after Flatten-ALL with copier-ON
+
+  }
+
+
+
+  ## HOTFIX-B212-BREAKEVEN-INSTROVERLOAD-01 {
+
+  **Date**: 2026 (B211/B212 session)
+  **Files**: `src/PropTraderTools/CopyEngine.cs`, `src/PropTraderTools/Features/PttBeSwapAll.cs`
+  **Methods**: `BreakEven(Instrument, int)` + `PttBeSwapAll.Execute`
+  **Status**: SUPERSEDED-REVERTED -- replaced by HOTFIX-B212-REENTRY-V3. Both v1 and v2 leader-skip guards in BreakEven overloads were reverted. BreakEven(Instrument,int) and BreakEven(Account,Instrument,int) both iterate AllAccounts with no leader skip (source confirmed lines 6725-6755). Re-entry suppression is in DispatchCopy IsSuppressedReentry. SIM CONFIRMED via HOTFIX-B212-REENTRY-BETARGET test.
+
+  ### Bug (original)
+  After BE-ALL, Sim101 (leader/main account) received no BE bracket at all. BE-ALL only ran on
+  followers (Sim102/103/104), not on the main account -- confirmed in output.md:
+  `[BE-ALL] swap: Sim102 ... [BE-ALL] swap: Sim103 ... [BE-ALL] swap: Sim104 ...` (no Sim101 entry).
+  Also reproduced when copier is fully OFF -- the leader/main account got no BE swap.
+
+  ### Root Cause of regression (v1 fix was too broad)
+  v1 fix applied leader-skip unconditionally: `var leader = FindRule(instrument)?.MasterAccount`.
+  When copier is OFF (or no rule configured for this instrument), `FindRule` still returns the rule
+  with Sim101 as MasterAccount. The skip fired even with copier disabled -> Sim101 always excluded.
+  This broke the non-copier use case where the user trades with PTT buttons only on all accounts.
+
+  ### Fix (v2 -- conditional on copier enabled)
+  Leader-skip guards are now conditional on `_isCopyEnabled` (CopyEngine) / `IsEnabled` (PttBeSwapAll):
+
+  **CopyEngine.cs `BreakEven(Instrument, int)`:**
+  ```csharp
+  var leaderAccount = _isCopyEnabled ? FindRule(instrument)?.MasterAccount : null;
+  foreach (var acc in AllAccounts(instrument))
+  {
+      if (leaderAccount != null && acc.Name == leaderAccount.Name) continue; // copier-ON only
+      PttBeSwapOne.Execute(acc, instrument, bufferTicks);
+  }
+  ```
+
+  **PttBeSwapAll.cs `Execute`:**
+  ```csharp
+  var masterAccount = CopyEngine.Instance.IsEnabled
+      ? CopyEngine.Instance.FindRule(instrument)?.MasterAccount
+      : null;
+  foreach (Account acc in Account.All)
+  {
+      if (masterAccount != null && acc.Name == masterAccount.Name) continue; // copier-ON only
+      ...
+  }
+  ```
+
+  When copier is OFF: `leaderAccount`/`masterAccount` = null -> skip never fires -> all accounts get BE.
+  When copier is ON:  leader resolved -> skip fires -> leader not BE-swapped (prevents re-entry).
+
+  ### Unchanged (correct as-is)
+  - `BreakEven(Account leader, Instrument, int)` -- panel path, always skips leader: correct.
+  - `Flatten(Instrument)` -- RelayFlatten path: leader always skipped because PttFlatten.Execute
+    already submitted the market close BEFORE RelayFlatten fires; skip is always correct regardless
+    of copier state (leader's close is already in-flight).
+
+  ### JS-DNA Compliance
+  - No `lock()` added: YES
+  - No `throw new` added: YES
+  - No `return null` added: YES
+  - No `async void` added: YES
+  - CYC delta: +1 in both methods (within Jane Street <=8 limit)
+  - ASCII-only: YES
+
+  ### ptt-sync
+  21 linked, 0 errors.
+
+  ### Pipeline Work Needed
+  - Blocked: AWAITING-TEST in NinjaTrader SIM
+  - Ph4b: SIM with copier OFF: confirm all accounts (including Sim101) get BE swap
+  - Ph4b: SIM with copier ON: confirm Sim101 NOT BE-swapped (re-entry prevented), followers are
+
+  }
+
+  ## HOTFIX-B212-MA-STOP-01 {
+
+  ### Session
+    2026 -- B212 Missing Stop bug (Ask / Bid / Ask-ALL / Bid-ALL)
+
+  ### Status
+    SUPERSEDED by HOTFIX-B212-MA-STOP-02 -- see below.
+    STOP-01 was insufficient: stop went Accepted but never Working because ocoId=string.Empty
+    means no OCO link -- target fill left stop stranded/orphaned (position flip risk).
+
+  ### Bug
+    After Ask, Bid, Ask-ALL, or Bid-ALL button click, the new Limit target orders appear and
+    go Working correctly (PTT-MA-Ask-NNNNN / PTT-MA-Bid-NNNNN). No stop order is ever submitted.
+    Evidence from output.md:
+      [PTT-MA] Bid: Sim101 price=4197.8 targets=2
+      PTT-MA-Bid-00009 -> Accepted -> Working
+      PTT-MA-Bid-00010 -> Accepted -> Working
+      (no PTT-MA-Stop-* anywhere)
+
+  ### Root Cause
+    PttMoveTargetOne.Execute cancels ALL working ATM bracket targets via acc.Cancel(targets).
+    When the ATM targets are cancelled, the ATM bracket stop is orphaned (no longer associated
+    with any target) and disappears from the ladder. PttMoveTargetOne only resubmitted new
+    Limit target orders -- it never resubmitted the protective stop.
+
+  ### Fix
+    File: src/PropTraderTools/Features/PttMoveTargetOne.cs
+
+    Step A (before cancel): snapshot the existing stop price.
+      double snapshotStop = PttQuickExit.SnapshotStopPrice(acc, instr);
+    Step B (after all targets submitted): if snapshotStop > 0, submit one StopMarket
+    for pos.Quantity at the snapshotted price. Order name: PTT-MA-Stop-NNNNN.
+    If snapshotStop == 0 (no bracket stop was present), log and skip silently.
+    Pattern is identical to PttBreakEvenSwap / PttQuickExit stop resubmission.
+
+    Ask + Bid are both fixed by this single change (both call PttMoveTargetOne.Execute).
+    Ask-ALL + Bid-ALL are fixed transitively (PttMoveTargetAll.Execute delegates to
+    PttMoveTargetOne.Execute per account -- no change needed in PttMoveTargetAll.cs).
+
+  ### Diff (minimal)
+    PttMoveTargetOne.cs -- Execute():
+    + // B212-STOP-01: snapshot stop BEFORE cancel -- ATM bracket stop is orphaned by target cancel.
+    + double snapshotStop = PttQuickExit.SnapshotStopPrice(acc, instr);
+    +
+    (after foreach targets loop):
+    + if (snapshotStop > 0)
+    + {
+    +     OrderAction stopAction = isLong ? OrderAction.Sell : OrderAction.BuyToCover;
+    +     string stopName = "PTT-MA-Stop-" + Interlocked.Increment(ref _maSeq).ToString("D5");
+    +     var stopOrd = acc.CreateOrder(instr, stopAction, OrderType.StopMarket,
+    +         OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity,
+    +         0.0, snapshotStop, string.Empty, stopName,
+    +         NinjaTrader.Core.Globals.MaxDate, (NinjaTrader.Cbi.CustomOrder)null);
+    +     if (stopOrd != null) acc.Submit(new[] { stopOrd });
+    +     NinjaTrader.Code.Output.Process("[PTT-MA] stop submitted: " + acc.Name + " " + stopName + " @ " + snapshotStop, ...);
+    + }
+
+  ### Expected NT8 Output After Fix
+    [PTT-MA] Bid: Sim101 price=4197.8 targets=2 stop=4195.50
+    PTT-MA-Bid-00009 -> Accepted -> Working
+    PTT-MA-Bid-00010 -> Accepted -> Working
+    [PTT-MA] stop submitted: Sim101 PTT-MA-Stop-00011 @ 4195.50
+    PTT-MA-Stop-00011 -> Accepted -> Working  (StopMarket visible on ladder)
+
+  ### JS-DNA Compliance
+    - JS-021: no lock -- Interlocked.Increment for _maSeq (shared with target sequence, safe).
+    - JS-001: no throw -- stop submission inside existing try/catch log-and-swallow.
+    - JS-002: snapshotStop==0 guard, no null return.
+    - JS-033: synchronous void -- no async void.
+    - ASCII-only: "PTT-MA-Stop-" prefix, all log strings ASCII.
+
+  ### ptt-sync
+    21 linked, 0 errors (confirmed post-apply).
+
+  ### Pipeline Work Needed
+    - Ph1: Document B212-STOP-01 behavior: Ask/Bid/Ask-ALL/Bid-ALL now resubmit stop.
+    - Ph3.5: Ticket: verify stop is NOT double-submitted if CopyEngine already has a
+      PTT-QX-Stop / PTT-BE-Stop in Working state (IsWorkingTarget filter already excludes
+      stops from the cancel batch, but confirm no duplicate stop scenario).
+    - Ph4b: SIM: confirm PTT-MA-Stop-NNNNN appears on ladder after Ask/Bid click.
+
+  }
+
+  ## HOTFIX-B212-MA-STOP-02 {
+
+  ### Session
+    2026 -- B212 OCO pair fix (Ask / Bid / Ask-ALL / Bid-ALL)
+
+  ### Status
+    APPLIED -- AWAITING-TEST in NinjaTrader SIM (OCO pair fix -- needs dedicated Ask/Bid SIM run to confirm PTT-MA-Stop-NNNNN goes Working and auto-cancels on target fill)
+
+  ### Bug (new evidence from output.md)
+    After STOP-01: PTT-MA-Stop-NNNNN appeared and went Accepted but NEVER went Working.
+    When the target (PTT-MA-Ask/Bid-NNNNN) filled, the stop remained stranded -- it would
+    have triggered and flipped the position. Root: stop submitted with ocoId=string.Empty
+    means NT8 has no link between stop and target. Fill of target does not cancel the stop.
+
+  ### Root Cause (precise)
+    NT8 OCO mechanism requires BOTH orders in a pair to carry the same non-empty ocoId string
+    at CreateOrder time (arg8). A standalone StopMarket with empty ocoId is unlinked -- it
+    sits in Accepted state indefinitely (no Working transition because it has no paired trigger
+    order to partner with). This is why STOP-01 produced Accepted-forever stops.
+
+  ### Fix
+    File: src/PropTraderTools/Features/PttMoveTargetOne.cs
+    Pattern: directly mirrors PttBreakEvenSwap.SubmitSwapPair (the proven BE OCO pair).
+
+    Inside the foreach(targets) loop, per target slot:
+      1. Generate ocoId = "PTT-MA-" + acc.Name[..8] + "-" + NextBeOcoSeq().ToString("D7") + "-" + pairIdx
+         (reuses CopyEngine.NextBeOcoSeq() -- same monotonic seed-protected counter as BE)
+      2. Submit stop slice: StopMarket, Gtc, qty, stopPrice=snapshotStop, limitPrice=0, ocoId
+         Order name: PTT-MA-Stop-NNNNN
+      3. Submit target:    Limit,       Day, qty, limitPrice=exitPrice,   stopPrice=0,  ocoId
+         Order name: PTT-MA-Ask/Bid-NNNNN
+      When target fills -> NT8 auto-cancels the paired stop (same ocoId).
+      When stop triggers -> NT8 auto-cancels the paired target (same ocoId).
+
+    If snapshotStop==0 (no bracket stop found): submit target only with string.Empty ocoId
+    (behaviour identical to original STOP-01 no-stop path, but correctly scoped to this branch).
+
+  ### NT8-049 compliance
+    Stop:   arg6=0.0 (limitPrice), arg7=snapshotStop (stopPrice) -- correct for StopMarket.
+    Target: arg6=exitPrice (limitPrice), arg7=0.0 (stopPrice)    -- correct for Limit.
+
+  ### Expected NT8 Output After Fix
+    [PTT-MA] Ask: Sim101 price=4200.5 targets=2 stop=4196.4
+    [PTT-MA] pair 0: Sim101 target=PTT-MA-Ask-00001 stop=PTT-MA-Stop-00002 oco=PTT-MA-Sim101--0001234-0 qty=1
+    [PTT-MA] pair 1: Sim101 target=PTT-MA-Ask-00003 stop=PTT-MA-Stop-00004 oco=PTT-MA-Sim101--0001235-1 qty=1
+    PTT-MA-Stop-00002 -> Accepted -> Working   (stop linked, will auto-cancel when Ask-00001 fills)
+    PTT-MA-Ask-00001  -> Accepted -> Working
+    (on target fill: PTT-MA-Stop-00002 -> Cancelled automatically by NT8 OCO)
+
+  ### JS-DNA Compliance
+    - JS-021: no lock -- Interlocked.Increment for _maSeq, NextBeOcoSeq() uses Interlocked.Increment.
+    - JS-001: no throw -- each CreateOrder+Submit wrapped in its own try/catch.
+    - JS-002: no null return. snapshotStop==0 guard routes to no-OCO path cleanly.
+    - JS-033: synchronous void -- no async void.
+    - ASCII-only: all prefixes, log strings, and ocoId characters are ASCII.
+
+  ### ptt-sync
+    21 linked, 0 errors (confirmed post-apply).
+
+  ### Pipeline Work Needed
+    - Ph1: Document B212-STOP-02 OCO pair behavior for Ask/Bid/Ask-ALL/Bid-ALL.
+    - Ph3.5: Ticket: confirm CollectWorkingTargets does NOT pick up PTT-MA-Stop-* (StopMarket,
+      not Limit -- IsWorkingTarget filter requires OrderType.Limit, so stops are excluded).
+    - Ph4b: SIM: confirm PTT-MA-Stop-NNNNN goes Working (not just Accepted) and auto-cancels
+      when paired target fills.
+
+  }
+
+  ## HOTFIX-B212-REENTRY-V3 {
+
+  **Date**: 2026 (B211/B212 session)
+  **Files**: `src/PropTraderTools/CopyEngine.cs`
+  **Methods**: `DispatchCopy`
+  **Status**: APPLIED -- ptt-sync 21/0. SIM-CONFIRMED (indirectly): HOTFIX-B212-REENTRY-BETARGET test (output.md 2026) showed BE-ALL ran correctly with no spurious PTT-ATM-SEND during swap window or after target fills. DispatchCopy IsBeSwapInProgress + HasActivePttFlatten gates both confirmed active in source (lines 3410-3425). Direct BE-swap + Flatten-ALL suppression test still recommended for formal VERIFY_PASS.
+
+  ### Bug (Sub-Case A: BE-ALL re-entry)
+  Copier ON, leader has position, BE-ALL triggered. `PttBreakEvenSwap.Execute` sets
+  `_beSwapInProgress[leader]=true` before calling `CancelQxBrackets`. NT8 ATM detects
+  bracket cancellation and re-arms a new Entry on the leader. This Entry flows into
+  `OnOrderUpdate` -> Gate 1 (copy enabled) -> Gate 2 (leader account) -> `DispatchCopy`.
+  Without a guard, `DispatchCopy` copies the re-armed Entry to all followers = spurious
+  re-entry. Expected: no re-entry after BE-ALL. The `_beSwapInProgress` flag was already
+  checked in NakedDetector, TryLaneEHook, drain handler -- but NOT in `DispatchCopy`.
+
+  ### Bug (Sub-Case B: Flatten-ALL re-entry)
+  Copier ON, Flatten-ALL fired. `PttFlatten.Execute` submits `PTT-Flatten` market order on
+  leader. NT8 ATM detects leader position closed -> cancels leader's ATM brackets -> re-arms
+  a new Entry on the leader. Same path as Sub-Case A: Entry flows through `DispatchCopy`
+  without a guard -> copied to followers = spurious re-entry.
+
+  ### Fix
+  Two new gates added to `DispatchCopy` (after Gate 0.5 / exit signal guard, before Gate 3):
+
+  **Gate B212-REENTRY-V3 (BE-ALL path):**
+  ```csharp
+  if (IsBeSwapInProgress(order.Account?.Name))
+      return;
+  ```
+  `IsBeSwapInProgress` is a ConcurrentDictionary lookup (lock-free, O(1)). Flag is set by
+  `PttBreakEvenSwap.Execute` before `CancelQxBrackets` and cleared when `PTT-BE-Stop-N`
+  reaches Working (~50-200ms). Window is exactly the ATM re-arm danger zone.
+
+  **Gate B212-REENTRY-FLATTEN (Flatten path):**
+  ```csharp
+  if (order.Account != null && HasActivePttFlatten(order.Account, order.Instrument))
+      return;
+  ```
+  `HasActivePttFlatten` scans `acc.Orders.ToList()` (lock-free NT8 snapshot) for a
+  `PTT-Flatten` order in Submitted/Accepted/Working/PartFilled state. If found, the leader's
+  close is still in-flight -- any new Entry is the ATM re-arm artifact, not a new trade signal.
+
+  ### Why DispatchCopy (not the BE/Flatten execution paths)
+  - Skipping the leader from `PttBeSwapAll` / `BreakEven` overloads breaks BE for the leader
+    when copier is OFF (no rule configured -> skip fires -> leader gets no BE bracket).
+  - The correct separation: the leader must always receive its BE bracket. The copier must not
+    forward the NT8 ATM re-arm artifact to followers. These are orthogonal concerns.
+  - `DispatchCopy` is the single choke point where all copy dispatch decisions are made.
+    Adding a guard here is the minimal, correct fix with zero side effects on BE execution.
+
+  ### Prior attempts (superseded)
+  - HOTFIX-B212-BEALL-LEADERSKIP-01: skipped leader from PttBeSwapAll -- broke copier-OFF.
+  - HOTFIX-B212-BREAKEVEN-INSTROVERLOAD-01 v1/v2: conditional skip in BreakEven overloads
+    -- overly complex, still broke some copier-OFF scenarios.
+  - All prior leader-skips from BE paths reverted before this fix was applied.
+
+  ### JS-DNA Compliance
+  - No `lock()` added: YES (ConcurrentDictionary + acc.Orders.ToList() are lock-free)
+  - No `throw new` added: YES
+  - No `return null` added: YES
+  - No `async void` added: YES
+  - CYC delta: +1 per guard (+2 total in DispatchCopy). DispatchCopy CYC remains <= 8.
+  - ASCII-only: YES
+
+  ### ptt-sync
+  21 linked, 0 errors.
+
+  ### Test Needed
+  - SIM: copier ON, leader long, press BE-ALL -> confirm Sim101 gets PTT-BE-Stop-N (Working)
+    AND followers get PTT-BE-Stop-N AND no re-entry Entry appears on any account after fill.
+  - SIM: copier ON, leader long, press Flatten-ALL -> confirm position closes, no re-entry
+    Entry on any account after the PTT-Flatten fills.
+  - SIM: copier OFF, press BE-ALL -> confirm all accounts including Sim101 get BE swap.
+
+  }
+
+  ## HOTFIX-B212-REENTRY-BETARGET {
+
+  **Date**: 2026 (B211/B212 session)
+  **Files**: `src/PropTraderTools/CopyEngine.cs`
+  **Methods**: `IsSuppressedReentry`, `TryFirePositionState`, `DispatchCopy`
+  **Status**: V2-APPLIED -- ptt-sync 21/0. AWAITING-TEST. V1 had timing bug (see V2 below).
+
+  ### Bug
+  Copier ON, leader has position with 3 ATM targets, BE-ALL pressed. All PTT-BE-Target-N
+  orders fill, closing the leader position entirely. NT8 ATM detects leader position flat
+  and re-arms a new Entry on the leader. This Entry flows through OnOrderUpdate -> Gate 1
+  (copy enabled) -> Gate 2 (leader account) -> DispatchCopy -> IsSuppressedReentry.
+  At this moment `_beSwapInProgress` is already cleared (cleared when PTT-BE-Stop-N reaches
+  Working or Cancelled, which happens at OCO-cancel time -- well before target fill).
+  `HasActivePttFlatten` is false (no PTT-Flatten submitted). Both prior guards miss the
+  fill-window. DispatchCopy proceeds and fires PTT-ATM-SEND to all followers = spurious re-entry.
+  Confirmed in output.md: lines 1046-1060 show PTT-BE-Target-1/2/3 Filled, then line 1128
+  shows Entry Initialized on leader, then lines 1135-1137 show PTT-ATM-SEND Sim102/103/104.
+
+  ### Root Cause
+  `_beSwapInProgress` window is too early -- it covers the bracket-cancel window (50-200ms)
+  but not the target-fill window (can be seconds/minutes after position entry). The fill-
+  window is the NT8 ATM re-arm that happens when position goes flat via target fill.
+  The correct sentinel is `_filledBeTargetCount` (DW-B92) -- already incremented by
+  `TryRecordBeTargetFill` in OnOrderUpdate before Gate 1 for any PTT-BE-Target-N fill.
+  The existing `HasFilledBeTargetFast(acc)` method returns true exactly during this window.
+
+  ### Fix
+  Two changes:
+
+  1. `IsSuppressedReentry` (CopyEngine.cs) -- add third guard:
+  ```csharp
+  if (HasFilledBeTargetFast(order.Account))
+      return true;
+  ```
+  `HasFilledBeTargetFast` reads `_filledBeTargetCount` (ConcurrentDictionary, lock-free).
+  Returns true if any PTT-BE-Target-N has filled on the account and position not yet flat.
+  CYC +1 inside IsSuppressedReentry.
+
+  2. `TryFirePositionState` (CopyEngine.cs) -- clear counter for leader when position goes flat:
+  ```csharp
+  _filledBeTargetCount.TryRemove(e.Order.Account.Name, out _); // B212-REENTRY-BETARGET
+  ```
+  Added at the existing `!hasPos && isLeaderAcct` branch (line ~5001). Previously
+  `_filledBeTargetCount` was only cleared for follower accounts via `TryEvictFollowerBeSlot`.
+  Leader accounts never had it cleared, so the window would persist indefinitely without this.
+
+  ### Why this works
+  Timeline:
+    t0: BE-ALL fires -> PttBreakEvenSwap sets _beSwapInProgress[Sim101]=true -> CancelQxBrackets
+    t1: Brackets cancelled -> _beSwapInProgress cleared (PTT-BE-Stop Cancelled/Working)
+    t2: PTT-BE-Stop-N goes Working -> TryClearBeSwapOnStopWorking clears flag
+    t3: PTT-BE-Target-N fills -> TryRecordBeTargetFill increments _filledBeTargetCount[Sim101]
+    t4: NT8 ATM re-arms Entry -> IsSuppressedReentry: HasFilledBeTargetFast(Sim101)=true -> BLOCKED
+    t5: TryFirePositionState fires hasPos=False -> _filledBeTargetCount.TryRemove(Sim101)
+    t6: Next legitimate Entry from new trade -> HasFilledBeTargetFast(Sim101)=false -> passes
+
+  ### JS-DNA Compliance (V1 -- superseded)
+  - CYC delta: +1 in IsSuppressedReentry. IsSuppressedReentry CYC = 4 (<=8). DispatchCopy unchanged.
+
+  ### V1 BUG (discovered on second SIM test)
+  V1 placed `_filledBeTargetCount.TryRemove` inside `TryFirePositionState` at the `!hasPos` branch.
+  This fires at the SAME `OnOrderUpdate` call as the last `PTT-BE-Target-N Filled` event.
+  NT8 processes OnOrderUpdate synchronously -- TryRemove runs, counter=0, then the same fill
+  event causes NT8 ATM to re-arm a new Entry. That Entry's OnOrderUpdate arrives in the NEXT
+  call (after current OOU returns). By then counter=0 -> `HasFilledBeTargetFast` returns false
+  -> `IsSuppressedReentry` misses it -> DispatchCopy proceeds -> spurious PTT-ATM-SEND fires.
+  Evidence: second SIM test (output.md, 2026) shows BE targets fill but no PositionStateChanged
+  hasPos=False logged after fills -- position went flat but re-entry still fired.
+
+  ---
+
+  ## HOTFIX-B212-REENTRY-BETARGET-V2 {
+
+  **Date**: 2026 (B211/B212 session -- same day)
+  **Files**: `src/PropTraderTools/CopyEngine.cs`
+  **Methods**: `TryFirePositionState`, `DispatchCopy`
+  **Status**: V2-DIAG-APPLIED -- ptt-sync 21/0. AWAITING-TEST. Diagnostic logs added to IsSuppressedReentry ([BETARGET-GUARD]) and DispatchCopy ([BETARGET-DISPATCH]) to trace beCount at runtime.
+
+  ### Root Cause of V1 Failure
+  `TryRemove` fired inside `TryFirePositionState` at the `!hasPos` branch -- meaning it ran
+  at the EXACT moment of the last target fill (same OOU call that closes the position). NT8 ATM
+  re-arms Entry from that same fill, but the Entry's OOU call arrives AFTER the current OOU
+  returns. So by the time Entry reaches DispatchCopy, `_filledBeTargetCount` is already 0.
+  Result: `HasFilledBeTargetFast` = false -> `IsSuppressedReentry` passes -> re-entry dispatched.
+
+  ### Fix (V2)
+  Two changes:
+  1. **Remove** `TryRemove` from `TryFirePositionState` (the too-early location). Replace with
+     explanatory comment: "B212-REENTRY-BETARGET-V2: TryRemove moved to DispatchCopy."
+  2. **Add** `_filledBeTargetCount.TryRemove(order.Account.Name, out _)` in `DispatchCopy`,
+     after Gate 5 (IsLiveEntryBlocked), before building `baseSignal`. This is the correct time:
+     all gates have passed, so this is a confirmed legitimate new entry. Clearing here means:
+     - The re-armed Entry (from BE-target fill) hits `IsSuppressedReentry` -> `HasFilledBeTargetFast`
+       -> count > 0 -> BLOCKED. Gate fires correctly.
+     - The NEXT legitimate new entry (new trade) hits `DispatchCopy`, passes all gates, TryRemove
+       clears the counter -> HasFilledBeTargetFast = 0 for all future entries. Window closed.
+
+  ### Corrected Timeline (V2)
+    t0: BE-ALL -> _beSwapInProgress set -> CancelQxBrackets
+    t1: Brackets cancelled -> _beSwapInProgress cleared
+    t2: PTT-BE-Target-N fills -> TryRecordBeTargetFill -> _filledBeTargetCount[Sim101]++ (count=N)
+    t3: TryFirePositionState: !hasPos=true, isLeaderAcct=true -> TryRemove REMOVED (comment only)
+    t4: NT8 ATM re-arms Entry -> OOU(Entry, Initialized->Accepted->Working)
+    t5: DispatchCopy(Entry): IsSuppressedReentry -> HasFilledBeTargetFast -> count=N > 0 -> BLOCKED
+    t6: New legitimate trade Entry -> DispatchCopy -> all gates pass -> TryRemove(count->0) -> dispatched
+
+  ### Diff (minimal)
+  `CopyEngine.cs`:
+  - `TryFirePositionState` (~line 5010): removed `_filledBeTargetCount.TryRemove(...)`, added comment
+  - `DispatchCopy` (~line 2840): added `_filledBeTargetCount.TryRemove(order.Account.Name, out _)`
+    after Gate 5 (IsLiveEntryBlocked), before `baseSignal` construction.
+
+  ### JS-DNA Compliance
+  - No `lock()` added: YES (ConcurrentDictionary.TryRemove is lock-free)
+  - No `throw new` added: YES
+  - No `return null` added: YES
+  - No `async void` added: YES
+  - CYC delta: 0. TryRemove is a single straight-line statement, no branch. DispatchCopy CYC unchanged.
+  - ASCII-only: YES
+
+  ### ptt-sync
+  21 linked, 0 errors (confirmed).
+
+  ### Test Needed
+  - SIM: copier ON, leader short with 2 ATM targets, press BE-ALL, let PTT-BE-Target-N fill
+    and close leader position -> confirm NO PTT-ATM-SEND to followers after fill.
+  - SIM: copier ON, after above test, take a new fresh trade -> confirm copier copies the
+    new Entry to followers (TryRemove fires in DispatchCopy on the new entry, not permanently blocked).
+
+  }
+
+  ## HOTFIX-B212-REENTRY-BETARGET-V3 {
+
+  **Date**: 2026 (B212 session -- continuation)
+  **Files**: `src/PropTraderTools/CopyEngine.cs`
+  **Methods**: `TryRecordBeTargetFill`, `DispatchCopy`
+  **Status**: DIAG-APPLIED -- ptt-sync 21/0. AWAITING-TEST. Diagnostic-only change; no logic altered.
+
+  ### Context
+  V2 was applied (TryRemove moved to DispatchCopy). Spurious re-entry still fires when copier is ON.
+  Copier-OFF does NOT reproduce the bug -- confirms the spurious dispatch is copier-driven, not NT8-ATM-driven.
+
+  ### Root Cause Status
+  UNCONFIRMED. Two hypotheses:
+  A. `TryRecordBeTargetFill` does NOT fire for Sim101 PTT-BE-Target fills (counter stays 0).
+  B. Counter IS set but something clears it before the re-armed Entry arrives (no clear path found in code).
+
+  Hypothesis B effectively ruled out by code analysis: only two TryRemove sites exist (L1915 follower-gated,
+  L2850 only reachable when all DispatchCopy gates pass -- impossible while beCount>0 blocks at Gate B212).
+  Hypothesis A is most likely.
+
+  ### Diagnostics Added (V3)
+  1. `[BETARGET-RECORD]` in `TryRecordBeTargetFill` after `AddOrUpdate`:
+     Logs: acct=, name=, state=, countAfter=
+     Purpose: confirm TryRecordBeTargetFill fires for Sim101 and what count it sets.
+
+  2. `[BETARGET-CLEAR]` in `DispatchCopy` after `TryRemove` at L2850:
+     Logs: acct=, name=, cleared=(true/false)
+     Purpose: confirm the clear fires at the right time (legitimate new entry dispatch).
+
+  ### Key Diagnostic Question
+  After PTT-BE-Target-1 and PTT-BE-Target-2 fill on Sim101, the new output.md MUST show:
+    [BETARGET-RECORD] acct=Sim101 name=PTT-BE-Target-1 state=Filled countAfter=1
+    [BETARGET-RECORD] acct=Sim101 name=PTT-BE-Target-2 state=Filled countAfter=2
+  If these lines are ABSENT: counter is never set -> IsSuppressedReentry always sees beCount=0 -> re-entry dispatched.
+  If these lines ARE PRESENT: bug is elsewhere (dispatcher path bypass or counter cleared after log ends).
+
+  ### Next Test Run Expected Output (in order)
+  1. [BETARGET-RECORD] acct=Sim101 name=PTT-BE-Target-1/2 countAfter=1/2  <- confirms counter set
+  2. [BETARGET-GUARD] acct=Sim101 name=Entry state=Accepted beCount=X    <- re-armed Entry blocked (X>0) or passing (X=0)
+  3. NO [PTT-ATM-SEND] after initial copy (lines 1-19) if gate works
+  4. OR: spurious [PTT-ATM-SEND] immediately after (2) if gate fails
+
+  ### ptt-sync
+  21 linked, 0 errors (confirmed).
+
+  }
+
+  ## HOTFIX-B212-REENTRY-BETARGET-V4 {
+
+  **Date**: 2026 (B212 session -- continuation)
+  **Files**: `src/PropTraderTools/CopyEngine.cs`
+  **Methods**: `ReplaceFollowerCopyOnAtmCancel` (refactored), `IsReplaceOnAtmCancelBlocked` (new helper)
+  **Status**: APPLIED -- ptt-sync 21/0. SIM-CONFIRMED (leader re-entry blocked). PARTIAL -- follower re-entry still active. See HOTFIX-B212-REENTRY-FOLLOWER-V1.
+
+  ### V3 Diagnostic Findings
+  V3 log (output.md lines 260-272) confirmed [BETARGET-RECORD] fires correctly:
+    [BETARGET-RECORD] acct=Sim101 name=PTT-BE-Target-1 countAfter=1
+    [BETARGET-RECORD] acct=Sim101 name=PTT-BE-Target-1 countAfter=2  (NT8 double-fire)
+    [BETARGET-RECORD] acct=Sim101 name=PTT-BE-Target-2 countAfter=3
+    [BETARGET-RECORD] acct=Sim101 name=PTT-BE-Target-2 countAfter=4  (NT8 double-fire)
+  Counter reaches 4. IsSuppressedReentry DOES have the data to suppress.
+
+  Log truncated at 50KB (line 318) -- the spurious [PTT-ATM-SEND] occurs after the flatten sequence
+  which is beyond the log cap. The [BETARGET-GUARD] for the re-armed Entry is not visible.
+
+  ### Root Cause (CONFIRMED by code analysis)
+  `ReplaceFollowerCopyOnAtmCancel` is called from `TryReplaceOnAtmCancel` -> `OnOrderUpdate`.
+  It calls `SendCopyWithAtm` DIRECTLY -- it is NOT a child of `DispatchCopy`.
+  Therefore `IsSuppressedReentry` (and the `_filledBeTargetCount` beCount check) was NEVER invoked.
+
+  Scenario:
+  1. BE-all fires: beCount[Sim101]=4
+  2. Flatten fires on followers (PTT-Flatten fills)
+  3. `IsFlattenInFlightOrRecent(follower)` returns FALSE (flatten already filled)
+  4. Leader NT8 ATM re-arms a new Entry -> leader now has open position
+  5. Old follower Entry (pre-BE PTT-Copy) gets ATM-sweep cancelled by NT8
+  6. `ReplaceFollowerCopyOnAtmCancel` fires:
+     - HasOpenPosition(leader) = TRUE (re-armed) passes
+     - HasOpenPosition(follower) = FALSE passes
+     - HasWorkingPttCopy = FALSE passes
+     - IsFlattenInFlightOrRecent(follower) = FALSE passes
+     - [NO beCount check] -> SendCopyWithAtm fires spuriously
+
+  ### Six-Site Audit Results
+  All 6 SendCopyWithAtm call sites audited:
+  | Site | Method | beCount safe? | Reason |
+  |------|--------|---------------|--------|
+  | 1 | TryLaneDDispatchFollower L3044 | YES | DispatchCopy parent gates via IsSuppressedReentry |
+  | 2 | DispatchToFollower L3563       | YES | Same DispatchCopy parent path |
+  | 3 | TryLaneEDispatchFollower L3390 | YES (latched) | _laneEFlattenBlocked set by FlattenOneAccount |
+  | 4 | ReplaceFollowerCopyOnAtmCancel L5139 | FIXED | New IsReplaceOnAtmCancelBlocked helper (V4) |
+  | 5 | DrainThenDispatch fast-path L7724 | OK | Fires from HandleEntryChange (drag); followers flat=no drain |
+  | 6 | SubmitDrainedEntry L7873       | OK | Same: drain only exists if follower had working Entry at drag time |
+
+  ### Fix Applied
+  1. Extracted `ReplaceFollowerCopyOnAtmCancel` branches (5)(5b)(6)(7) into new helper
+     `IsReplaceOnAtmCancelBlocked(Account leader, Order cancelledOrder)` -- CYC=5.
+  2. Added branch (5) in `IsReplaceOnAtmCancelBlocked`:
+     `if (HasFilledBeTargetFast(leader)) return true;`
+     -- uses existing lock-free `HasFilledBeTargetFast` (L5178, ConcurrentDictionary.TryGetValue).
+  3. `ReplaceFollowerCopyOnAtmCancel` CYC reduced from 8 to 6 (net -2, helper absorbs branches).
+  4. New helper `IsReplaceOnAtmCancelBlocked` CYC=5. JS-028 compliant.
+
+  ### Jane Street Gates
+  - lock(): 0 new usages (all existing lines are comments) PASS
+  - async void: 0 new usages PASS
+  - ASCII-only: all string literals ASCII-only PASS
+  - CYC: ReplaceFollowerCopyOnAtmCancel 8->6, IsReplaceOnAtmCancelBlocked=5, both <=8 PASS
+
+  ### ptt-sync
+  21 linked, 0 errors (confirmed).
+
+  ### SIM Confirmation (V4 test run)
+  Full output.md trace (886 lines) shows:
+  - Four legitimate re-entry cycles (beCount=0 throughout) all correctly dispatched (lines 16-19, 185-189, 234-238, 415-419).
+  - `[PTT-COPY-GUARD] skip reversal entry` correctly blocks the |Sell direction re-entry (lines 236-241).
+  - BE-ALL fires at line 581 with targets=2 (Sim101-Sim104 all swapped).
+  - `[BETARGET-RECORD]` reaches countAfter=4 for all four accounts (lines 774-827).
+  - After BE fills and flatten sequence completes: ZERO `[PTT-ATM-SEND]` fires.
+  - Log ends at line 886 -- no spurious copy detected anywhere post-BE.
+  - `IsReplaceOnAtmCancelBlocked` gate confirmed effective.
+
+  ### Residual Issue: Follower Re-entry After BE-All
+  V4 SIM confirmed log ends at line 886 with PTT-Flatten still Working for all followers.
+  Director confirmed: after BE-All targets fill, FOLLOWERS still re-enter (leader is correctly blocked).
+  Root cause investigation: see HOTFIX-B212-REENTRY-FOLLOWER-V1 below.
+
+  }
+
+  ## HOTFIX-B212-REENTRY-FOLLOWER-V1 {
+
+  **Date**: 2026 (B212 session -- continuation)
+  **Files**: `src/PropTraderTools/CopyEngine.cs`
+  **Status**: APPLIED -- ptt-sync 21/0. AWAITING-TEST.
+
+  ### Symptom
+  After BE-All fires and all BE-targets fill (countAfter=4 for all accounts), followers
+  re-enter with new ATM copies. Leader re-entry is correctly blocked (V4 fix). Only followers
+  are affected. Only occurs when copier is enabled.
+
+  ### Why Leader is Blocked but Followers Are Not
+  The `_filledBeTargetCount` dict is populated for ALL accounts (leader + followers) by
+  `TryRecordBeTargetFill` (L5222). V4 log confirms all four accounts reach countAfter=4.
+
+  Leader re-entry path: `DispatchCopy` -> `IsSuppressedReentry` reads `_filledBeTargetCount["Sim101"]` = 4
+  -> blocked. Count is only cleared in `DispatchCopy` after all gates pass (L2850) -- never touched by
+  follower paths.
+
+  Follower re-entry path: **`_filledBeTargetCount` is never checked on any follower dispatch path.**
+  Three paths can fire ATM copies to followers without going through `IsSuppressedReentry`:
+
+  | Path | Method | beCount checked? |
+  |------|--------|-----------------|
+  | Drain fast-path | `DrainThenDispatch` L7724 | NO |
+  | Drain completion | `SubmitDrainedEntry` L7874 | NO |
+  | Lane E re-arm | `IsLaneEEligible` L3072 | NO |
+
+  `_filledBeTargetCount["Sim10x"]` for followers IS cleared at L1915 (`TryEvictFollowerBeSlot`)
+  when PTT-Flatten fills (follower goes flat). But the race window between BE-target fill and
+  PTT-Flatten fill is where the spurious copy fires.
+
+  ### Most Likely Fire Path: Drain Race
+  "Only happens when copier on" + timing-dependent = drain race.
+
+  Scenario:
+  1. Leader Entry price drags -> `HandleEntryChange` -> follower has working PTT-Copy Entry ->
+     `DrainThenDispatch` -> cancels follower's Entry, parks `PendingDispatchDrain` for Sim102
+     with `PendingCancelCount=1`.
+  2. BE-All fires -> cancels Sim102's brackets (SimStop, Target) via `CancelQxBrackets`.
+     The follower's PTT-Copy Entry (the one `DrainThenDispatch` parked) may still be in-flight.
+     If it gets cancel-acked BEFORE leader's PTT-BE-Target fills, `OnDrainCancelAck` (L1673)
+     decrements `PendingCancelCount` to 0 -> `SubmitDrainedEntry` fires -> follower re-entry.
+  3. `TryAbortLeaderFlatDrains` (called when leader's PTT-BE-Target fills, L1933) would abort
+     the drain -- but it fires AFTER the drain already completed in step 2.
+
+  `SubmitDrainedEntry` guards: `IsFlattenInFlightOrRecent` (L7874) and `IsBeSwapInProgress`
+  (L7879). After BE-All targets fill and flatten completes, NEITHER is true -> both pass -> fire.
+
+  ### Secondary Path: Lane E (if drain race doesn't apply)
+  After drain completes with a stale payload or if no drag was in flight, Lane E can fire if:
+  - `_laneEFlattenBlocked` is not set (BE-targets closed the followers, not `FlattenOneAccount`).
+    However V4 log shows `[BE-WARN] flatten overtook BE All` = `FlattenOneAccount` WAS called,
+    so `_laneEFlattenBlocked` IS set for followers in this specific run. Lane E is blocked.
+    If flatten did NOT overtake (clean BE-target close without flatten), Lane E would be live.
+
+  ### Fix Design -- Three Guards, Minimal CYC Cost
+
+  **Fix 1 (primary -- drain completion gate):**
+  Add to `SubmitDrainedEntry` after the `IsBeSwapInProgress` check (L7879):
+  ```csharp
+  // B212-REENTRY-FOLLOWER: abort drain if follower BE-targets recently filled.
+  // Prevents stale drain (parked during pre-BE drag) from firing after BE-All closes followers.
+  // _filledBeTargetCount set by TryRecordBeTargetFill, cleared by TryEvictFollowerBeSlot on flat.
+  // Lock-free ConcurrentDictionary.TryGetValue. CYC +1. JS-021: no lock. JS-001: no throw.
+  if (HasFilledBeTargetFast(follower)) // (2d)
+      return;
+  ```
+  CYC: `SubmitDrainedEntry` 7 -> 8 (at ceiling, still PASS).
+
+  **Fix 2 (secondary -- drain fast-path gate):**
+  Add to `DrainThenDispatch` fast-path (L7724, the `!entryCandidates.Any()` branch)
+  after the `IsFlattenInFlightOrRecent` check:
+  ```csharp
+  if (HasFilledBeTargetFast(follower)) // B212-REENTRY-FOLLOWER
+      return;
+  ```
+  CYC: `DrainThenDispatch` has many branches -- check current CYC before applying.
+
+  **Fix 3 (belt-and-suspenders -- Lane E gate):**
+  Add to `IsLaneEEligible` between gate (5) and gate (6):
+  ```csharp
+  // (5b): B212-REENTRY-FOLLOWER: mirror of IsSuppressedReentry for Lane E path.
+  // _filledBeTargetCount is set for follower accounts by TryRecordBeTargetFill.
+  // Cleared in TryEvictFollowerBeSlot when follower goes flat (L1915).
+  if (HasFilledBeTargetFast(acc)) // B212-REENTRY-FOLLOWER
+      return false;
+  ```
+  CYC: `IsLaneEEligible` 11 -> 12. Over budget -- needs extraction or CYC audit first.
+
+  ### Priority Order
+  Fix 1 is the targeted fix for the confirmed race path. Fix 2 and Fix 3 are belt-and-suspenders.
+  Fix 1 alone should close the drain race. Apply Fix 1 first, test, then assess if Fix 2/3 needed.
+
+  ### CYC Audit Before Apply
+  Before writing code, confirm current CYC of `DrainThenDispatch` (for Fix 2) and
+  `IsLaneEEligible` (for Fix 3). If either is already at 8, extraction is required first.
+
+  ### Jane Street Gates
+  - lock(): 0 new usages PASS
+  - async void: 0 new usages PASS
+  - ASCII-only: all literals ASCII-only PASS
+  - CYC: Fix 1 -> 7+1=8 at ceiling PASS. Fix 2/3 depend on current CYC.
+
+  ### Pipeline Work Needed
+  Per SRC CODE BAN: all .cs edits go through full 5-phase PTT pipeline.
+  Ph1 ptt-architect -> Ph2 ptt-plan-reviewer -> Ph3 ptt-architect ->
+  Ph3.5 ptt-ticket-reviewer -> Ph4a ptt-engineer ->
+  Ph4b ptt-verifier -> Ph5 ptt-plan-reviewer.
+
+  }
+
+  ## HOTFIX-B212-REENTRY-FOLLOWER-V1 STATUS UPDATE {
+
+  **Date**: 2026 (B212 session -- continuation)
+  **Status updated**: DRAIN-RACE-CLOSED-INCONCLUSIVE. Test run output.md (2026 session) shows
+  NO spurious [PTT-ATM-SEND] after BE-All. All BE-target fills complete (countAfter=4 for all
+  accounts), all [BE-WARN] fire for all accounts, session ends cleanly. V1 guards
+  (SubmitDrainedEntry gate (2d) + DrainThenDispatch fast-path gate (2-be)) appear to have
+  closed the drain race for this timing.
+  [BE-WARN] present for all accounts this run, so _laneEFlattenBlocked IS set -> Lane E blocked.
+  Status: INCONCLUSIVE. Need one more run WITHOUT [BE-WARN] to confirm Lane E also blocked.
+  If [BE-WARN] absent on next run and re-entry still fires: Fix 3 (IsLaneEEligible gate) needed.
+
+  }
+
+  ## HOTFIX-B212-REENTRY-FOLLOWER-V2 {
+
+  **Date**: 2026 (B212 session -- Fix 3 Lane E gate)
+  **Files**: `src/PropTraderTools/CopyEngine.cs`
+  **Status**: PIPELINE_COMPLETE (B214-LaneA). SIM-CONFIRMED pre-pipeline: no re-entry observed after BE-All in SIM test run before B214 pipeline execution. V1+V2 guards confirmed effective. HF-07-V2 validated through full Ph1->Ph5 pipeline.
+
+  ### Trigger
+  V1 drain-race guards (Fix 1 + Fix 2) applied and marked DRAIN-RACE-CLOSED-INCONCLUSIVE.
+  Director approved Fix 3 (Lane E gate) as belt-and-suspenders for the case where followers
+  close via BE-targets only (no FlattenOneAccount, so no [BE-WARN], so _laneEFlattenBlocked
+  is NOT set -> Lane E would be live after BE-targets fill).
+
+  ### What Was Applied
+
+  **CYC extraction (11 -> 7):** Four helpers extracted from IsLaneEEligible before adding gate:
+  - `IsLaneEFlattenLatched(acc, pos)` -- gate (0) compound && (saved 1 CYC)
+  - `IsPositionOrInstrumentNull(pos)` -- gate (2) compound || (saved 1 CYC)
+  - `IsFollowerSlateNotClosed(acc)` -- gate (4) compound || (saved 1 CYC)
+  - `IsLaneEBlockedByFlattenOrLeader(acc, pos)` -- gates (6)+(7) grouped (saved 1 net CYC)
+
+  **Gate (5b) added (CYC 7 -> 8):**
+  ```csharp
+  // (5b): B212-REENTRY-FOLLOWER-V2: mirror of IsSuppressedReentry for Lane E path.
+  if (HasFilledBeTargetFast(acc))
+      return false;
+  ```
+  Placed between gate (5) ATM-mode check and gate (6)+(7) flatten+leader check.
+
+  **Final CYC=8** (at ceiling, PASS).
+  CYC breakdown: (0)latch(1)+(1)mode(1)+(2)null(1)+(3)qty(1)+(4)slate(1)+(5)atm(1)+(5b)beCount(1)+(6+7)flattenLeader(1).
+
+  ### Jane Street Gates
+  - lock(): 0 new usages PASS
+  - async void: 0 new usages PASS
+  - ASCII-only: all literals ASCII-only PASS
+  - CYC: IsLaneEEligible 11 -> 8 (at ceiling, PASS). Four helpers all CYC<=2 (PASS).
+
+  ### ptt-sync
+  21 linked, 0 errors (confirmed).
+
+  ### Test Scenario
+  BE-All fires. Followers close via BE-targets only (no FlattenOneAccount).
+  [BE-WARN] absent -> _laneEFlattenBlocked NOT set -> Lane E would previously be live.
+  PASS criteria: no [PTT-ATM-SEND] after BE-All completes, regardless of [BE-WARN] presence.
+  Gate (5b) blocks Lane E via _filledBeTargetCount even when _laneEFlattenBlocked is clear.
+
+  }
+
+  ## HOTFIX-B213-MULTI-CHART-INSTRUMENT-01 {
+
+  **Date**: 2026 (live trading regression)
+  **Files**: `src/PropTraderTools/TradeCopierPanel.cs`
+  **Status**: APPLIED -- ptt-sync 21/0. AWAITING-TEST.
+
+  ### Symptom
+  When two ChartTrader windows are open for different instruments (e.g. MES + MGC),
+  standalone buttons (BE-All, Flatten, Move Target, Quick Exit) on the second window
+  silently do nothing. Copier is OFF. Only one window's buttons respond.
+
+  ### Root Cause (confirmed by code trace)
+  TryResolveLeaderAccount() returned null immediately when _accountCombo == null (branch 1).
+  _accountCombo is set by WireAccountCombo(), which is called by WireLeaderAccount() in
+  DoInject(). WireLeaderAccount() calls FindAccountComboBox(chartTrader) -- if the ChartTrader
+  visual tree is not fully laid out at inject time (second window race), FindAccountComboBox
+  returns null AND the FindVisualChildByIndex fallback also returns null -> WireLeaderAccount
+  returns early without calling WireAccountCombo -> _accountCombo stays null forever.
+
+  All button handlers use:
+    _leaderAccount = _leaderAccount ?? TryResolveLeaderAccount();
+    if (_leaderAccount == null) return;
+  With _accountCombo null -> TryResolveLeaderAccount() -> null -> early return -> silent no-op.
+
+  ### Fix Applied (HOTFIX-B213)
+  Extended TryResolveLeaderAccount() with a lazy re-wire path in the _accountCombo == null branch.
+  When _accountCombo is null, attempts to find and wire the Account ComboBox from _currentChart
+  before proceeding with resolution. CYC 4 -> 6. UI-thread-only (called from WPF Click handlers).
+
+  Diff (minimal -- TradeCopierPanel.cs TryResolveLeaderAccount):
+  ```
+  if (_accountCombo == null)
+  {
+      // lazy re-wire: WireLeaderAccount may have failed at inject time
+      if (_currentChart == null)
+          return null;
+      var ct = TradeCopierAddOn.FindVisualChild<ChartTrader>(_currentChart);
+      var combo = ct != null ? TradeCopierAddOn.FindAccountComboBox(ct) : null;
+      if (combo == null)
+          combo = ct != null ? TradeCopierAddOn.FindVisualChildByIndex<ComboBox>(ct, 1) : null;
+      if (combo != null)
+          WireAccountCombo(combo); // sets _accountCombo + hooks SelectionChanged
+  }
+  if (_accountCombo == null)
+      return null; // still null after re-wire attempt
+  // ... existing resolution logic unchanged
+  ```
+
+  ### Why this is safe
+  - UI-thread-only: TryResolveLeaderAccount is only called from WPF button Click handlers
+    (already on UI thread). FindVisualChild, FindAccountComboBox, WireAccountCombo are all
+    UI-thread operations. No threading concern.
+  - WireAccountCombo is idempotent in effect: it sets _accountCombo + hooks SelectionChanged.
+    If called a second time (e.g. if somehow _accountCombo were already set), it would
+    double-hook -- but _accountCombo == null is the guard, so this path only fires once.
+  - No new lock(), no async void, no heap allocation on the hot path (button click = infrequent).
+
+  ### Jane Street Gates
+  - lock(): 0 new usages PASS
+  - async void: 0 new usages PASS
+  - ASCII-only: all literals ASCII-only PASS
+  - CYC: 4 -> 6. Under ceiling of 8 PASS.
+
+  ### ptt-sync
+  21 linked, 0 errors.
+
+  ### SIM-CONFIRMED
+  Validated by Director live test. Both ChartTrader windows (MES + MGC) buttons now fire
+  correctly on their respective instruments with copier OFF.
+  Date: 2026. Status: SIM-CONFIRMED.
+
+  ### Pipeline Work Needed
+  Per SRC CODE BAN: full 5-phase PTT pipeline required for production merge.
+  Ph1 ptt-architect -> Ph2 ptt-plan-reviewer -> Ph3 ptt-architect ->
+  Ph3.5 ptt-ticket-reviewer -> Ph4a ptt-engineer ->
+  Ph4b ptt-verifier -> Ph5 ptt-plan-reviewer.
+
+  }
+
+
+
+
+
+}
+
+
+## B214 PIPELINE_COMPLETE -- Lane A + Lane B (2026)
+
+### B214 Lane A -- Validation Pipeline (10 hotfixes, FINAL_PASS)
+
+| Hotfix ID | File(s) | Methods | Status |
+|-----------|---------|---------|--------|
+| HF-01 (HOTFIX-B211-ASK-01) | TradeCopierPanel.cs | OnAskClick, TryFindWorkingTarget | PIPELINE_COMPLETE (B214-LaneA) |
+| HF-02 (HOTFIX-B211-ASKALL-01) | TradeCopierPanel.cs | OnAskAllClick | PIPELINE_COMPLETE (B214-LaneA) |
+| HF-03 (HOTFIX-B211-BIDALL-01) | TradeCopierPanel.cs | OnBidAllClick | PIPELINE_COMPLETE (B214-LaneA) |
+| HF-04 (HOTFIX-B211-MOVETARGET-01 / B212-MAFIX2) | PttMoveTargetOne.cs | Execute, CollectWorkingTargets | PIPELINE_COMPLETE (B214-LaneA) |
+| HF-05 (HOTFIX-B212-REENTRY-V3) | CopyEngine.cs | DispatchCopy, IsSuppressedReentry | PIPELINE_COMPLETE (B214-LaneA) |
+| HF-06 (HOTFIX-B212-REENTRY-BETARGET V4) | CopyEngine.cs | IsSuppressedReentry, TryRecordBeTargetFill, TryEvictFollowerBeSlot | PIPELINE_COMPLETE (B214-LaneA) |
+| HF-07-V1 (HOTFIX-B212-REENTRY-FOLLOWER-V1) | CopyEngine.cs | SubmitDrainedEntry, DrainThenDispatch | PIPELINE_COMPLETE (B214-LaneA) |
+| HF-07-V2 (HOTFIX-B212-REENTRY-FOLLOWER-V2) | CopyEngine.cs | IsLaneEEligible + 4 helpers | PIPELINE_COMPLETE (B214-LaneA) |
+| HF-08 (HOTFIX-B212-FLATTEN-LEADERSKIP-01) | CopyEngine.cs | Flatten(Instrument) | PIPELINE_COMPLETE (B214-LaneA) |
+| HF-09 (HOTFIX-B212-MA-STOP-02) | PttMoveTargetOne.cs | SubmitTargetPair | PIPELINE_COMPLETE (B214-LaneA) |
+| HF-10 (HOTFIX-B213-MULTI-CHART-INSTRUMENT-01) | TradeCopierPanel.cs | TryResolveLeaderAccount | PIPELINE_COMPLETE (B214-LaneA) |
+
+### B214 Lane B -- UI Range Expansion (5 items, FINAL_PASS)
+
+| Item ID | File | Method | Change | Status |
+|---------|------|--------|--------|--------|
+| UI-1 | PttGlobalBreakEven.cs | IncrementBe | BE ceiling: 10 -> 50 | PIPELINE_COMPLETE (B214-LaneB) |
+| UI-2 | PttGlobalBreakEven.cs | DecrementBe | BE floor: -10 -> -50 | PIPELINE_COMPLETE (B214-LaneB) |
+| UI-3 | PttGlobalBreakEven.cs | InitBeSlider | Slider max: 10 -> 50, min: -10 -> -50 | PIPELINE_COMPLETE (B214-LaneB) |
+| UI-4 | PttGlobalBreakEven.cs | IncrementBuffer | Buffer ceiling: 10 -> 50 | PIPELINE_COMPLETE (B214-LaneB) |
+| UI-5 | PttGlobalBreakEven.cs | DecrementBuffer | Buffer floor: -10 -> -50 | PIPELINE_COMPLETE (B214-LaneB) |
+
+### Open Deferred Items (DW-B214-LB-01 through DW-B214-LB-03 -- gitignored manual updates only)
+- DW-B214-LB-01: B74LaneCTests.cs cap assertions (ReturnsTen/ReturnsNegTen) -- update to 50/-50 in NT8 project folder
+- DW-B214-LB-02: B214Tests.cs B214T2Tests class (3 [Fact] tests T2_01/02/03) -- create manually in NT8 project folder
+- DW-B214-LB-03: B73Tests.cs T_BUF_BE_01 and T_LABEL_02 -- update to assert "t" suffix format in NT8 project folder
+

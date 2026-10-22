@@ -1,0 +1,25 @@
+{
+  "block": "B216",
+  "epic": "Ask/Bid Pattern-B Conversion + Cancel/CancelAll Buttons",
+  "prior_block": "B215",
+  "prior_backlog": "docs/brain/B215/06-deferred-backlog.md",
+  "phases": {
+    "Ph1": { "status": "COMPLETE",    "artifact": "docs/brain/B216/02-architecture-plan.md" },
+    "Ph2": { "status": "COMPLETE",    "artifact": "docs/brain/B216/02-plan-review.md" },
+    "Ph3": { "status": "COMPLETE",    "artifact": "docs/brain/B216/04-tickets.md" },
+    "Ph3.5": { "status": "COMPLETE",  "artifact": "docs/brain/B216/04-ticket-review.md" },
+    "Ph4a-A1": { "status": "COMPLETE", "artifact": "docs/brain/B216/ticket-A1-completion.md" },
+    "Ph4b-A1": { "status": "COMPLETE", "artifact": "docs/brain/B216/ticket-A1-verification.md" },
+    "Ph4a-B1": { "status": "COMPLETE", "artifact": "docs/brain/B216/ticket-B1-completion.md" },
+    "Ph4b-B1": { "status": "COMPLETE", "artifact": "docs/brain/B216/ticket-B1-verification.md" },
+    "Ph4a-C1": { "status": "COMPLETE", "artifact": "docs/brain/B216/ticket-C1-completion.md" },
+    "Ph4b-C1": { "status": "COMPLETE", "artifact": "docs/brain/B216/ticket-C1-verification.md" },
+    "Ph5":  { "status": "COMPLETE",   "artifact": "docs/brain/B216/05-final-review.md" }
+  },
+  "tickets": ["T-A1", "T-B1", "T-C1"],
+  "src_files": [
+    "src/PropTraderTools/TradeCopierPanel.cs",
+    "src/PropTraderTools/Features/PttCancelAll.cs"
+  ],
+  "started": "2026"
+}

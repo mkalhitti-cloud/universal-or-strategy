@@ -9,6 +9,11 @@
 //   ATM-named brackets that CancelQxBrackets handles correctly via IsAtmBracketName. Skipping followers
 //   left their ATM brackets live and never placed PTT-BE-Stop-N/PTT-BE-Target-N on them.
 // CYC=5: combined-gate-||(1), acc-loop-foreach(2), pos-foreach(3), flat-skip-||(4), instr-filter(5).
+// B212-REENTRY-V3: leader-skip removed from BE swap path entirely.
+//   Root cause was wrong: skipping the leader from BE swap left it with no BE bracket.
+//   Correct fix: _beSwapInProgress flag is set by PttBreakEvenSwap.Execute before CancelQxBrackets.
+//   DispatchCopy checks IsBeSwapInProgress(leaderAccName) and aborts re-entry dispatch during the
+//   cancel window. Leader gets its BE bracket AND re-entry is suppressed. See HOTFIX-B212-REENTRY-V3.
 // JS-021: no lock. JS-001: no throw. JS-002: void. JS-033: synchronous void. ASCII-only.
 
 using System;

@@ -23,9 +23,12 @@ namespace PropTraderTools.Tests
         public void IsBeClearStateTrigger_Rejected_ReturnsTrue()
             => Assert.True(CopyEngine.IsBeClearStateTrigger("PTT-BE-Stop-1", OrderState.Rejected));
 
+        // B212-DW04: Accepted no longer clears the flag -- it fires before drain cancel-acks arrive,
+        // causing SubmitDrainedEntry to dispatch a spurious PTT-ATM-SEND (qty=9) re-entry.
+        // Fallback: PttBeSwapAll.Execute finally clears after 3s if Working never fires.
         [Fact]
-        public void IsBeClearStateTrigger_Accepted_ReturnsTrue()
-            => Assert.True(CopyEngine.IsBeClearStateTrigger("PTT-BE-Stop-1", OrderState.Accepted));
+        public void IsBeClearStateTrigger_Accepted_ReturnsFalse_B212DW04()
+            => Assert.False(CopyEngine.IsBeClearStateTrigger("PTT-BE-Stop-1", OrderState.Accepted));
 
         [Fact]
         public void IsBeClearStateTrigger_Submitted_ReturnsFalse()

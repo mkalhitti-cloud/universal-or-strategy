@@ -63,19 +63,19 @@ public class B193Tests
     [Fact]
     public void T_B193_05_FormatBuffer_3x_10_Returns3xPlus10()
     {
-        Assert.Equal("3x +10", InvokeFormatBuffer("3x", 10));
+        Assert.Equal("3x +10t", InvokeFormatBuffer("3x", 10)); // B214: "t" suffix added
     }
 
     [Fact]
     public void T_B193_06_FormatBuffer_2x_10_Returns2xPlus10()
     {
-        Assert.Equal("2x +10", InvokeFormatBuffer("2x", 10));
+        Assert.Equal("2x +10t", InvokeFormatBuffer("2x", 10)); // B214: "t" suffix added
     }
 
     [Fact]
     public void T_B193_07_FormatBuffer_2xAll_10_Returns2xAllPlus10()
     {
-        Assert.Equal("2x All +10", InvokeFormatBuffer("2x All", 10));
+        Assert.Equal("2x All +10t", InvokeFormatBuffer("2x All", 10)); // B214: "t" suffix added
     }
 
     [Fact]

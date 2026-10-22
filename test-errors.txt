@@ -1,0 +1,113 @@
+﻿
+[xUnit.net 00:00:01.92]     
+PropTraderTools.LaneDContractTests.TryLaneDDispatchFollower_MethodExists_IsPrivateWithExpectedParams [SKIP]
+  Skipped PropTraderTools.LaneDContractTests.TryLaneDDispatchFollower_MethodExists_IsPrivateWithExpectedParams [1 ms]
+[xUnit.net 00:00:02.42]     PropTraderTools.LaneETests.BuildLaneEKey_ReturnsExpectedKeyFormat [SKIP]
+  Skipped PropTraderTools.LaneETests.BuildLaneEKey_ReturnsExpectedKeyFormat [1 ms]
+  Failed PropTraderTools.DwB168_02Tests.DragsInFlight_SingleStop_CollateralResubmitted [68 ms]
+   System.TypeInitializationException : The type initializer for 'PropTraderTools.CopyEngine' threw an exception.
+---- System.TypeInitializationException : The type initializer for '<Module>' threw an exception.
+-------- System.ArgumentNullException : Value cannot be null.
+   at System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer(IntPtr ptr, Type t)
+  Failed PropTraderTools.B196Tests.DrainThenDispatch_FastPath_CloneAtmMode_CallsSendCopyWithAtm [1 ms]
+   System.TypeInitializationException : The type initializer for 'PropTraderTools.CopyEngine' threw an exception.
+---- System.TypeInitializationException : The type initializer for '<Module>' threw an exception.
+-------- System.ArgumentNullException : Value cannot be null.
+   at System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer(IntPtr ptr, Type t)
+  Failed PropTraderTools.DwB168_02Tests.DragsInFlight_ClearOnCancelled_PreventsPermamentSkip [1 ms]
+   System.TypeInitializationException : The type initializer for 'PropTraderTools.CopyEngine' threw an exception.
+---- System.TypeInitializationException : The type initializer for '<Module>' threw an exception.
+-------- System.ArgumentNullException : Value cannot be null.
+   at System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer(IntPtr ptr, Type t)
+  Failed PropTraderTools.B196Tests.DrainThenDispatch_FastPath_NoAtmMode_CallsSubmitEntryDirect [2 ms]
+   System.TypeInitializationException : The type initializer for 'PropTraderTools.CopyEngine' threw an exception.
+---- System.TypeInitializationException : The type initializer for '<Module>' threw an exception.
+-------- System.ArgumentNullException : Value cannot be null.
+   at System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer(IntPtr ptr, Type t)
+  Failed PropTraderTools.DwB168_02Tests.DragsInFlight_ThreeStop_LastHandlerResubmitsAllLegs [2 ms]
+   System.TypeInitializationException : The type initializer for 'PropTraderTools.CopyEngine' threw an exception.
+---- System.TypeInitializationException : The type initializer for '<Module>' threw an exception.
+-------- System.ArgumentNullException : Value cannot be null.
+   at System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer(IntPtr ptr, Type t)
+  Failed PropTraderTools.DwB168_02Tests.DragsInFlight_ThreeStop_CollateralSuppressedForInFlightLeg [1 ms]
+   System.TypeInitializationException : The type initializer for 'PropTraderTools.CopyEngine' threw an exception.
+---- System.TypeInitializationException : The type initializer for '<Module>' threw an exception.
+-------- System.ArgumentNullException : Value cannot be null.
+   at System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer(IntPtr ptr, Type t)
+  Failed PropTraderTools.B155ContractTests.TryEvictFollowerBeSlot_LeaderFlatDrainAbort_LogMarkerIsExactString [2 ms]
+   Assert.NotNull() Failure
+  Failed PropTraderTools.DwB15701SlateReadyTests.TrySetSlateReadyOnDrainFill_CalledAfterHandleDrainTerminal [3 ms]
+   Assert.NotNull() Failure
+  Failed PropTraderTools.B153IsPttQxTargetTests.IsPttQxTarget_T4_ReturnsTrue [2 ms]
+   Assert.NotNull() Failure
+  Failed PropTraderTools.LaneFTests.T_B188_02_Execute_Instrument_ExecuteOne_Receives_leaderStop_targets [7 ms]
+Expected: True
+Actual:   False
+  Failed PropTraderTools.B195Tests.T1_SubmitDrainedEntry_AtmObjectNull_TemplatePresent_UsesNamedMode [322 ms]
+   System.TypeInitializationException : The type initializer for 'PropTraderTools.CopyEngine' threw an exception.
+---- System.TypeInitializationException : The type initializer for '<Module>' threw an exception.
+-------- System.ArgumentNullException : Value cannot be null.
+   at System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer(IntPtr ptr, Type t)
+  Failed PropTraderTools.B155ContractTests.SubmitDrainedEntry_ShouldAbort_WhenAccountIsFlat [9 ms]
+   Assert.NotNull() Failure
+  Failed PropTraderTools.B153IsPttQxTargetTests.IsPttQxTarget_T22_ReturnsTrue [10 ms]
+   Assert.NotNull() Failure
+  Failed PropTraderTools.B153IsPttQxTargetTests.IsPttQxTarget_T3_StillReturnsTrue [1 ms]
+   Assert.NotNull() Failure
+  Failed PropTraderTools.LaneFTests.T_B188_03_Execute_List_Instrument_ExecuteFollowers_Wired_leaderStop [2 ms]
+Expected: True
+Actual:   False
+  Failed PropTraderTools.B153IsPttQxTargetTests.IsPttQxTarget_NullName_ReturnsFalse [1 ms]
+   Assert.NotNull() Failure
+  Failed PropTraderTools.B153IsPttQxTargetTests.IsPttQxTarget_T10_ReturnsTrue [1 ms]
+   Assert.NotNull() Failure
+  Failed PropTraderTools.LaneFTests.T_B188_01_Execute_List_Instrument_ExecuteOne_Receives_leaderStop_forcedTargets [2 
+ms]
+Expected: True
+Actual:   False
+  Failed PropTraderTools.B153IsPttQxTargetTests.IsPttQxTarget_T0_ReturnsFalse [1 ms]
+   Assert.NotNull() Failure
+  Failed PropTraderTools.B196Tests.FindLeaderStopPrice_WorkingStop_StillReturnsPrice [1 ms]
+   System.IO.DirectoryNotFoundException : Could not find a part of the path 'C:\Users\Mohammed Khalid\AppData\Local\Tem
+p\201745f1-aafe-4626-b973-58a2199af4cd\201745f1-aafe-4626-b973-58a2199af4cd\PropTraderTools\CopyEngine.cs'.
+     at System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   at System.IO.FileStream.Init(String path, FileMode mode, FileAccess access, Int32 rights, Boolean useRights, 
+FileShare share, Int32 bufferSize, FileOptions options, SECURITY_ATTRIBUTES secAttrs, String msgPath, Boolean 
+bFromProxy, Boolean useLongPath, Boolean checkHost)
+   at System.IO.FileStream..ctor(String path, FileMode mode, FileAccess access, FileShare share, Int32 bufferSize, 
+FileOptions options, String msgPath, Boolean bFromProxy, Boolean useLongPath, Boolean checkHost)
+   at System.IO.StreamReader..ctor(String path, Encoding encoding, Boolean detectEncodingFromByteOrderMarks, Int32 
+bufferSize, Boolean checkHost)
+   at System.IO.File.InternalReadAllText(String path, Encoding encoding, Boolean checkHost)
+  Failed PropTraderTools.DwB15701SlateReadyTests.TrySetSlateReadyOnDrainFill_NullOrder_NoSideEffect [19 ms]
+   Assert.Null() Failure
+Expected: (null)
+Actual:   System.TypeInitializationException: The type initializer for 'PropTraderTools.CopyEngine' threw an 
+exception. ---> System.TypeInitializationException: The type initializer for '<Module>' threw an exception. ---> 
+System.ArgumentNullException: Value cannot be null.
+             at System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer(IntPtr ptr, Type t)
+  Failed PropTraderTools.B196Tests.FindLeaderStopPrice_AcceptedStop_ReturnsPrice [1 ms]
+   System.IO.DirectoryNotFoundException : Could not find a part of the path 'C:\Users\Mohammed Khalid\AppData\Local\Tem
+p\201745f1-aafe-4626-b973-58a2199af4cd\201745f1-aafe-4626-b973-58a2199af4cd\PropTraderTools\CopyEngine.cs'.
+     at System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   at System.IO.FileStream.Init(String path, FileMode mode, FileAccess access, Int32 rights, Boolean useRights, 
+FileShare share, Int32 bufferSize, FileOptions options, SECURITY_ATTRIBUTES secAttrs, String msgPath, Boolean 
+bFromProxy, Boolean useLongPath, Boolean checkHost)
+   at System.IO.FileStream..ctor(String path, FileMode mode, FileAccess access, FileShare share, Int32 bufferSize, 
+FileOptions options, String msgPath, Boolean bFromProxy, Boolean useLongPath, Boolean checkHost)
+   at System.IO.StreamReader..ctor(String path, Encoding encoding, Boolean detectEncodingFromByteOrderMarks, Int32 
+bufferSize, Boolean checkHost)
+   at System.IO.File.InternalReadAllText(String path, Encoding encoding, Boolean checkHost)
+  Failed PropTraderTools.B189T4SpinnerTests.T_B189_T4_05_OnQuickAllBufferChanged_Contract_InstrQAll2tBtnUpdated [2 ms]
+   Assert.True() Failure
+Expected: True
+Actual:   False
+  Failed PropTraderTools.B189T4SpinnerTests.T_B189_T4_03_QAll2tSpinner_Up_IncrementsGlobalQuickAllT1 [1 ms]
+   System.TypeInitializationException : The type initializer for 'PropTraderTools.CopyEngine' threw an exception.
+---- System.TypeInitializationException : The type initializer for '<Module>' threw an exception.
+-------- System.ArgumentNullException : Value cannot be null.
+   at System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer(IntPtr ptr, Type t)
+Failed!  - Failed:    24, Passed:   200, Skipped:   547, Total:   771, Duration: 1 s - PropTraderTools.Tests.dll 
+(net48)
+
+

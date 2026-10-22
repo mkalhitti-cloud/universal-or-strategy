@@ -15,14 +15,14 @@ namespace PropTraderTools
 
         internal void IncrementBuffer()
         {
-            if (_globalBeBuffer < 10)
+            if (_globalBeBuffer < 50) // B214 Lane B: raised from 10 to 50
                 _globalBeBuffer++;
             CopyEngine.Instance.RaiseBeBufferChanged(_globalBeBuffer);
         }
 
         internal void DecrementBuffer()
         {
-            if (_globalBeBuffer > -10)
+            if (_globalBeBuffer > -50) // B214 Lane B: raised from -10 to -50
                 _globalBeBuffer--;
             CopyEngine.Instance.RaiseBeBufferChanged(_globalBeBuffer);
         }

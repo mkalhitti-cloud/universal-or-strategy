@@ -1,133 +1,620 @@
-[PTT-DR4-CLEAR] SetEnabled(true) flushed liveEntry=0 entryMap=0
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Submitted
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Submitted
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Accepted
-[PTT-DISPATCH] all gates passed instrKey=MGC DEC26|Buy orderId=66839e48bd3b4243b48fe7ad5318823f mode=Clone followers=2
-[PTT-LANED-ENTRY] mode=Clone cache='' obj=set followers=2
-[PTT-LANED-SKIP] idx=0 reason=daily_cap acct=Sim103
-[PTT-LANED-SKIP] idx=1 reason=daily_cap acct=Sim104
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Accepted
-[PTT-GATE5-BLOCKED] stale instrKey=MGC DEC26|Buy orderId=66839e48bd3b4243b48fe7ad5318823f
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Working
-[PTT-GATE5-BLOCKED] stale instrKey=MGC DEC26|Buy orderId=66839e48bd3b4243b48fe7ad5318823f
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Working
-[PTT-GATE5-BLOCKED] stale instrKey=MGC DEC26|Buy orderId=66839e48bd3b4243b48fe7ad5318823f
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelPending
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelPending
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelSubmitted
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelSubmitted
-[PTT-DR5-EVICT] orderId=66839e48bd3b4243b48fe7ad5318823f instrKey=MGC DEC26|Buy
-[PTT-DR4-CLEAR] SetEnabled(true) flushed liveEntry=0 entryMap=0
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Submitted
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Submitted
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Accepted
-[PTT-DISPATCH] all gates passed instrKey=MGC DEC26|Buy orderId=12f585fee6ee4c60a1946b8c080d2480 mode=Clone followers=1
-[PTT-LANED-ENTRY] mode=Clone cache='' obj=set followers=1
-[PTT-ATM-SEND] acct=Sim104 qty=10 tmpl= obj=set
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Accepted
-[PTT-GATE5-BLOCKED] stale instrKey=MGC DEC26|Buy orderId=12f585fee6ee4c60a1946b8c080d2480
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Working
-[PTT-GATE5-BLOCKED] stale instrKey=MGC DEC26|Buy orderId=12f585fee6ee4c60a1946b8c080d2480
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Working
-[PTT-GATE5-BLOCKED] stale instrKey=MGC DEC26|Buy orderId=12f585fee6ee4c60a1946b8c080d2480
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim104 state=Accepted
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim104 state=Accepted
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim104 state=Working
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim104 state=Working
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelPending
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelPending
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelSubmitted
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelSubmitted
-[PTT-DR5-EVICT] orderId=12f585fee6ee4c60a1946b8c080d2480 instrKey=MGC DEC26|Buy
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Submitted
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Submitted
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Accepted
-[PTT-DISPATCH] all gates passed instrKey=MGC DEC26|Buy orderId=29c6f605fe4a43c8a05388e40608b5bc mode=Clone followers=3
-[PTT-LANED-ENTRY] mode=Clone cache='' obj=set followers=3
-[PTT-ATM-SEND] acct=Sim102 qty=10 tmpl= obj=set
-[PTT-ATM-SEND] acct=Sim103 qty=10 tmpl= obj=set
-[PTT-ATM-SEND] acct=Sim104 qty=10 tmpl= obj=set
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Accepted
-[PTT-GATE5-BLOCKED] stale instrKey=MGC DEC26|Buy orderId=29c6f605fe4a43c8a05388e40608b5bc
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Working
-[PTT-GATE5-BLOCKED] stale instrKey=MGC DEC26|Buy orderId=29c6f605fe4a43c8a05388e40608b5bc
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Working
-[PTT-GATE5-BLOCKED] stale instrKey=MGC DEC26|Buy orderId=29c6f605fe4a43c8a05388e40608b5bc
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim102 state=Accepted
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim102 state=Accepted
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim102 state=Working
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim102 state=Working
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim103 state=Accepted
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim103 state=Accepted
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim103 state=Working
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim103 state=Working
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim104 state=Accepted
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim104 state=Accepted
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim104 state=Working
-[PTT-GATE2-BLOCKED] no rule instr=MGC DEC26 acct=Sim104 state=Working
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelPending
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelPending
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelSubmitted
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelSubmitted
-[PTT-DR5-EVICT] orderId=29c6f605fe4a43c8a05388e40608b5bc instrKey=MGC DEC26|Buy
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Submitted
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Submitted
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Accepted
-[PTT-DISPATCH] all gates passed instrKey=MES DEC26|Buy orderId=6d350f7fd02b4ceaab07db3e0324416d mode=Clone followers=3
-[PTT-LANED-ENTRY] mode=Clone cache='' obj=set followers=3
-[PTT-ATM-SEND] acct=Sim102 qty=10 tmpl= obj=set
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Initialized
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Submitted
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Submitted
-[PTT-ATM-SEND] acct=Sim103 qty=10 tmpl= obj=set
-[PTT-ATM-SEND] acct=Sim104 qty=10 tmpl= obj=set
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Accepted
-[PTT-GATE5-BLOCKED] stale instrKey=MES DEC26|Buy orderId=6d350f7fd02b4ceaab07db3e0324416d
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Working
-[PTT-GATE5-BLOCKED] stale instrKey=MES DEC26|Buy orderId=6d350f7fd02b4ceaab07db3e0324416d
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Working
-[PTT-GATE5-BLOCKED] stale instrKey=MES DEC26|Buy orderId=6d350f7fd02b4ceaab07db3e0324416d
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Accepted
-[PTT-GATE5-BLOCKED] stale instrKey=MES DEC26|Buy orderId=3f28c046b4d44f77a5c508616315aa4f
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Accepted
-[PTT-GATE5-BLOCKED] stale instrKey=MES DEC26|Buy orderId=3f28c046b4d44f77a5c508616315aa4f
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Working
-[PTT-GATE5-BLOCKED] stale instrKey=MES DEC26|Buy orderId=3f28c046b4d44f77a5c508616315aa4f
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=Working
-[PTT-GATE5-BLOCKED] stale instrKey=MES DEC26|Buy orderId=3f28c046b4d44f77a5c508616315aa4f
-[PTT-GATE2-BLOCKED] no rule instr=MES DEC26 acct=Sim103 state=Accepted
-[PTT-GATE2-BLOCKED] no rule instr=MES DEC26 acct=Sim103 state=Accepted
-[PTT-GATE2-BLOCKED] no rule instr=MES DEC26 acct=Sim103 state=Working
-[PTT-GATE2-BLOCKED] no rule instr=MES DEC26 acct=Sim103 state=Working
-[PTT-GATE2-BLOCKED] no rule instr=MES DEC26 acct=Sim104 state=Accepted
-[PTT-GATE2-BLOCKED] no rule instr=MES DEC26 acct=Sim104 state=Accepted
-[PTT-GATE2-BLOCKED] no rule instr=MES DEC26 acct=Sim104 state=Working
-[PTT-GATE2-BLOCKED] no rule instr=MES DEC26 acct=Sim104 state=Working
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelPending
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelPending
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelSubmitted
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelSubmitted
-[PTT-DR5-EVICT] orderId=6d350f7fd02b4ceaab07db3e0324416d instrKey=MES DEC26|Buy
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelPending
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelPending
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelSubmitted
-[TP2-DRAG] IsWorkingBracket=False name=Entry state=CancelSubmitted
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-08
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-08
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-06
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-03
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-03
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-01
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-08
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-06
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-06
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-06
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-06
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-06
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-06
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-03
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-03
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-03
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-03
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-03
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-03
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-03
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-03
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-01
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-01
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-01
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-01
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-06
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-06
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-01
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-01
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[DRAIN-ABORT-LEADER-FLAT] triggered by PAAPEX4221360000010
+[DRAIN-ABORT-LEADER-FLAT] triggered by PAAPEX4221360000010
+[DRAIN-ABORT-LEADER-FLAT] triggered by PAAPEX4221360000011
+[DRAIN-ABORT-LEADER-FLAT] triggered by PAAPEX4221360000011
+[DRAIN-ABORT-LEADER-FLAT] triggered by PAAPEX4221360000011
+[DRAIN-ABORT-LEADER-FLAT] triggered by PAAPEX4221360000011
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-01
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-01
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-01
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-01
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-03
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-03
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-03
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-03
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-03
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-03
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-03
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-03
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-06
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-06
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-06
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-06
+[PTT-COPY-GUARD] ghost-entry blocked (open-position): PA-APEX-422136-08
+MES DEC26
+[PTT-COPY-GUARD] ghost-entry blocked (open-position): PA-APEX-422136-08
+MES DEC26
+[PTT-COPY-GUARD] ghost-entry blocked (open-position): PA-APEX-422136-06
+MES DEC26
+[PTT-COPY-GUARD] ghost-entry blocked (open-position): PA-APEX-422136-06
+MES DEC26
+[PTT-COPY-GUARD] ghost-entry blocked (open-position): PA-APEX-422136-03
+MES DEC26
+[PTT-COPY-GUARD] ghost-entry blocked (open-position): PA-APEX-422136-03
+MES DEC26
+[PTT-COPY-GUARD] ghost-entry blocked (open-position): PA-APEX-422136-01
+MES DEC26
+[PTT-COPY-GUARD] ghost-entry blocked (open-position): PA-APEX-422136-01
+MES DEC26
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-08
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-08
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-01
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-01
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-01
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-03
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-06
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-06
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-08
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-06
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-06
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-06
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-06
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-01
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Target2 state=ChangeSubmitted signal=null acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=ChangeSubmitted signal=null acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-06
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-06
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-01
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-01
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-03
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-03
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-03
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-03
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-03
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-01
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-01
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-01
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-01
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-01
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-03
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-03
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-03
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-03
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-03
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-03
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-03
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-03
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-08
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-08
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-08
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-06
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-06
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-03
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-03
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Close state=Working acct=PA-APEX-422136-01
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-01
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-01
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-03
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-06
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-08
+[TP1-OOU] name=Entry state=ChangeSubmitted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Accepted acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Entry state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=Target2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=Target2 state=Working acct=PA-APEX-422136-08
+[PTT-QX-2T-ALL] button: PAAPEX4221360000010 MES DEC26 qty=1 T1=1 T2=0
+[PTT-QX-2T-ALL] GlobalQuickExit fired (forced 2-target)
+[PTT-QX-ALL] CancelPttBeOrders: acc=PA-APEX-422136-08 count=0 (no active PTT-BE orders)
+[PTT-QX-2T-ALL] leader: PA-APEX-422136-08 MES DEC26 qty=10 forcedTargetCount=2
+[PTT-QX] stop resolved: 7789.75 on PA-APEX-422136-08
+[PTT-QX] snapshot: 4 cancellable orders for MES DEC26
+[PTT-QX] race-guard: snapshot=4 orders on PA-APEX-422136-08
+[PTT-QX] cancel: 4 queued, 0 race-skipped on PA-APEX-422136-08
+[TP1-OOU] name=PTT-QX-Stop state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-QX-Stop state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-QX-Stop state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-QX-Stop state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-QX-T1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-QX-T1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-QX-T1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-QX-T1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-QX-T1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-QX-T1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-QX-T1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-QX-T1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-QX-Stop2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-QX-Stop2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-QX-Stop2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-QX-Stop2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-QX-T2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-QX-T2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-QX-T2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-QX-T2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-QX-T2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-QX-T2 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-QX-T2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-QX-T2 state=Working acct=PA-APEX-422136-08
+[BE-ALL] PttBeSwapAll: instr=MES DEC26 buf=2t
+[BE-ALL] swap: PA-APEX-422136-08 entry=7782.25 targets=2 snapshotStop=7789.75
+[TP1-OOU] name=PTT-BE-Stop-1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Stop-1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Stop-1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Stop-1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Stop-2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Stop-2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Stop-2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Stop-2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-2 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-2 state=Working acct=PA-APEX-422136-08
+[BE-ALL] PttBeSwapAll: instr=MES DEC26 buf=0t
+[BE-ALL] swap: PA-APEX-422136-08 entry=7782.75 targets=2 snapshotStop=7789.75
+[TP1-OOU] name=PTT-BE-Stop-1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Stop-1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Stop-1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Stop-1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-1 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-1 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Stop-2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Stop-2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Stop-2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Stop-2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-2 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Target-2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Target-2 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Stop-1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Stop-1 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Stop-1 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Stop-1 state=Working acct=PA-APEX-422136-08
+PositionStateChanged instr=MES DEC26 panel=MGC DEC26 hasPos=False
+PositionStateChanged instr=MES DEC26 panel=MES DEC26 hasPos=False
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-08
+PositionStateChanged instr=MES DEC26 panel=MGC DEC26 hasPos=False
+PositionStateChanged instr=MES DEC26 panel=MES DEC26 hasPos=False
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Stop-2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Stop-2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Stop-2 state=Accepted signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Stop-2 state=Accepted acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Stop-2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Stop-2 state=Working acct=PA-APEX-422136-08
+[TP1-OOU] name=PTT-BE-Stop-2 state=Working signal=null acct=PA-APEX-422136-08
+[PTT-GATE1-BLOCKED] copy disabled name=PTT-BE-Stop-2 state=Working acct=PA-APEX-422136-08
+PositionStateChanged instr=MES DEC26 panel=MGC DEC26 hasPos=False
+PositionStateChanged instr=MES DEC26 panel=MES DEC26 hasPos=False
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-08
+PositionStateChanged instr=MES DEC26 panel=MGC DEC26 hasPos=False
+PositionStateChanged instr=MES DEC26 panel=MES DEC26 hasPos=False
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-08
+[BE-WARN] PA-APEX-422136-08 flatten overtook BE All -- orders cancelled
+[BE-WARN] PA-APEX-422136-08 flatten overtook BE All -- orders cancelled
+PositionStateChanged instr=MES DEC26 panel=MGC DEC26 hasPos=False
+PositionStateChanged instr=MES DEC26 panel=MES DEC26 hasPos=False
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-08
+PositionStateChanged instr=MES DEC26 panel=MGC DEC26 hasPos=False
+PositionStateChanged instr=MES DEC26 panel=MES DEC26 hasPos=False
+[DRAIN-ABORT-LEADER-FLAT] triggered by PA-APEX-422136-08
+[BE-WARN] PA-APEX-422136-08 flatten overtook BE All -- orders cancelled
+[BE-WARN] PA-APEX-422136-08 flatten overtook BE All -- orders cancelled

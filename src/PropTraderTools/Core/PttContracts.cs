@@ -340,5 +340,13 @@ namespace PropTraderTools
         /// PttGlobalQuickExit.cs (constantification of those callers is
         /// deferred to a future block per B126 scope constraint).</summary>
         internal const string PttBeTargetPrefix = "PTT-BE-Target-";
+
+        /// <summary>Move-target Ask order name prefix. "PTT-MA-Ask-"
+        /// B211: used by PttMoveTargetOne.Execute for Ask-side cancel+resubmit.</summary>
+        internal const string MaAskPrefix = "PTT-MA-Ask-";
+
+        /// <summary>Move-target Bid order name prefix. "PTT-MA-Bid-"
+        /// B211: used by PttMoveTargetOne.Execute for Bid-side cancel+resubmit.</summary>
+        internal const string MaBidPrefix = "PTT-MA-Bid-";
     }
 }
