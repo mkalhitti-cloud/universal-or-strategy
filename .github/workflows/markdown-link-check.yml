@@ -11,8 +11,8 @@ jobs:
   markdown-link-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Check Links
-        uses: JustinBeckwith/linkinator-action@3d5ba091319fa7b0ac14703761eebb7d100e6f6d
+        uses: JustinBeckwith/linkinator-action@12f7a61a56e5e75d659f0dfd6357e2d852ede281
         with:
           config: '.github/mlc_config.json'
